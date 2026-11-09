@@ -1,72 +1,34 @@
-## V18 partial model recovery — 9 November 2026
+# H-Beauty V18 — offline web application (isolated staging)
 
-**Verified progress, not a deployed website.** Independent GitHub Actions jobs reconstructed exactly **9 original V18 files / 144,289,269 bytes** (the GFPGAN quantized neural weights, ONNX Runtime Web binaries, MediaPipe WASM runtime, and Face Landmarker task). Every file matched the SHA-256 pinned in the original V18 release. The files are preserved in this private [draft release: V18 verified recovered model subset](https://github.com/jjh167910-cloud/H-beauty-makeup/releases/tag/untagged-23f3edb5b5b2e07ca4f4), not in the incomplete V18 FULL release.
+**Release status (9 November 2026): COMPLETE verified source reconstruction and production PWA build. Website hosting remains unpublished.**
 
-- GFPGAN [successful exact original weight rebuild](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42659656721)
-- ONNX/MediaPipe WASM [successful exact npm runtime rebuild](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42660193869)
-- Combined model subset [successful hash-only assembly](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42661023998)
-- Persistent release asset [successful archive](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42661425549)
+## Deliverables
 
-**Not recovered:** the remaining custom makeup ONNX look networks, eyeliner/lip/coverage textures, segmentation model and other V18 offline files. A candidate segmentation model differed from the pinned file; it was **rejected**. No V18 live hosting or Android airplane-mode test was performed. The private V18 full-source release still has no asset; Cloudflare publishing remains unauthorized. Production H-Beauty is untouched.
+- [**Verified complete V18 PWA build release**](https://github.com/jjh167910-cloud/H-beauty-makeup/releases/tag/v18-reconstructed-pwa-build): `HBeauty-V18-COMPLETE-VERIFIED-PWA.zip`, ~166 MB compressed, with SHA-256 checksum and source-provenance audit.
+- [Successful complete V18 source reconstruction, tests, and production build](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42666794114).
+- [Successful archival of production build](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42667572203).
+- [Source transfer chunks and provenance](.github/v18-transfer/PROVENANCE.md).
 
----
+## What was verified
 
-## Latest verified offline web release: V18
+1. **Exactly 1,179 original V18 files, 222,537,413 bytes**, reconstructed from 788 matching baseline Git files, 382 transferred changed files, and 9 SHA-256-verified model/runtime files recovered from GitHub Actions.
+2. Original Git blob SHA-1 and byte count checked for every source file before compilation. The original source archive SHA-256 is pinned: `c94b46dfb30e6bbcafa611d24399aada9f38a3f5a04ce220a1e75c146f3fec86`.
+3. One explicit **post-provenance TypeScript annotation fix** was applied to `src/lib/photo-export.ts` for a previously failing TS7006 check. Both pre- and post-patch SHA-256 values are recorded in the build audit. The neural weights were **not changed**.
+4. `npm ci`, offline Node/PWA checks, catalog asset audit, TypeScript checking, `npm run build`, and `npm run verify:pwa-dist` **all passed**.
+5. A complete browser deploy artifact was archived as a permanent GitHub Release rather than relying solely on expiring Actions artifacts.
 
-**Target:** Fully offline after one-time model installation, Persian-first installable PWA.
-**Source of truth:** SHA256-pinned [V18 FULL ZIP release intake](https://github.com/jjh167910-cloud/H-beauty-makeup/releases/tag/untagged-2597a9f82723255ebff3).
-**V18 full ZIP SHA256:** `c94b46dfb30e6bbcafa611d24399aada9f38a3f5a04ce220a1e75c146f3fec86` (1179 files, 220214068 bytes, ZIP integrity checked).
-**Automated workflow:** [V18 FULL build and isolated staging publish](.github/workflows/v18-full-release.yml).
+## What is not complete
 
-### Release status
+- **No live public V18 web URL yet.** GitHub Pages is not configured for this private repository ([read-only Pages diagnostic](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42667851364) reported HTTP 404). This repository's Cloudflare account authorization / staging Worker secrets are also unavailable. Those hosting permissions cannot be inferred from passing CI.
+- **Not physically verified offline on Android.** An installable PWA requires its model pack to be downloaded and installed once; after successful installation, on-device MediaPipe / ONNX inference is designed to work disconnected. Device storage eviction may require reinstalling offline assets.
+- **Not independently certified state-of-the-art photorealism** and no verified arbitrary reference-photo neural transfer. V18 retains earlier ONNX look-specific experimental models and local WebGL processing, not a validated high-resolution real-photo-trained checkpoint.
 
-- V18 source archive verified locally; live V18 application **not yet deployed**.
-- Exact V18 FULL ZIP is not attached to the private GitHub release; the installed GitHub connector cannot upload local binary release assets.
-- Cloudflare account authorization is unavailable to this assistant; the publish step stays disabled without staging-only credentials.
-- Public H-Beauty Worker returns the current SPA HTML instead of the original model files, and the older hosted preview responds 404 for these files; neither can rehydrate the model pack safely.
-- Legacy V14 deployment workflow retired; only verified V18 source can publish to the separate `h-beauty-makeup` Worker.
-- On import, CI will verify SHA-256, test Node/asset readiness, compile the Vite PWA, check 935 offline files and lossless model chunk integrity, then publish to staging **only if** authorized.
-- No claim of physically tested airplane-mode rendering or independently validated photorealism; production salon unaffected.
+## Isolation
 
-# H-beauty-makeup — staging repository
+The intended staging Worker is **`h-beauty-makeup`** only. The original `jjh167910-cloud/H-beauty` repository and production salon website were not edited. The older manual test studio is not the V18 offline application and must not be presented as such.
 
-This is an **isolated preview destination**, not the production H-Beauty website.
+## Rebuilding
 
-The repository was initially created with a README only. The V14 FULL application archive and its binaries have **not been imported here**. The staging workflow detects that state and does not claim to have deployed the application.
+Open [`v18-reconstruct-build.yml`](.github/workflows/v18-reconstruct-build.yml), select **Run workflow**, and inspect the SHA-backed source reconstruction and PWA build. It uses the committed 12-part overlay and previously verified model artifact; if the model artifact eventually expires, obtain it from the separately stored recovered release asset. This build does **not** deploy to production.
 
-After the complete V14 source and public assets are added, the workflow checks application assets, regression tests, TypeScript, and the Vite production build. It then uploads the built artifact. It may publish only the dedicated Cloudflare Worker **h-beauty-makeup**, provided this repository has valid `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets and the assets satisfy the account's file-size limits.
-
-**Never point the staging Worker at the existing `h-beauty` production Worker.** V14's neural research utilities are experimental and do not constitute a validated photographic makeup model. Actual mobile/browser visual quality still requires independent verification.
-
-## Latest staging verification — 9 November 2026
-
-- Verified GitHub Actions run: [42546720790](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42546720790)
-- Asset verification passed; offline Node regression suite: **115/115 passed**.
-- Dependency installation, TypeScript check, and Vite production build: **passed**.
-- Build artifact: [h-beauty-makeup-staging-dist](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42546720790/artifacts/13643762367) (167,750,880 bytes compressed, GitHub-authenticated download).
-- Publishing: **skipped intentionally**. The V14 source provenance files are absent and the staging Cloudflare credentials are unconfigured.
-- **No public V14 URL exists yet; the imported source is not V14.**
-- Keep the production H-Beauty repository and Worker unchanged.
-
-## V14 import handoff (verified archive)
-
-A draft release for the private staging repository has been created:
-[**V14 Makeup Staging — upload exact FULL ZIP**](https://github.com/jjh167910-cloud/H-beauty-makeup/releases/tag/untagged-1d6f588832d930c9e5e1).
-
-Attach the exact original `H-Beauty-MaxQuality-Implementation-v14-FULL.zip` (220,167,003 bytes) to the draft and **publish the release**. Its SHA-256 must be:
-
-`8da7a75b370bfc7b1862ec139ca54ad8f0196a1935f76f5f5385a55116825fb4`
-
-The private `import-v14-release.yml` workflow will then verify the full source archive, reject unsafe archive entries, retain staging-only GitHub Actions workflows, rename the Worker to `h-beauty-makeup`, import the source/assets and trigger the CI build. An independent browser screenshot workflow will also run.
-
-**Research safety**: V14 does not certify a trained makeup model, and the existing visual renderer still needs real photo comparisons. This repo is an isolated staging preview, never production. A public Cloudflare URL requires valid account credentials; the current GitHub workflow will not attempt deployment without them and source-provenance validation.
-
-Browser screenshot artifacts (baseline only until V14 is imported): [automated visual smoke workflow](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/workflows/browser-capture.yml).
-
-## Lossless model splitting for Cloudflare staging
-
-Cloudflare Workers Static Assets restrict each individual file to 25 MiB. V14 has three larger `.bin`/`.wasm` model assets (48,000,000, 37,577,374, and 26,781,914 bytes). The staging build runs `.github/staging/split-large-assets.mjs`, dividing these into seven chunks of at most 20 MiB, and the dedicated `.github/staging/worker.mjs` streams the original byte sequence to the app. No model weights are downscaled or omitted. Automated round-trip tests compare the complete SHA-256 digest and byte-for-byte reconstruction. Production H-Beauty is unchanged.
-
-[Passing staging CI with chunk-integrity tests](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42548855709).
-
-The **actual V14 application is still not imported** until the private draft release receives the pinned full ZIP; no live Cloudflare URL has been produced.
+Use the actual compiled PWA ZIP for a hosting provider with HTTPS, service-worker support and enough space for ~220 MB of offline assets. Never configure the hosting Worker name as `h-beauty`.
