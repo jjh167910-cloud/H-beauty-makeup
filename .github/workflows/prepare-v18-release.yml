@@ -1,0 +1,26 @@
+name: Prepare pinned V18 offline web release
+on:
+  push:
+    paths:
+      - '.github/workflows/prepare-v18-release.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  intake:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prepare source intake without touching production
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "jjh167910-cloud/H-beauty-makeup"
+          TAG="v18-offline-web"
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target main --draft \
+              --title "H-Beauty V18 — Complete Offline Web PWA" \
+              --notes "Pinned FULL archive: H-Beauty-Offline-Web-PWA-v18-FULL.zip. SHA256 c94b46dfb30e6bbcafa611d24399aada9f38a3f5a04ce220a1e75c146f3fec86. Once the exact asset is attached and this release is published, v18-full-release.yml verifies full ZIP integrity, installs dependencies, builds and tests complete PWA, and stages only the h-beauty-makeup Worker if Cloudflare credentials are available. Never targets production."
+          fi
+          echo 'Draft V18 release is prepared. No claim of V18 live deployment.' >> "$GITHUB_STEP_SUMMARY"
