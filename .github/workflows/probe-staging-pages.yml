@@ -1,0 +1,25 @@
+name: Check private staging Pages hosting eligibility
+on:
+  push:
+    paths:
+      - '.github/workflows/probe-staging-pages.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: read
+jobs:
+  check_pages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read-only Pages API check
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          status=$(gh api -i "/repos/$GITHUB_REPOSITORY/pages" 2>&1 | awk '/^HTTP\//{code=$2} END{print code}')
+          echo "GITHUB_PAGES_API_STATUS=${status:-unavailable}"
+          if [ "$status" = "200" ]; then
+            gh api "/repos/$GITHUB_REPOSITORY/pages" --jq '{html_url, status, build_type,source}'
+          fi
+          echo "Read-only check only: repository visibility and Pages settings are not changed." >> "$GITHUB_STEP_SUMMARY"
