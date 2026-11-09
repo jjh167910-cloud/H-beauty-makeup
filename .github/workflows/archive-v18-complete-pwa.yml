@@ -1,0 +1,81 @@
+name: Preserve complete verified V18 PWA build
+on:
+  push:
+    paths:
+      - '.github/workflows/archive-v18-complete-pwa.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  archive:
+    if: ${{ github.repository == 'jjh167910-cloud/H-beauty-makeup' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Fetch source-verified complete PWA build artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v18-complete-build
+          gh run download 42666794114 --repo "$GITHUB_REPOSITORY" \
+            -n HBeauty-V18-COMPLETE-VERIFIED-PWA -D /tmp/v18-complete-build
+          test -s /tmp/v18-complete-build/dist/index.html
+          test -s /tmp/v18-complete-build/_GITHUB_SOURCE_AUDIT.json
+      - name: Revalidate build provenance and archive deployable site
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,hashlib,zipfile,os
+          root=Path('/tmp/v18-complete-build')
+          proof=json.loads((root/'_GITHUB_SOURCE_AUDIT.json').read_text())
+          assert proof['source_sha256']=='c94b46dfb30e6bbcafa611d24399aada9f38a3f5a04ce220a1e75c146f3fec86'
+          assert proof['files']==1179
+          assert proof['bytes']==222537413
+          assert proof['sources']=={'overlay':382,'recovered':9,'baseline':788}
+          assert proof['post_validation_build_patch']['file']=='src/lib/photo-export.ts'
+          dist=root/'dist'
+          required=['index.html','sw.js','manifest.webmanifest','_hbeauty_chunks/manifest.json']
+          for name in required:
+              assert (dist/name).is_file(), f'Production offline PWA file missing: {name}'
+          files=[x for x in dist.rglob('*') if x.is_file()]
+          assert len(files)>300, f'Incomplete PWA build: {len(files)} files'
+          archive=Path('/tmp/HBeauty-V18-COMPLETE-VERIFIED-PWA.zip')
+          with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as z:
+              for p in files:
+                  z.write(p,p.relative_to(root).as_posix())
+              z.write(root/'_GITHUB_SOURCE_AUDIT.json','_GITHUB_SOURCE_AUDIT.json')
+          with zipfile.ZipFile(archive) as z:
+              assert z.testzip() is None
+          sha=hashlib.sha256(archive.read_bytes()).hexdigest()
+          Path('/tmp/HBeauty-V18-COMPLETE-VERIFIED-PWA.sha256').write_text(
+              sha+'  '+archive.name+'\\n',encoding='utf-8')
+          print('PWA_FILES',len(files),'ARCHIVE_BYTES',archive.stat().st_size,'SHA256',sha)
+          PY
+      - name: Save as source-backed GitHub release (not a live website)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG=v18-reconstructed-pwa-build
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target main \
+              --title "H-Beauty V18 — full verified offline PWA build (NOT hosted)" \
+              --notes "This is the compiled, SHA-verified offline-capable PWA reconstructed from the exact 1,179-file V18 source. Every source Git SHA1 matches. The PWA compiles, runs regression/integrity checks and produces deployable static output. This GitHub Release is NOT a publicly hosted site, does NOT assert physical-device airplane-mode testing, and does NOT certify state-of-the-art photorealism. Cloudflare production H-Beauty is unchanged." \
+              --latest=false
+          fi
+          gh release upload "$TAG" \
+            /tmp/HBeauty-V18-COMPLETE-VERIFIED-PWA.zip \
+            /tmp/HBeauty-V18-COMPLETE-VERIFIED-PWA.sha256 \
+            --repo "$GITHUB_REPOSITORY" --clobber
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets,url \
+            --jq '{url:.url,assets:[.assets[].name]}'
+      - name: Archive status summary
+        if: always()
+        run: |
+          echo 'Complete V18 PWA build asset: verified and preserved separately from the live H-Beauty salon.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'A published GitHub release is a file-download destination, not a hosted web app.' >> "$GITHUB_STEP_SUMMARY"
