@@ -1,130 +1,27 @@
-name: H-Beauty Makeup — isolated preview
+name: H-Beauty legacy baseline CI (no deployment)
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
-concurrency:
-  group: h-beauty-makeup-staging
-  cancel-in-progress: true
 jobs:
-  preflight:
+  legacy_verify:
     runs-on: ubuntu-latest
-    outputs:
-      source_present: ${{ steps.check.outputs.present }}
-    steps:
-      - uses: actions/checkout@v4
-      - id: check
-        shell: bash
-        run: |
-          if test -f package.json && test -f package-lock.json && test -f index.html && test -d src && test -d public; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=Source import required::The V14 FULL archive has not yet been imported into this repository. No deployment was attempted."
-            echo "## Preview not yet deployed" >> "$GITHUB_STEP_SUMMARY"
-            echo "The repo is missing the V14 application source and assets. The workflow safely skipped build and deployment." >> "$GITHUB_STEP_SUMMARY"
-          fi
-  staging:
-    needs: preflight
-    if: needs.preflight.outputs.source_present == 'true'
-    runs-on: ubuntu-latest
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-      - name: Verify staging isolation
-        shell: bash
+      - name: Verify public baseline only
         run: |
-          test "$GITHUB_REPOSITORY" = "jjh167910-cloud/H-beauty-makeup"
-          echo "Only the h-beauty-makeup staging Worker may be deployed."
-      - name: Install dependencies
-        run: npm ci --no-audit --no-fund
-      - name: Validate assets and offline behavior
-        run: |
+          npm ci --no-audit --no-fund
           npm run verify:assets
           npm run test:offline
-      - name: Typecheck and production build
-        run: |
           npm run typecheck
           npm run build
-      - name: Verify V14 source hashes and no private research files
-        run: python3 .github/staging/verify-v14-source.py
-      - uses: actions/setup-python@v5
-        if: ${{ hashFiles('QUALITY_V14_MANIFEST.json') != '' }}
-        with:
-          python-version: '3.12'
-      - name: Validate V14 image-comparison research code
-        if: ${{ hashFiles('QUALITY_V14_MANIFEST.json') != '' }}
-        run: |
-          python -m pip install "numpy>=1.26,<3" "pillow>=10,<13"
-          python -m unittest discover -s scripts/quality -p 'test_compare_renderer_v14.py' -q
-      - name: Validate and split oversized AI model assets without loss
-        run: |
-          node --test .github/staging/test-large-assets.mjs
-          node .github/staging/split-large-assets.mjs dist
-      - uses: actions/upload-artifact@v4
-        with:
-          name: h-beauty-makeup-staging-dist
-          path: dist/
-          retention-days: 7
-      - name: Validate staging deployment capability
-        id: deployment_gate
-        shell: bash
-        run: |
-          if [ ! -f QUALITY_V14_MANIFEST.json ] || [ ! -f scripts/quality/compare_renderer_v14.py ]; then
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=V14 not imported::Baseline build only. V14 validation files are absent; no deployment attempted."
-            exit 0
-          fi
-          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=Cloudflare not connected::CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID must be configured in this repository. Build artifact is available for inspection."
-            exit 0
-          fi
-          if find dist -type f -size +25M -print -quit | grep -q .; then
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::warning title=Large assets::The build contains files above 25 MiB. Validate the Cloudflare plan's per-asset limit before publishing; no assets were removed automatically."
-            exit 0
-          fi
-          echo "enabled=true" >> "$GITHUB_OUTPUT"
-      - name: Deploy dedicated makeup preview (never production)
-        if: steps.deployment_gate.outputs.enabled == 'true'
-        shell: bash
-        run: |
-          node --input-type=module <<'NODE'
-          import {readFileSync,writeFileSync} from "node:fs";
-          const manifest=JSON.parse(readFileSync("dist/_hbeauty_chunks/manifest.json","utf8"));
-          const originals=Object.keys(manifest.files);
-          const config={
-            name:"h-beauty-makeup",
-            compatibility_date:"2026-11-09",
-            main:".github/staging/worker.mjs",
-            assets:{
-              directory:"./dist",
-              binding:"ASSETS",
-              not_found_handling:"single-page-application",
-              run_worker_first:originals.length?originals:true
-            }
-          };
-          writeFileSync(".wrangler-makeup-staging.jsonc",JSON.stringify(config,null,2));
-          console.log("Staging Worker will stream",originals.length,"split AI assets.");
-          NODE
-          npx --yes wrangler@4 deploy --config .wrangler-makeup-staging.jsonc
-      - name: Summary
+      - name: Explain release separation
         if: always()
-        shell: bash
         run: |
-          {
-            echo "## H-Beauty Makeup staging"
-            echo "Repository: jjh167910-cloud/H-beauty-makeup"
-            echo "Worker name: h-beauty-makeup (never h-beauty)"
-            echo "Deployment eligible: ${{ steps.deployment_gate.outputs.enabled }}"
-            echo "Production H-Beauty is never targeted by this workflow."
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo 'Legacy baseline CI does not deploy anything.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Use v18-full-release.yml for the SHA-pinned offline PWA release.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Production H-Beauty and the h-beauty-makeup staging Worker remain unchanged.' >> "$GITHUB_STEP_SUMMARY"
