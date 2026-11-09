@@ -1,0 +1,83 @@
+name: Publish verified V18 offline PWA to GitHub Pages
+on:
+  push:
+    paths:
+      - '.github/workflows/v18-github-pages.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: hbeauty-v18-pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.repository == 'jjh167910-cloud/H-beauty-makeup'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download pinned verified PWA archive and checksum
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v18 /tmp/site
+          gh release download v18-reconstructed-pwa-build --repo "$GITHUB_REPOSITORY" --dir /tmp/v18 --pattern 'HBeauty-V18-COMPLETE-VERIFIED-PWA.zip'
+          gh release download v18-reconstructed-pwa-build --repo "$GITHUB_REPOSITORY" --dir /tmp/v18 --pattern 'HBeauty-V18-COMPLETE-VERIFIED-PWA.sha256'
+          cd /tmp/v18
+          ls -lah
+          cat HBeauty-V18-COMPLETE-VERIFIED-PWA.sha256
+          sha256sum -c HBeauty-V18-COMPLETE-VERIFIED-PWA.sha256
+          unzip -tq HBeauty-V18-COMPLETE-VERIFIED-PWA.zip | tail -n 2
+      - name: Extract verified web build and assess asset paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          unzip -q /tmp/v18/HBeauty-V18-COMPLETE-VERIFIED-PWA.zip -d /tmp/v18/unpacked
+          echo 'Archive top-level files:'
+          find /tmp/v18/unpacked -maxdepth 2 -type f | head -n 25
+          if test -f /tmp/v18/unpacked/index.html; then
+            cp -a /tmp/v18/unpacked/. /tmp/site/
+          elif test -f /tmp/v18/unpacked/dist/index.html; then
+            cp -a /tmp/v18/unpacked/dist/. /tmp/site/
+          else
+            echo '::error::Not a valid compiled V18 dist archive. Refusing to publish.'
+            exit 1
+          fi
+          test -s /tmp/site/index.html
+          test -s /tmp/site/sw.js
+          echo 'Root index snippet:'
+          head -c 550 /tmp/site/index.html
+          echo
+          echo 'Model chunks:'
+          find /tmp/site -type f -name '*.part*' | head -n 14
+          printf 'files='; find /tmp/site -type f | wc -l
+          printf 'bytes='; du -sb /tmp/site
+          echo 'All resources are read-only public website assets. No production H-Beauty deployment.'
+      - name: Configure isolated GitHub Pages site
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Upload compiled static PWA to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: /tmp/site/
+      - name: Deploy only to staging GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+      - name: Completion summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo 'V18 PWA source: SHA256-verified compiled release asset.'
+            echo 'Separate staging repository: jjh167910-cloud/H-beauty-makeup.'
+            echo 'No connection to production H-Beauty Worker.'
+            echo 'Offline cache/inference and physical mobile tests still must be verified.'
+          } >> "$GITHUB_STEP_SUMMARY"
