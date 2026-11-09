@@ -34,6 +34,13 @@ try {
       return {controller:!!navigator.serviceWorker.controller,state:reg?.active?.state,caches:result};
     });
     console.log('LIVE_PRE_RELOAD_DIAGNOSTIC',JSON.stringify({device:device.name,diagnostic}));
+    const fetchDiagnostic=await page.evaluate(async()=>{
+      const queries=['/','/index.html','/manifest.webmanifest','/offline-pack-v15.json'];
+      const result=[];
+      for(const path of queries){try{const r=await fetch(path);result.push({path,status:r.status,len:(await r.arrayBuffer()).byteLength,type:r.type});}catch(e){result.push({path,error:String(e)})}}
+      return result;
+    });
+    console.log('LIVE_CONTROLLED_FETCH_DIAGNOSTIC',JSON.stringify(fetchDiagnostic));
     page.on('requestfailed',r=>console.log('LIVE_FAILED_REQUEST',JSON.stringify({url:r.url(),failure:r.failure()})));
     page.on('console',m=>{if(m.type()==='error')console.log('LIVE_CONSOLE_ERROR',m.text().slice(0,400));});
     await page.reload({waitUntil:'domcontentloaded',timeout:45000});
