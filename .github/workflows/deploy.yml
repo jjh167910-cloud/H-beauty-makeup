@@ -1,0 +1,37 @@
+name: Legacy release checks (isolated, no deployment)
+on:
+  workflow_dispatch:
+    inputs:
+      staging_url:
+        description: 'Optional URL for independent live manicure verification'
+        required: false
+        type: string
+permissions:
+  contents: read
+jobs:
+  compatibility:
+    runs-on: ubuntu-latest
+    env:
+      HBEAUTY_CURATED_80: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Verify optional eighty-makeup edition
+        run: |
+          if [ "$HBEAUTY_CURATED_80" = "true" ]; then
+            npm run prepare:makeup-curated-80
+            npm run verify:makeup-curated-80
+          fi
+      - run: npm run verify:assets
+      - name: Verify live manicure independently only when an actual staging URL exists
+        if: ${{ inputs.staging_url != '' }}
+        env:
+          STAGING_URL: ${{ inputs.staging_url }}
+        run: |
+          node scripts/verify-live-manicure-batch50d.mjs "$STAGING_URL"
+      - name: Explain
+        run: echo 'This compatibility workflow NEVER deploys and cannot touch h-beauty.'
