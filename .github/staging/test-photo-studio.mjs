@@ -15,6 +15,7 @@ try{
     await page.getByRole('button',{name:'نمونه شماتیک برای آزمایش رابط'}).click();
     const stage=page.locator('#stage');
     await stage.waitFor({state:'visible'});
+    await page.locator('#brushCanvas').scrollIntoViewIfNeeded();
     const rect=await page.locator('#brushCanvas').boundingBox();
     assert.ok(rect && rect.width>=100 && rect.height>=100,'Canvas must have real dimensions');
     assert.match(await page.locator('#dimensions').innerText(),/۷۲۰|720/);
