@@ -17,3 +17,18 @@ After the complete V14 source and public assets are added, the workflow checks a
 - Publishing: **skipped intentionally**. The V14 source provenance files are absent and the staging Cloudflare credentials are unconfigured.
 - **No public V14 URL exists yet; the imported source is not V14.**
 - Keep the production H-Beauty repository and Worker unchanged.
+
+## V14 import handoff (verified archive)
+
+A draft release for the private staging repository has been created:
+[**V14 Makeup Staging — upload exact FULL ZIP**](https://github.com/jjh167910-cloud/H-beauty-makeup/releases/tag/untagged-1d6f588832d930c9e5e1).
+
+Attach the exact original `H-Beauty-MaxQuality-Implementation-v14-FULL.zip` (220,167,003 bytes) to the draft and **publish the release**. Its SHA-256 must be:
+
+`8da7a75b370bfc7b1862ec139ca54ad8f0196a1935f76f5f5385a55116825fb4`
+
+The private `import-v14-release.yml` workflow will then verify the full source archive, reject unsafe archive entries, retain staging-only GitHub Actions workflows, rename the Worker to `h-beauty-makeup`, import the source/assets and trigger the CI build. An independent browser screenshot workflow will also run.
+
+**Research safety**: V14 does not certify a trained makeup model, and the existing visual renderer still needs real photo comparisons. This repo is an isolated staging preview, never production. A public Cloudflare URL requires valid account credentials; the current GitHub workflow will not attempt deployment without them and source-provenance validation.
+
+Browser screenshot artifacts (baseline only until V14 is imported): [automated visual smoke workflow](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/workflows/browser-capture.yml).
