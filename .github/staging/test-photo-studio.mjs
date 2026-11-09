@@ -26,6 +26,16 @@ try{
     await page.mouse.down();
     await page.mouse.move(x+Math.max(8,rect.width*.07),y,{steps:7});
     await page.mouse.up();
+    const diagnostic=await page.evaluate(()=>{
+      const c=document.querySelector('#brushCanvas');
+      const ctx=c.getContext('2d');
+      const img=ctx.getImageData(0,0,c.width,c.height).data;
+      let visible=0;for(let i=3;i<img.length;i+=4)if(img[i]>0)visible++;
+      const r=c.getBoundingClientRect();
+      const hit=document.elementFromPoint(r.x+r.width*.52,r.y+r.height*.60);
+      return {visibleOverlayPixels:visible,canvasWidth:c.width,canvasHeight:c.height,cssWidth:r.width,cssHeight:r.height,hitId:hit?.id,hitTag:hit?.tagName};
+    });
+    console.log('BRUSH_DIAGNOSTICS',JSON.stringify({viewport:c.name,...diagnostic}));
     await page.locator('#validate').click();
     assert.match(await page.locator('#notice').innerText(),/بررسی موفق/);
     const p=page.waitForEvent('download');
