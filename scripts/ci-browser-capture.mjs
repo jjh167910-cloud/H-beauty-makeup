@@ -15,7 +15,14 @@ try {
   const errors=[];
   page.on("pageerror",e=>errors.push(String(e)));
   const response=await page.goto(base+c.path,{waitUntil:"domcontentloaded",timeout:30000});
-  await page.waitForTimeout(1800);
+  await page.waitForTimeout(1000);
+  if(c.name!=="mobile-home"){
+    const welcome=page.getByRole("button",{name:"شروع و مشاهده مدل‌ها"});
+    if(await welcome.isVisible().catch(()=>false)){
+      await welcome.click();
+      await page.waitForTimeout(550);
+    }
+  }
   const text=await page.locator("body").innerText().catch(()=>"");
   const screenshot="quality-reports/browser-preview/"+c.name+".png";
   await page.screenshot({path:screenshot,fullPage:true,animations:"disabled"});
