@@ -54,6 +54,17 @@ jobs:
         run: |
           npm run typecheck
           npm run build
+      - name: Verify V14 source hashes and no private research files
+        run: python3 .github/staging/verify-v14-source.py
+      - uses: actions/setup-python@v5
+        if: ${{ hashFiles('QUALITY_V14_MANIFEST.json') != '' }}
+        with:
+          python-version: '3.12'
+      - name: Validate V14 image-comparison research code
+        if: ${{ hashFiles('QUALITY_V14_MANIFEST.json') != '' }}
+        run: |
+          python -m pip install "numpy>=1.26,<3" "pillow>=10,<13"
+          python -m unittest discover -s scripts/quality -p 'test_compare_renderer_v14.py' -q
       - name: Validate and split oversized AI model assets without loss
         run: |
           node --test .github/staging/test-large-assets.mjs
