@@ -1,3 +1,16 @@
+## V18 partial model recovery — 9 November 2026
+
+**Verified progress, not a deployed website.** Independent GitHub Actions jobs reconstructed exactly **9 original V18 files / 144,289,269 bytes** (the GFPGAN quantized neural weights, ONNX Runtime Web binaries, MediaPipe WASM runtime, and Face Landmarker task). Every file matched the SHA-256 pinned in the original V18 release. The files are preserved in this private [draft release: V18 verified recovered model subset](https://github.com/jjh167910-cloud/H-beauty-makeup/releases/tag/untagged-1713003a7cc80b941972), not in the incomplete V18 FULL release.
+
+- GFPGAN [successful exact original weight rebuild](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42659656721)
+- ONNX/MediaPipe WASM [successful exact npm runtime rebuild](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42660193869)
+- Combined model subset [successful hash-only assembly](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42661023998)
+- Persistent release asset [successful archive](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42661425549)
+
+**Not recovered:** the remaining custom makeup ONNX look networks, eyeliner/lip/coverage textures, segmentation model and other V18 offline files. A candidate segmentation model differed from the pinned file; it was **rejected**. No V18 live hosting or Android airplane-mode test was performed. The private V18 full-source release still has no asset; Cloudflare publishing remains unauthorized. Production H-Beauty is untouched.
+
+---
+
 ## Latest verified offline web release: V18
 
 **Target:** Fully offline after one-time model installation, Persian-first installable PWA.
