@@ -90,7 +90,8 @@ jobs:
           python3 - <<'PY'
           import json
           p='/tmp/hbeauty-v18-source/H-beauty/wrangler.jsonc'
-          config=json.load(open(p))
+          lines=open(p,encoding='utf8').read().splitlines()
+          config=json.loads('\n'.join(line for line in lines if not line.strip().startswith('//')))
           assert config['name']=='h-beauty-makeup', 'Only the dedicated staging Worker is allowed'
           print('Verified Cloudflare worker name: h-beauty-makeup')
           PY
