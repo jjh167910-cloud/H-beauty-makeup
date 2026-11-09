@@ -1,0 +1,64 @@
+name: Archive verified recovered V18 models as private release asset
+on:
+  push:
+    paths:
+      - '.github/workflows/archive-v18-recovered-assets.yml'
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Fetch exact verified assembled model artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = 'jjh167910-cloud/H-beauty-makeup'
+          mkdir -p /tmp/hbeauty-recovery
+          gh run download 42661023998 --repo "$GITHUB_REPOSITORY" \
+            -n hbeauty-v18-recovered-offline-models-VERIFIED -D /tmp/hbeauty-recovery
+      - name: Validate recovered subset and create private archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,hashlib
+          root=Path('/tmp/hbeauty-recovery')
+          manifest=json.loads((root/'RECOVERY_MANIFEST.json').read_text())
+          assets=manifest['files']
+          assert len(assets)==9
+          total=0
+          for item,info in assets.items():
+            p=root/'public'/item.lstrip('/')
+            assert p.is_file(),item
+            assert p.stat().st_size==info['bytes']
+            assert hashlib.file_digest(p.open('rb'),'sha256').hexdigest()==info['sha256']
+            total+=p.stat().st_size
+          assert total==144289269
+          print('PASS verified 9 exact original assets,',total,'bytes')
+          PY
+          cd /tmp/hbeauty-recovery
+          zip -q -r /tmp/HBeauty-V18-VERIFIED-MODEL-SUBSET.zip RECOVERY_MANIFEST.json public/
+          sha256sum /tmp/HBeauty-V18-VERIFIED-MODEL-SUBSET.zip
+      - name: Preserve exact bytes in private draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag='v18-verified-recovered-assets'
+          if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" \
+              --target main --draft \
+              --title 'H-Beauty V18 — verified recovered model subset (NOT complete)' \
+              --notes 'Only 9 pinned SHA256-verified GFPGAN / ONNX Runtime / MediaPipe files (144,289,269 original bytes). NOT the full V18 PWA; remaining custom makeup weights and other model/catalog assets still needed. No live deployment is represented here.'
+          fi
+          gh release upload "$tag" /tmp/HBeauty-V18-VERIFIED-MODEL-SUBSET.zip \
+            --repo "$GITHUB_REPOSITORY" --clobber
+          echo 'Draft partial verified-model release uploaded. No production or staging deployment happened.' >> "$GITHUB_STEP_SUMMARY"
