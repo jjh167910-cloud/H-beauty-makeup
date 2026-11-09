@@ -1,0 +1,337 @@
+/*
+ * Hananeh Beauty — editorial atelier layer.
+ * All surface colours inherit the existing semantic light/dark tokens.
+ * The home journey is intentionally distinct from a generic dashboard:
+ * fashion editorial → choose a hair mood → request a real appointment.
+ */
+@layer components {
+  .atelier-heading {
+    position: relative;
+    padding-block: 0.75rem 0.25rem;
+  }
+  .atelier-heading__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.375rem 1rem;
+    margin-block-end: 1.5rem;
+    color: var(--color-ink-2);
+  }
+  .atelier-heading__index {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-family: var(--font-serif);
+    direction: ltr;
+    unicode-bidi: isolate;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+  }
+  .atelier-heading__index::before {
+    content: "";
+    width: 1.8rem;
+    height: 1px;
+    background: var(--color-gold);
+  }
+  .atelier-heading__title {
+    max-width: 16ch;
+    font-size: clamp(2.4rem, 7vw, 3.45rem);
+    line-height: 1.47;
+    font-weight: 250;
+    letter-spacing: 0;
+  }
+  .atelier-heading__lead {
+    max-width: 27rem;
+    margin-block-start: 0.7rem;
+    color: var(--color-ink-2);
+    font-size: 0.86rem;
+    line-height: 1.9;
+  }
+
+  .atelier-hero-wrap {
+    position: relative;
+    isolation: isolate;
+  }
+  .atelier-hero {
+    position: relative;
+    display: block;
+    min-height: min(114vw, 35rem);
+    overflow: hidden;
+    border-radius: 48% 48% 1.25rem 1.25rem / 26% 26% 1.25rem 1.25rem;
+    background: var(--color-sunken);
+    color: white;
+    box-shadow: var(--shadow-3);
+    text-align: start;
+    width: 100%;
+  }
+  .atelier-hero > img {
+    transition: transform 900ms var(--ease-out);
+  }
+  .atelier-hero:focus-visible > img,
+  .atelier-hero:hover > img {
+    transform: scale(1.035);
+  }
+  .atelier-hero__vignette {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 37%, oklch(12% 0.01 60 / 0.22) 62%, oklch(8% 0.01 60 / 0.88) 100%);
+    pointer-events: none;
+  }
+  .atelier-hero__caption {
+    position: absolute;
+    inset-inline: clamp(1.25rem, 5vw, 2rem);
+    inset-block-end: clamp(1.1rem, 4vw, 2rem);
+    display: grid;
+    justify-items: start;
+    max-width: 75%;
+    gap: 0.45rem;
+    text-shadow: 0 2px 20px rgb(0 0 0 / 0.28);
+  }
+  .atelier-hero__caption .t-title-1 {
+    font-size: clamp(1.65rem, 5vw, 2.25rem);
+  }
+  .atelier-hero__edge {
+    position: absolute;
+    inset-inline-start: 1.25rem;
+    inset-block-start: 27%;
+    writing-mode: vertical-rl;
+    direction: ltr;
+    letter-spacing: 0.25em;
+    font-family: var(--font-serif);
+    font-size: 0.65rem;
+    color: white;
+    opacity: 0.92;
+    text-shadow: 0 1px 5px rgb(0 0 0 / 0.3);
+  }
+  .atelier-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-block-start: 1rem;
+  }
+  .atelier-hero-actions__copy {
+    max-width: 16rem;
+    font-size: 0.78rem;
+    line-height: 1.75;
+    color: var(--color-ink-2);
+  }
+  .atelier-hero-actions .btn {
+    flex-shrink: 0;
+  }
+
+  .atelier-mood {
+    display: grid;
+    gap: 1rem;
+  }
+  .atelier-mood__intro {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 0.8rem;
+  }
+  .atelier-mood__cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(0.5rem, 2.5vw, 0.85rem);
+  }
+  .atelier-mood__card {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+    border-radius: 7rem 7rem 0.75rem 0.75rem;
+    background: var(--color-sunken);
+    aspect-ratio: 0.65;
+    isolation: isolate;
+    box-shadow: var(--shadow-1);
+    text-align: start;
+    transition: transform 240ms var(--ease-out);
+  }
+  .atelier-mood__card:active { transform: scale(0.97); }
+  .atelier-mood__card img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 700ms var(--ease-out);
+  }
+  .atelier-mood__card:hover img,
+  .atelier-mood__card:focus-visible img { transform: scale(1.06); }
+  .atelier-mood__card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 35%, oklch(10% 0 0 / 0.78));
+    pointer-events: none;
+  }
+  .atelier-mood__caption {
+    position: absolute;
+    z-index: 1;
+    inset-inline: 0.7rem;
+    inset-block-end: 0.7rem;
+    display: grid;
+    gap: 0.05rem;
+    color: white;
+    line-height: 1.5;
+    font-size: clamp(0.74rem, 2.2vw, 0.9rem);
+    font-weight: 570;
+    text-shadow: 0 1px 12px rgb(0 0 0 / 0.2);
+  }
+  .atelier-mood__caption small {
+    direction: ltr;
+    unicode-bidi: isolate;
+    font-family: var(--font-serif);
+    font-size: 0.56rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: var(--color-champagne);
+  }
+  .atelier-mood__footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--color-ink-2);
+  }
+
+  .atelier-journeys {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem;
+  }
+  .atelier-journey {
+    position: relative;
+    min-height: 11.25rem;
+    padding: 1.35rem 1.15rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    border-radius: var(--radius-lg);
+    text-align: start;
+    color: var(--color-ink);
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    transition: transform var(--duration-base) var(--ease-out);
+  }
+  .atelier-journey:active { transform: scale(0.98); }
+  .atelier-journey[data-primary] {
+    background: var(--color-inverse);
+    color: var(--color-on-inverse);
+    border-color: transparent;
+  }
+  .atelier-journey__number {
+    font: italic 1.55rem/1 var(--font-serif);
+    color: var(--color-gold-ink);
+  }
+  .atelier-journey[data-primary] .atelier-journey__number {
+    color: var(--color-champagne);
+  }
+  .atelier-journey__title {
+    display: block;
+    font-size: 1.08rem;
+    line-height: 1.65;
+    font-weight: 540;
+  }
+  .atelier-journey__note {
+    display: block;
+    margin-block-start: 0.25rem;
+    font-size: 0.75rem;
+    line-height: 1.8;
+    opacity: 0.72;
+  }
+  .atelier-journey[data-wide] {
+    grid-column: 1 / -1;
+    min-height: unset;
+    flex-direction: row;
+    align-items: center;
+    gap: 1.25rem;
+    background: var(--color-sunken);
+  }
+  .atelier-journey[data-wide] .atelier-journey__number { flex: none; }
+
+  .atelier-offline {
+    position: relative;
+    margin-inline: auto;
+    max-width: var(--app-max);
+    padding: 0.5rem var(--spacing-gutter);
+    text-align: center;
+    background: var(--color-sunken);
+    color: var(--color-ink-2);
+    font-size: 0.73rem;
+    line-height: 1.65;
+    border-block-end: 1px solid var(--color-line);
+  }
+  .atelier-skip {
+    position: fixed;
+    z-index: 200;
+    inset-block-start: 0.5rem;
+    inset-inline-start: 0.5rem;
+    padding: 0.7rem 1.25rem;
+    background: var(--color-inverse);
+    color: var(--color-on-inverse);
+    border-radius: var(--radius-sm);
+    transform: translateY(-170%);
+  }
+  .atelier-skip:focus-visible { transform: translateY(0); }
+}
+/* Cross-screen editorial consistency and mobile touch targets. */
+@layer components {
+  .atelier-hero::after {
+    inset: 0.65rem;
+    border-radius: inherit;
+  }
+  .look-card__media {
+    box-shadow: var(--shadow-1);
+    transition: filter var(--duration-base) ease, transform var(--duration-slow) var(--ease-out);
+  }
+  .look-card > button:first-child:hover .look-card__media {
+    filter: saturate(1.07);
+  }
+  .look-card__actions {
+    top: calc(133.33cqw - 3.125rem);
+    inset-inline-end: 0.35rem;
+    gap: 0.2rem;
+  }
+  .look-card__actions .icon-btn {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+  .chip-row .chip {
+    min-height: 2.75rem;
+  }
+  .page-head > div {
+    flex-wrap: wrap;
+  }
+  .page-head h1 {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
+@media (prefers-contrast: more) {
+  .atelier-mood__card::after {
+    background: linear-gradient(180deg, transparent 22%, oklch(0% 0 0 / 0.94));
+  }
+  .atelier-hero__vignette {
+    background: linear-gradient(180deg, transparent 27%, oklch(0% 0 0 / 0.94));
+  }
+}
+@media (max-width: 355px) {
+  .atelier-mood__cards { gap: 0.35rem; }
+  .atelier-mood__caption { inset-inline: 0.45rem; font-size: 0.68rem; }
+  .atelier-hero-actions .btn { width: 100%; }
+  .atelier-journey { padding-inline: 0.9rem; }
+}
+@media (min-width: 640px) {
+  .atelier-hero { min-height: 36rem; border-radius: 48% 48% 1.5rem 1.5rem / 29% 29% 1.5rem 1.5rem; }
+  .atelier-mood__cards { gap: 1rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .atelier-hero > img, .atelier-mood__card img { transition: none !important; }
+}

@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "scope": "review-only; all assets remain non-approved for customer catalog",
+  "origin": "2026-10-30 five uploaded user archives",
+  "record_type": "immutable archive SHA-256 locks; individual image IDs and hashes are generated from verified source bytes at build time",
+  "total_new": 86,
+  "native_provenance": "UNVERIFIED",
+  "editorial_approval": "NOT_GRANTED",
+  "release_permission": "REVIEW_ONLY",
+  "sources": [
+    {
+      "batch": "02-of-08",
+      "count": 20,
+      "sha256": "ff75d1aa091216ce26888f215f965ed84fcc5f8eeb25af1781befb6c5222c73d",
+      "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3JeOUdb9NaNBnQHWcT0xYSQ6MdR/7acc2efa-775e-48b9-9aaf-f204d663ed7f.zip"
+    },
+    {
+      "batch": "03-of-08",
+      "count": 20,
+      "sha256": "13f9fa395043f901f8b6aa27a7ec0cda421fd1ccc61424088f2451baf03ba74a",
+      "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3JeOUdb9NaNBnQHWcT0xYSQ6MdR/0656e93d-c618-45a2-a752-265622635cea.zip"
+    },
+    {
+      "batch": "06-of-08",
+      "count": 20,
+      "sha256": "eab71ffe2a2801f875f0eae7664986fa266a38b85e1f22fa7220a946b02f5e67",
+      "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3JeOUdb9NaNBnQHWcT0xYSQ6MdR/dea96a06-80e3-45df-9ee4-edc782c25a04.zip"
+    },
+    {
+      "batch": "07-of-08",
+      "count": 20,
+      "sha256": "a7354b5d878409df6936c1c48630eda2cc89886184693d66b7466aeb21689fb0",
+      "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3JeOUdb9NaNBnQHWcT0xYSQ6MdR/d878b71c-aff2-49e6-9bc0-3912ddedab7c.zip"
+    },
+    {
+      "batch": "08-of-08",
+      "count": 6,
+      "sha256": "b042fa581030ee02f8d5918a221c8fd97f07c35136e69a2408702647ff4468a1",
+      "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3JeOUdb9NaNBnQHWcT0xYSQ6MdR/99bfa7ea-9360-435a-a786-33d0e7bd04df.zip"
+    }
+  ]
+}

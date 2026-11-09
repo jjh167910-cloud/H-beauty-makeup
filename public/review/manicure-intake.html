@@ -1,0 +1,227 @@
+<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#faf6f1"><meta name="robots" content="noindex,nofollow"><title>H-Beauty | بازبینی ۱۴۶ طرح ناخن</title><style>
+:root{color-scheme:light;--ink:#302d30;--muted:#787176;--ivory:#faf6f1;--paper:#fffdfb;--plum:#68445e;--line:#eae1e5;--rose:#eee1e8;--accent:#aa6b87}
+*{box-sizing:border-box}body{margin:0;background:var(--ivory);color:var(--ink);font:15px/1.8 system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif}button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #aa6b87;outline-offset:3px}a{color:inherit}
+.shell{max-width:1280px;padding:28px 22px 70px;margin:auto}
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:28px}
+.brand{display:flex;align-items:center;gap:11px}.monogram{border:1px solid #c2b1b9;background:#fffaf8;border-radius:13px;width:49px;height:49px;display:grid;place-items:center;font-family:Georgia,serif;font-size:28px;color:var(--plum)}
+.brand strong{display:block;font-size:20px;font-weight:700;letter-spacing:-.5px}.brand small{display:block;color:var(--muted);font-size:11px;letter-spacing:.05em}
+.private{border:1px solid #e1d3dd;background:#f6edf2;border-radius:999px;padding:6px 13px;color:#6c495d;font-size:12px;font-weight:600}
+.hero{background:linear-gradient(114deg,#fffefd 0%,#f9f0f1 78%,#efe0e7 100%);padding:40px clamp(20px,5vw,62px);border:1px solid #eee2e6;border-radius:25px}
+.kicker{text-transform:uppercase;letter-spacing:.16em;color:#946b80;font-size:11px;font-weight:700}
+h1{font-size:clamp(28px,4.6vw,44px);line-height:1.4;letter-spacing:-.035em;margin:8px 0 15px;max-width:720px}
+.hero p{color:#6b6067;max-width:690px;margin:0;font-size:14px}
+.actions{margin:22px 0 0;display:flex;flex-wrap:wrap;gap:11px;align-items:center}
+.primary,.secondary{display:inline-flex;align-items:center;justify-content:center;padding:11px 22px;border-radius:13px;font-weight:700;font-size:14px}
+.primary{background:var(--plum);color:white;border:1px solid var(--plum)}.secondary{color:var(--plum);background:white;border:1px solid #d9cbd3}
+.primary:hover{background:#523448}.secondary:hover{background:#fff7fb}
+.note{font-size:12px;color:#867985;padding-right:5px}
+.statgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin:23px 0}
+.stat{background:var(--paper);border:1px solid var(--line);border-radius:17px;padding:17px}
+.stat strong{font-size:clamp(23px,3vw,31px);font-weight:750;display:block;line-height:1.2;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:28px 0 19px}
+.search{flex:1 1 220px;min-width:0;border-radius:13px;padding:11px 15px;border:1px solid #e2d8dc;background:#fff;color:var(--ink);text-align:right}
+.filters{display:flex;gap:5px;padding:5px;background:#f1e9ec;border-radius:13px;flex-wrap:wrap}
+.filter{border:0;background:transparent;border-radius:9px;padding:8px 12px;color:#655a61;font-size:12px}
+.filter[aria-pressed=true]{background:white;color:var(--plum);box-shadow:0 1px 4px #2e152314;font-weight:700}
+.alert{padding:12px 16px;background:#fff8e9;border:1px solid #ead5a3;color:#6f562c;border-radius:13px;font-size:12px;line-height:1.8;margin:0 0 18px}
+.alert.ok{background:#edf6ef;border-color:#cee2d2;color:#3d6e4b}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:17px}
+.tile{border:1px solid var(--line);background:#fff;border-radius:18px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.preview{aspect-ratio:1/1;background:linear-gradient(150deg,#f4eff0,#e8dfdf);position:relative;overflow:hidden;display:grid;place-items:center;padding:12px}
+.preview img{width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0}
+.empty{display:grid;justify-items:center;text-align:center;gap:7px;max-width:200px;color:#b09fa8;font-size:12px}
+.empty .symbol{font-family:Georgia,serif;font-size:33px;color:#bdaab3}
+.flag{position:absolute;top:10px;right:10px;padding:4px 9px;border-radius:99px;background:#fffefaed;color:#5c3a52;font-size:10px;font-weight:700;box-shadow:0 1px 6px #3331}
+.flag.hold{color:#875f17;background:#fff8e9ed}.flag.reject{color:#982e45;background:#fff0f2ed}
+.cardbody{padding:13px 14px 15px;flex:1;display:flex;flex-direction:column;gap:6px}
+.style-title-fa{font-size:16px;font-weight:750;line-height:1.55;color:#3b2934;direction:rtl;text-align:right;overflow-wrap:anywhere}
+.cardbody strong{font-size:11px;font-weight:560;line-height:1.4;direction:ltr;text-align:left;overflow-wrap:anywhere;color:#81747c}
+.info{color:#8d7d85;font-size:11px}.hash{font-family:ui-monospace,monospace;color:#a291a0;font-size:10px;letter-spacing:.02em;direction:ltr;text-align:left}
+.inspect{margin-top:auto;padding:8px 0 0;border:0;background:transparent;color:#744561;text-align:right;font-weight:700;font-size:12px}
+.review-help{margin:16px 0 10px;padding:15px 17px;border:1px solid #e7d5df;border-radius:15px;background:#fffefc;color:#5a4250;font-size:13px}
+.review-help strong{display:block;font-size:15px;margin-bottom:3px}
+.review-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:8px}
+.review-btn{border:1px solid #e5d8de;background:#fff;padding:7px 3px;border-radius:9px;font-size:11px;font-weight:700;color:#655460;line-height:1.45;min-height:39px}
+.review-btn.yes{color:#356452}.review-btn.hold{color:#896327}.review-btn.reject{color:#a13f57}
+.review-btn[aria-pressed=true]{background:#efe4eb;border-color:#b99eaf;box-shadow:inset 0 0 0 1px #b99eaf}
+.user-mark{position:absolute;top:41px;right:10px;background:#fff;color:#5e4155;border:1px solid #dec9d4;border-radius:8px;font-size:10px;padding:3px 7px;font-weight:700}
+.savedtext{font-size:11px;color:#785366}
+.actionline{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:3px}
+.actionline .inspect{margin:0}
+.actionline a{font-size:11px;color:#744561;font-weight:700}
+.review-export{background:#714661;color:white;border-color:#714661}
+.local-import{border:1px solid #d9cbd3;border-radius:12px;padding:7px 10px;background:#fff;max-width:100%}
+.local-import summary{cursor:pointer;color:#6d4860;font-weight:700;font-size:12px}
+.local-import input{display:block;max-width:100%;font-size:12px;margin-top:9px;color:#6d4860}
+.local-import input::file-selector-button{border:1px solid #d5c5ce;border-radius:8px;padding:5px 9px;background:#f7eef2;color:#674359;cursor:pointer}
+.review-export:disabled{opacity:.65}
+@media(max-width:680px){.review-btn{min-height:43px;font-size:10px}.review-help{padding:13px 12px}}.inspect:disabled{opacity:.35;cursor:not-allowed}
+footer{margin-top:38px;color:#81747b;text-align:center;font-size:12px}
+dialog{border:0;padding:0;box-shadow:0 22px 80px #22122255;border-radius:18px;max-width:min(95vw,850px);max-height:93dvh;overflow:auto;background:#fff;color:var(--ink)}
+dialog::backdrop{background:#1c141bcc}.modal-title-fa{font-size:19px;font-weight:750;line-height:1.5;color:#3b2934;direction:rtl;text-align:right}
+.modal-title-wrap{display:flex;flex-direction:column;gap:2px;min-width:0;overflow-wrap:anywhere}
+.modal-title-wrap strong{font-size:11px;font-weight:520;direction:ltr;text-align:left;color:#80737a}.modal-body{padding:18px}.modal-head{display:flex;justify-content:space-between;gap:20px;align-items:start}
+.modal-head strong{direction:ltr;display:block;text-align:left;overflow-wrap:anywhere}
+.modal-image{width:100%;height:auto;max-height:65dvh;object-fit:contain;margin:10px auto;display:block;background:#f4eff0}
+.close{border:0;background:#eee6ea;border-radius:50%;width:38px;height:38px;font-size:22px}
+.meta{color:#746773;font-size:12px;direction:ltr;text-align:left;overflow-wrap:anywhere}
+@media(max-width:980px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:680px){.shell{padding:16px 12px 55px}.top{margin-bottom:14px}.hero{padding:27px 19px}.statgrid{grid-template-columns:repeat(2,1fr);gap:9px}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cardbody{padding:10px}.filters{width:100%}.filter{flex:1;padding:7px 5px}.note{width:100%}.private{font-size:10px}.brand strong{font-size:17px}}
+@media(max-width:355px){.grid{grid-template-columns:1fr}.statgrid{grid-template-columns:repeat(2,1fr)}}</style></head><body>
+<main class="shell">
+<header class="top"><div class="brand"><div class="monogram" aria-hidden="true">H</div><div><strong>حنانه بیوتی</strong><small>H-BEAUTY · EDITORIAL ATELIER</small></div></div><div class="private">بازبینی داخلی · انتشار نشده</div></header>
+<section class="hero" id="uploadZone"><div class="kicker">Manicure Photo Intake / Quality Review</div><h1>بازبینی حرفه‌ای ۱۴۶ طرح مانیکور</h1><p>یک پیش‌نمایش واقعی از عکس‌های اصلی شما، بدون تغییر گالری مشتریان. عکس‌ها روی همین نسخه بارگذاری شده‌اند. برای بازبینی نیازی به ZIP ندارید. فقط اگر می‌خواهید فایل‌ها را با نسخه‌های محلی مقایسه کنید، از «ورود فایل محلی» استفاده کنید. هر تصویر با شناسه، SHA-256 و ابعاد اصلی ۱۶۰۰ × ۱۶۰۰ بررسی می‌شود. هیچ فایلی از دستگاه شما بارگذاری یا روی سرور ذخیره نمی‌شود.</p>
+<div class="actions"><details class="local-import"><summary>ورود فایل محلی (اختیاری)</summary><input id="files" type="file" multiple accept=".zip,.webp,image/webp,application/zip" aria-label="انتخاب فایل ZIP یا عکس محلی"></details><button class="secondary" id="export" type="button">گزارش صحت‌سنجی</button><button class="secondary review-export" id="downloadFlags" type="button">دریافت تصمیم‌ها (<span id="flaggedTop">۰</span>)</button><a class="secondary" href="/review/editorial-workspace.html">بررسی پیشرفته</a><span class="note">می‌توانید فایل‌ها را اینجا رها کنید. عکس‌های ردشده همچنان ردشده باقی می‌مانند.</span></div></section>
+<section class="statgrid" aria-label="آمار"><div class="stat"><strong>۱۴۶</strong><span>عکس اصلی در فهرست</span></div><div class="stat"><strong>۲۸</strong><span>نامزد بازبینی</span></div><div class="stat"><strong>۱۶</strong><span>نیازمند بازبینی بیشتر</span></div><div class="stat"><strong>۱۶</strong><span>نیازمند اصلاح</span></div><div class="stat"><strong>۸۶</strong><span>در انتظار بازبینی</span></div></section>
+<div class="review-help"><strong>✅ مناسب اولیه · ⏸ نیازمند بررسی · ✕ رد عکس</strong>زیر هر عکس یکی از سه گزینه را لمس کنید. انتخاب شما روی همین دستگاه ذخیره می‌شود؛ برای انتقال یا ارسال نتیجه، «دریافت تصمیم‌ها» را بزنید. این علامت‌ها مجوز انتشار در کاتالوگ مشتریان نیستند.</div><div id="alert" class="alert" role="status">عکس‌های این فهرست هنوز برای انتشار عمومی تأیید نشده‌اند. ۱۴۶ تصویر اصل از بخش بازبینی در دسترس است. انتخاب ZIP فقط برای بررسی فایل‌های محلی است؛ هیچ فایلی به سرور ارسال نمی‌شود.</div>
+<section aria-label="تصاویر"><div class="toolbar"><input class="search" id="search" type="search" aria-label="جستجو در طرح‌ها" placeholder="جستجوی نام فارسی، شناسه یا سبک…"><div class="filters" role="group" aria-label="فیلتر کیفیت"><button class="filter" data-filter="all" aria-pressed="true">همه</button><button class="filter" data-filter="VISUAL_CANDIDATE_NOT_APPROVED" aria-pressed="false">نامزد</button><button class="filter" data-filter="HOLD_EXACT_STYLE_REVIEW" aria-pressed="false">بازبینی</button><button class="filter" data-filter="REJECT_REGENERATE" aria-pressed="false">اصلاح</button><button class="filter" data-filter="NEEDS_EDITORIAL_REVIEW" aria-pressed="false">جدید · ۸۶</button><button class="filter" data-filter="__flags__" aria-pressed="false">علامت‌گذاری‌شده‌ها (<span id="flaggedFilter">۰</span>)</button></div><div class="note">نمایش <span id="visible">۱۴۶</span> · فایل محلی تأییدشده <span id="loaded">۰</span> / ۱۴۶</div></div><div class="grid" id="grid"></div></section>
+<footer>حنانه بیوتی · ابزار کنترل کیفیت عکس‌ها — تنها برای بازبینی داخلی · هیچ تصویر یا تصویب‌نامه‌ای منتشر نمی‌شود.</footer></main>
+<dialog id="modal"><div class="modal-body"><div class="modal-head"><div class="modal-title-wrap"><div class="modal-title-fa" id="modalFaName"></div><strong id="modalId"></strong></div><button class="close" id="close" type="button" aria-label="بستن">×</button></div><img id="modalImage" class="modal-image" alt="تصویر اصلی برای بازبینی"><div class="meta" id="modalMeta"></div><div class="review-actions" id="modalReviewActions"><button type="button" class="review-btn yes" data-modal-decision="CANDIDATE">✓ مناسب اولیه</button><button type="button" class="review-btn hold" data-modal-decision="HOLD">⏸ بررسی بیشتر</button><button type="button" class="review-btn reject" data-modal-decision="REJECT">✕ رد عکس</button></div><div class="actionline"><a id="modalAdvanced" href="/review/editorial-workspace.html">باز کردن بررسی پیشرفته و ثبت دلایل</a></div><p class="savedtext">تصمیم صرفاً روی این مرورگر ذخیره می‌شود، نه روی سرور یا کاتالوگ مشتری.</p></div></dialog>
+<script>(async()=>{
+  // The former service worker cached a title-less version of this manifest.
+  // A versioned request bypasses that old URL cache; the new worker also
+  // fetches review metadata network-first. Keep an ID-checked offline fallback.
+  const revision="?release=persian-146-cachefix-20261030";
+  const response=await fetch("/review/manifest-146.json"+revision,{cache:"no-store"});
+  if(!response.ok)throw Error("Review manifest HTTP "+response.status);
+  const data=await response.json();
+  if(data?.schema!==2||data.count!==146||data.approval!=="NOT_GRANTED"
+     ||!Array.isArray(data.files)||data.files.length!==146)
+    throw Error("Review image inventory does not match 146 unpublished originals");
+  const ids=new Set(data.files.map(s=>s.id));
+  if(ids.size!==146||data.files.some(s=>!/^nail-[a-z0-9-]+$/.test(s.id)||!/^[a-f0-9]{64}$/.test(s.sha)))
+    throw Error("Review photo IDs or SHA-256 records are invalid");
+  const hasPersian=s=>typeof s.title==="string"&&/[\u0600-\u06ff]/u.test(s.title)&&
+    typeof s.en==="string"&&s.en.trim().length>0;
+  if(data.files.some(s=>!hasPersian(s))){
+    // A previously installed offline cache can hold the pre-Persian manifest.
+    // Recover ONLY exact-ID titles from the catalog-backed preliminary review.
+    const namesResponse=await fetch("/review/manicure-146-preliminary-suggestions.json"+revision,{cache:"no-store"});
+    if(!namesResponse.ok)throw Error("Persian style names unavailable "+namesResponse.status);
+    const namesData=await namesResponse.json();
+    if(namesData.schema!==1||namesData.images?.length!==146)
+      throw Error("Incorrect Persian catalog title inventory");
+    const labels=new Map(namesData.images.map(x=>[x.id,x]));
+    if(labels.size!==146||data.files.some(row=>!labels.has(row.id)||
+       (labels.get(row.id).original_sha256&&labels.get(row.id).original_sha256!==row.sha)))
+      throw Error("Photo-to-title mapping disagrees with immutable source IDs");
+    data.files=data.files.map(s=>{
+      const entry=labels.get(s.id);
+      return {...s,title:entry.catalog.title,en:entry.catalog.en};
+    });
+  }
+  if(data.files.some(s=>!hasPersian(s)))throw Error("Persian photo names incomplete");
+  window.HBEAUTY_MANIFEST=data.files;
+(function app(){
+"use strict";
+const manifest=window.HBEAUTY_MANIFEST;
+const specs=new Map(manifest.map(x=>[x.id,x]));
+const assets=new Map(), errors=[];
+const DRAFT_KEY="hbeauty:manicure-146:review-drafts:v1";
+const decisionsAllowed=new Set(["CANDIDATE","HOLD","REJECT","DRAFT_APPROVE"]);
+const decisionText={CANDIDATE:"مناسب اولیه",DRAFT_APPROVE:"پیش‌نویس پذیرش",HOLD:"بررسی بیشتر",REJECT:"رد عکس"};
+let reviewDrafts={},viewingId=null;
+function refreshDrafts(){let current={};try{const stored=JSON.parse(localStorage.getItem(DRAFT_KEY)||"{}");if(stored&&typeof stored==="object"&&!Array.isArray(stored))current=stored}catch{}reviewDrafts=current}
+refreshDrafts();
+function existingDecision(s){const d=reviewDrafts[s.id];return d&&d.sha256===s.sha&&decisionsAllowed.has(d.decision)?d:null}
+function writeFlag(s,decision){
+  refreshDrafts(); // Preserve decisions saved in other gallery or editorial tabs.
+  const prior=existingDecision(s);
+  if(prior?.decision===decision)delete reviewDrafts[s.id];
+  else reviewDrafts[s.id]={id:s.id,sha256:s.sha,decision,reviewer:prior?.reviewer||"",notes:prior?.notes||"",source_evidence:prior?.source_evidence||"",checks:prior?.checks||{},updated_at:new Date().toISOString(),review_tier:"LOCAL_DRAFT_NOT_PUBLICATION",publication_approved:false};
+  try{localStorage.setItem(DRAFT_KEY,JSON.stringify(reviewDrafts))}
+  catch{updateAlert("امکان ذخیره در مرورگر وجود ندارد؛ لطفاً حافظه محلی را فعال کنید.");return}
+  show();
+  if(viewingId===s.id&&modal.open)updateModalChoices(s);
+}
+function flagCount(){return manifest.filter(s=>existingDecision(s)).length}
+function updateFlagCounters(){const n=flagCount();document.getElementById("flaggedTop").textContent=String(n);document.getElementById("flaggedFilter").textContent=String(n)}
+function updateModalChoices(s){for(const b of document.querySelectorAll("[data-modal-decision]"))b.setAttribute("aria-pressed",String(existingDecision(s)?.decision===b.dataset.modalDecision))}
+function exportFlags(){
+ refreshDrafts();
+ const rows=manifest.filter(s=>existingDecision(s)).map(s=>({...existingDecision(s),title:s.title,en:s.en,publication_approved:false}));
+ const data={schema:1,type:"HBEAUTY_MANICURE_REVIEW_DRAFTS",approval_status:"NOT_FINAL",saved_only_in_this_browser:true,exported_at:new Date().toISOString(),total_gallery:146,decisions:rows};
+ const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));
+ const a=document.createElement("a");a.href=url;a.download="HBeauty_146_Review_Flags.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),2500);
+}
+
+const names={VISUAL_CANDIDATE_NOT_APPROVED:"نامزد بررسی",HOLD_EXACT_STYLE_REVIEW:"نیازمند بازبینی",REJECT_REGENERATE:"نیازمند اصلاح",NEEDS_EDITORIAL_REVIEW:"در انتظار بررسی حرفه‌ای"};
+const classes={VISUAL_CANDIDATE_NOT_APPROVED:"candidate",HOLD_EXACT_STYLE_REVIEW:"hold",REJECT_REGENERATE:"reject",NEEDS_EDITORIAL_REVIEW:"hold"};
+const filterButtons=Array.from(document.querySelectorAll("[data-filter]"));const grid=document.getElementById("grid");
+const alert=document.getElementById("alert");const input=document.getElementById("files");const search=document.getElementById("search");
+const modal=document.getElementById("modal"),modalImage=document.getElementById("modalImage");
+let selected="all";
+function text(el,s){el.textContent=s;return el;}
+function make(tag,cls,s){const e=document.createElement(tag);if(cls)e.className=cls;if(s!==undefined)e.textContent=s;return e;}
+function updateAlert(msg,isOk=false){text(alert,msg);alert.classList.toggle("ok",isOk);alert.setAttribute("role","status")}
+function show(){const q=search.value.trim().toLowerCase();grid.replaceChildren();let shown=0;
+for(const s of manifest){if(selected==="__flags__"&&!existingDecision(s))continue;if(selected!=="all"&&selected!=="__flags__"&&s.status!==selected)continue;if(q&&!s.id.includes(q)&&!s.title.includes(q)&&!(s.en||"").toLowerCase().includes(q)&&!s.finish.includes(q)&&!s.shape.includes(q))continue;shown++;
+const c=make("article","tile"),photo=make("div","preview");
+const a=assets.get(s.id);const hosted="/review/photos/"+s.id+".webp";
+const img=make("img");img.src=a?a.url:hosted;img.loading="lazy";img.alt="عکس مانیکور "+s.title+"؛ شناسه "+s.id;
+img.onerror=()=>{img.remove();const empty=make("div","empty");empty.append(make("div","symbol","H"),make("span",null,"عکس در این نسخه موجود نیست؛ ZIP منبع را انتخاب کنید"));photo.prepend(empty)};
+photo.append(img)
+const flag=make("span","flag "+classes[s.status],names[s.status]);photo.append(flag);
+const saved=existingDecision(s);if(saved)photo.append(make("span","user-mark","⚑ "+decisionText[saved.decision]));
+const body=make("div","cardbody");body.append(make("div","style-title-fa",s.title),make("strong",null,s.id),make("div","info",s.shape+" · "+s.length+" · "+s.finish),make("div","hash",s.sha.slice(0,15)+"…"));
+const actions=make("div","review-actions");
+for(const [decision,txt,klass] of [["CANDIDATE","✓ مناسب","yes"],["HOLD","⏸ بررسی","hold"],["REJECT","✕ رد","reject"]]){
+ const b=make("button","review-btn "+klass,txt);b.type="button";
+ b.setAttribute("aria-label",txt+" "+s.id);b.setAttribute("aria-pressed",String(saved?.decision===decision));
+ b.onclick=()=>writeFlag(s,decision);actions.append(b);
+}
+const line=make("div","actionline");
+const btn=make("button","inspect","نمایش در اندازه اصلی");btn.type="button";btn.onclick=()=>inspect(s);
+const more=make("a",null,"جزئیات بررسی");more.href="/review/editorial-workspace.html?id="+encodeURIComponent(s.id);
+line.append(btn,more);body.append(actions,line);c.append(photo,body);grid.append(c)}
+text(document.getElementById("visible"),String(shown));text(document.getElementById("loaded"),String(assets.size));updateFlagCounters();
+}
+function inspect(s){viewingId=s.id;updateModalChoices(s);document.getElementById("modalAdvanced").href="/review/editorial-workspace.html?id="+encodeURIComponent(s.id);const a=assets.get(s.id);modalImage.src=a?a.url:"/review/photos/"+s.id+".webp";document.getElementById("modalFaName").textContent=s.title;document.getElementById("modalId").textContent=s.id;document.getElementById("modalMeta").textContent=s.shape+" / "+s.length+" / "+s.finish+" • SHA-256 "+s.sha+" • 1600×1600 • "+names[s.status]+" • NOT APPROVED";modal.showModal();}
+async function digest(buf){const raw=await crypto.subtle.digest("SHA-256",buf);return Array.from(new Uint8Array(raw),x=>x.toString(16).padStart(2,"0")).join("")}
+async function verify(name,buf){const id=name.split("/").pop().replace(/\.webp$/i,"");const s=specs.get(id);if(!s)return "شناسه نامعتبر: "+name;const hash=await digest(buf);if(hash!==s.sha)return "SHA-256 مطابقت ندارد: "+name;let bitmap;try{bitmap=await createImageBitmap(new Blob([buf],{type:"image/webp"}))}catch{return "تصویر قابل خواندن نیست: "+name}
+const wh=[bitmap.width,bitmap.height];bitmap.close();if(wh[0]!==1600||wh[1]!==1600)return "ابعاد اشتباه: "+name;
+if(!assets.has(id))assets.set(id,{url:URL.createObjectURL(new Blob([buf],{type:"image/webp"}))});
+return null;
+}
+function readU16(v,p){return v.getUint16(p,true)}function readU32(v,p){return v.getUint32(p,true)}
+async function unzip(file){const buf=await file.arrayBuffer(),v=new DataView(buf),len=v.byteLength;let end=-1;
+for(let p=len-22;p>=Math.max(0,len-65557);p--){if(readU32(v,p)===0x06054b50){end=p;break}}
+if(end<0)throw Error("ZIP مرکزی یافت نشد: "+file.name);
+const count=readU16(v,end+10),size=readU32(v,end+12),offset=readU32(v,end+16);
+if(count>500||size>len||offset+size>len)throw Error("ساختار ZIP نامعتبر است");
+let pos=offset,accepted=0;
+for(let k=0;k<count;k++){
+if(pos+46>len||readU32(v,pos)!==0x02014b50)throw Error("ZIP خراب است");
+const method=readU16(v,pos+10),packed=readU32(v,pos+20),fileLen=readU16(v,pos+28),extraLen=readU16(v,pos+30),commentLen=readU16(v,pos+32),localOffset=readU32(v,pos+42);
+const name=new TextDecoder().decode(new Uint8Array(buf,pos+46,fileLen));pos+=46+fileLen+extraLen+commentLen;
+if(!/^([^/]+\/)*nail-[a-z0-9-]+\.webp$/i.test(name))continue;
+if(localOffset+30>len||readU32(v,localOffset)!==0x04034b50)throw Error("ZIP entry خراب: "+name);
+const head=30+readU16(v,localOffset+26)+readU16(v,localOffset+28),start=localOffset+head;
+if(start+packed>len)throw Error("اندازه داده خراب: "+name);
+const comp=buf.slice(start,start+packed);let raw;
+if(method===0)raw=comp;
+else if(method===8){if(typeof DecompressionStream!=="function")throw Error("مرورگر از بازکردن ZIP پشتیبانی نمی‌کند");
+const ds=new DecompressionStream("deflate-raw");raw=await new Response(new Blob([comp]).stream().pipeThrough(ds)).arrayBuffer();}
+else{errors.push("ZIP compression unsupported: "+name);continue;}
+const issue=await verify(name,raw);if(issue)errors.push(issue);else accepted++;
+}
+return accepted;
+}
+async function load(files){errors.length=0;let count=0;updateAlert("در حال بررسی رمزنگاری و ابعاد عکس‌ها…");
+for(const f of files){try{if(/\.zip$/i.test(f.name))count+=await unzip(f);else if(/\.webp$/i.test(f.name)){const bad=await verify(f.name,await f.arrayBuffer());if(bad)errors.push(bad);else count++;}else errors.push("نوع فایل پشتیبانی نمی‌شود: "+f.name);}catch(e){errors.push(f.name+" — "+String(e.message||e))}}
+show();const m=assets.size+" تصویر از ۱۴۶ تصویر با SHA-256 و ابعاد صحیح باز شد. "+(errors.length?errors.length+" خطا: "+errors.slice(0,3).join(" | "):"هیچ خطای انتقالی یافت نشد.");
+updateAlert(m,errors.length===0&&assets.size===146);input.value="";
+}
+input.addEventListener("change",e=>load(Array.from(e.target.files||[])));
+const zone=document.getElementById("uploadZone");zone.addEventListener("dragover",e=>{e.preventDefault();zone.style.opacity=".8"});zone.addEventListener("dragleave",()=>zone.style.opacity="1");zone.addEventListener("drop",e=>{e.preventDefault();zone.style.opacity="1";load(Array.from(e.dataTransfer.files||[]))});
+filterButtons.forEach(b=>b.onclick=()=>{selected=b.dataset.filter;filterButtons.forEach(x=>x.setAttribute("aria-pressed",String(x===b)));show()});
+search.addEventListener("input",show);
+document.getElementById("close").onclick=()=>modal.close();
+document.querySelectorAll("[data-modal-decision]").forEach(b=>b.onclick=()=>{const s=specs.get(viewingId);if(s)writeFlag(s,b.dataset.modalDecision)});
+document.getElementById("downloadFlags").onclick=exportFlags;
+window.addEventListener("storage",e=>{if(e.key===DRAFT_KEY){refreshDrafts();show()}});
+
+document.getElementById("export").onclick=()=>{const data=JSON.stringify({schema:1,type:"intake_integrity_only",not_approved:true,date:new Date().toISOString(),verified_ids:[...assets.keys()],errors,manifest:manifest.map(x=>({id:x.id,sha256:x.sha,status:x.status}))},null,2);const url=URL.createObjectURL(new Blob([data],{type:"application/json"}));const a=document.createElement("a");a.href=url;a.download="HBeauty-146-local-transfer-integrity.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+show();
+})();})().catch(e=>{document.getElementById("alert").textContent="خطا در بارگذاری فهرست بازبینی: "+String(e.message||e)+" — برای دریافت تازه‌ترین نسخه اتصال اینترنت را بررسی کنید.";});</script></body></html>

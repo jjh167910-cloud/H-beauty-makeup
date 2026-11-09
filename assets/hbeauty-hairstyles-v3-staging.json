@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "release": "v3-fix10-review-candidate-2026-10-31",
+  "status": "STAGING_ONLY_NOT_APPROVED",
+  "expected_styles": 292,
+  "ivory_frame": "#F5F3EF",
+  "required_native_resolution": [
+    2048,
+    2048
+  ],
+  "known_limitations": [
+    "Most supplied originals are native 1024x1024 JPEG, not 2048x2048",
+    "HB-040 and HB-041 are provisional reference-derived replacements; do not auto-publish before manual aesthetic QA",
+    "Background is not exactly uniform across the source images; do not force a CSS color match",
+    "Final user-generated ChatGPT alternatives are local staging drafts, not available as an immutable remote production source"
+  ],
+  "archives": [
+    {
+      "role": "base",
+      "first": 1,
+      "last": 100,
+      "sha256": "8bb516c96f8d647c1efa297b5b03933a5a73ab339ae331db629d4b436980a58a",
+      "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3JeOUdb9NaNBnQHWcT0xYSQ6MdR/eeebcfd3-2ad5-4af2-aa9e-b0189744f6e2.zip",
+      "local_name": "H-Beauty_Hairstyles_v3_part1_HB-001-100.zip"
+    },
+    {
+      "role": "base",
+      "first": 101,
+      "last": 200,
+      "sha256": "12144a7d8a93fd46a6acddf765c0142c7373b0a1a536a4685e6edf5dc5bbbae7",
+      "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3JeOUdb9NaNBnQHWcT0xYSQ6MdR/ee44a822-27dd-443c-82f7-c590e33e7957.zip",
+      "local_name": "H-Beauty_Hairstyles_v3_part2_HB-101-200.zip"
+    },
+    {
+      "role": "base",
+      "first": 201,
+      "last": 292,
+      "sha256": "55ffc73f9ec6d8ab3ae719aa4ec8b2e3284066b0535d98e62a7c33ffa81105a7",
+      "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3JeOUdb9NaNBnQHWcT0xYSQ6MdR/f5be2e90-b798-48b5-a377-2a5bb8254be6.zip",
+      "local_name": "H-Beauty_Hairstyles_v3_part3_HB-201-292.zip"
+    },
+    {
+      "role": "fix10",
+      "ids": [
+        26,
+        39,
+        40,
+        41,
+        98,
+        183,
+        246,
+        249,
+        258,
+        277
+      ],
+      "sha256": "8c4f1b9a9c5eb8d6b6affafd4ad0545df55cedd398ea6e1c82a4bcdcd1c0e032",
+      "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3JeOUdb9NaNBnQHWcT0xYSQ6MdR/15cdfa2c-2de1-4c92-9b38-0d8c6cb9651e.zip",
+      "local_name": "H-Beauty_Hairstyles_v3_FIX10.zip"
+    }
+  ],
+  "preliminary_overrides": [
+    {
+      "id": 40,
+      "sha256": "2c9d189beabe8ecd99de06ac444ea9740d59a6e0c51df78434c883afa9cefbb6",
+      "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3JeOUdb9NaNBnQHWcT0xYSQ6MdR/404d2e6d-22c8-49ff-b08e-09d1431f9ce1.jpg",
+      "local_name": "1000007577.jpg",
+      "review": "REJECTED: fringe still too long; preview only"
+    },
+    {
+      "id": 41,
+      "sha256": "a58b230cd2e2917c55b370ef83f513ee509d9c07acb8dbe59216fe32ede9ea03",
+      "url": "https://d2ol7oe51mr4n9.cloudfront.net/user_3JeOUdb9NaNBnQHWcT0xYSQ6MdR/2ffb71e7-50ad-4ddd-b743-1205ef2d55ce.jpg",
+      "local_name": "1000007578.jpg",
+      "review": "REJECTED: micro fringe still too long; preview only"
+    }
+  ],
+  "production_lock": {
+    "may_deploy": false,
+    "requires": [
+      "Separate approved, high-resolution HB-040 and HB-041 originals",
+      "Native-resolution exception explicitly approved or images regenerated natively at 2048px",
+      "Hair-aware background harmonization and human visual inspection",
+      "Complete mobile screenshot QA and offline cache regression"
+    ],
+    "rollback": "Preserve live 2026-10-31 premium-ivory-292 release"
+  }
+}

@@ -1,0 +1,346 @@
+/* H-Beauty v26: legibility and reliability adjustments from mobile screenshot review. */
+@layer components {
+  .salon24-welcome > p,.studio-head > p,.salon24-section__intro,
+  .studio-service-item__description,.studio-bookings__hero > p,
+  .studio-service-item__content .t-caption,.studio-profile__field,
+  .modern-welcome__content > p:not(.modern-welcome__tag),.studio-booking-intro > p {
+    font-size:clamp(.8rem,3.4vw,.9rem);line-height:1.85;
+  }
+  .salon24-welcome__micro,.studio-kicker,.salon24-hero__fine,
+  .salon24-section__footnote,.studio-look-card__category,
+  .salon24-service-row__copy small,.studio-service-item__meta,
+  .studio-results-count,.modern-welcome__field > span {
+    font-size:.75rem;line-height:1.7;
+  }
+  .studio-bookings__metrics small,.studio-profile__metrics span,
+  .salon24-style-card > span:last-child,.salon24-featured__card > span:last-child {
+    font-size:.75rem;line-height:1.65;
+  }
+  .salon24-service-row__price,.studio-service-item__price strong {
+    font-size:.79rem;line-height:1.5;font-weight:680;white-space:normal;overflow-wrap:break-word;
+  }
+  .salon24-service-row__price small,.studio-service-item__price small {font-size:.7rem;line-height:1.6;}
+  .studio-service-item__price {max-width:32%;white-space:normal;min-width:0;}
+  .studio-service-item__content {min-width:0;}
+  .studio-service-item__content strong {font-size:.9rem;line-height:1.6;}
+  .salon24-service-row__copy strong {font-size:.86rem;}
+  .salon24-service-row__copy small {display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  .salon24-service-row {min-width:0;}
+  .salon24-service-row__price {max-width:6.25rem;min-width:0;}
+  .salon24-hero__actions .btn {line-height:1.55;}
+  .studio-look-card__copy h3 {font-size:.89rem;}
+  .salon25-look-card__action {min-height:2.875rem;font-size:.78rem;gap:.3rem;border-radius:.7rem;touch-action:manipulation;}
+  .chip {min-height:2.75rem;}
+  .tabbar__item {min-height:2.75rem;}
+  .tabbar__label,.tabbar[data-minimized] .tabbar__label {font-size:.75rem;line-height:1.4;}
+  .salon24-tabbar-book-label {font-size:.7rem;line-height:1.35;}
+  .salon25-hero__caption h2 {font-size:1.25rem;}
+  .modern-welcome__privacy {font-size:.75rem;}
+  .studio-booking-card__actions .btn {min-height:2.75rem;white-space:normal;line-height:1.6;}
+  .studio-profile__field input {min-height:2.8rem;}
+  .studio-booking-card {overflow-wrap:break-word;}
+  .salon26-hero__missing {
+    position:absolute;inset:0;display:grid;place-items:center;
+    padding:1.25rem;text-align:center;color:var(--color-ink-2);
+    font-size:.875rem;line-height:1.8;background:var(--color-sunken);
+  }
+  .salon24-hero__photo[data-image-error] > img {opacity:0;}
+  :where(.salon24-hero__actions .btn,.salon25-look-card__action,
+    .studio-service-item__add,.tabbar__item,.tabbar__book):focus-visible {
+    outline:3px solid var(--color-gold-ink);outline-offset:3px;
+  }
+}
+@media(max-width:359px) {
+  @layer components {
+    .salon24-service-row {gap:.4rem;padding:.68rem .55rem;}
+    .salon24-service-row__icon {width:2.4rem;height:2.4rem;}
+    .salon24-service-row__price {max-width:5.35rem;font-size:.72rem;}
+    .salon25-look-card__actions {gap:.25rem;}
+    .salon25-look-card__action {font-size:.72rem;gap:.18rem;padding-inline:.12rem;}
+    .salon25-look-card__action svg {width:.86rem;height:.86rem;}
+    .studio-service-item__price strong {font-size:.74rem;}
+    .studio-service-item__price small {font-size:.68rem;}
+    .studio-booking-card {padding:.85rem;}
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  @layer components { .salon25-look-card__action:active {transform:none;} }
+}
+
+/* Tablet: portrait sits alongside the booking pathway rather than filling the viewport. */
+@layer components {.salon26-hero__intro {display:none;}}
+@media(min-width:740px) {
+  @layer components {
+    .salon24-hero {grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:auto auto 1fr;column-gap:1.5rem;align-items:start;}
+    .salon24-hero__stage {grid-column:1;grid-row:1 / span 3;min-width:0;}
+    .salon26-hero__intro {display:grid;grid-column:2;grid-row:1;gap:.5rem;align-content:start;padding-block:.85rem .5rem;}
+    .salon26-hero__intro > span {font:600 .66rem/1.5 var(--font-serif);letter-spacing:.09em;color:var(--color-gold-ink);}
+    .salon26-hero__intro h2 {font-size:clamp(1.1rem,3vw,1.5rem);line-height:1.65;font-weight:720;}
+    .salon26-hero__intro p {font-size:.87rem;line-height:1.9;color:var(--color-ink-2);}
+    .salon24-hero__actions {grid-column:2;grid-row:2;grid-template-columns:1fr;align-self:start;margin-top:.75rem;}
+    .salon24-hero__fine {grid-column:2;grid-row:3;align-self:start;max-width:18rem;}
+    .salon24-hero__photo {aspect-ratio:3/4;max-height:none;}
+  }
+}
+
+/* Touch-target audit: service add, short category chips, and detail actions. */
+@layer components {
+  .studio-service-item__add {min-width:2.875rem;width:2.875rem;min-height:2.875rem;height:2.875rem;flex:none;}
+  .chip {min-width:2.75rem;}
+  .salon25-look-detail__actions .salon25-look-card__action {min-width:2.75rem;}
+}
+
+/* Portrait framing: all approved home hairstyle sources are square. */
+@layer components {
+  .salon24-hero__stage > .salon24-hero__photo {
+    aspect-ratio:1/1;
+    width:100%;
+    min-height:0;
+    height:auto;
+    max-height:none;
+  }
+  .salon24-hero__stage > .salon24-hero__photo > img {
+    object-fit:contain;
+    object-position:center;
+  }
+  .salon24-styles .salon24-style-card > .media {
+    width:100%;
+    aspect-ratio:1/1;
+    height:auto;
+    overflow:hidden;
+    border-radius:1rem;
+  }
+  .salon24-styles .salon24-style-card > .media > img {
+    object-fit:contain;
+    object-position:center;
+  }
+  .salon24-style-card {gap:.45rem;align-content:start;min-width:0;}
+  .salon24-style-card strong {line-height:1.6;overflow-wrap:anywhere;}
+  .salon24-styles {padding-bottom:1.1rem;}
+}
+@media(max-width:599px) {
+  @layer components {
+    .salon25-hero__caption {display:block;}
+    .salon25-hero__caption > span[lang="en"] {display:none;}
+    .salon25-hero__caption h2 {
+      font-size:clamp(1.08rem,5vw,1.25rem);
+      line-height:1.65;
+      overflow-wrap:anywhere;
+    }
+  }
+}
+
+/* Square lookbook source files should not lose sides in portrait card windows. */
+@layer components {
+  .studio-look-card .look-card__media,
+  .studio-look-card:nth-child(5n+4) .look-card__media,
+  .salon24-featured__card > .media,
+  .studio-profile__saved-look > .media {
+    aspect-ratio:1/1;
+    height:auto;
+  }
+  .studio-look-card .look-card__media > img,
+  .salon24-featured__card > .media > img,
+  .studio-profile__saved-look > .media > img {
+    object-fit:contain;
+    object-position:center;
+  }
+}
+
+/*
+ * Full-card photographic presentation, 2026-10-31:
+ * The images were square but the horizontally scrolling rails still clipped
+ * adjacent cards at the screen edge. Eliminate half-visible cards and add a
+ * seamless matte-to-frame integration as in the approved reference.
+ * All photo edges remain visible: source images are square and must not be cropped.
+ * Portrait content, photo bytes and the release-locked ivory are unchanged.
+ */
+@layer components {
+  .salon24-styles.rail,
+  .salon24-featured.rail {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:1.15rem .8rem;
+    overflow:visible;
+    overscroll-behavior-x:auto;
+    scroll-snap-type:none;
+    padding: .25rem var(--spacing-gutter) 1rem;
+    align-items:start;
+  }
+  .salon24-styles.rail > *,
+  .salon24-featured.rail > * {
+    scroll-snap-align:none;
+    min-width:0;
+    width:100%;
+    max-width:none;
+  }
+  .salon24-styles .salon24-style-card,
+  .salon24-featured .salon24-featured__card {
+    display:grid;
+    align-content:start;
+    gap:.5rem;
+  }
+  .salon24-styles .salon24-style-card > .media,
+  .salon24-featured .salon24-featured__card > .media,
+  .studio-look-card .look-card__media,
+  .studio-profile__saved-look > .media {
+    position:relative;
+    width:100%;
+    aspect-ratio:1;
+    border-radius:1.15rem;
+    background:var(--salon-hair-photo-matte);
+    overflow:hidden;
+    border:0;
+    box-shadow:0 2px 12px rgb(25 12 17 / .09);
+  }
+  .salon24-styles .salon24-style-card > .media > img,
+  .salon24-featured .salon24-featured__card > .media > img,
+  .studio-look-card .look-card__media > img,
+  .studio-profile__saved-look > .media > img {
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    object-position:center;
+    transform:none;
+  }
+  .salon24-hero__stage > .salon24-hero__photo {
+    background:var(--salon-hair-photo-matte);
+    border:0;
+    border-radius:1.35rem;
+    box-shadow:0 2px 12px rgb(25 12 17 / .09);
+  }
+  .salon24-hero__stage > .salon24-hero__photo > img {
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    object-position:center;
+  }
+  .salon24-featured__card > span:last-child {
+    display:block;
+    -webkit-line-clamp:unset;
+    overflow:visible;
+    min-height:2.8em;
+    line-height:1.65;
+    overflow-wrap:anywhere;
+  }
+  .salon24-style-card strong {
+    display:block;
+    overflow:visible;
+    min-height:2.8em;
+    overflow-wrap:anywhere;
+  }
+}
+@media(min-width:600px) {
+  @layer components {
+    .salon24-styles.rail,
+    .salon24-featured.rail {
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:1rem;
+    }
+  }
+}
+@media(min-width:980px) {
+  @layer components {
+    .salon24-styles.rail {grid-template-columns:repeat(4,minmax(0,1fr));}
+    .salon24-featured.rail {grid-template-columns:repeat(4,minmax(0,1fr));}
+  }
+}
+
+/* Full-size hairstyle detail and discovery use the same uncropped source:
+ * a prior late CSS rule set object-fit:cover on a 3:4 window. */
+@layer components {
+  .look-hero.studio-look-detail__hero {
+    aspect-ratio:1;
+    max-height:none;
+    width:min(100%,32rem);
+    margin-inline:auto;
+    background:var(--salon-hair-photo-matte);
+    border-radius:1rem;
+  }
+  .look-hero.studio-look-detail__hero .carousel {
+    width:100%;
+    height:100%;
+  }
+  .look-hero.studio-look-detail__hero .carousel > img {
+    object-fit:contain;
+    object-position:center;
+    background:var(--salon-hair-photo-matte);
+    padding:0;
+    box-sizing:border-box;
+  }
+  .discover__stage .discover__frame {
+    width:min(86vw,26rem,50dvh);
+    height:auto;
+    aspect-ratio:1;
+    max-width:100%;
+    max-height:none;
+    border-radius:1.2rem;
+    background:var(--salon-hair-photo-matte);
+  }
+  .discover__frame > img {
+    object-fit:contain;
+    object-position:center;
+    padding:0;
+    box-sizing:border-box;
+  }
+  .discover__frame::after {display:none;}
+}
+
+/* The 292 released originals and thumbnails are composited on RGB(245,243,239).
+ * Use that exact photographic pixel matte, including in dark mode; changing
+ * only CSS to an approximate cream would introduce a visible inner seam. */
+:root {
+  --salon-hair-photo-matte: #f5f3ef;
+}
+@layer components {
+  .studio-look-card__frame {
+    background:var(--salon-hair-photo-matte);
+  }
+  /* The image carries its own native blush/ivory background. Matching this
+     frame removes the inset seam without touching curls or flyaway strands. */
+  .salon24-hero__stage > .salon24-hero__photo,
+  .salon24-styles .salon24-style-card > .media,
+  .salon24-featured .salon24-featured__card > .media,
+  .studio-look-card .look-card__media,
+  .studio-profile__saved-look > .media,
+  .look-hero.studio-look-detail__hero,
+  .look-hero.studio-look-detail__hero .carousel,
+  .look-hero.studio-look-detail__hero .carousel > img,
+  .discover__stage .discover__frame,
+  .discover__stage .discover__frame > img {
+    background:var(--salon-hair-photo-matte);
+  }
+}
+
+/* Hair-selection tools use the same studio matte; never show an arched
+ * thumbnail, dark frame, crop or inset around a hair photograph. */
+@layer components {
+  .salon-hair-reference-photo {
+    display:block;
+    position:relative;
+    width:100%;
+    height:auto;
+    aspect-ratio:1;
+    overflow:hidden;
+    border:0;
+    border-radius:1.15rem;
+    background:var(--salon-hair-photo-matte);
+    box-shadow:0 2px 12px rgb(25 12 17 / .09);
+  }
+  .salon-hair-reference-photo > img {
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    object-position:center;
+  }
+  .salon-hair-reference-photo--small {
+    flex:none;
+    width:5rem;
+    height:5rem;
+  }
+}

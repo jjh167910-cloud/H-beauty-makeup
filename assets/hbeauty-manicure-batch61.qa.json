@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "batch": "hbeauty-manicure-batch61",
+  "decision": "APPROVED_FOR_PUBLICATION",
+  "reviewer": "ChatGPT-AI full-resolution visual source review",
+  "reviewed_at": "2026-10-30T00:09:28.680Z",
+  "source_album": "H-BEAUTY-98-BIBLE-COMPLETE-PURE-IVORY-SILK.zip",
+  "original_filename": "sculpture-blush.webp",
+  "source_file_had_incorrect_style_label": true,
+  "images": [
+    {
+      "id": "nail-atlas-foil-merlot",
+      "filename": "public/nails/photos/nail-atlas-foil-merlot.webp",
+      "sha256": "64a9d73ccd7dc60a7f4e7f840f0d49513010de8ab01620f01f6a3e004d91e884",
+      "reviewed_full_resolution": true,
+      "anatomy_five_fingers": "PASS",
+      "nail_detail_and_cuticles": "PASS",
+      "pure_ivory_silk_no_stone": "PASS",
+      "exact_catalog_style": "PASS",
+      "no_duplicate_or_collage": "PASS",
+      "original_native_resolution": "PASS",
+      "finish": "foil",
+      "shape": "oval",
+      "length": "long",
+      "base": "#5F3046",
+      "accent": "#E6A9BA",
+      "review_notes": "Original 1600x1600 WebP visually inspected at full resolution. Five separate normal fingers, clean cuticles, long dark-merlot oval nails and individually visible asymmetric gold leaf flakes; hand surrounded by pure ivory silk without any stone support or extra props. Original filename says sculpture-blush but the pictured design is merlot gold leaf. Source SHA-256 compared with all 58 prior published manicure locks and 200 staged unique legacy sources; no exact match. No recompression or AI generation."
+    }
+  ]
+}

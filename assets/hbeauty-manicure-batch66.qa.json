@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "batch": "hbeauty-manicure-batch66",
+  "decision": "APPROVED_FOR_PUBLICATION",
+  "reviewer": "ChatGPT native-resolution visual inspection",
+  "reviewed_at": "2026-10-30T02:24:54.974Z",
+  "images": [
+    {
+      "id": "nail-rose-chrome",
+      "finish": "chrome",
+      "shape": "coffin",
+      "length": "long",
+      "base": "#BB849B",
+      "accent": "#F6C4D5",
+      "filename": "public/nails/photos/nail-rose-chrome.webp",
+      "sha256": "a88aa00d04c688a8a6bd169b60f85007eb7c836456fc0e8de64899761c3c8d66",
+      "reviewed_full_resolution": true,
+      "review_notes": "Rose-mauve mirror chrome finish on five visible long tapered square/coffin nails; distinct specular reflections, natural cuticle borders, one realistic hand, and pure ivory satin folds without stone or props. Inspected original 1254x1254 PNG; native-resolution 1254px quality-94 WebP with no upscaling. Catalog-specific Rose Chrome design distinct in treatment from prismatic chrome and French-tip styles. AI-generated inspiration, not actual salon work.",
+      "source_filename": "a_close_up_high_resolution_beauty_fashion_photogr.png",
+      "source_sha256": "abb1c58784158a3165caa75a6e90f37642b754f46cef068c0a277f9d908e2fdc",
+      "source_dimensions": [
+        1254,
+        1254
+      ],
+      "conversion": "WebP quality 94; no resampling, no enlargement (lossy conversion)",
+      "anatomy_five_fingers": "PASS",
+      "nail_detail_and_cuticles": "PASS",
+      "pure_ivory_silk_no_stone": "PASS",
+      "exact_catalog_style": "PASS",
+      "no_duplicate_or_collage": "PASS",
+      "original_native_resolution": "PASS"
+    }
+  ]
+}

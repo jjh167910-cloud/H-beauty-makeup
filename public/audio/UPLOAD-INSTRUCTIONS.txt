@@ -1,0 +1,3 @@
+Place the cleared salon soundtrack here as `hananeh-salon-ambience.mp3`.
+The production build auto-enables looping music when this exact file exists.
+It checks SHA256 against `assets/hananeh-salon-ambience.sha256` and fails on mismatch.

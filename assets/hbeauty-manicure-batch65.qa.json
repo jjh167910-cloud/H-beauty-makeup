@@ -1,0 +1,109 @@
+{
+  "schema": 1,
+  "batch": "hbeauty-manicure-batch65",
+  "decision": "APPROVED_FOR_PUBLICATION",
+  "reviewer": "ChatGPT native-resolution visual inspection",
+  "reviewed_at": "2026-10-30T01:10:48.554660+00:00",
+  "images": [
+    {
+      "id": "nail-atlas-prism-ruby",
+      "finish": "chrome",
+      "shape": "almond",
+      "length": "medium",
+      "base": "#A72E40",
+      "accent": "#F3A7B2",
+      "filename": "public/nails/photos/nail-atlas-prism-ruby.webp",
+      "sha256": "cb969b252738b61a414e2707d79a16b181d0a48fbfde355dd57ca0a3bd692559",
+      "reviewed_full_resolution": true,
+      "review_notes": "Ruby red mirror chrome with directional reflective facets on medium almond nails. Five separated normal fingers/nails, clean cuticle borders, ivory fabric, no collage. Individually inspected at native 1254px; lossless WebP pixel equality verified. AI-generated inspiration, not salon work.",
+      "source_filename": "ruby_chrome_manicure_on_ivory_satin.png",
+      "source_sha256": "5e3cc11eb1182fec56ea35da2166cf908c744a483a1acbefb00aa0a6bdcdb25d",
+      "source_dimensions": [
+        1254,
+        1254
+      ],
+      "conversion": "lossless WebP; decoded RGB pixels identical",
+      "anatomy_five_fingers": "PASS",
+      "nail_detail_and_cuticles": "PASS",
+      "pure_ivory_silk_no_stone": "PASS",
+      "exact_catalog_style": "PASS",
+      "no_duplicate_or_collage": "PASS",
+      "original_native_resolution": "PASS"
+    },
+    {
+      "id": "nail-atlas-prism-lavender",
+      "finish": "chrome",
+      "shape": "almond",
+      "length": "medium",
+      "base": "#A395C7",
+      "accent": "#E9DDFB",
+      "filename": "public/nails/photos/nail-atlas-prism-lavender.webp",
+      "sha256": "3fd74304149a2a1bdaafe9973bc0377b836ccae3ced73f0046fa3d2311312579",
+      "reviewed_full_resolution": true,
+      "review_notes": "Lavender mirror chrome with directional reflective facets on medium almond nails. Five separated normal fingers/nails, clean cuticle borders, ivory fabric, no collage. Individually inspected at native 1254px; lossless WebP pixel equality verified. AI-generated inspiration, not salon work.",
+      "source_filename": "lavender_chrome_nails_on_ivory_silk.png",
+      "source_sha256": "647b65d0572bc59083004c91b1da05a16612876afea0b5f862decd6738e9f6a8",
+      "source_dimensions": [
+        1254,
+        1254
+      ],
+      "conversion": "lossless WebP; decoded RGB pixels identical",
+      "anatomy_five_fingers": "PASS",
+      "nail_detail_and_cuticles": "PASS",
+      "pure_ivory_silk_no_stone": "PASS",
+      "exact_catalog_style": "PASS",
+      "no_duplicate_or_collage": "PASS",
+      "original_native_resolution": "PASS"
+    },
+    {
+      "id": "nail-atlas-modern-french-champagne",
+      "finish": "french",
+      "shape": "square",
+      "length": "medium",
+      "base": "#C6A682",
+      "accent": "#F9E3BD",
+      "filename": "public/nails/photos/nail-atlas-modern-french-champagne.webp",
+      "sha256": "46db1bd56ea1bdae2c508fd44c87ba6b1b12d42c5cca60c12d20736c6068b9ef",
+      "reviewed_full_resolution": true,
+      "review_notes": "Two fine pale curves over champagne tips with a distinct intervening band, medium square nails. Five separated normal fingers/nails, clean cuticle borders, ivory fabric, no collage. Individually inspected at native 1254px; lossless WebP pixel equality verified. AI-generated inspiration, not salon work.",
+      "source_filename": "champagne_double_line_french_manicure.png",
+      "source_sha256": "d27020ee7eb8915e8412216c0d445f64aa3eba30dd3541323ee995f893efc96a",
+      "source_dimensions": [
+        1254,
+        1254
+      ],
+      "conversion": "lossless WebP; decoded RGB pixels identical",
+      "anatomy_five_fingers": "PASS",
+      "nail_detail_and_cuticles": "PASS",
+      "pure_ivory_silk_no_stone": "PASS",
+      "exact_catalog_style": "PASS",
+      "no_duplicate_or_collage": "PASS",
+      "original_native_resolution": "PASS"
+    },
+    {
+      "id": "nail-atlas-modern-french-cobalt",
+      "finish": "french",
+      "shape": "square",
+      "length": "medium",
+      "base": "#385DA8",
+      "accent": "#BED7FF",
+      "filename": "public/nails/photos/nail-atlas-modern-french-cobalt.webp",
+      "sha256": "4b72e683e09868ea88a45ca8da3a168a74fa9b7913aff3bb4f82c49deca1b19d",
+      "reviewed_full_resolution": true,
+      "review_notes": "Two pale blue curves framing cobalt French tips, medium square nails. Five separated normal fingers/nails, clean cuticle borders, ivory fabric, no collage. Individually inspected at native 1254px; lossless WebP pixel equality verified. AI-generated inspiration, not salon work.",
+      "source_filename": "cobalt_double_line_french_manicure.png",
+      "source_sha256": "2ffb470953944de16e9bc8c789dfd6fccb19d80ac1e6f06dc2009579f711f4cd",
+      "source_dimensions": [
+        1254,
+        1254
+      ],
+      "conversion": "lossless WebP; decoded RGB pixels identical",
+      "anatomy_five_fingers": "PASS",
+      "nail_detail_and_cuticles": "PASS",
+      "pure_ivory_silk_no_stone": "PASS",
+      "exact_catalog_style": "PASS",
+      "no_duplicate_or_collage": "PASS",
+      "original_native_resolution": "PASS"
+    }
+  ]
+}

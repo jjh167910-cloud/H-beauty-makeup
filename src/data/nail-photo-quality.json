@@ -1,0 +1,167 @@
+{
+  "version": 3,
+  "policy": "Only genuine native >=600px, visually faithful, non-near-duplicate sources are used as photographs.",
+  "styles": {
+    "nail-milky-silk": {
+      "native": 600,
+      "photo": true
+    },
+    "nail-ballet-pink": {
+      "native": 623,
+      "photo": true
+    },
+    "nail-old-money": {
+      "native": 623,
+      "photo": true
+    },
+    "nail-ruby-red": {
+      "native": 600,
+      "photo": true
+    },
+    "nail-merlot": {
+      "native": 623,
+      "photo": true
+    },
+    "nail-cocoa": {
+      "native": 623,
+      "photo": true
+    },
+    "nail-classic-french": {
+      "native": 600,
+      "photo": true
+    },
+    "nail-pearl-chrome": {
+      "native": 600,
+      "photo": true
+    },
+    "nail-marble": {
+      "native": 1254,
+      "photo": true
+    },
+    "nail-micro-french": {
+      "native": 202,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "nail-cherry-french": {
+      "native": 202,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "nail-black-french": {
+      "native": 202,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "nail-gold-french": {
+      "native": 202,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "nail-rose-french": {
+      "native": 202,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "nail-rose-chrome": {
+      "native": 202,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "nail-lavender-chrome": {
+      "native": 202,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "nail-silver-chrome": {
+      "native": 202,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "nail-pink-ombre": {
+      "native": 202,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "nail-peach-ombre": {
+      "native": 202,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "nail-berry-ombre": {
+      "native": 202,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "nail-champagne": {
+      "native": 202,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "nail-rose-glitter": {
+      "native": 202,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "nail-botanical": {
+      "native": 202,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "nail-modern-lines": {
+      "native": 202,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "nail-sage-garden": {
+      "native": 202,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "nail-lilac-bloom": {
+      "native": 202,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "nail-cobalt-lines": {
+      "native": 202,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "pedi-classic-nude": {
+      "native": 186,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "pedi-french": {
+      "native": 187,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "pedi-ruby": {
+      "native": 187,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "pedi-blush": {
+      "native": 187,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "pedi-lavender": {
+      "native": 187,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "pedi-sparkle": {
+      "native": 187,
+      "photo": false,
+      "reason": "contact-sheet crop"
+    },
+    "nail-midnight-glitter": {
+      "native": 640,
+      "photo": false,
+      "reason": "visually nearly identical to black French; must be regenerated"
+    }
+  }
+}

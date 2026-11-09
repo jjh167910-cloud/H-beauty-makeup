@@ -1,0 +1,164 @@
+/*
+ * Base layer — element defaults, typography text styles, accessibility.
+ */
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    text-size-adjust: 100%;
+    interpolate-size: allow-keywords;
+    background: var(--color-canvas);
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-weight: 380;
+    line-height: 1.75;
+    font-synthesis: none;
+    font-optical-sizing: auto;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+    accent-color: var(--color-gold);
+  }
+
+  :where(button, [role="button"], summary, label[for]):not(:disabled) {
+    cursor: pointer;
+  }
+
+  :where(button, a, input, textarea, select, summary, [tabindex]):focus-visible {
+    outline: none;
+    box-shadow: var(--focus-ring);
+    border-radius: var(--radius-sm);
+  }
+
+  :where(input, textarea, select) {
+    color: inherit;
+    font: inherit;
+  }
+
+  textarea {
+    field-sizing: content;
+    min-height: 4.5rem;
+    resize: none;
+  }
+
+  input[type="search"]::-webkit-search-cancel-button {
+    display: none;
+  }
+
+  ::placeholder {
+    color: var(--color-ink-3);
+    opacity: 1;
+  }
+
+  ::selection {
+    background: var(--color-gold-soft);
+    color: var(--color-ink);
+  }
+
+  :where(h1, h2, h3, h4) {
+    font-weight: inherit;
+    text-wrap: balance;
+  }
+
+  :where(p, li, figcaption) {
+    text-wrap: pretty;
+  }
+
+  img {
+    -webkit-user-drag: none;
+  }
+
+  /* Latin runs inside Persian copy pick up the serif accent automatically. */
+  :where([lang="en"]) {
+    font-family: var(--font-serif);
+  }
+}
+
+/*
+ * Text styles — composite typography tokens (size, leading, weight, tracking).
+ * Named by role, like platform type ramps, and fluid between 360–520px wide.
+ */
+@utility t-display {
+  font-size: clamp(2.35rem, 1.6rem + 3.4vw, 3rem);
+  line-height: 1.3;
+  font-weight: 200;
+  letter-spacing: 0; /* never track cursive Persian */
+}
+@utility t-title-1 {
+  font-size: clamp(1.75rem, 1.4rem + 1.6vw, 2.1rem);
+  line-height: 1.4;
+  font-weight: 250;
+}
+@utility t-title-2 {
+  font-size: 1.375rem;
+  line-height: 1.5;
+  font-weight: 300;
+}
+@utility t-title-3 {
+  font-size: 1.125rem;
+  line-height: 1.6;
+  font-weight: 450;
+}
+@utility t-headline {
+  font-size: 1rem;
+  line-height: 1.6;
+  font-weight: 520;
+}
+@utility t-body {
+  font-size: 0.9375rem;
+  line-height: 1.85;
+  font-weight: 380;
+}
+@utility t-callout {
+  font-size: 0.875rem;
+  line-height: 1.75;
+  font-weight: 400;
+}
+@utility t-footnote {
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  font-weight: 400;
+}
+@utility t-caption {
+  font-size: 0.72rem;
+  line-height: 1.6;
+  font-weight: 450;
+}
+/* Small gold label above a heading. */
+@utility t-eyebrow {
+  font-size: 0.75rem;
+  line-height: 1.5;
+  font-weight: 550;
+  color: var(--color-gold-ink);
+}
+/* Latin fashion accent (Bodoni). */
+@utility t-latin {
+  font-family: var(--font-serif);
+  font-variation-settings: "opsz" 11;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  font-size: 0.66rem;
+  font-weight: 500;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+/* Nastaliq calligraphy — generous leading because of its deep descenders. */
+@utility t-calligraphy {
+  font-family: var(--font-calligraphy);
+  font-weight: 500;
+  line-height: 2.1;
+  letter-spacing: 0;
+}
+@utility t-numeric {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}

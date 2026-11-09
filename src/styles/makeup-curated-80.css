@@ -1,0 +1,64 @@
+/* H-Beauty editorial 80-photo edition. Additive: default salon visuals untouched.
+ * Cropped closeups derive from the same uploaded full-resolution source photo. */
+@layer components {
+  .mk-collection-switch {
+    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.45rem;margin-block:-.15rem .25rem;
+  }
+  .mk-collection-switch button {
+    min-height:44px;min-width:0;padding:.45rem .3rem;border:1px solid var(--color-line);
+    background:var(--color-surface);border-radius:var(--radius-lg);color:var(--color-ink-2);
+    font-size:clamp(.66rem,2.5vw,.85rem);line-height:1.55;font-weight:700;text-align:center;
+  }
+  .mk-collection-switch button[aria-pressed="true"] {
+    color:var(--color-on-gold);background:var(--color-gold);border-color:var(--color-gold);
+  }
+  .mk-collection-switch button:focus-visible {outline:3px solid var(--color-gold-ink);outline-offset:3px}
+  .mk-page[data-curated80="true"] .mk-card[data-curated80="true"] {
+    display:grid;grid-template-rows:auto auto;content-visibility:auto;contain-intrinsic-size:auto 360px;
+    border-radius:1rem;
+  }
+  .mk-page[data-curated80="true"] .mk-card[data-curated80="true"] .mk-card__visual .media {
+    aspect-ratio:4/5;overflow:hidden;border-radius:0;max-width:100%;background:var(--color-sunken);
+  }
+  .mk-page[data-curated80="true"] .mk-card[data-curated80="true"] .mk-card__visual img {
+    width:100%;height:100%;object-fit:cover;object-position:center 34%;transform:none;filter:none;
+  }
+  .mk-page[data-curated80="true"] .mk-card__open {min-width:0}
+  .mk-page[data-curated80="true"] .mk-card__open strong {padding:.55rem .45rem .1rem;font-size:.86rem;line-height:1.65}
+  .mk-card__subtitle {display:block;text-align:center;direction:ltr;font:500 .68rem/1.5 var(--font-serif);
+    color:var(--color-ink-2);padding:.05rem .3rem .35rem;letter-spacing:.03em;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .mk-page[data-curated80="true"] .mk-card[data-curated80="true"] .mk-card__fav {
+    position:static;inset:auto;justify-self:center;align-self:center;margin:.18rem 0 .55rem;
+    color:var(--color-rose);
+  }
+  .mk-page[data-curated80="true"] .mk-card[data-curated80="true"][data-mode="eyes"] .mk-card__visual .media,
+  .mk-page[data-curated80="true"] .mk-card[data-curated80="true"][data-mode="lips"] .mk-card__visual .media {
+    aspect-ratio:4/5;
+  }
+  .mk-page[data-curated80="true"] .mk-card[data-curated80="true"][data-mode="eyes"] .mk-card__visual img {
+    transform:scale(1.45);transform-origin:center 30%;
+  }
+  .mk-page[data-curated80="true"] .mk-card[data-curated80="true"][data-mode="lips"] .mk-card__visual img {
+    transform:scale(1.5);transform-origin:center 68%;
+  }
+  .mk-detail[data-curated80="true"] .mk-detail__slide[data-size="eyes"] .media,
+  .mk-detail[data-curated80="true"] .mk-detail__slide[data-size="lips"] .media {overflow:hidden}
+  .mk-detail[data-curated80="true"] .mk-detail__slide[data-size="eyes"] img {
+    transform:scale(1.95);transform-origin:center 32%;object-position:center 32%;
+  }
+  .mk-detail[data-curated80="true"] .mk-detail__slide[data-size="lips"] img {
+    transform:scale(2.05);transform-origin:center 70%;object-position:center 68%;
+  }
+  .mk-detail[data-curated80="true"] .mk-detail__tag,.mk-detail[data-curated80="true"] .mk-detail__count{
+    display:none;
+  }
+  .mk-curated-save {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;
+    gap:.4rem .8rem;color:var(--color-ink-2);font-size:.72rem}
+  .mk-curated-save span {flex:1;min-width:180px;line-height:1.7}
+  .mk-detail__source-note {border-inline-start:2px solid var(--color-gold);padding-inline:.65rem;
+    color:var(--color-ink-2);font-size:.79rem;line-height:1.85}
+  @media(min-width:700px) {.mk-page[data-curated80="true"] .mk-grid {grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media(min-width:1040px) {.mk-page[data-curated80="true"] .mk-grid {grid-template-columns:repeat(4,minmax(0,1fr))}}
+  @media(prefers-reduced-motion:reduce) {.mk-card__visual img {transition:none}}
+}

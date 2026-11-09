@@ -1,0 +1,4254 @@
+{
+  "schema": 1,
+  "title": "H-Beauty 146 manicure editorial pre-screen",
+  "scope": "PRELIMINARY PROPOSALS ONLY; no editorial permissions granted",
+  "reviewed_on": "2026-10-30",
+  "method": "All 146 contact-sheet screenings and selected enlarged-source inspections, without proof of native generator output or full uniqueness",
+  "total": 146,
+  "proposed_counts": {
+    "HOLD": 42,
+    "REGENERATE": 17,
+    "VISUAL_CANDIDATE": 87
+  },
+  "cohort_counts": {
+    "INITIAL_60": 60,
+    "NEW_86": 86
+  },
+  "final_approved": 0,
+  "images": [
+    {
+      "id": "nail-sage-garden",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "باغ زیتونی",
+        "en": "Sage Garden",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "art",
+        "motif": "original-brief",
+        "base": "#97AA9C",
+        "accent": "#F5EEE8"
+      },
+      "suggestion": "HOLD",
+      "reason": "Earlier review raised an exact-shape, finish, length, or anatomy question. Native-scale resolution and editorial confirmation remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "34426bd1b2d1d9735ec8dab96b541808df94d77a54ca171c7b3fe9478b5d89d3",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-lilac-bloom",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "شکوفه یاسی",
+        "en": "Lilac Bloom",
+        "shape": "almond",
+        "length": "medium",
+        "finish": "art",
+        "motif": "original-brief",
+        "base": "#B9A5CD",
+        "accent": "#F6E5F6"
+      },
+      "suggestion": "HOLD",
+      "reason": "Earlier review raised an exact-shape, finish, length, or anatomy question. Native-scale resolution and editorial confirmation remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "6ff715aba94b7052025b71111fa30f6662ff0aee37da4e4694d98ebef65a27c6",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-cobalt-lines",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "آبی کبالت",
+        "en": "Cobalt Accent",
+        "shape": "coffin",
+        "length": "long",
+        "finish": "art",
+        "motif": "original-brief",
+        "base": "#325590",
+        "accent": "#CFDFF9"
+      },
+      "suggestion": "REGENERATE",
+      "reason": "Earlier review recorded a substantive exact-design or nail-anatomy problem. Preserve the rejection and consult the detailed original QC notes before considering a replacement.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "77e98f42d5a438d155f59f61edc00d1a543de88da8dda94224afbcd979628df0",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-velvet-merlot",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "مخمل مات زرشکی",
+        "en": "Merlot Velvet Matte",
+        "shape": "almond",
+        "length": "medium",
+        "finish": "matte",
+        "motif": "velvet",
+        "base": "#5F3046",
+        "accent": "#E6A9BA"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "cb154cc8dab37b2209d51e9ec1115b21fc2d3846084c8b0b47990d554cdabbfc",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-velvet-espresso",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "مخمل مات اسپرسو",
+        "en": "Espresso Velvet Matte",
+        "shape": "oval",
+        "length": "long",
+        "finish": "matte",
+        "motif": "velvet",
+        "base": "#63473C",
+        "accent": "#D5AD93"
+      },
+      "suggestion": "HOLD",
+      "reason": "Earlier review raised an exact-shape, finish, length, or anatomy question. Native-scale resolution and editorial confirmation remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "a8978d075ec41e95e6fc612099e7360cdef00a3a9a88b21df71dcb5eef19406c",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-velvet-sage",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "مخمل مات سیج",
+        "en": "Sage Velvet Matte",
+        "shape": "square",
+        "length": "short",
+        "finish": "matte",
+        "motif": "velvet",
+        "base": "#879C83",
+        "accent": "#DCE8C8"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "45e9cf0e4df4479b429c6ed5ea0c116fbca1612dc48646e2eabf3a779f3b580c",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-velvet-lavender",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "مخمل مات یاسی",
+        "en": "Lavender Velvet Matte",
+        "shape": "coffin",
+        "length": "medium",
+        "finish": "matte",
+        "motif": "velvet",
+        "base": "#A395C7",
+        "accent": "#E9DDFB"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "4885352d3506a97bb3a88ce1c47ca909779edab8b790df1f1090efd1cc4426f4",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-velvet-cobalt",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "مخمل مات کبالت",
+        "en": "Cobalt Velvet Matte",
+        "shape": "almond",
+        "length": "long",
+        "finish": "matte",
+        "motif": "velvet",
+        "base": "#385DA8",
+        "accent": "#BED7FF"
+      },
+      "suggestion": "HOLD",
+      "reason": "Earlier review raised an exact-shape, finish, length, or anatomy question. Native-scale resolution and editorial confirmation remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "9c9b909f2c7c9095d573f89b8983904b1684da11fd90f287218e8031f4867c89",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-gradient-ivory",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "دودی آمبره عاجی",
+        "en": "Ivory Smoky Ombré",
+        "shape": "almond",
+        "length": "short",
+        "finish": "ombre",
+        "motif": "gradient",
+        "base": "#E9D7C6",
+        "accent": "#FFF8E9"
+      },
+      "suggestion": "REGENERATE",
+      "reason": "Earlier review recorded a substantive exact-design or nail-anatomy problem. Preserve the rejection and consult the detailed original QC notes before considering a replacement.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "e1d6564fe13542fa22a7d0d8cf2f0a0e884f27887cb463a145585db48af3019b",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-gradient-blush",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "دودی آمبره رز لطیف",
+        "en": "Blush Smoky Ombré",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "ombre",
+        "motif": "gradient",
+        "base": "#D9A1B0",
+        "accent": "#FFE3E7"
+      },
+      "suggestion": "REGENERATE",
+      "reason": "Earlier review recorded a substantive exact-design or nail-anatomy problem. Preserve the rejection and consult the detailed original QC notes before considering a replacement.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "7d7208b4b4ce30cbf5bcd1f6c4821982f516e6231d9ab2fd368eb31a7971dc6f",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-gradient-champagne",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "دودی آمبره شامپاینی",
+        "en": "Champagne Smoky Ombré",
+        "shape": "square",
+        "length": "long",
+        "finish": "ombre",
+        "motif": "gradient",
+        "base": "#C6A682",
+        "accent": "#F9E3BD"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "73ca0dc8a4e544f2403dfaafdd92af42c8a210dbee27169b1b07e5ab392e5323",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-gradient-espresso",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "دودی آمبره اسپرسو",
+        "en": "Espresso Smoky Ombré",
+        "shape": "oval",
+        "length": "long",
+        "finish": "ombre",
+        "motif": "gradient",
+        "base": "#63473C",
+        "accent": "#D5AD93"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "a247b19b3e8ac11249c9711225652eb5a90b2f7d74c09033b9954d77ca8ffbd6",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-gradient-sage",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "دودی آمبره سیج",
+        "en": "Sage Smoky Ombré",
+        "shape": "square",
+        "length": "short",
+        "finish": "ombre",
+        "motif": "gradient",
+        "base": "#879C83",
+        "accent": "#DCE8C8"
+      },
+      "suggestion": "HOLD",
+      "reason": "Earlier review raised an exact-shape, finish, length, or anatomy question. Native-scale resolution and editorial confirmation remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "44592d6ed2194dff632d5a146b160342444b4b0d2386ce43eef36aa5ff71d51e",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-gradient-coral",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "دودی آمبره مرجانی",
+        "en": "Coral Smoky Ombré",
+        "shape": "square",
+        "length": "medium",
+        "finish": "ombre",
+        "motif": "gradient",
+        "base": "#DA887A",
+        "accent": "#FBD2B9"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "a051f9993408f958b2a87e6d5fb425b02b4d8cd04b645c8a673f51a191bd8e5e",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-modern-french-ivory",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "فرنچ دوخط عاجی",
+        "en": "Ivory Double-Line French",
+        "shape": "square",
+        "length": "long",
+        "finish": "french",
+        "motif": "double-french",
+        "base": "#E9D7C6",
+        "accent": "#FFF8E9"
+      },
+      "suggestion": "HOLD",
+      "reason": "Earlier review raised an exact-shape, finish, length, or anatomy question. Native-scale resolution and editorial confirmation remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "8875833367c584e81a09f22adcabfd24b98c02369d8f0f79ba40313915f560e6",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-modern-french-blush",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "فرنچ دوخط رز لطیف",
+        "en": "Blush Double-Line French",
+        "shape": "square",
+        "length": "short",
+        "finish": "french",
+        "motif": "double-french",
+        "base": "#D9A1B0",
+        "accent": "#FFE3E7"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "cc66dfb76ac3e111a921fbd3012cb365733e576a115e26b74b3d224c2c802293",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-modern-french-ruby",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "فرنچ دوخط یاقوتی",
+        "en": "Ruby Double-Line French",
+        "shape": "square",
+        "length": "long",
+        "finish": "french",
+        "motif": "double-french",
+        "base": "#A72E40",
+        "accent": "#F3A7B2"
+      },
+      "suggestion": "HOLD",
+      "reason": "Earlier review raised an exact-shape, finish, length, or anatomy question. Native-scale resolution and editorial confirmation remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "1ce1813073385d182d94c1a31820f5ac1c59d370fd79631104644a7b504e72ee",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-modern-french-midnight",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "فرنچ دوخط نیمه‌شب",
+        "en": "Midnight Double-Line French",
+        "shape": "square",
+        "length": "long",
+        "finish": "french",
+        "motif": "double-french",
+        "base": "#2E344E",
+        "accent": "#B7C1E8"
+      },
+      "suggestion": "HOLD",
+      "reason": "Earlier review raised an exact-shape, finish, length, or anatomy question. Native-scale resolution and editorial confirmation remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "44fecf480320bc1598e9da74a6465d7ac92bf72010a342bfb215cddbbf33fe18",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-modern-french-coral",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "فرنچ دوخط مرجانی",
+        "en": "Coral Double-Line French",
+        "shape": "square",
+        "length": "short",
+        "finish": "french",
+        "motif": "double-french",
+        "base": "#DA887A",
+        "accent": "#FBD2B9"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "1cd936f63bb79fb290b6c390ce3c50dd3fd3d14d7ef7561245ad95a9a3641865",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-modern-french-pearl",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "فرنچ دوخط مرواریدی",
+        "en": "Pearl Double-Line French",
+        "shape": "square",
+        "length": "medium",
+        "finish": "french",
+        "motif": "double-french",
+        "base": "#D1CCD0",
+        "accent": "#FCF8FA"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "dbd7d4d1e7c4366d70edba5ec7d690eb323daaee5e1697cc386bdd2a8dcd7243",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-foil-blush",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "ورق طلا رز لطیف",
+        "en": "Blush Gold Leaf",
+        "shape": "oval",
+        "length": "long",
+        "finish": "foil",
+        "motif": "foil",
+        "base": "#D9A1B0",
+        "accent": "#FFE3E7"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Foil fragments are visible on ivory silk in the batch contact sheet; inspect flake edge quality, tip shape, and distribution across all five nails.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-foil-champagne",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "ورق طلا شامپاینی",
+        "en": "Champagne Gold Leaf",
+        "shape": "oval",
+        "length": "short",
+        "finish": "foil",
+        "motif": "foil",
+        "base": "#C6A682",
+        "accent": "#F9E3BD"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Foil fragments are visible on ivory silk in the batch contact sheet; inspect flake edge quality, tip shape, and distribution across all five nails.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-foil-ruby",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "ورق طلا یاقوتی",
+        "en": "Ruby Gold Leaf",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "foil",
+        "motif": "foil",
+        "base": "#A72E40",
+        "accent": "#F3A7B2"
+      },
+      "suggestion": "HOLD",
+      "reason": "Ruby foil treatment is visible, but compare the medium oval tip shape with the catalog at full scale.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-foil-espresso",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "ورق طلا اسپرسو",
+        "en": "Espresso Gold Leaf",
+        "shape": "oval",
+        "length": "short",
+        "finish": "foil",
+        "motif": "foil",
+        "base": "#63473C",
+        "accent": "#D5AD93"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Foil fragments are visible on ivory silk in the batch contact sheet; inspect flake edge quality, tip shape, and distribution across all five nails.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-foil-sage",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "ورق طلا سیج",
+        "en": "Sage Gold Leaf",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "foil",
+        "motif": "foil",
+        "base": "#879C83",
+        "accent": "#DCE8C8"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Foil fragments are visible on ivory silk in the batch contact sheet; inspect flake edge quality, tip shape, and distribution across all five nails.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-foil-lavender",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "ورق طلا یاسی",
+        "en": "Lavender Gold Leaf",
+        "shape": "oval",
+        "length": "long",
+        "finish": "foil",
+        "motif": "foil",
+        "base": "#A395C7",
+        "accent": "#E9DDFB"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Foil fragments are visible on ivory silk in the batch contact sheet; inspect flake edge quality, tip shape, and distribution across all five nails.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-foil-midnight",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "ورق طلا نیمه‌شب",
+        "en": "Midnight Gold Leaf",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "foil",
+        "motif": "foil",
+        "base": "#2E344E",
+        "accent": "#B7C1E8"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Foil fragments are visible on ivory silk in the batch contact sheet; inspect flake edge quality, tip shape, and distribution across all five nails.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-foil-coral",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "ورق طلا مرجانی",
+        "en": "Coral Gold Leaf",
+        "shape": "oval",
+        "length": "long",
+        "finish": "foil",
+        "motif": "foil",
+        "base": "#DA887A",
+        "accent": "#FBD2B9"
+      },
+      "suggestion": "HOLD",
+      "reason": "The long coral foil nails appear more tapered than the required oval silhouette; verify sidewalls and full extension.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-foil-pearl",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "ورق طلا مرواریدی",
+        "en": "Pearl Gold Leaf",
+        "shape": "oval",
+        "length": "short",
+        "finish": "foil",
+        "motif": "foil",
+        "base": "#D1CCD0",
+        "accent": "#FCF8FA"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Foil fragments are visible on ivory silk in the batch contact sheet; inspect flake edge quality, tip shape, and distribution across all five nails.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-minimal-ivory",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "نقطه مینیمال عاجی",
+        "en": "Ivory Minimal Dot",
+        "shape": "oval",
+        "length": "short",
+        "finish": "gloss",
+        "motif": "minimal",
+        "base": "#E9D7C6",
+        "accent": "#FFF8E9"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Uniform short glossy color is apparent on ivory silk; check the requested shape and exclude near-identical color variants in the approved catalog.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-minimal-blush",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "نقطه مینیمال رز لطیف",
+        "en": "Blush Minimal Dot",
+        "shape": "square",
+        "length": "short",
+        "finish": "gloss",
+        "motif": "minimal",
+        "base": "#D9A1B0",
+        "accent": "#FFE3E7"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Uniform short glossy color is apparent on ivory silk; check the requested shape and exclude near-identical color variants in the approved catalog.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-minimal-champagne",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "نقطه مینیمال شامپاینی",
+        "en": "Champagne Minimal Dot",
+        "shape": "coffin",
+        "length": "short",
+        "finish": "gloss",
+        "motif": "minimal",
+        "base": "#C6A682",
+        "accent": "#F9E3BD"
+      },
+      "suggestion": "HOLD",
+      "reason": "Short nails appear almost squoval; the catalog requests short coffin. Inspect the taper of each tip.",
+      "screening_method": "CONTACT_SHEET_PLUS_ENLARGED_SOURCE_SCREENING",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-minimal-ruby",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "نقطه مینیمال یاقوتی",
+        "en": "Ruby Minimal Dot",
+        "shape": "almond",
+        "length": "short",
+        "finish": "gloss",
+        "motif": "minimal",
+        "base": "#A72E40",
+        "accent": "#F3A7B2"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Uniform short glossy color is apparent on ivory silk; check the requested shape and exclude near-identical color variants in the approved catalog.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-minimal-merlot",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "نقطه مینیمال زرشکی",
+        "en": "Merlot Minimal Dot",
+        "shape": "oval",
+        "length": "short",
+        "finish": "gloss",
+        "motif": "minimal",
+        "base": "#5F3046",
+        "accent": "#E6A9BA"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Uniform short glossy color is apparent on ivory silk; check the requested shape and exclude near-identical color variants in the approved catalog.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-minimal-espresso",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "نقطه مینیمال اسپرسو",
+        "en": "Espresso Minimal Dot",
+        "shape": "square",
+        "length": "short",
+        "finish": "gloss",
+        "motif": "minimal",
+        "base": "#63473C",
+        "accent": "#D5AD93"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Uniform short glossy color is apparent on ivory silk; check the requested shape and exclude near-identical color variants in the approved catalog.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-minimal-sage",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "نقطه مینیمال سیج",
+        "en": "Sage Minimal Dot",
+        "shape": "coffin",
+        "length": "short",
+        "finish": "gloss",
+        "motif": "minimal",
+        "base": "#879C83",
+        "accent": "#DCE8C8"
+      },
+      "suggestion": "HOLD",
+      "reason": "The short sage tips appear rounded-square rather than distinctly tapered coffin.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-minimal-lavender",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "نقطه مینیمال یاسی",
+        "en": "Lavender Minimal Dot",
+        "shape": "almond",
+        "length": "short",
+        "finish": "gloss",
+        "motif": "minimal",
+        "base": "#A395C7",
+        "accent": "#E9DDFB"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Uniform short glossy color is apparent on ivory silk; check the requested shape and exclude near-identical color variants in the approved catalog.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-minimal-cobalt",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "نقطه مینیمال کبالت",
+        "en": "Cobalt Minimal Dot",
+        "shape": "oval",
+        "length": "short",
+        "finish": "gloss",
+        "motif": "minimal",
+        "base": "#385DA8",
+        "accent": "#BED7FF"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Uniform short glossy color is apparent on ivory silk; check the requested shape and exclude near-identical color variants in the approved catalog.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-minimal-midnight",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "نقطه مینیمال نیمه‌شب",
+        "en": "Midnight Minimal Dot",
+        "shape": "square",
+        "length": "short",
+        "finish": "gloss",
+        "motif": "minimal",
+        "base": "#2E344E",
+        "accent": "#B7C1E8"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Uniform short glossy color is apparent on ivory silk; check the requested shape and exclude near-identical color variants in the approved catalog.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-minimal-coral",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "نقطه مینیمال مرجانی",
+        "en": "Coral Minimal Dot",
+        "shape": "coffin",
+        "length": "short",
+        "finish": "gloss",
+        "motif": "minimal",
+        "base": "#DA887A",
+        "accent": "#FBD2B9"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Uniform short glossy color is apparent on ivory silk; check the requested shape and exclude near-identical color variants in the approved catalog.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-minimal-pearl",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "نقطه مینیمال مرواریدی",
+        "en": "Pearl Minimal Dot",
+        "shape": "almond",
+        "length": "short",
+        "finish": "gloss",
+        "motif": "minimal",
+        "base": "#D1CCD0",
+        "accent": "#FCF8FA"
+      },
+      "suggestion": "HOLD",
+      "reason": "Pearl minimalist nails appear rounded; verify the catalog's short almond shape.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-geometry-ruby",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "ژئومتریک یاقوتی",
+        "en": "Ruby Architectural Lines",
+        "shape": "oval",
+        "length": "short",
+        "finish": "art",
+        "motif": "geometry",
+        "base": "#A72E40",
+        "accent": "#F3A7B2"
+      },
+      "suggestion": "HOLD",
+      "reason": "The red line motif is clear but the short tips appear square/rounded rather than the requested oval.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-geometry-merlot",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "ژئومتریک زرشکی",
+        "en": "Merlot Architectural Lines",
+        "shape": "square",
+        "length": "medium",
+        "finish": "art",
+        "motif": "geometry",
+        "base": "#5F3046",
+        "accent": "#E6A9BA"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "A coherent geometric line motif is visible on five nails against ivory silk; confirm exact contour and clean line crossings at native scale.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-geometry-espresso",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "ژئومتریک اسپرسو",
+        "en": "Espresso Architectural Lines",
+        "shape": "coffin",
+        "length": "long",
+        "finish": "art",
+        "motif": "geometry",
+        "base": "#63473C",
+        "accent": "#D5AD93"
+      },
+      "suggestion": "HOLD",
+      "reason": "The long espresso geometric tips look largely square; check required coffin taper and clean geometry.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-geometry-sage",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "ژئومتریک سیج",
+        "en": "Sage Architectural Lines",
+        "shape": "almond",
+        "length": "short",
+        "finish": "art",
+        "motif": "geometry",
+        "base": "#879C83",
+        "accent": "#DCE8C8"
+      },
+      "suggestion": "REGENERATE",
+      "reason": "The short nail tips in the enlarged source clearly have a rounded/squoval outline rather than the requested short almond taper. Recommend regeneration if native-scale confirmation agrees.",
+      "screening_method": "CONTACT_SHEET_PLUS_ENLARGED_SOURCE_SCREENING",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-geometry-lavender",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "ژئومتریک یاسی",
+        "en": "Lavender Architectural Lines",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "art",
+        "motif": "geometry",
+        "base": "#A395C7",
+        "accent": "#E9DDFB"
+      },
+      "suggestion": "HOLD",
+      "reason": "The lilac graphic design is present; verify whether the medium silhouette is oval rather than tapered almond.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-geometry-cobalt",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "ژئومتریک کبالت",
+        "en": "Cobalt Architectural Lines",
+        "shape": "square",
+        "length": "long",
+        "finish": "art",
+        "motif": "geometry",
+        "base": "#385DA8",
+        "accent": "#BED7FF"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "A coherent geometric line motif is visible on five nails against ivory silk; confirm exact contour and clean line crossings at native scale.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-geometry-midnight",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "ژئومتریک نیمه‌شب",
+        "en": "Midnight Architectural Lines",
+        "shape": "coffin",
+        "length": "short",
+        "finish": "art",
+        "motif": "geometry",
+        "base": "#2E344E",
+        "accent": "#B7C1E8"
+      },
+      "suggestion": "HOLD",
+      "reason": "The midnight geometry has strong angled tips; verify that short coffin shaping is genuinely present.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-geometry-coral",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "ژئومتریک مرجانی",
+        "en": "Coral Architectural Lines",
+        "shape": "almond",
+        "length": "medium",
+        "finish": "art",
+        "motif": "geometry",
+        "base": "#DA887A",
+        "accent": "#FBD2B9"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "A coherent geometric line motif is visible on five nails against ivory silk; confirm exact contour and clean line crossings at native scale.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-geometry-pearl",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "ژئومتریک مرواریدی",
+        "en": "Pearl Architectural Lines",
+        "shape": "oval",
+        "length": "long",
+        "finish": "art",
+        "motif": "geometry",
+        "base": "#D1CCD0",
+        "accent": "#FCF8FA"
+      },
+      "suggestion": "HOLD",
+      "reason": "Silver geometric tips visibly taper toward points; compare against required long oval geometry.",
+      "screening_method": "CONTACT_SHEET_PLUS_ENLARGED_SOURCE_SCREENING",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-botanical-ivory",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "شاخه‌های ظریف عاجی",
+        "en": "Ivory Botanical Ink",
+        "shape": "almond",
+        "length": "medium",
+        "finish": "art",
+        "motif": "botanical",
+        "base": "#E9D7C6",
+        "accent": "#FFF8E9"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Fine leaf/branch line art is visible on the nails and ivory silk is continuous; verify line integrity, medium almond form, and duplicate separation.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-botanical-blush",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "شاخه‌های ظریف رز لطیف",
+        "en": "Blush Botanical Ink",
+        "shape": "almond",
+        "length": "medium",
+        "finish": "art",
+        "motif": "botanical",
+        "base": "#D9A1B0",
+        "accent": "#FFE3E7"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Fine leaf/branch line art is visible on the nails and ivory silk is continuous; verify line integrity, medium almond form, and duplicate separation.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-botanical-champagne",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "شاخه‌های ظریف شامپاینی",
+        "en": "Champagne Botanical Ink",
+        "shape": "almond",
+        "length": "medium",
+        "finish": "art",
+        "motif": "botanical",
+        "base": "#C6A682",
+        "accent": "#F9E3BD"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Fine leaf/branch line art is visible on the nails and ivory silk is continuous; verify line integrity, medium almond form, and duplicate separation.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-botanical-merlot",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "شاخه‌های ظریف زرشکی",
+        "en": "Merlot Botanical Ink",
+        "shape": "almond",
+        "length": "medium",
+        "finish": "art",
+        "motif": "botanical",
+        "base": "#5F3046",
+        "accent": "#E6A9BA"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Fine leaf/branch line art is visible on the nails and ivory silk is continuous; verify line integrity, medium almond form, and duplicate separation.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-botanical-sage",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "شاخه‌های ظریف سیج",
+        "en": "Sage Botanical Ink",
+        "shape": "almond",
+        "length": "medium",
+        "finish": "art",
+        "motif": "botanical",
+        "base": "#879C83",
+        "accent": "#DCE8C8"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Fine leaf/branch line art is visible on the nails and ivory silk is continuous; verify line integrity, medium almond form, and duplicate separation.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-botanical-lavender",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "شاخه‌های ظریف یاسی",
+        "en": "Lavender Botanical Ink",
+        "shape": "almond",
+        "length": "medium",
+        "finish": "art",
+        "motif": "botanical",
+        "base": "#A395C7",
+        "accent": "#E9DDFB"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Fine leaf/branch line art is visible on the nails and ivory silk is continuous; verify line integrity, medium almond form, and duplicate separation.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-botanical-cobalt",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "شاخه‌های ظریف کبالت",
+        "en": "Cobalt Botanical Ink",
+        "shape": "almond",
+        "length": "medium",
+        "finish": "art",
+        "motif": "botanical",
+        "base": "#385DA8",
+        "accent": "#BED7FF"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Fine leaf/branch line art is visible on the nails and ivory silk is continuous; verify line integrity, medium almond form, and duplicate separation.",
+      "screening_method": "CONTACT_SHEET_PLUS_ENLARGED_SOURCE_SCREENING",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-botanical-midnight",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "شاخه‌های ظریف نیمه‌شب",
+        "en": "Midnight Botanical Ink",
+        "shape": "almond",
+        "length": "medium",
+        "finish": "art",
+        "motif": "botanical",
+        "base": "#2E344E",
+        "accent": "#B7C1E8"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Fine leaf/branch line art is visible on the nails and ivory silk is continuous; verify line integrity, medium almond form, and duplicate separation.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-botanical-coral",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "شاخه‌های ظریف مرجانی",
+        "en": "Coral Botanical Ink",
+        "shape": "almond",
+        "length": "medium",
+        "finish": "art",
+        "motif": "botanical",
+        "base": "#DA887A",
+        "accent": "#FBD2B9"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Fine leaf/branch line art is visible on the nails and ivory silk is continuous; verify line integrity, medium almond form, and duplicate separation.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-watercolor-ivory",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "آبرنگ ابری عاجی",
+        "en": "Ivory Watercolour Cloud",
+        "shape": "coffin",
+        "length": "long",
+        "finish": "art",
+        "motif": "watercolor",
+        "base": "#E9D7C6",
+        "accent": "#FFF8E9"
+      },
+      "suggestion": "HOLD",
+      "reason": "At enlarged inspection the ivory wash is very subtle and resembles clouded stone; verify a soft watercolor diffusion, not marble.",
+      "screening_method": "CONTACT_SHEET_PLUS_ENLARGED_SOURCE_SCREENING",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-watercolor-blush",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "آبرنگ ابری رز لطیف",
+        "en": "Blush Watercolour Cloud",
+        "shape": "almond",
+        "length": "long",
+        "finish": "art",
+        "motif": "watercolor",
+        "base": "#D9A1B0",
+        "accent": "#FFE3E7"
+      },
+      "suggestion": "HOLD",
+      "reason": "Earlier review raised an exact-shape, finish, length, or anatomy question. Native-scale resolution and editorial confirmation remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "63942833e5713a459bfa7ca6c274382c363aa359fd330e9f1a93892756715b5d",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-watercolor-champagne",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "آبرنگ ابری شامپاینی",
+        "en": "Champagne Watercolour Cloud",
+        "shape": "oval",
+        "length": "long",
+        "finish": "art",
+        "motif": "watercolor",
+        "base": "#C6A682",
+        "accent": "#F9E3BD"
+      },
+      "suggestion": "REGENERATE",
+      "reason": "Earlier review recorded a substantive exact-design or nail-anatomy problem. Preserve the rejection and consult the detailed original QC notes before considering a replacement.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "50a947c6bf67176aea35889b7936975565bbc2cf23d4e60bea23f109a3d8d29b",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-watercolor-ruby",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "آبرنگ ابری یاقوتی",
+        "en": "Ruby Watercolour Cloud",
+        "shape": "square",
+        "length": "long",
+        "finish": "art",
+        "motif": "watercolor",
+        "base": "#A72E40",
+        "accent": "#F3A7B2"
+      },
+      "suggestion": "HOLD",
+      "reason": "Earlier review raised an exact-shape, finish, length, or anatomy question. Native-scale resolution and editorial confirmation remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "43a16eba164b624d213f867d22de41e42582f964b29e153b5eef9f2810f18a66",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-watercolor-merlot",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "آبرنگ ابری زرشکی",
+        "en": "Merlot Watercolour Cloud",
+        "shape": "coffin",
+        "length": "long",
+        "finish": "art",
+        "motif": "watercolor",
+        "base": "#5F3046",
+        "accent": "#E6A9BA"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "ee2dce3469fe3a7d41fa55ab862e16f99c0d3e2d7fe63d56fd96b86d8cd2aba5",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-watercolor-espresso",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "آبرنگ ابری اسپرسو",
+        "en": "Espresso Watercolour Cloud",
+        "shape": "almond",
+        "length": "long",
+        "finish": "art",
+        "motif": "watercolor",
+        "base": "#63473C",
+        "accent": "#D5AD93"
+      },
+      "suggestion": "REGENERATE",
+      "reason": "Earlier review recorded a substantive exact-design or nail-anatomy problem. Preserve the rejection and consult the detailed original QC notes before considering a replacement.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "519416da232557380894e911b62884def44e45460e6f5bfb87063deab05d30e9",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-watercolor-sage",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "آبرنگ ابری سیج",
+        "en": "Sage Watercolour Cloud",
+        "shape": "oval",
+        "length": "long",
+        "finish": "art",
+        "motif": "watercolor",
+        "base": "#879C83",
+        "accent": "#DCE8C8"
+      },
+      "suggestion": "REGENERATE",
+      "reason": "Earlier review recorded a substantive exact-design or nail-anatomy problem. Preserve the rejection and consult the detailed original QC notes before considering a replacement.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "4461ce0cd472b06ae283f6281b2ecc386580d6a638ac260fbc3dd063719ebad0",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-watercolor-lavender",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "آبرنگ ابری یاسی",
+        "en": "Lavender Watercolour Cloud",
+        "shape": "square",
+        "length": "long",
+        "finish": "art",
+        "motif": "watercolor",
+        "base": "#A395C7",
+        "accent": "#E9DDFB"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "836931e381a1693a6887164bc4a895c6fd6601eea6ba77a72aebf20ba31dff55",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-watercolor-cobalt",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "آبرنگ ابری کبالت",
+        "en": "Cobalt Watercolour Cloud",
+        "shape": "coffin",
+        "length": "long",
+        "finish": "art",
+        "motif": "watercolor",
+        "base": "#385DA8",
+        "accent": "#BED7FF"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "6af7d1264b0c81812ca2e987be63bf9504953e62da3dfa19e54b51bc5d82be87",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-watercolor-midnight",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "آبرنگ ابری نیمه‌شب",
+        "en": "Midnight Watercolour Cloud",
+        "shape": "almond",
+        "length": "long",
+        "finish": "art",
+        "motif": "watercolor",
+        "base": "#2E344E",
+        "accent": "#B7C1E8"
+      },
+      "suggestion": "HOLD",
+      "reason": "Earlier review raised an exact-shape, finish, length, or anatomy question. Native-scale resolution and editorial confirmation remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "f7c1ffad6c52c104d851f61812d87d2b7b3995ea5bc2c9cd10b05851ed9b0691",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-watercolor-coral",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "آبرنگ ابری مرجانی",
+        "en": "Coral Watercolour Cloud",
+        "shape": "oval",
+        "length": "long",
+        "finish": "art",
+        "motif": "watercolor",
+        "base": "#DA887A",
+        "accent": "#FBD2B9"
+      },
+      "suggestion": "HOLD",
+      "reason": "Earlier review raised an exact-shape, finish, length, or anatomy question. Native-scale resolution and editorial confirmation remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "285b5ed002eebfad3dfdd843961715f00eeea0446153216eb38b44f3806019d2",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-watercolor-pearl",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "آبرنگ ابری مرواریدی",
+        "en": "Pearl Watercolour Cloud",
+        "shape": "square",
+        "length": "long",
+        "finish": "art",
+        "motif": "watercolor",
+        "base": "#D1CCD0",
+        "accent": "#FCF8FA"
+      },
+      "suggestion": "REGENERATE",
+      "reason": "Earlier review recorded a substantive exact-design or nail-anatomy problem. Preserve the rejection and consult the detailed original QC notes before considering a replacement.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "6423c0df1194183c17a348daa0e1e4e9503445d8932cc021d1b2d1045d27c5c4",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-magnetic-ivory",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "چشم‌گربه‌ای عاجی",
+        "en": "Ivory Cat-Eye Beam",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "cat-eye",
+        "motif": "beam",
+        "base": "#E9D7C6",
+        "accent": "#FFF8E9"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "0af6d327f29a2930ed1924e3679d555bff84b98f34a9e1a31f3abb045f7a2c3b",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-magnetic-blush",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "چشم‌گربه‌ای رز لطیف",
+        "en": "Blush Cat-Eye Beam",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "cat-eye",
+        "motif": "beam",
+        "base": "#D9A1B0",
+        "accent": "#FFE3E7"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "1e1512a2da74762a901c883f799ff9a0dd7ab0d2c9725f66a00c7fee4b57892a",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-magnetic-champagne",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "چشم‌گربه‌ای شامپاینی",
+        "en": "Champagne Cat-Eye Beam",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "cat-eye",
+        "motif": "beam",
+        "base": "#C6A682",
+        "accent": "#F9E3BD"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "a642a6806acdaee8c0b242de0c8c8c14587dac6b0ebc4edaea046cd2aa2e706f",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-magnetic-merlot",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "چشم‌گربه‌ای زرشکی",
+        "en": "Merlot Cat-Eye Beam",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "cat-eye",
+        "motif": "beam",
+        "base": "#5F3046",
+        "accent": "#E6A9BA"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "966583b6f94ad96fde4b2e3f5ad3c7dccba50195aacd476fe160f316df9b82ed",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-magnetic-lavender",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "چشم‌گربه‌ای یاسی",
+        "en": "Lavender Cat-Eye Beam",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "cat-eye",
+        "motif": "beam",
+        "base": "#A395C7",
+        "accent": "#E9DDFB"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "dfbbaed6cf21944af2e808d9b8649f55703e11ab74cb43727cd208bbb311e20f",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-magnetic-cobalt",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "چشم‌گربه‌ای کبالت",
+        "en": "Cobalt Cat-Eye Beam",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "cat-eye",
+        "motif": "beam",
+        "base": "#385DA8",
+        "accent": "#BED7FF"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "4f9b802909fb27ebf50e757691808c8bfacb24ecd8735e9b8941a748b3b41f1b",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-aura-ivory",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "هاله نور عاجی",
+        "en": "Ivory Aura Glow",
+        "shape": "coffin",
+        "length": "long",
+        "finish": "aura",
+        "motif": "aura",
+        "base": "#E9D7C6",
+        "accent": "#FFF8E9"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "82d87b7b7f914f9ab61ad8f2d66fbe5c5c57690a4a635e86038a95f427fdbd32",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-aura-blush",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "هاله نور رز لطیف",
+        "en": "Blush Aura Glow",
+        "shape": "almond",
+        "length": "long",
+        "finish": "aura",
+        "motif": "aura",
+        "base": "#D9A1B0",
+        "accent": "#FFE3E7"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "fff72c6cd80dede315a2172657f0f7ab70d9dfe4f2f33092e1ca43ad1b879ddb",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-aura-champagne",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "هاله نور شامپاینی",
+        "en": "Champagne Aura Glow",
+        "shape": "oval",
+        "length": "long",
+        "finish": "aura",
+        "motif": "aura",
+        "base": "#C6A682",
+        "accent": "#F9E3BD"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "c85e5b96f34b023cfd649f75d0611e77a83e9741856584a13c3f5e900d3a10a1",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-aura-ruby",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "هاله نور یاقوتی",
+        "en": "Ruby Aura Glow",
+        "shape": "square",
+        "length": "long",
+        "finish": "aura",
+        "motif": "aura",
+        "base": "#A72E40",
+        "accent": "#F3A7B2"
+      },
+      "suggestion": "REGENERATE",
+      "reason": "Earlier review recorded a substantive exact-design or nail-anatomy problem. Preserve the rejection and consult the detailed original QC notes before considering a replacement.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "00b2d30ea2baca9e5183964bc6d32934a9715e78e36a6a631d436238ec85bf79",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-aura-merlot",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "هاله نور زرشکی",
+        "en": "Merlot Aura Glow",
+        "shape": "coffin",
+        "length": "long",
+        "finish": "aura",
+        "motif": "aura",
+        "base": "#5F3046",
+        "accent": "#E6A9BA"
+      },
+      "suggestion": "REGENERATE",
+      "reason": "Earlier review recorded a substantive exact-design or nail-anatomy problem. Preserve the rejection and consult the detailed original QC notes before considering a replacement.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "f1d9c7dcb69889903237fcd1e2ef9a885910f28f610432d3075d5614168b2315",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-aura-espresso",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "هاله نور اسپرسو",
+        "en": "Espresso Aura Glow",
+        "shape": "almond",
+        "length": "long",
+        "finish": "aura",
+        "motif": "aura",
+        "base": "#63473C",
+        "accent": "#D5AD93"
+      },
+      "suggestion": "HOLD",
+      "reason": "Earlier review raised an exact-shape, finish, length, or anatomy question. Native-scale resolution and editorial confirmation remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "df1d10b7d649486048c604b8fd7ce44a12926b6e335de8793bf3587ede055faf",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-aura-sage",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "هاله نور سیج",
+        "en": "Sage Aura Glow",
+        "shape": "oval",
+        "length": "long",
+        "finish": "aura",
+        "motif": "aura",
+        "base": "#879C83",
+        "accent": "#DCE8C8"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "c761d8a9825a12c10026f9976a6187d81d236aa09ca21c3df7e6ce2949f9d8d8",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-aura-lavender",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "هاله نور یاسی",
+        "en": "Lavender Aura Glow",
+        "shape": "square",
+        "length": "long",
+        "finish": "aura",
+        "motif": "aura",
+        "base": "#A395C7",
+        "accent": "#E9DDFB"
+      },
+      "suggestion": "HOLD",
+      "reason": "Earlier review raised an exact-shape, finish, length, or anatomy question. Native-scale resolution and editorial confirmation remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "1d1ab01305a8d53bd7b9ea7fb91352625c6c464966a6355e0c601832f821e991",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-aura-cobalt",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "هاله نور کبالت",
+        "en": "Cobalt Aura Glow",
+        "shape": "coffin",
+        "length": "long",
+        "finish": "aura",
+        "motif": "aura",
+        "base": "#385DA8",
+        "accent": "#BED7FF"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "bb005c79243463e48d6624dc6d4486b05921f4ab1869bdeb6c9aadb20911290e",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-aura-midnight",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "هاله نور نیمه‌شب",
+        "en": "Midnight Aura Glow",
+        "shape": "almond",
+        "length": "long",
+        "finish": "aura",
+        "motif": "aura",
+        "base": "#2E344E",
+        "accent": "#B7C1E8"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "4b563e98819c6c0ade6d30a73cac02209779dcd70c31f606d9b33d578f7d994e",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-aura-coral",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "هاله نور مرجانی",
+        "en": "Coral Aura Glow",
+        "shape": "oval",
+        "length": "long",
+        "finish": "aura",
+        "motif": "aura",
+        "base": "#DA887A",
+        "accent": "#FBD2B9"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "1018dc358cae4faf3105d62591118e39525c9dcf0618d1d11847f0ee6a97f230",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-aura-pearl",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "هاله نور مرواریدی",
+        "en": "Pearl Aura Glow",
+        "shape": "square",
+        "length": "long",
+        "finish": "aura",
+        "motif": "aura",
+        "base": "#D1CCD0",
+        "accent": "#FCF8FA"
+      },
+      "suggestion": "HOLD",
+      "reason": "Earlier review raised an exact-shape, finish, length, or anatomy question. Native-scale resolution and editorial confirmation remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "456df425aad7c8c570b23491f7d33ccca2eb7aa81cd9b737562b97667b28e920",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-jelly-ivory",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "ژلی شفاف عاجی",
+        "en": "Ivory Glass Jelly",
+        "shape": "square",
+        "length": "long",
+        "finish": "jelly",
+        "motif": "jelly",
+        "base": "#E9D7C6",
+        "accent": "#FFF8E9"
+      },
+      "suggestion": "HOLD",
+      "reason": "Earlier review raised an exact-shape, finish, length, or anatomy question. Native-scale resolution and editorial confirmation remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "fcc3dc1dc304bb2d55b994dedec8fb4edb61e20dd66c361647eaf4290e048b1e",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-jelly-blush",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "ژلی شفاف رز لطیف",
+        "en": "Blush Glass Jelly",
+        "shape": "square",
+        "length": "short",
+        "finish": "jelly",
+        "motif": "jelly",
+        "base": "#D9A1B0",
+        "accent": "#FFE3E7"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "eafa6315921313711a3f45cd4c3561d4bf57a8456c7bdd3d6ffb05d7860f884f",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-jelly-champagne",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "ژلی شفاف شامپاینی",
+        "en": "Champagne Glass Jelly",
+        "shape": "square",
+        "length": "medium",
+        "finish": "jelly",
+        "motif": "jelly",
+        "base": "#C6A682",
+        "accent": "#F9E3BD"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "e092a2a956163261c7583b84f9ed148dcc2a60479c5bb5c825cb31d715c74978",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-jelly-ruby",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "ژلی شفاف یاقوتی",
+        "en": "Ruby Glass Jelly",
+        "shape": "square",
+        "length": "long",
+        "finish": "jelly",
+        "motif": "jelly",
+        "base": "#A72E40",
+        "accent": "#F3A7B2"
+      },
+      "suggestion": "REGENERATE",
+      "reason": "Earlier review recorded a substantive exact-design or nail-anatomy problem. Preserve the rejection and consult the detailed original QC notes before considering a replacement.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "fdecf284cb6f805fd1d75fde1f723f4e028574f9c6966d73b0ab1b5d9f596036",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-jelly-merlot",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "ژلی شفاف زرشکی",
+        "en": "Merlot Glass Jelly",
+        "shape": "square",
+        "length": "short",
+        "finish": "jelly",
+        "motif": "jelly",
+        "base": "#5F3046",
+        "accent": "#E6A9BA"
+      },
+      "suggestion": "REGENERATE",
+      "reason": "Earlier review recorded a substantive exact-design or nail-anatomy problem. Preserve the rejection and consult the detailed original QC notes before considering a replacement.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "4ffcae5e2d8b22f8e35d954ea47d64b6aed649e1e171f9f38285f6d822126b55",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-jelly-espresso",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "ژلی شفاف اسپرسو",
+        "en": "Espresso Glass Jelly",
+        "shape": "square",
+        "length": "medium",
+        "finish": "jelly",
+        "motif": "jelly",
+        "base": "#63473C",
+        "accent": "#D5AD93"
+      },
+      "suggestion": "REGENERATE",
+      "reason": "Earlier review recorded a substantive exact-design or nail-anatomy problem. Preserve the rejection and consult the detailed original QC notes before considering a replacement.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "f4c7c6cb41373d6ca28e8a604b5eb1d8fa2e56b542b0612ab530f295c66bb258",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-jelly-sage",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "ژلی شفاف سیج",
+        "en": "Sage Glass Jelly",
+        "shape": "square",
+        "length": "long",
+        "finish": "jelly",
+        "motif": "jelly",
+        "base": "#879C83",
+        "accent": "#DCE8C8"
+      },
+      "suggestion": "REGENERATE",
+      "reason": "Earlier review recorded a substantive exact-design or nail-anatomy problem. Preserve the rejection and consult the detailed original QC notes before considering a replacement.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "04923e6a183c0e8714054e2048308d8535ff32401f5c9eb0e4f175c992e77f93",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-jelly-lavender",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "ژلی شفاف یاسی",
+        "en": "Lavender Glass Jelly",
+        "shape": "square",
+        "length": "short",
+        "finish": "jelly",
+        "motif": "jelly",
+        "base": "#A395C7",
+        "accent": "#E9DDFB"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Earlier triage found the photographed style plausible, but native source evidence, full-resolution editorial approval and duplicate clearance remain outstanding.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "49696ba69b09c71479270bec2a0f05921c370fde1de92b7ea00b56ff20c494f1",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-jelly-cobalt",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "ژلی شفاف کبالت",
+        "en": "Cobalt Glass Jelly",
+        "shape": "square",
+        "length": "medium",
+        "finish": "jelly",
+        "motif": "jelly",
+        "base": "#385DA8",
+        "accent": "#BED7FF"
+      },
+      "suggestion": "REGENERATE",
+      "reason": "Earlier review recorded a substantive exact-design or nail-anatomy problem. Preserve the rejection and consult the detailed original QC notes before considering a replacement.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "53640ecc0bea2de15bcfdb63ba680dd2873eae01b196dff5b561a9c61bf9e94a",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-jelly-midnight",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "ژلی شفاف نیمه‌شب",
+        "en": "Midnight Glass Jelly",
+        "shape": "square",
+        "length": "long",
+        "finish": "jelly",
+        "motif": "jelly",
+        "base": "#2E344E",
+        "accent": "#B7C1E8"
+      },
+      "suggestion": "REGENERATE",
+      "reason": "Earlier review recorded a substantive exact-design or nail-anatomy problem. Preserve the rejection and consult the detailed original QC notes before considering a replacement.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "b494daca398ce88ad0a49308d5f83ec06ee08fe3f9ddf16f22c4f84de411ae10",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-jelly-coral",
+      "source_cohort": "INITIAL_60",
+      "catalog": {
+        "title": "ژلی شفاف مرجانی",
+        "en": "Coral Glass Jelly",
+        "shape": "square",
+        "length": "short",
+        "finish": "jelly",
+        "motif": "jelly",
+        "base": "#DA887A",
+        "accent": "#FBD2B9"
+      },
+      "suggestion": "REGENERATE",
+      "reason": "Earlier review recorded a substantive exact-design or nail-anatomy problem. Preserve the rejection and consult the detailed original QC notes before considering a replacement.",
+      "screening_method": "PREVIOUS_VISUAL_TRIAGE_60_WITH_SELECTED_NATIVE_INSPECTIONS",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": "0dacbce8ae4e42293fe47c608d6b7d890abe7814c49aa18a918d94b9ce33e8aa",
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-jelly-pearl",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "ژلی شفاف مرواریدی",
+        "en": "Pearl Glass Jelly",
+        "shape": "square",
+        "length": "medium",
+        "finish": "jelly",
+        "motif": "jelly",
+        "base": "#D1CCD0",
+        "accent": "#FCF8FA"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "A soft pearlescent translucent appearance is visible on ivory silk; examine transparency through the free edge and square medium geometry.",
+      "screening_method": "CONTACT_SHEET_PLUS_ENLARGED_SOURCE_SCREENING",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-bridal-ivory",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "عروس مرواریدی عاجی",
+        "en": "Ivory Bridal Pearls",
+        "shape": "almond",
+        "length": "medium",
+        "finish": "french",
+        "motif": "pearls",
+        "base": "#E9D7C6",
+        "accent": "#FFF8E9"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "French tips and pearl-like dots are visible; confirm individual pearl beads, placement, and specified almond length.",
+      "screening_method": "CONTACT_SHEET_PLUS_ENLARGED_SOURCE_SCREENING",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-bridal-blush",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "عروس مرواریدی رز لطیف",
+        "en": "Blush Bridal Pearls",
+        "shape": "almond",
+        "length": "long",
+        "finish": "french",
+        "motif": "pearls",
+        "base": "#D9A1B0",
+        "accent": "#FFE3E7"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "French tips and pearl-like dots are visible; confirm individual pearl beads, placement, and specified almond length.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-bridal-champagne",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "عروس مرواریدی شامپاینی",
+        "en": "Champagne Bridal Pearls",
+        "shape": "almond",
+        "length": "short",
+        "finish": "french",
+        "motif": "pearls",
+        "base": "#C6A682",
+        "accent": "#F9E3BD"
+      },
+      "suggestion": "HOLD",
+      "reason": "The champagne French and pearl accents are delicate, but the short almond silhouette needs a native-scale contour check.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-bridal-ruby",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "عروس مرواریدی یاقوتی",
+        "en": "Ruby Bridal Pearls",
+        "shape": "almond",
+        "length": "medium",
+        "finish": "french",
+        "motif": "pearls",
+        "base": "#A72E40",
+        "accent": "#F3A7B2"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "French tips and pearl-like dots are visible; confirm individual pearl beads, placement, and specified almond length.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-bridal-merlot",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "عروس مرواریدی زرشکی",
+        "en": "Merlot Bridal Pearls",
+        "shape": "almond",
+        "length": "long",
+        "finish": "french",
+        "motif": "pearls",
+        "base": "#5F3046",
+        "accent": "#E6A9BA"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "French tips and pearl-like dots are visible; confirm individual pearl beads, placement, and specified almond length.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-bridal-espresso",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "عروس مرواریدی اسپرسو",
+        "en": "Espresso Bridal Pearls",
+        "shape": "almond",
+        "length": "short",
+        "finish": "french",
+        "motif": "pearls",
+        "base": "#63473C",
+        "accent": "#D5AD93"
+      },
+      "suggestion": "HOLD",
+      "reason": "French tips and pearls appear present; check the requested short almond shape against the rounded-looking tips.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-bridal-sage",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "عروس مرواریدی سیج",
+        "en": "Sage Bridal Pearls",
+        "shape": "almond",
+        "length": "medium",
+        "finish": "french",
+        "motif": "pearls",
+        "base": "#879C83",
+        "accent": "#DCE8C8"
+      },
+      "suggestion": "HOLD",
+      "reason": "Pearl detailing is subtle and short-looking; verify required medium almond length and real pearl bead texture.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-bridal-lavender",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "عروس مرواریدی یاسی",
+        "en": "Lavender Bridal Pearls",
+        "shape": "almond",
+        "length": "long",
+        "finish": "french",
+        "motif": "pearls",
+        "base": "#A395C7",
+        "accent": "#E9DDFB"
+      },
+      "suggestion": "HOLD",
+      "reason": "Pearls appear faint in preview; verify micro-beads and requested long almond extension.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-bridal-cobalt",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "عروس مرواریدی کبالت",
+        "en": "Cobalt Bridal Pearls",
+        "shape": "almond",
+        "length": "short",
+        "finish": "french",
+        "motif": "pearls",
+        "base": "#385DA8",
+        "accent": "#BED7FF"
+      },
+      "suggestion": "HOLD",
+      "reason": "Pearl line along blue French tip is clearly visible enlarged, but the short tip shape appears more rounded oval than almond.",
+      "screening_method": "CONTACT_SHEET_PLUS_ENLARGED_SOURCE_SCREENING",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-bridal-midnight",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "عروس مرواریدی نیمه‌شب",
+        "en": "Midnight Bridal Pearls",
+        "shape": "almond",
+        "length": "medium",
+        "finish": "french",
+        "motif": "pearls",
+        "base": "#2E344E",
+        "accent": "#B7C1E8"
+      },
+      "suggestion": "HOLD",
+      "reason": "Blue-black French tip is clear; verify pearls individually and medium almond shape.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-bridal-coral",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "عروس مرواریدی مرجانی",
+        "en": "Coral Bridal Pearls",
+        "shape": "almond",
+        "length": "long",
+        "finish": "french",
+        "motif": "pearls",
+        "base": "#DA887A",
+        "accent": "#FBD2B9"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "French tips and pearl-like dots are visible; confirm individual pearl beads, placement, and specified almond length.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-bridal-pearl",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "عروس مرواریدی مرواریدی",
+        "en": "Pearl Bridal Pearls",
+        "shape": "almond",
+        "length": "short",
+        "finish": "french",
+        "motif": "pearls",
+        "base": "#D1CCD0",
+        "accent": "#FCF8FA"
+      },
+      "suggestion": "HOLD",
+      "reason": "Pearl accents and French tips are subtle; confirm actual short almond silhouette and raised detail.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-seasonal-ivory",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "برگ پاییزی عاجی",
+        "en": "Ivory Autumn Leaves",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "art",
+        "motif": "leaves",
+        "base": "#E9D7C6",
+        "accent": "#FFF8E9"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Leaf-like seasonal decorations are visible over the intended color palette and ivory silk; inspect all five nail patterns for consistent detail.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-seasonal-blush",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "برگ پاییزی رز لطیف",
+        "en": "Blush Autumn Leaves",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "art",
+        "motif": "leaves",
+        "base": "#D9A1B0",
+        "accent": "#FFE3E7"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Leaf-like seasonal decorations are visible over the intended color palette and ivory silk; inspect all five nail patterns for consistent detail.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-seasonal-champagne",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "برگ پاییزی شامپاینی",
+        "en": "Champagne Autumn Leaves",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "art",
+        "motif": "leaves",
+        "base": "#C6A682",
+        "accent": "#F9E3BD"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Leaf-like seasonal decorations are visible over the intended color palette and ivory silk; inspect all five nail patterns for consistent detail.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-seasonal-ruby",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "برگ پاییزی یاقوتی",
+        "en": "Ruby Autumn Leaves",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "art",
+        "motif": "leaves",
+        "base": "#A72E40",
+        "accent": "#F3A7B2"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Leaf-like seasonal decorations are visible over the intended color palette and ivory silk; inspect all five nail patterns for consistent detail.",
+      "screening_method": "CONTACT_SHEET_PLUS_ENLARGED_SOURCE_SCREENING",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-seasonal-merlot",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "برگ پاییزی زرشکی",
+        "en": "Merlot Autumn Leaves",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "art",
+        "motif": "leaves",
+        "base": "#5F3046",
+        "accent": "#E6A9BA"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Leaf-like seasonal decorations are visible over the intended color palette and ivory silk; inspect all five nail patterns for consistent detail.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-seasonal-espresso",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "برگ پاییزی اسپرسو",
+        "en": "Espresso Autumn Leaves",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "art",
+        "motif": "leaves",
+        "base": "#63473C",
+        "accent": "#D5AD93"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Leaf-like seasonal decorations are visible over the intended color palette and ivory silk; inspect all five nail patterns for consistent detail.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-seasonal-sage",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "برگ پاییزی سیج",
+        "en": "Sage Autumn Leaves",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "art",
+        "motif": "leaves",
+        "base": "#879C83",
+        "accent": "#DCE8C8"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Leaf-like seasonal decorations are visible over the intended color palette and ivory silk; inspect all five nail patterns for consistent detail.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-seasonal-lavender",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "برگ پاییزی یاسی",
+        "en": "Lavender Autumn Leaves",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "art",
+        "motif": "leaves",
+        "base": "#A395C7",
+        "accent": "#E9DDFB"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Leaf-like seasonal decorations are visible over the intended color palette and ivory silk; inspect all five nail patterns for consistent detail.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-seasonal-cobalt",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "برگ پاییزی کبالت",
+        "en": "Cobalt Autumn Leaves",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "art",
+        "motif": "leaves",
+        "base": "#385DA8",
+        "accent": "#BED7FF"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Leaf-like seasonal decorations are visible over the intended color palette and ivory silk; inspect all five nail patterns for consistent detail.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-seasonal-midnight",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "برگ پاییزی نیمه‌شب",
+        "en": "Midnight Autumn Leaves",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "art",
+        "motif": "leaves",
+        "base": "#2E344E",
+        "accent": "#B7C1E8"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Leaf-like seasonal decorations are visible over the intended color palette and ivory silk; inspect all five nail patterns for consistent detail.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-seasonal-coral",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "برگ پاییزی مرجانی",
+        "en": "Coral Autumn Leaves",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "art",
+        "motif": "leaves",
+        "base": "#DA887A",
+        "accent": "#FBD2B9"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Leaf-like seasonal decorations are visible over the intended color palette and ivory silk; inspect all five nail patterns for consistent detail.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-seasonal-pearl",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "برگ پاییزی مرواریدی",
+        "en": "Pearl Autumn Leaves",
+        "shape": "oval",
+        "length": "medium",
+        "finish": "art",
+        "motif": "leaves",
+        "base": "#D1CCD0",
+        "accent": "#FCF8FA"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Leaf-like seasonal decorations are visible over the intended color palette and ivory silk; inspect all five nail patterns for consistent detail.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-celestial-ivory",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "کهکشان عاجی",
+        "en": "Ivory Celestial Stars",
+        "shape": "coffin",
+        "length": "long",
+        "finish": "glitter",
+        "motif": "stars",
+        "base": "#E9D7C6",
+        "accent": "#FFF8E9"
+      },
+      "suggestion": "HOLD",
+      "reason": "Glitter is apparent; confirm discrete celestial stars rather than glitter alone.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-celestial-blush",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "کهکشان رز لطیف",
+        "en": "Blush Celestial Stars",
+        "shape": "coffin",
+        "length": "long",
+        "finish": "glitter",
+        "motif": "stars",
+        "base": "#D9A1B0",
+        "accent": "#FFE3E7"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Fine glitter and star-like specks appear across long nails on ivory silk; inspect the distinct star motif and the coffin tips at 1600px.",
+      "screening_method": "CONTACT_SHEET_PLUS_ENLARGED_SOURCE_SCREENING",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-celestial-champagne",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "کهکشان شامپاینی",
+        "en": "Champagne Celestial Stars",
+        "shape": "coffin",
+        "length": "long",
+        "finish": "glitter",
+        "motif": "stars",
+        "base": "#C6A682",
+        "accent": "#F9E3BD"
+      },
+      "suggestion": "HOLD",
+      "reason": "Subtle gold sparkle dominates; inspect star motif and long coffin shape at 1600px.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-celestial-ruby",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "کهکشان یاقوتی",
+        "en": "Ruby Celestial Stars",
+        "shape": "coffin",
+        "length": "long",
+        "finish": "glitter",
+        "motif": "stars",
+        "base": "#A72E40",
+        "accent": "#F3A7B2"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Fine glitter and star-like specks appear across long nails on ivory silk; inspect the distinct star motif and the coffin tips at 1600px.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-celestial-merlot",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "کهکشان زرشکی",
+        "en": "Merlot Celestial Stars",
+        "shape": "coffin",
+        "length": "long",
+        "finish": "glitter",
+        "motif": "stars",
+        "base": "#5F3046",
+        "accent": "#E6A9BA"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Fine glitter and star-like specks appear across long nails on ivory silk; inspect the distinct star motif and the coffin tips at 1600px.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-celestial-espresso",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "کهکشان اسپرسو",
+        "en": "Espresso Celestial Stars",
+        "shape": "coffin",
+        "length": "long",
+        "finish": "glitter",
+        "motif": "stars",
+        "base": "#63473C",
+        "accent": "#D5AD93"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Fine glitter and star-like specks appear across long nails on ivory silk; inspect the distinct star motif and the coffin tips at 1600px.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-celestial-sage",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "کهکشان سیج",
+        "en": "Sage Celestial Stars",
+        "shape": "coffin",
+        "length": "long",
+        "finish": "glitter",
+        "motif": "stars",
+        "base": "#879C83",
+        "accent": "#DCE8C8"
+      },
+      "suggestion": "HOLD",
+      "reason": "Small glitter points dominate; verify discernible star accents and long coffin nails.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-celestial-cobalt",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "کهکشان کبالت",
+        "en": "Cobalt Celestial Stars",
+        "shape": "coffin",
+        "length": "long",
+        "finish": "glitter",
+        "motif": "stars",
+        "base": "#385DA8",
+        "accent": "#BED7FF"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Fine glitter and star-like specks appear across long nails on ivory silk; inspect the distinct star motif and the coffin tips at 1600px.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-celestial-midnight",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "کهکشان نیمه‌شب",
+        "en": "Midnight Celestial Stars",
+        "shape": "coffin",
+        "length": "long",
+        "finish": "glitter",
+        "motif": "stars",
+        "base": "#2E344E",
+        "accent": "#B7C1E8"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Fine glitter and star-like specks appear across long nails on ivory silk; inspect the distinct star motif and the coffin tips at 1600px.",
+      "screening_method": "CONTACT_SHEET_PLUS_ENLARGED_SOURCE_SCREENING",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-celestial-coral",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "کهکشان مرجانی",
+        "en": "Coral Celestial Stars",
+        "shape": "coffin",
+        "length": "long",
+        "finish": "glitter",
+        "motif": "stars",
+        "base": "#DA887A",
+        "accent": "#FBD2B9"
+      },
+      "suggestion": "HOLD",
+      "reason": "Coral glitter is visible but stars are very subtle in the review sheet; verify at full resolution.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-celestial-pearl",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "کهکشان مرواریدی",
+        "en": "Pearl Celestial Stars",
+        "shape": "coffin",
+        "length": "long",
+        "finish": "glitter",
+        "motif": "stars",
+        "base": "#D1CCD0",
+        "accent": "#FCF8FA"
+      },
+      "suggestion": "HOLD",
+      "reason": "Pearl glitter may obscure the intended star motif; verify visually distinct celestial features.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-sculpture-champagne",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "موج سه‌بعدی شامپاینی",
+        "en": "Champagne Sculpted Wave",
+        "shape": "almond",
+        "length": "medium",
+        "finish": "3d",
+        "motif": "waves",
+        "base": "#C6A682",
+        "accent": "#F9E3BD"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Raised sculpted-wave contours are visible on five glossy nails; verify physically plausible relief, sharp edges, and required almond length.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-sculpture-ruby",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "موج سه‌بعدی یاقوتی",
+        "en": "Ruby Sculpted Wave",
+        "shape": "almond",
+        "length": "long",
+        "finish": "3d",
+        "motif": "waves",
+        "base": "#A72E40",
+        "accent": "#F3A7B2"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Raised sculpted-wave contours are visible on five glossy nails; verify physically plausible relief, sharp edges, and required almond length.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-sculpture-merlot",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "موج سه‌بعدی زرشکی",
+        "en": "Merlot Sculpted Wave",
+        "shape": "almond",
+        "length": "short",
+        "finish": "3d",
+        "motif": "waves",
+        "base": "#5F3046",
+        "accent": "#E6A9BA"
+      },
+      "suggestion": "HOLD",
+      "reason": "Raised merlot waves look attractive, but check short almond geometry against the oval-looking tips.",
+      "screening_method": "CONTACT_SHEET_PLUS_ENLARGED_SOURCE_SCREENING",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-sculpture-espresso",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "موج سه‌بعدی اسپرسو",
+        "en": "Espresso Sculpted Wave",
+        "shape": "almond",
+        "length": "medium",
+        "finish": "3d",
+        "motif": "waves",
+        "base": "#63473C",
+        "accent": "#D5AD93"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Raised sculpted-wave contours are visible on five glossy nails; verify physically plausible relief, sharp edges, and required almond length.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-sculpture-sage",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "موج سه‌بعدی سیج",
+        "en": "Sage Sculpted Wave",
+        "shape": "almond",
+        "length": "long",
+        "finish": "3d",
+        "motif": "waves",
+        "base": "#879C83",
+        "accent": "#DCE8C8"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Raised sculpted-wave contours are visible on five glossy nails; verify physically plausible relief, sharp edges, and required almond length.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-sculpture-lavender",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "موج سه‌بعدی یاسی",
+        "en": "Lavender Sculpted Wave",
+        "shape": "almond",
+        "length": "short",
+        "finish": "3d",
+        "motif": "waves",
+        "base": "#A395C7",
+        "accent": "#E9DDFB"
+      },
+      "suggestion": "HOLD",
+      "reason": "Raised lilac waves are visible; short almond silhouette appears rounded and needs confirmation.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-sculpture-cobalt",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "موج سه‌بعدی کبالت",
+        "en": "Cobalt Sculpted Wave",
+        "shape": "almond",
+        "length": "medium",
+        "finish": "3d",
+        "motif": "waves",
+        "base": "#385DA8",
+        "accent": "#BED7FF"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Raised sculpted-wave contours are visible on five glossy nails; verify physically plausible relief, sharp edges, and required almond length.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-sculpture-midnight",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "موج سه‌بعدی نیمه‌شب",
+        "en": "Midnight Sculpted Wave",
+        "shape": "almond",
+        "length": "long",
+        "finish": "3d",
+        "motif": "waves",
+        "base": "#2E344E",
+        "accent": "#B7C1E8"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Raised sculpted-wave contours are visible on five glossy nails; verify physically plausible relief, sharp edges, and required almond length.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-sculpture-coral",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "موج سه‌بعدی مرجانی",
+        "en": "Coral Sculpted Wave",
+        "shape": "almond",
+        "length": "short",
+        "finish": "3d",
+        "motif": "waves",
+        "base": "#DA887A",
+        "accent": "#FBD2B9"
+      },
+      "suggestion": "HOLD",
+      "reason": "Coral raised waves are visible; short almond free edges need closer contour inspection.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    },
+    {
+      "id": "nail-atlas-sculpture-pearl",
+      "source_cohort": "NEW_86",
+      "catalog": {
+        "title": "موج سه‌بعدی مرواریدی",
+        "en": "Pearl Sculpted Wave",
+        "shape": "almond",
+        "length": "medium",
+        "finish": "3d",
+        "motif": "waves",
+        "base": "#D1CCD0",
+        "accent": "#FCF8FA"
+      },
+      "suggestion": "VISUAL_CANDIDATE",
+      "reason": "Raised sculpted-wave contours are visible on five glossy nails; verify physically plausible relief, sharp edges, and required almond length.",
+      "screening_method": "CONTACT_SHEET_ONLY",
+      "not_a_final_approval": true,
+      "source_generation_provenance": "UNVERIFIED",
+      "original_sha256": null,
+      "reviewer_action": "PENDING",
+      "mandatory_before_publication": [
+        "FIVE_FINGERS_FULL_RES",
+        "CUTICLES_AND_NAILS_FULL_RES",
+        "CONTINUOUS_IVORY_SILK",
+        "EXACT_CATALOG_DESIGN",
+        "NATIVE_GENERATION_EVIDENCE",
+        "NOT_DUPLICATE_APPROVED_ASSETS"
+      ]
+    }
+  ]
+}

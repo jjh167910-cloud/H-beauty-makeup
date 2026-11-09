@@ -1,0 +1,680 @@
+/* Hananeh Beauty Nail Atelier — editorial, quiet, offline-capable design language. */
+.nail-page {
+  --nail-ink: var(--color-ink);
+  color: var(--nail-ink);
+  padding-bottom: 2.5rem;
+}
+.nail-toolbar {
+  display: flex;
+  gap: .7rem;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 3rem;
+}
+.nail-toolbar__label {
+  font: 600 .61rem/1.5 var(--font-serif);
+  letter-spacing: .19em;
+  color: var(--color-ink-2);
+  text-align: center;
+}
+.nail-toolbar__back,.nail-toolbar__saved {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .3rem;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-surface);
+}
+.nail-toolbar__saved {padding:0 .6rem;color:var(--color-rose);}
+.nail-toolbar__saved span {font-size:.72rem;color:var(--color-ink-2);}
+.nail-toolbar__saved[aria-pressed="true"] {background:var(--color-rose-soft);}
+.nail-intro {padding-block:1.3rem 1.6rem;}
+.nail-kicker {display:block;font:500 .63rem/1.4 var(--font-serif);letter-spacing:.2em;color:var(--color-gold-ink);direction:ltr;text-align:end;}
+.nail-intro h1 {margin-top:.5rem;font-weight:410;font-size:clamp(2.05rem,6.3vw,3rem);line-height:1.65;letter-spacing:-.035em;}
+.nail-intro h1 em {font-family:var(--font-calligraphy);font-weight:500;color:var(--color-gold-ink);font-style:normal;white-space:nowrap;}
+.nail-intro p {max-width:31rem;font-size:.82rem;line-height:2.0;color:var(--color-ink-2);margin-top:.15rem;}
+.nail-hero {margin-block-end:2.4rem;}
+.nail-hero__card {
+  position:relative;
+  overflow:hidden;
+  isolation:isolate;
+  min-height:18.5rem;
+  display:flex;
+  align-items:center;
+  background:linear-gradient(137deg,#251a25,#483144 55%,#241922);
+  color:#f9f0e7;
+  border-radius:1.3rem;
+  padding:1.35rem;
+  box-shadow:var(--shadow-3);
+}
+.nail-hero__card:before {
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(ellipse at 25% 25%,rgba(255,231,198,.14),transparent 62%);
+  pointer-events:none;
+}
+.nail-hero__copy {position:relative;z-index:2;width:53%;display:grid;align-content:center;justify-items:start;gap:.7rem;min-width:0;}
+.nail-hero__copy>span {font:500 .58rem/1.4 var(--font-serif);letter-spacing:.13em;color:#d3b991;}
+.nail-hero__copy strong {font-size:1.7rem;line-height:1.65;font-weight:450;}
+.nail-hero__copy p {font-size:.74rem;line-height:1.9;color:#e9dcd9;}
+.nail-hero__copy button {display:flex;align-items:center;gap:.35rem;border-bottom:1px solid #bea078;min-height:44px;font-size:.77rem;color:#f9d9ab;}
+.nail-hero__card > .nail-hero__art {position:absolute;inset-inline-start:35%;inset-block-start:0;width:60%;height:18.5rem;object-fit:contain;transform:scale(1.02);filter:drop-shadow(0 12px 13px #17101a80);pointer-events:none;}
+.nail-filters {display:grid;gap:.6rem;margin-bottom:1rem;}
+.nail-filters__top {display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap;margin-block-end:.35rem;}
+.nail-filters__top span {font:.55rem/1.4 var(--font-serif);letter-spacing:.19em;color:var(--color-gold-ink);}
+.nail-filters__top h2 {font-size:1.4rem;font-weight:560;line-height:1.6;}
+.nail-filters__top p {font-size:.75rem;color:var(--color-ink-2);}
+.nail-search {
+  min-width:0;display:flex;align-items:center;gap:.65rem;
+  padding-inline:.9rem;border:1px solid var(--color-line-2);
+  border-radius:.85rem;background:var(--color-surface);
+  min-height:48px;color:var(--color-ink-2);margin-block:.2rem .45rem;
+}
+.nail-search:focus-within {outline:2px solid var(--color-gold);outline-offset:1px;}
+.nail-search input {min-height:44px;border:0;background:transparent;outline:none;width:100%;min-width:0;font-size:.82rem;color:var(--color-ink);}
+.nail-search input::placeholder {color:var(--color-ink-3);}
+.nail-search-feedback {display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.55rem;font-size:.75rem;line-height:1.65;color:var(--color-ink-2);}
+.nail-search-feedback button {min-height:44px;padding:.45rem .7rem;border:1px solid var(--color-line-2);border-radius:.65rem;color:var(--color-ink);background:var(--color-surface);font-weight:600;}
+.nail-search-feedback button:focus-visible {outline:2px solid var(--color-gold-ink);outline-offset:2px;}
+.nail-filter-label {font-size:.72rem;font-weight:650;color:var(--color-ink-2);}
+.nail-filters .chip-row {margin-block:0 .35rem;}
+.nail-collection {padding-block:.6rem 1.4rem;}
+.nail-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem;}
+/* A filtered single result should not sit in half of an empty row. */
+.nail-grid.nail-grid--single {grid-template-columns:minmax(0,1fr);width:min(100%,23rem);margin-inline:auto;}
+.nail-card {min-width:0;border-radius:1.05rem;background:var(--color-surface);border:1px solid var(--color-line);overflow:hidden;box-shadow:var(--shadow-1);}
+.nail-card__open {display:block;width:100%;text-align:start;min-width:0;}
+.nail-card__picture {position:relative;display:grid;place-items:center;width:100%;aspect-ratio:4/4.35;overflow:hidden;background:linear-gradient(145deg,#f0e8e0,#e9d5d5);border-radius:1rem 1rem .25rem .25rem;}
+.nail-card:nth-child(3n+2) .nail-card__picture{background:linear-gradient(146deg,#e9dedb,#d9d1dc);}
+.nail-card:nth-child(3n+3) .nail-card__picture{background:linear-gradient(130deg,#ede4d6,#e2d4c3);}
+:root[data-theme="dark"] .nail-card__picture{background:linear-gradient(150deg,#51454b,#352b36);}
+.nail-card__art {width:110%;height:100%;max-height:260px;filter:drop-shadow(0 8px 9px #39202c1c);transition:transform .35s ease;}
+.nail-grid--single .nail-card__art {width:100%;max-height:none;}
+.nail-card__open:hover .nail-card__art,.nail-card__open:focus-visible .nail-card__art{transform:scale(1.045);}
+.nail-card__info {display:grid;gap:.25rem;padding:.8rem .85rem .55rem;min-height:7.2rem;align-content:start;}
+.nail-card__info small {direction:ltr;text-align:end;unicode-bidi:isolate;font:.57rem/1.5 var(--font-serif);letter-spacing:.04em;color:var(--color-gold-ink);}
+.nail-card__info strong {font-size:.91rem;font-weight:650;line-height:1.5;}
+.nail-card__info>span {font-size:.7rem;line-height:1.85;color:var(--color-ink-2);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}
+.nail-card__footer {padding:.35rem .75rem .5rem;display:flex;align-items:center;justify-content:space-between;min-width:0;gap:.2rem;}
+.nail-card__footer>span {font-size:.61rem;color:var(--color-ink-3);line-height:1.5;}
+.nail-card__favorite {flex:none;display:grid;place-items:center;min-width:44px;min-height:44px;border:1px solid var(--color-line);background:var(--color-surface);color:var(--color-rose);border-radius:99px;}
+.nail-card__favorite[aria-pressed="true"]{background:var(--color-rose-soft);}
+.nail-empty {display:grid;justify-items:center;gap:.6rem;padding:3rem .7rem;text-align:center;background:var(--color-sunken);border-radius:1rem;}
+.nail-empty h3{font-size:1rem;font-weight:600;}
+.nail-empty p{font-size:.76rem;line-height:1.8;color:var(--color-ink-2);}
+.nail-services {margin-block:1rem;}
+.nail-services__inner {background:var(--color-sunken);border:1px solid var(--color-line);border-radius:1.25rem;padding:1.35rem;}
+.nail-services__inner>span {direction:ltr;display:block;text-align:end;font:.6rem/1.5 var(--font-serif);letter-spacing:.16em;color:var(--color-gold-ink);}
+.nail-services h2{font-size:1.45rem;line-height:1.7;font-weight:560;margin:.5rem 0;}
+.nail-services p{font-size:.81rem;line-height:1.9;color:var(--color-ink-2);max-width:28rem;}
+.nail-services__inner>div {display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1rem;}
+.nail-disclaimer {margin-block:1.25rem;color:var(--color-ink-2);font-size:.7rem;line-height:1.9;}
+.nail-detail {display:grid;gap:1rem;padding-block:.5rem 1.5rem;}
+.nail-detail__visual {background:linear-gradient(135deg,#f0e6df,#e6d6d7);border-radius:1rem;overflow:hidden;}
+.nail-detail__visual svg {display:block;width:100%;height:auto;max-height:19rem;}
+.nail-detail__en {font:.66rem/1.6 var(--font-serif);letter-spacing:.16em;color:var(--color-gold-ink);direction:ltr;text-align:end;}
+.nail-detail h3 {font-size:1.35rem;font-weight:600;line-height:1.7;}
+.nail-detail>p {color:var(--color-ink-2);font-size:.81rem;line-height:1.9;}
+.nail-detail__tags {display:flex;gap:.45rem;flex-wrap:wrap;}
+.nail-detail__tags span {border:1px solid var(--color-line);background:var(--color-sunken);border-radius:99px;padding:.35rem .65rem;font-size:.72rem;}
+.nail-detail__actions {display:grid;grid-template-columns:1fr auto;gap:.6rem;}
+.nail-detail__note {color:var(--color-ink-2);font-size:.7rem;line-height:1.8;}
+@media (min-width:640px) {
+  .nail-grid {grid-template-columns:repeat(3,minmax(0,1fr));gap:1.05rem;}
+  .nail-hero__card {min-height:22rem;padding:2rem;}
+  .nail-hero__copy strong{font-size:2.05rem;}
+  .nail-hero__card > .nail-hero__art{width:55%;height:22rem;inset-inline-start:40%;}
+}
+@media (max-width:360px) {
+  .nail-hero__copy strong{font-size:1.38rem;}
+  .nail-hero__art{transform:scale(1.13);}
+  .nail-card__info{padding:.7rem .6rem .45rem;}
+  .nail-grid{gap:.55rem;}
+}
+@media (prefers-reduced-motion:reduce){
+  .nail-card__art{transition:none;}
+}
+
+/* Home and services integration: preserve the clean image-first salon language. */
+.nail-home-banner {
+  display:flex;position:relative;isolation:isolate;align-items:center;overflow:hidden;
+  width:100%;min-height:11.2rem;text-align:start;
+  background:linear-gradient(125deg,#ede1da 0%,#e9d7d4 55%,#dfcdd6 100%);
+  border-radius:1.2rem;color:#4b3442;box-shadow:var(--shadow-1);
+}
+.nail-home-banner__copy{display:grid;justify-items:start;gap:.5rem;position:relative;z-index:1;width:61%;padding:1.2rem;}
+.nail-home-banner__copy small{font:.6rem/1.4 var(--font-serif);letter-spacing:.12em;}
+.nail-home-banner__copy strong{font-size:1.24rem;font-weight:600;line-height:1.5;}
+.nail-home-banner__copy>span{font-size:.73rem;line-height:1.85;max-width:21ch;}
+.nail-home-banner__copy b{font-size:.76rem;display:flex;gap:.3rem;align-items:center;border-bottom:1px solid #836878;min-height:36px;}
+.nail-home-banner__art{position:absolute;width:52%;height:120%;inset-inline-start:51%;inset-block:-10%;opacity:.94;pointer-events:none;}
+.nail-service-entry {
+  width:100%;display:flex;align-items:center;gap:.8rem;
+  padding:1rem;border-radius:1rem;margin-block-end:1rem;
+  border:1px solid var(--color-line-2);background:var(--color-sunken);text-align:start;
+}
+.nail-service-entry__icon{display:grid;place-items:center;width:3.3rem;height:3.3rem;flex-shrink:0;border-radius:.85rem;background:var(--color-surface);color:var(--color-gold-ink);}
+.nail-service-entry>span:nth-child(2){display:grid;gap:.3rem;flex:1;min-width:0;}
+.nail-service-entry strong{font-size:.88rem;font-weight:650;}
+.nail-service-entry small{font-size:.71rem;color:var(--color-ink-2);line-height:1.7;}
+.nail-service-entry>:last-child{flex-shrink:0;}
+@media (max-width:355px){.nail-home-banner__copy{width:64%;padding:1rem;}.nail-home-banner__copy strong{font-size:1.06rem;}.nail-home-banner__art{width:50%;}}
+
+
+/* Optional photographed nail references: exact same frames as vector fallback. */
+.nail-visual {
+  position:relative;display:block;isolation:isolate;overflow:hidden;
+  width:100%;height:100%;
+}
+.nail-visual__fallback,
+.nail-visual__photo {
+  position:absolute;inset:0;display:block;width:100%;height:100%;
+}
+.nail-visual__fallback {display:grid;place-items:center;}
+.nail-visual__fallback svg {width:100%;height:100%;object-fit:contain;}
+.nail-visual__photo {
+  object-fit:cover;object-position:center;
+  opacity:0;
+  transition:opacity .25s ease;
+}
+.nail-visual__photo[data-ready] {opacity:1;}
+.nail-card__picture .nail-visual {height:100%;}
+.nail-card__picture .nail-visual__photo {object-position:center 52%;}
+.nail-hero__art[data-media-source="ai-photo"] .nail-visual__fallback {visibility:hidden;}
+.nail-hero__art .nail-visual__photo {
+  object-position:54% 45%;
+  -webkit-mask-image:radial-gradient(ellipse 75% 84% at 54% 50%,#000 65%,transparent 100%);
+  mask-image:radial-gradient(ellipse 75% 84% at 54% 50%,#000 65%,transparent 100%);
+}
+/* The shared .nail-visual rule appears after the banner artwork rule and used
+   to reset absolute positioning to relative. That made percentage height
+   resolve to 0 and moved the entire nail image outside the card.
+   Keep this declaration more specific than the shared visual component. */
+.nail-home-banner > .nail-home-banner__art {
+  position:absolute;
+  inset-inline-end:0;
+  inset-inline-start:auto;
+  inset-block:0;
+  width:52%;
+  height:100%;
+  pointer-events:none;
+  opacity:1;
+}
+.nail-home-banner__art .nail-visual__photo {
+  object-position:54% 50%;
+  -webkit-mask-image:linear-gradient(to right,#000 76%,transparent);
+  mask-image:linear-gradient(to right,#000 76%,transparent);
+}
+.nail-detail__visual .nail-visual{width:100%;height:auto;aspect-ratio:290/255;max-height:19rem;}
+.nail-detail__visual .nail-visual__photo{object-position:center;}
+
+/* Photo inspection stays inside the existing accessible detail sheet:
+   actual WebP bytes and high-resolution SVG, never enlarged contact crops. */
+.nail-detail__inspect-actions{
+  display:flex;align-items:center;justify-content:space-between;gap:.5rem;
+  flex-wrap:wrap;margin-block-start:-.45rem;
+}
+.nail-detail__inspect-button{
+  min-height:44px;padding:.55rem .8rem;border-radius:.75rem;
+  border:1px solid var(--color-line-2);background:var(--color-sunken);
+  font-size:.77rem;font-weight:650;color:var(--color-ink);cursor:pointer;
+}
+.nail-detail__inspect-button:focus-visible{
+  outline:2px solid var(--color-gold-ink);outline-offset:2px;
+}
+.nail-detail__inspect-actions [role="status"]{
+  font-size:.67rem;line-height:1.7;color:var(--color-ink-2);
+}
+.nail-detail__visual--full{
+  max-height:65dvh;overflow:auto;overscroll-behavior:contain;
+  scrollbar-width:thin;
+}
+.nail-detail__visual--full .nail-visual{
+  width:100%;aspect-ratio:1/1;max-height:none;
+}
+.nail-detail__visual--full .nail-visual__photo{object-fit:contain;object-position:center;}
+.nail-detail__visual--full .nail-visual__fallback svg{
+  object-fit:contain;max-height:none;
+}
+.nail-detail__visual--zoom{
+  touch-action:pan-x pan-y;
+}
+.nail-detail__visual--zoom .nail-visual{
+  width:200%;height:auto;max-height:none;
+  aspect-ratio:1/1;
+}
+@media(prefers-reduced-motion:reduce){
+  .nail-detail__visual--full .nail-visual__photo{transition:none;}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .nail-visual__photo{transition:none;}
+}
+
+/* Manicure / pedicure segmented switch. Stays legible at 320px and in RTL. */
+.nail-kind-control {
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.35rem;
+  margin-block:.25rem .65rem;
+}
+.nail-kind-control button {
+  min-width:0;min-height:46px;border-radius:.8rem;
+  padding:.55rem .4rem;border:1px solid var(--color-line-2);
+  background:var(--color-surface);color:var(--color-ink-2);
+  font-size:.76rem;font-weight:650;
+}
+.nail-kind-control button[aria-pressed="true"] {
+  background:var(--color-ink);color:var(--color-surface);
+  border-color:var(--color-ink);
+}
+.nail-kind-control button:focus-visible {outline:2px solid var(--color-gold-ink);outline-offset:2px;}
+
+
+/* Grand Nail Atlas: 298 distinct references without loading every preview at once. */
+.nail-collection__toolbar {
+  display:flex;align-items:center;justify-content:space-between;gap:.85rem;
+  min-height:3.25rem;margin-bottom:.65rem;flex-wrap:wrap;
+  font-size:.73rem;color:var(--color-ink-2);
+}
+.nail-collection__toolbar label{display:flex;align-items:center;gap:.45rem;font-size:.71rem;}
+.nail-collection__toolbar select{
+  color:var(--color-ink);background:var(--color-surface);
+  border:1px solid var(--color-line-2);border-radius:.65rem;
+  min-height:44px;max-width:160px;padding:0 .5rem;font:inherit;
+}
+.nail-collection__toolbar select:focus-visible{outline:2px solid var(--color-gold-ink);outline-offset:2px;}
+.nail-more{display:grid;justify-items:center;gap:.75rem;padding:1.5rem 0 .6rem;}
+.nail-more__track{width:min(240px,80%);height:3px;border-radius:99px;background:var(--color-line);}
+.nail-more__track span{display:block;height:100%;border-radius:inherit;background:var(--color-gold-ink);transition:width .25s ease;}
+.nail-more p{color:var(--color-ink-2);font-size:.74rem;}
+.nail-more button{
+  display:inline-flex;align-items:center;justify-content:center;gap:.6rem;
+  min-height:48px;min-width:170px;padding:.6rem 1.4rem;
+  border:1px solid var(--color-line-2);border-radius:99px;
+  background:var(--color-surface);color:var(--color-ink);font-size:.84rem;font-weight:600;
+}
+.nail-more button:focus-visible{outline:2px solid var(--color-gold-ink);outline-offset:2px;}
+@media(prefers-reduced-motion:reduce){.nail-more__track span{transition:none;}}
+
+
+/* Clearly grouped design families and tactile shade selection in style details */
+.nail-filter-label--family {
+  display:flex;justify-content:space-between;align-items:baseline;gap:.6rem;flex-wrap:wrap;
+}
+.nail-filter-label__hint {
+  font-size:.66rem;font-weight:400;color:var(--color-ink-3);
+}
+.nail-families {
+  padding-block:.15rem .4rem;
+}
+.nail-detail__colorways {
+  border-block:1px solid var(--color-line);padding-block:1rem;
+  display:grid;gap:.75rem;
+}
+.nail-detail__colorways-head {
+  display:flex;align-items:center;justify-content:space-between;gap:.6rem;
+}
+.nail-detail__colorways-head strong {
+  font-size:.82rem;font-weight:650;
+}
+.nail-detail__colorways-head span{
+  font-size:.71rem;color:var(--color-ink-2);
+}
+.nail-detail__swatches {
+  display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:.55rem;justify-items:center;
+}
+.nail-detail__swatch {
+  border-radius:999px;background:transparent;border:2px solid transparent;
+  display:grid;place-items:center;width:44px;height:44px;padding:4px;
+}
+.nail-detail__swatch>span {
+  display:block;width:30px;height:30px;border-radius:50%;border:1px solid #79707855;
+  box-shadow:inset 1px 2px 3px #ffffff66,0 1px 3px #34202922;
+}
+.nail-detail__swatch[aria-pressed="true"] {border-color:var(--color-gold-ink);}
+.nail-detail__swatch:focus-visible {outline:2px solid var(--color-gold-ink);outline-offset:2px;}
+@media(max-width:499px) {.nail-detail__swatches{grid-template-columns:repeat(4,minmax(0,1fr));gap:.35rem;}}
+
+
+/* Premium, resilient nail-style link sharing. Never obscure the booking CTA. */
+.nail-detail__share {
+  display:grid;gap:.6rem;
+}
+.nail-detail__share-button {
+  min-height:46px;display:inline-flex;align-items:center;justify-content:center;
+  gap:.6rem;width:100%;padding:.6rem .85rem;border-radius:.8rem;
+  border:1px solid var(--color-line-2);background:var(--color-sunken);
+  color:var(--color-ink);font-size:.83rem;font-weight:600;
+}
+.nail-detail__share-button:focus-visible {outline:2px solid var(--color-gold-ink);outline-offset:2px;}
+.nail-detail__share>p {font-size:.74rem;color:var(--color-gold-ink);line-height:1.7;}
+.nail-detail__share-fallback {display:grid;gap:.35rem;min-width:0;}
+.nail-detail__share-fallback label {font-size:.72rem;color:var(--color-ink-2);line-height:1.8;}
+.nail-detail__share-fallback input {
+  display:block;width:100%;min-width:0;max-width:100%;
+  border:1px solid var(--color-line-2);border-radius:.65rem;
+  min-height:46px;padding:.5rem .7rem;background:var(--color-surface);
+  color:var(--color-ink);font:500 .72rem/1.5 var(--font-serif);
+}
+.nail-detail__share-fallback input:focus-visible {outline:2px solid var(--color-gold-ink);outline-offset:2px;}
+
+
+/* Editorial two-look comparison: no extra photos, entirely offline-capable. */
+.nail-compare-picker {
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;
+  gap:.65rem;padding:.75rem;margin-bottom:1rem;border-radius:1rem;
+  border:1px solid var(--color-line-2);background:var(--color-sunken);
+}
+.nail-compare-picker__copy {display:grid;gap:.18rem;min-width:0;}
+.nail-compare-picker__copy strong{font-size:.83rem;line-height:1.5;}
+.nail-compare-picker__copy span{font-size:.72rem;color:var(--color-ink-2);line-height:1.7;}
+.nail-compare-picker__actions {display:flex;gap:.45rem;align-items:center;flex-wrap:wrap;}
+.nail-compare-picker__open {
+  display:inline-flex;gap:.4rem;align-items:center;justify-content:center;
+  min-height:44px;padding:.6rem .9rem;border-radius:99px;
+  background:var(--color-ink);color:var(--color-surface);
+  border:1px solid var(--color-ink);font-weight:650;font-size:.73rem;
+}
+.nail-compare-picker__open:disabled {opacity:.5;cursor:not-allowed;}
+.nail-compare-picker__clear {
+  min-height:44px;padding:.55rem .65rem;font-size:.73rem;color:var(--color-ink-2);
+}
+.nail-card[data-compared] {border-color:var(--color-gold-ink);box-shadow:0 0 0 1px var(--color-gold-ink);}
+.nail-card__compare {
+  min-height:44px;min-width:44px;display:inline-flex;align-items:center;
+  gap:.23rem;padding:0 .35rem;border-radius:.65rem;color:var(--color-ink-2);
+  font-size:.68rem;line-height:1.3;
+}
+.nail-card__compare[aria-pressed="true"]{color:var(--color-gold-ink);font-weight:700;}
+.nail-card__compare:disabled{opacity:.35;cursor:not-allowed;}
+.nail-card__compare span{white-space:nowrap;}
+.nail-compare-picker button:focus-visible,.nail-card__compare:focus-visible{
+  outline:2px solid var(--color-gold-ink);outline-offset:2px;
+}
+.nail-compare {display:grid;gap:1rem;padding-bottom:1rem;}
+.nail-compare__intro {font-size:.78rem;color:var(--color-ink-2);line-height:1.95;}
+.nail-compare__grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.65rem;}
+.nail-compare__design{
+  min-width:0;display:flex;flex-direction:column;gap:.55rem;
+  padding:.45rem;border:1px solid var(--color-line-2);
+  border-radius:1rem;background:var(--color-surface);
+}
+.nail-compare__visual {overflow:hidden;border-radius:.7rem;aspect-ratio:1 / 1;background:var(--color-sunken);}
+.nail-compare__visual .nail-visual{width:100%;height:100%;}
+.nail-compare__identity{min-height:3.6rem;padding:.15rem .25rem;display:grid;gap:.15rem;align-content:start;}
+.nail-compare__identity small{
+  display:block;direction:ltr;text-align:end;overflow-wrap:anywhere;
+  font-size:.58rem;color:var(--color-gold-ink);line-height:1.35;
+}
+.nail-compare__identity h3{font-size:.83rem;font-weight:700;line-height:1.5;overflow-wrap:anywhere;}
+.nail-compare__specs{margin:0;display:grid;gap:0;align-content:start;flex:1;}
+.nail-compare__specs div{
+  display:grid;gap:.2rem;padding:.5rem .25rem;border-bottom:1px solid var(--color-line);
+}
+.nail-compare__specs dt{font-size:.66rem;color:var(--color-ink-2);}
+.nail-compare__specs dd{font-size:.72rem;font-weight:600;line-height:1.5;overflow-wrap:anywhere;}
+.nail-compare__design>button {margin-top:auto;min-height:44px;font-size:.73rem;}
+.nail-compare__disclosure{font-size:.69rem;line-height:1.9;color:var(--color-ink-2);}
+@media(min-width:600px){
+  .nail-compare__grid{gap:1rem;}
+  .nail-compare__design{padding:.9rem;gap:.8rem;}
+  .nail-compare__specs div{grid-template-columns:1fr 1.5fr;gap:.5rem;}
+}
+@media(max-width:355px){
+  .nail-compare-picker{padding:.6rem;}
+  .nail-compare__grid{gap:.4rem;}
+  .nail-compare__design{padding:.35rem;}
+  .nail-compare__design>button{font-size:.67rem;padding-inline:.25rem;}
+  .nail-card__compare span{font-size:.62rem;}
+}
+
+
+/* Source-aware editorial disclosure. Show true loaded media, never promised media. */
+.nail-photo-refine {
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:.6rem;margin-block:.1rem .45rem;
+}
+.nail-photo-refine__description {display:grid;gap:.2rem;flex:1;min-width:0;}
+.nail-photo-refine__description strong {font-size:.76rem;font-weight:680;}
+.nail-photo-refine__description>span {font-size:.71rem;color:var(--color-ink-2);line-height:1.65;}
+.nail-photo-refine__toggle {
+  border:1px solid var(--color-line-2);border-radius:99px;
+  min-width:102px;min-height:44px;padding:.5rem .85rem;
+  color:var(--color-ink);background:var(--color-surface);
+  font-size:.72rem;font-weight:650;white-space:nowrap;
+}
+.nail-photo-refine__toggle[aria-pressed="true"] {
+  color:var(--color-surface);background:var(--color-ink);
+  border-color:var(--color-ink);
+}
+.nail-photo-refine__toggle:disabled {opacity:.5;cursor:not-allowed;}
+.nail-photo-refine__toggle:focus-visible {outline:2px solid var(--color-gold-ink);outline-offset:2px;}
+.nail-card__media-type,
+.nail-detail__source {display:block;font-size:.67rem;color:var(--color-ink-2);line-height:1.7;}
+.nail-card__info>.nail-card__media-type {font-size:.65rem;line-height:1.7;}
+.nail-detail__source {margin-block:-.1rem .05rem;}
+.nail-card__media-type--photo,
+.nail-detail__source--photo {display:none;}
+/* Image successful and decoded? Only then identify it as a photograph.
+ * Broken, blocked and offline-missing assets retain the vector label. */
+.nail-card:has(.nail-visual__photo[data-ready]) .nail-card__media-type--photo,
+.nail-detail:has(.nail-visual__photo[data-ready]) .nail-detail__source--photo {display:inline;}
+.nail-card:has(.nail-visual__photo[data-ready]) .nail-card__media-type--illustration,
+.nail-detail:has(.nail-visual__photo[data-ready]) .nail-detail__source--illustration {display:none;}
+@media(max-width:360px){
+  .nail-photo-refine__toggle {min-width:94px;padding:.45rem .6rem;}
+  .nail-photo-refine__description>span {font-size:.68rem;}
+}
+
+
+/* Shape-safe color navigation: swatches never silently alter nail geometry. */
+.nail-detail__alternative-forms{
+  display:grid;gap:.65rem;margin-top:.25rem;padding-top:.85rem;
+  border-top:1px solid var(--color-line);
+}
+.nail-detail__alternative-forms>strong{
+  font-size:.8rem;font-weight:650;line-height:1.6;
+}
+.nail-detail__alternative-forms>p{
+  color:var(--color-ink-2);font-size:.72rem;line-height:1.85;
+}
+.nail-detail__alternative-list{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:.5rem;align-items:stretch;
+}
+.nail-detail__alternative-list button{
+  min-width:0;min-height:54px;display:grid;align-content:center;
+  grid-template-columns:18px minmax(0,1fr);grid-template-rows:auto auto;
+  text-align:start;column-gap:.45rem;row-gap:.08rem;
+  border:1px solid var(--color-line-2);border-radius:.7rem;
+  padding:.55rem .65rem;background:var(--color-surface);
+  color:var(--color-ink);
+}
+.nail-detail__alternative-list button:focus-visible{
+  outline:2px solid var(--color-gold-ink);outline-offset:2px;
+}
+.nail-detail__alternative-dot{
+  grid-row:1 / span 2;display:block;align-self:center;
+  width:16px;height:16px;border:1px solid #8f7c7d77;border-radius:50%;
+}
+.nail-detail__alternative-list button>span:nth-child(2){
+  font-size:.72rem;font-weight:640;overflow-wrap:anywhere;line-height:1.45;
+}
+.nail-detail__alternative-list button>small{
+  color:var(--color-ink-2);font-size:.64rem;line-height:1.5;
+}
+@media(max-width:375px){
+  .nail-detail__alternative-list{grid-template-columns:minmax(0,1fr);}
+}
+
+
+/* Nail Edit / compact, deliberate filters. The detailed controls are optional:
+   the photo grid stays close to the collection header on a fresh visit. */
+.nail-filter-workspace {
+  display:grid;gap:.78rem;margin-block:.15rem .55rem;
+  padding:1rem;border:1px solid var(--color-line-2);
+  border-radius:1.2rem;background:var(--color-surface);
+  box-shadow:0 7px 28px #3b28370a;
+}
+.nail-filter-workspace__top {
+  display:flex;align-items:center;justify-content:space-between;gap:.55rem;
+  color:var(--color-ink-2);
+}
+.nail-filter-workspace__top>span:first-child {
+  font-size:.76rem;font-weight:650;line-height:1.5;color:var(--color-ink);
+}
+.nail-filter-workspace__top>span:last-child {
+  font:500 .54rem/1.5 var(--font-serif);
+  letter-spacing:.13em;color:var(--color-gold-ink);white-space:nowrap;
+}
+.nail-filter-search-row {display:flex;align-items:stretch;gap:.5rem;min-width:0;}
+.nail-filter-search-row .nail-search {
+  display:flex;flex:1;min-width:0;
+  margin:0;padding-inline:.8rem;
+  border-radius:.8rem;background:var(--color-canvas);
+}
+.nail-search__clear {
+  flex:none;width:36px;height:40px;display:grid;place-items:center;
+  border-radius:.6rem;color:var(--color-ink-2);
+}
+.nail-filter-workspace__open {
+  min-width:105px;min-height:48px;
+  display:flex;align-items:center;justify-content:center;gap:.42rem;
+  padding:.6rem .7rem;border-radius:.8rem;
+  background:var(--color-ink);color:var(--color-surface);
+  font-size:.79rem;font-weight:650;
+  transition:background .2s ease;
+}
+.nail-filter-workspace__open[aria-expanded="true"]{
+  background:var(--color-gold-ink);color:var(--color-surface);
+}
+.nail-filter-workspace__count {
+  display:grid;place-items:center;min-width:1.18rem;height:1.18rem;
+  padding-inline:.18rem;border-radius:99px;
+  background:var(--color-surface);color:var(--color-ink);
+  font-size:.67rem;line-height:1;font-weight:750;
+}
+.nail-filter-shortcuts{
+  display:flex;align-items:center;gap:.42rem;min-width:0;
+  padding-block:.08rem .12rem;overflow-x:auto;scrollbar-width:none;
+}
+.nail-filter-shortcuts::-webkit-scrollbar {display:none;}
+.nail-filter-shortcuts button {
+  flex:none;min-height:44px;padding:.55rem .83rem;
+  border-radius:99px;border:1px solid var(--color-line-2);
+  background:var(--color-canvas);color:var(--color-ink-2);
+  font-size:.71rem;font-weight:620;white-space:nowrap;
+}
+.nail-filter-shortcuts button[aria-pressed="true"]{
+  border-color:var(--color-ink);
+  background:var(--color-ink);color:var(--color-surface);
+}
+.nail-filter-workspace .nail-photo-refine {
+  margin:0;padding-block:.7rem .05rem;
+  border-top:1px solid var(--color-line);
+}
+.nail-filter-workspace .nail-photo-refine__description strong{
+  font-size:.73rem;
+}
+.nail-filter-workspace .nail-photo-refine__description>span{
+  font-size:.66rem;
+}
+.nail-filter-workspace .nail-photo-refine__toggle {
+  min-width:98px;font-size:.72rem;
+  background:var(--color-canvas);
+}
+.nail-filter-workspace .nail-photo-refine__toggle[aria-pressed="true"] {
+  background:var(--color-ink);color:var(--color-surface);
+}
+.nail-applied-filters {
+  display:flex;align-items:center;flex-wrap:wrap;gap:.4rem;
+  padding-block:.5rem .1rem;border-top:1px solid var(--color-line);
+}
+.nail-applied-filters__label {
+  font-size:.67rem;font-weight:650;color:var(--color-ink-2);margin-inline-end:.1rem;
+}
+.nail-applied-filters button:not(.nail-applied-filters__clear){
+  display:flex;align-items:center;gap:.3rem;
+  min-height:44px;padding:.45rem .62rem;
+  border-radius:.65rem;background:var(--color-sunken);
+  border:1px solid var(--color-line-2);
+  color:var(--color-ink);font-size:.68rem;font-weight:620;
+}
+.nail-applied-filters__clear{
+  min-height:44px;padding:.4rem .45rem;
+  font-size:.67rem;font-weight:650;color:var(--color-gold-ink);
+  text-decoration:underline;text-underline-offset:3px;
+}
+.nail-filter-panel {
+  padding-block:1rem .2rem;border-top:1px solid var(--color-line);
+  display:grid;gap:1rem;
+  animation:nail-filter-enter .18s ease-out;
+}
+@keyframes nail-filter-enter {from{opacity:.5;transform:translateY(-5px)}to{opacity:1;transform:none}}
+.nail-filter-panel__heading {
+  display:flex;align-items:center;justify-content:space-between;gap:.75rem;
+}
+.nail-filter-panel__heading>div {display:grid;gap:.12rem;}
+.nail-filter-panel__heading strong {font-size:.98rem;font-weight:700;}
+.nail-filter-panel__heading span {font-size:.71rem;color:var(--color-ink-2);}
+.nail-filter-panel__heading>button {
+  min-height:44px;padding:.48rem .6rem;border-radius:.6rem;
+  font-size:.72rem;color:var(--color-gold-ink);font-weight:650;
+}
+.nail-filter-panel__grid {display:grid;grid-template-columns:minmax(0,1fr);gap:.85rem;}
+.nail-filter-panel__group {
+  min-width:0;display:grid;align-content:start;gap:.48rem;
+  padding:.85rem;border:1px solid var(--color-line);
+  border-radius:.85rem;background:var(--color-canvas);
+}
+.nail-filter-panel__group .nail-filter-label {padding:0;color:var(--color-ink);}
+.nail-filter-panel__chips {
+  display:flex;flex-wrap:wrap;gap:.4rem;min-width:0;
+}
+.nail-filter-panel__chips .chip {
+  min-height:44px;padding:.5rem .75rem;
+  font-size:.72rem;line-height:1.5;
+  white-space:normal;text-align:center;
+}
+.nail-filter-panel__chips--family {
+  max-height:15.5rem;overflow-y:auto;
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:.4rem;align-content:start;scrollbar-width:thin;
+}
+.nail-filter-panel__chips--family .chip{
+  display:grid;place-items:center;min-width:0;width:100%;font-size:.7rem;
+}
+.nail-filter-panel__footer {
+  display:flex;align-items:center;justify-content:space-between;gap:.65rem;
+  border-top:1px solid var(--color-line);padding-block:1rem .2rem;
+}
+.nail-filter-panel__footer span {font-size:.72rem;color:var(--color-ink-2);}
+.nail-filter-panel__footer button {
+  min-height:46px;padding:.65rem 1rem;border-radius:.72rem;
+  display:flex;align-items:center;justify-content:center;gap:.38rem;
+  background:var(--color-ink);color:var(--color-surface);
+  font-size:.78rem;font-weight:690;
+}
+.nail-filter-workspace button:focus-visible {
+  outline:2px solid var(--color-gold-ink);outline-offset:2px;
+}
+@media(min-width:680px){
+  .nail-filter-workspace {padding:1.25rem 1.4rem;gap:.9rem;}
+  .nail-filter-search-row {gap:.7rem;}
+  .nail-filter-panel__grid {grid-template-columns:repeat(2,minmax(0,1fr));}
+  .nail-filter-panel__group--families {grid-column:1/-1;}
+  .nail-filter-panel__chips--family {grid-template-columns:repeat(4,minmax(0,1fr));max-height:11.5rem;}
+  .nail-filter-workspace .nail-photo-refine {flex-wrap:nowrap;}
+}
+@media(max-width:350px){
+  .nail-filter-workspace {padding:.75rem;}
+  .nail-filter-workspace__top>span:last-child{display:none;}
+  .nail-filter-workspace__open{min-width:97px;padding-inline:.45rem;}
+  .nail-filter-panel__footer {flex-wrap:wrap;}
+}
+@media(prefers-reduced-motion:reduce){
+  .nail-filter-panel{animation:none;}
+  .nail-filter-workspace__open{transition:none;}
+}

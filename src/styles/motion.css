@@ -1,0 +1,81 @@
+/*
+ * Motion — keyframes, View Transitions choreography and scroll-driven effects.
+ * Everything here is progressive enhancement and collapses under
+ * prefers-reduced-motion / prefers-reduced-transparency.
+ */
+
+@utility enter {
+  animation: enter var(--duration-slower) var(--ease-out) both;
+}
+@utility rise {
+  animation: rise 560ms var(--ease-out) both;
+}
+
+@keyframes enter { from { opacity: 0; translate: 0 1.125rem; filter: blur(6px); } }
+@keyframes rise { from { opacity: 0; translate: 0 1rem; } }
+@keyframes fade { from { opacity: 0; } }
+@keyframes pop { 0% { opacity: 0; scale: 0.7; } 100% { opacity: 1; scale: 1; } }
+@keyframes pulse { 50% { box-shadow: 0 0 0 7px color-mix(in oklch, var(--color-sage) 6%, transparent); } }
+@keyframes shimmer { to { background-position: -300% 0; } }
+@keyframes foil-sheen { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+@keyframes spin { to { rotate: 360deg; } }
+@keyframes kenburns { to { scale: 1.08; } }
+@keyframes nudge { 50% { translate: 0 -6px; } }
+@keyframes heart { 0% { opacity: 0; scale: 0.3; rotate: -12deg; } 25% { opacity: 1; scale: 1.15; rotate: 6deg; } 45% { scale: 0.95; } 100% { opacity: 0; scale: 1.1; translate: 0 -60px; } }
+
+.kenburns { animation: kenburns 20s ease-in-out infinite alternate; }
+
+/* ---------- View Transitions ---------- */
+::view-transition-group(*) { animation-duration: 460ms; animation-timing-function: var(--ease-out); }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 420ms; animation-timing-function: var(--ease-out); }
+html[data-nav="forward"]::view-transition-old(root) { animation-name: vt-out-start; }
+html[data-nav="forward"]::view-transition-new(root) { animation-name: vt-in-end; }
+html[data-nav="back"]::view-transition-old(root) { animation-name: vt-out-end; }
+html[data-nav="back"]::view-transition-new(root) { animation-name: vt-in-start; }
+::view-transition-old(topbar), ::view-transition-new(topbar), ::view-transition-old(tabbar), ::view-transition-new(tabbar) { animation: none; }
+/* During a shared-element morph the chrome joins the root crossfade so it never covers the morph. */
+html[data-nav="morph"] :is(.tabbar, .topbar, .dock) { view-transition-name: none; }
+::view-transition-group(look-morph) { animation-duration: 560ms; }
+::view-transition-old(look-morph), ::view-transition-new(look-morph) { height: 100%; object-fit: cover; overflow: clip; }
+
+/* RTL: "forward" travels leftwards. */
+@keyframes vt-out-start { to { opacity: 0; translate: -12% 0; filter: blur(4px); } }
+@keyframes vt-in-end { from { opacity: 0; translate: 12% 0; } }
+@keyframes vt-out-end { to { opacity: 0; translate: 12% 0; filter: blur(4px); } }
+@keyframes vt-in-start { from { opacity: 0; translate: -12% 0; } }
+
+/* ---------- Scroll-driven ---------- */
+@supports (animation-timeline: view()) {
+  .reveal-on-scroll { animation: scroll-reveal linear both; animation-timeline: view(); animation-range: entry 0% entry 55%; }
+  .hero > img { animation: hero-parallax linear both; animation-timeline: view(); animation-range: exit -20% exit 100%; }
+  .discover__frame { animation: frame-depth linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
+}
+@keyframes scroll-reveal { from { opacity: 0; translate: 0 2.5rem; scale: 0.98; } }
+@keyframes hero-parallax { from { scale: 1.04; } to { scale: 1.18; translate: 0 8%; } }
+@keyframes frame-depth { 0% { scale: 0.86; opacity: 0.4; } 50% { scale: 1; opacity: 1; } 100% { scale: 0.86; opacity: 0.4; } }
+
+/* ---------- Accessibility ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass, .glass-dark, .icon-btn[data-variant^="glass"], .btn[data-variant="glass"] { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+  .glass { background: var(--color-surface); }
+  .glass-dark, .icon-btn[data-variant="glass-dark"], .btn[data-variant="glass"] { background: oklch(15% 0.01 50 / 0.88); }
+}
+
+/* Short phones: keep the welcome CTA above the fold. */
+@media (max-height: 720px) {
+  .welcome__promises { display: none; }
+}
+
+/* Wide screens: present the app as a centred device canvas. */
+@media (min-width: 640px) {
+  body { background: radial-gradient(70% 60% at 50% 0%, var(--color-gold-soft), transparent 70%), var(--color-sunken); }
+  .app { box-shadow: 0 0 0 1px var(--color-line), var(--shadow-4); }
+}

@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "batch": "hbeauty-manicure-batch68",
+  "decision": "APPROVED_FOR_PUBLICATION",
+  "reviewer": "ChatGPT original-pixel visual inspection",
+  "reviewed_at": "2026-10-30T04:32:00.000Z",
+  "images": [
+    {
+      "id": "nail-atlas-velvet-pearl",
+      "finish": "matte",
+      "shape": "coffin",
+      "length": "long",
+      "base": "#D1CCD0",
+      "accent": "#FCF8FA",
+      "filename": "public/nails/photos/nail-atlas-velvet-pearl.webp",
+      "sha256": "f42daf9eb81cd009e1f0166535bab2e5a654b53b0ba7a011e468acd57fe63339",
+      "reviewed_full_resolution": true,
+      "review_notes": "Original 1600×1600 WebP from ChatGPT-generated H-Beauty user archive, file initially misnamed minimal-ruby.webp. Independently reviewed actual pixels: Pearlescent cool-gray velvet matte on all five naturally connected long coffin/ballerina fingernails; clean straight narrow tips, soft powdered reflectance, real skin detail and pure ivory satin; no stone, text, collage, props or fabricated enlargement. Corrected mapping to existing unapproved catalog ID. No new external photo generation; recovered original kept byte-for-byte. AI-generated style inspiration, not photographic documentation of salon work.",
+      "source_filename": "minimal-ruby.webp",
+      "source_sha256": "f42daf9eb81cd009e1f0166535bab2e5a654b53b0ba7a011e468acd57fe63339",
+      "source_dimensions": [
+        1600,
+        1600
+      ],
+      "conversion": "Preserved exact native WebP bytes; no upscaling, cropped panels, resampling or recompression.",
+      "anatomy_five_fingers": "PASS",
+      "nail_detail_and_cuticles": "PASS",
+      "pure_ivory_silk_no_stone": "PASS",
+      "exact_catalog_style": "PASS",
+      "no_duplicate_or_collage": "PASS",
+      "original_native_resolution": "PASS"
+    },
+    {
+      "id": "nail-atlas-sculpture-blush",
+      "finish": "3d",
+      "shape": "almond",
+      "length": "short",
+      "base": "#D9A1B0",
+      "accent": "#FFE3E7",
+      "filename": "public/nails/photos/nail-atlas-sculpture-blush.webp",
+      "sha256": "c8f13eb81ce18494083c69b413ac4245ea7baa66f3cfa327ba803e6433b4b586",
+      "reviewed_full_resolution": true,
+      "review_notes": "Original 1600×1600 WebP from ChatGPT-generated H-Beauty user archive, file initially misnamed celestial-merlot.webp. Independently reviewed actual pixels: Blush rose sculpted 3D raised gel ribbon waves on five short-to-medium almond nails, five naturally connected fingers, subtle distinct relief highlights and shadows, realistic skin texture and ivory silk folds; full-set wave variation, not unrelated stone or printed swirl. Corrected mapping to existing unapproved catalog ID. No new external photo generation; recovered original kept byte-for-byte. AI-generated style inspiration, not photographic documentation of salon work.",
+      "source_filename": "celestial-merlot.webp",
+      "source_sha256": "c8f13eb81ce18494083c69b413ac4245ea7baa66f3cfa327ba803e6433b4b586",
+      "source_dimensions": [
+        1600,
+        1600
+      ],
+      "conversion": "Preserved exact native WebP bytes; no upscaling, cropped panels, resampling or recompression.",
+      "anatomy_five_fingers": "PASS",
+      "nail_detail_and_cuticles": "PASS",
+      "pure_ivory_silk_no_stone": "PASS",
+      "exact_catalog_style": "PASS",
+      "no_duplicate_or_collage": "PASS",
+      "original_native_resolution": "PASS"
+    }
+  ]
+}

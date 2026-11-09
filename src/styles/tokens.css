@@ -1,0 +1,154 @@
+/*
+ * حنانه بیوتی — Design tokens
+ *
+ * Three tiers:
+ *   1. Primitives  — raw OKLCH ramps (never used directly in components)
+ *   2. Semantic    — role-based tokens exposed to Tailwind (bg-canvas, text-ink-2 …)
+ *   3. Component   — a few tokens owned by a single component (tab bar, sheet …)
+ *
+ * Colour is authored in OKLCH so lightness steps are perceptually even and the
+ * dark theme can be derived by swapping semantic roles, not by re-picking hex.
+ */
+
+:root {
+  /* ---------- 1. Primitives ---------- */
+  /* Porcelain — warm neutral ramp (hue 75) */
+  --porcelain-0: oklch(99.2% 0.004 80);
+  --porcelain-50: oklch(97.4% 0.008 80);
+  --porcelain-100: oklch(95.4% 0.011 78);
+  --porcelain-200: oklch(91.6% 0.014 76);
+  --porcelain-300: oklch(85.5% 0.016 74);
+  --porcelain-400: oklch(72% 0.017 70);
+  --porcelain-500: oklch(58% 0.016 66);
+  --porcelain-600: oklch(46% 0.014 62);
+  --porcelain-700: oklch(34% 0.012 58);
+  --porcelain-800: oklch(25% 0.01 55);
+  --porcelain-900: oklch(19% 0.009 52);
+  --porcelain-950: oklch(14.5% 0.007 50);
+
+  /* Champagne gold (hue 78) */
+  --gold-100: oklch(94% 0.035 85);
+  --gold-200: oklch(88% 0.06 83);
+  --gold-300: oklch(81% 0.085 80);
+  --gold-400: oklch(73% 0.1 77);
+  --gold-500: oklch(64% 0.1 72);
+  --gold-600: oklch(53% 0.09 66);
+  --gold-700: oklch(42% 0.075 62);
+
+  /* Rose — the single warm secondary, used for "saved" and love states */
+  --rose-100: oklch(94% 0.025 15);
+  --rose-400: oklch(72% 0.09 15);
+  --rose-600: oklch(55% 0.12 18);
+
+  /* Status */
+  --sage-500: oklch(62% 0.09 155);
+  --sage-300: oklch(80% 0.07 155);
+  --garnet-500: oklch(55% 0.15 25);
+  --garnet-300: oklch(75% 0.1 25);
+}
+
+@theme {
+  /* ---------- 2. Semantic colour ---------- */
+  --color-*: initial;
+  --color-canvas: var(--porcelain-50);
+  --color-surface: var(--porcelain-0);
+  --color-raised: oklch(100% 0 0);
+  --color-sunken: var(--porcelain-100);
+  --color-ink: var(--porcelain-900);
+  --color-ink-2: var(--porcelain-600);
+  --color-ink-3: var(--porcelain-400);
+  --color-line: color-mix(in oklch, var(--porcelain-900) 9%, transparent);
+  --color-line-2: color-mix(in oklch, var(--porcelain-900) 18%, transparent);
+  --color-gold: var(--gold-500);
+  --color-gold-ink: var(--gold-700);
+  --color-gold-soft: color-mix(in oklch, var(--gold-400) 16%, transparent);
+  --color-on-gold: var(--porcelain-950);
+  --color-champagne: var(--gold-200);
+  --color-rose: var(--rose-600);
+  --color-rose-soft: color-mix(in oklch, var(--rose-400) 16%, transparent);
+  --color-sage: var(--sage-500);
+  --color-garnet: var(--garnet-500);
+  --color-inverse: var(--porcelain-900);
+  --color-on-inverse: var(--porcelain-50);
+  --color-noir: var(--porcelain-950);
+  --color-white: oklch(100% 0 0);
+  --color-black: oklch(0% 0 0);
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  /* ---------- Typography ---------- */
+  --font-*: initial;
+  --font-sans: "Estedad Variable", "Estedad", system-ui, tahoma, sans-serif;
+  --font-calligraphy: "Noto Nastaliq Urdu Variable", "Noto Nastaliq Urdu", "Estedad Variable", serif;
+  --font-serif: "Bodoni Moda Variable", "Bodoni Moda", "Didot", Georgia, serif;
+
+  /* ---------- Spacing additions (4px base from Tailwind) ---------- */
+  --spacing-gutter: clamp(1.25rem, 5.2vw, 1.75rem);
+  --spacing-section: clamp(2.75rem, 9vw, 3.75rem);
+
+  /* ---------- Radius ---------- */
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.625rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
+  --radius-2xl: 2.25rem;
+  --radius-pill: 999px;
+
+  /* ---------- Elevation (warm-tinted, layered) ---------- */
+  --shadow-1: 0 1px 2px oklch(25% 0.02 60 / 0.06);
+  --shadow-2: 0 1px 2px oklch(25% 0.02 60 / 0.05), 0 8px 24px -12px oklch(25% 0.03 60 / 0.18);
+  --shadow-3: 0 2px 6px oklch(25% 0.02 60 / 0.06), 0 22px 48px -20px oklch(25% 0.03 60 / 0.32);
+  --shadow-4: 0 4px 12px oklch(20% 0.02 60 / 0.08), 0 40px 90px -30px oklch(20% 0.03 60 / 0.5);
+  --shadow-gold: 0 12px 28px -12px oklch(64% 0.1 72 / 0.65);
+
+  /* ---------- Motion ---------- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: linear(0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.723 12.9%, 0.938 16.7%, 1.017 19.4%, 1.067, 1.089 25.5%, 1.087, 1.073 30.6%, 1.022 36.6%, 0.997 41.2%, 0.988 45.6%, 0.993 55.9%, 1.001 66.2%, 1);
+  --duration-fast: 140ms;
+  --duration-base: 240ms;
+  --duration-slow: 420ms;
+  --duration-slower: 700ms;
+
+  /* Breakpoints stay Tailwind defaults; the app is a single mobile column. */
+}
+
+/* ---------- 3. Component tokens ---------- */
+:root {
+  --app-max: 34rem;
+  --topbar-h: 3.75rem;
+  --tabbar-h: 4.25rem;
+  --tabbar-gap: 0.75rem;
+  --dock-offset: calc(var(--tabbar-h) + var(--tabbar-gap) + 0.75rem);
+  --focus-ring: 0 0 0 2px var(--color-canvas), 0 0 0 4px var(--color-gold);
+  --foil: linear-gradient(115deg, var(--gold-500) 0%, var(--gold-200) 26%, var(--gold-400) 46%, var(--gold-100) 64%, var(--gold-600) 100%);
+  --glass-tint: oklch(100% 0 0 / 0.42);
+  --glass-edge: oklch(100% 0 0 / 0.85);
+  --glass-blur: 22px;
+  color-scheme: light;
+}
+
+/* ---------- Dark theme: remap semantic roles ---------- */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-canvas: var(--porcelain-950);
+  --color-surface: oklch(18% 0.008 52);
+  --color-raised: oklch(22% 0.009 55);
+  --color-sunken: oklch(16% 0.007 50);
+  --color-ink: var(--porcelain-50);
+  --color-ink-2: var(--porcelain-400);
+  --color-ink-3: var(--porcelain-500);
+  --color-line: color-mix(in oklch, var(--porcelain-0) 9%, transparent);
+  --color-line-2: color-mix(in oklch, var(--porcelain-0) 18%, transparent);
+  --color-gold: var(--gold-400);
+  --color-gold-ink: var(--gold-300);
+  --color-gold-soft: color-mix(in oklch, var(--gold-400) 14%, transparent);
+  --color-rose: var(--rose-400);
+  --color-inverse: var(--porcelain-50);
+  --color-on-inverse: var(--porcelain-900);
+  --shadow-2: 0 1px 0 oklch(100% 0 0 / 0.03) inset, 0 10px 28px -12px oklch(0% 0 0 / 0.7);
+  --shadow-3: 0 1px 0 oklch(100% 0 0 / 0.04) inset, 0 24px 50px -20px oklch(0% 0 0 / 0.8);
+  --glass-tint: oklch(30% 0.01 55 / 0.45);
+  --glass-edge: oklch(100% 0 0 / 0.16);
+}

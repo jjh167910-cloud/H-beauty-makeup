@@ -1,0 +1,183 @@
+H-BEAUTY — 16 EXACT-ID CORRECTIVE MANICURE GENERATION BRIEFS
+Source: GitHub catalog queue + 60-image inspection 2026-10-30
+These 16 originals have REJECT_REGENERATE visual dispositions. Never publish them as-is.
+One style per image. Each metadata block is OUTSIDE the generator prompt.
+Model: select high-fidelity photo generation, 1:1 square, native 2K original; REQUIRE evidence that native dimensions meet 1600×1600, not a resized derivative.
+Each output must undergo full-resolution per-image anatomy and exact-ID verification, duplicate comparison to all approved assets, independent image SHA-256, offline cache and mobile booking tests, CI and live checksum verification BEFORE any publication.
+Never mark an image approved merely because a prompt was written or an AI produced pixels.
+
+======== 01/16 ========
+CATALOG_ID: nail-atlas-aura-merlot
+STYLE: Merlot Aura Glow | هاله نور زرشکی
+EXPECTED OUTPUT FILE: public/nails/photos/nail-atlas-aura-merlot.webp
+SPECIFICATION: aura / coffin / long / #5F3046 / #E6A9BA
+REASON: Prior uploaded source failed exact-design or nail-edge visual review.
+BEGIN GENERATION PROMPT
+Photograph ONE continuous, high-end professional luxury manicure editorial scene. One single attractive young ADULT woman's hand rests gently on uninterrupted flowing pure warm IVORY SILK, with soft luminous folds and no other objects. The full single hand has exactly FIVE anatomically normal separated fingers including one visible thumb, five clearly visible nail plates, natural knuckles, healthy cuticles, realistic skin pores and finger proportions. Accurate true-life studio photographic lighting with delicate highlights, sharp nail detail without plastic-skin smoothing, square 1:1 composition; no collage, contact sheet, written labels, borders, stones, tables, rings, objects, logos or watermarks.
+Recreate THIS unique manicure design: Merlot Aura Glow. هاله مرکزی نرم و طیف‌ رنگ ملایم با پالت زرشکی. The precise nail shape is tapered sides and a clear straight FLAT narrow free edge, never hollow or curled. The precise nail length is a LONG free edge, visibly 8–12 mm beyond the fingertip. Dominant lacquer reference colour #5F3046, secondary accent colour #E6A9BA. The required technical finish is aura. CRITICAL design-specific correction: Each of five nails must show an unmistakable airy, softly diffused INNER COLOUR HALO centered on the plate and gradually blending toward a darker, smooth outer perimeter; never a hard glossy line, metallic cat-eye beam or plain polish. Form flawless physically plausible non-hollow nail tips, especially on the thumb. Avoid tubular folds or rolled nail extensions. The visible appearance must match the requested finish and exact nail geometry on all five separate nails; no added fingers, bent/merged nails, abnormal free edges or styles from another manicure. Deliver one clean photographic exposure of the original hand only, native high-resolution detail.
+END GENERATION PROMPT
+
+======== 02/16 ========
+CATALOG_ID: nail-atlas-aura-ruby
+STYLE: Ruby Aura Glow | هاله نور یاقوتی
+EXPECTED OUTPUT FILE: public/nails/photos/nail-atlas-aura-ruby.webp
+SPECIFICATION: aura / square / long / #A72E40 / #F3A7B2
+REASON: Prior uploaded source failed exact-design or nail-edge visual review.
+BEGIN GENERATION PROMPT
+Photograph ONE continuous, high-end professional luxury manicure editorial scene. One single attractive young ADULT woman's hand rests gently on uninterrupted flowing pure warm IVORY SILK, with soft luminous folds and no other objects. The full single hand has exactly FIVE anatomically normal separated fingers including one visible thumb, five clearly visible nail plates, natural knuckles, healthy cuticles, realistic skin pores and finger proportions. Accurate true-life studio photographic lighting with delicate highlights, sharp nail detail without plastic-skin smoothing, square 1:1 composition; no collage, contact sheet, written labels, borders, stones, tables, rings, objects, logos or watermarks.
+Recreate THIS unique manicure design: Ruby Aura Glow. هاله مرکزی نرم و طیف‌ رنگ ملایم با پالت یاقوتی. The precise nail shape is straight parallel sides and a genuinely FLAT squared free edge with minimal corner softening. The precise nail length is a LONG free edge, visibly 8–12 mm beyond the fingertip. Dominant lacquer reference colour #A72E40, secondary accent colour #F3A7B2. The required technical finish is aura. CRITICAL design-specific correction: Each of five nails must show an unmistakable airy, softly diffused INNER COLOUR HALO centered on the plate and gradually blending toward a darker, smooth outer perimeter; never a hard glossy line, metallic cat-eye beam or plain polish. Form flawless physically plausible non-hollow nail tips, especially on the thumb. Avoid tubular folds or rolled nail extensions. The visible appearance must match the requested finish and exact nail geometry on all five separate nails; no added fingers, bent/merged nails, abnormal free edges or styles from another manicure. Deliver one clean photographic exposure of the original hand only, native high-resolution detail.
+END GENERATION PROMPT
+
+======== 03/16 ========
+CATALOG_ID: nail-atlas-gradient-blush
+STYLE: Blush Smoky Ombré | دودی آمبره رز لطیف
+EXPECTED OUTPUT FILE: public/nails/photos/nail-atlas-gradient-blush.webp
+SPECIFICATION: ombre / oval / medium / #D9A1B0 / #FFE3E7
+REASON: Prior uploaded source failed exact-design or nail-edge visual review.
+BEGIN GENERATION PROMPT
+Photograph ONE continuous, high-end professional luxury manicure editorial scene. One single attractive young ADULT woman's hand rests gently on uninterrupted flowing pure warm IVORY SILK, with soft luminous folds and no other objects. The full single hand has exactly FIVE anatomically normal separated fingers including one visible thumb, five clearly visible nail plates, natural knuckles, healthy cuticles, realistic skin pores and finger proportions. Accurate true-life studio photographic lighting with delicate highlights, sharp nail detail without plastic-skin smoothing, square 1:1 composition; no collage, contact sheet, written labels, borders, stones, tables, rings, objects, logos or watermarks.
+Recreate THIS unique manicure design: Blush Smoky Ombré. محو شدن تدریجی و یکدست رنگ با پالت رز لطیف. The precise nail shape is an evenly curved elliptical tip without angular corners or pointed ends. The precise nail length is a MEDIUM free edge, visibly 4–6 mm beyond the fingertip. Dominant lacquer reference colour #D9A1B0, secondary accent colour #FFE3E7. The required technical finish is ombre. CRITICAL design-specific correction: Every one of the five nails must show a clearly visible continuous TWO-COLOUR AIRBRUSH OMBRÉ: richer base colour by the cuticle gradually transitioning to a paler accent hue at the free edge. The two ends must be distinguishable without making a harsh French line. Not a single-colour manicure and not marble. The visible appearance must match the requested finish and exact nail geometry on all five separate nails; no added fingers, bent/merged nails, abnormal free edges or styles from another manicure. Deliver one clean photographic exposure of the original hand only, native high-resolution detail.
+END GENERATION PROMPT
+
+======== 04/16 ========
+CATALOG_ID: nail-atlas-gradient-ivory
+STYLE: Ivory Smoky Ombré | دودی آمبره عاجی
+EXPECTED OUTPUT FILE: public/nails/photos/nail-atlas-gradient-ivory.webp
+SPECIFICATION: ombre / almond / short / #E9D7C6 / #FFF8E9
+REASON: Prior uploaded source failed exact-design or nail-edge visual review.
+BEGIN GENERATION PROMPT
+Photograph ONE continuous, high-end professional luxury manicure editorial scene. One single attractive young ADULT woman's hand rests gently on uninterrupted flowing pure warm IVORY SILK, with soft luminous folds and no other objects. The full single hand has exactly FIVE anatomically normal separated fingers including one visible thumb, five clearly visible nail plates, natural knuckles, healthy cuticles, realistic skin pores and finger proportions. Accurate true-life studio photographic lighting with delicate highlights, sharp nail detail without plastic-skin smoothing, square 1:1 composition; no collage, contact sheet, written labels, borders, stones, tables, rings, objects, logos or watermarks.
+Recreate THIS unique manicure design: Ivory Smoky Ombré. محو شدن تدریجی و یکدست رنگ با پالت عاجی. The precise nail shape is smoothly tapering sidewalls ending in a softly rounded almond point, never oval or flat square. The precise nail length is a SHORT free edge, only 1–2 mm beyond the fingertip. Dominant lacquer reference colour #E9D7C6, secondary accent colour #FFF8E9. The required technical finish is ombre. CRITICAL design-specific correction: Every one of the five nails must show a clearly visible continuous TWO-COLOUR AIRBRUSH OMBRÉ: richer base colour by the cuticle gradually transitioning to a paler accent hue at the free edge. The two ends must be distinguishable without making a harsh French line. Not a single-colour manicure and not marble. The visible appearance must match the requested finish and exact nail geometry on all five separate nails; no added fingers, bent/merged nails, abnormal free edges or styles from another manicure. Deliver one clean photographic exposure of the original hand only, native high-resolution detail.
+END GENERATION PROMPT
+
+======== 05/16 ========
+CATALOG_ID: nail-atlas-jelly-cobalt
+STYLE: Cobalt Glass Jelly | ژلی شفاف کبالت
+EXPECTED OUTPUT FILE: public/nails/photos/nail-atlas-jelly-cobalt.webp
+SPECIFICATION: jelly / square / medium / #385DA8 / #BED7FF
+REASON: Prior uploaded source failed exact-design or nail-edge visual review.
+BEGIN GENERATION PROMPT
+Photograph ONE continuous, high-end professional luxury manicure editorial scene. One single attractive young ADULT woman's hand rests gently on uninterrupted flowing pure warm IVORY SILK, with soft luminous folds and no other objects. The full single hand has exactly FIVE anatomically normal separated fingers including one visible thumb, five clearly visible nail plates, natural knuckles, healthy cuticles, realistic skin pores and finger proportions. Accurate true-life studio photographic lighting with delicate highlights, sharp nail detail without plastic-skin smoothing, square 1:1 composition; no collage, contact sheet, written labels, borders, stones, tables, rings, objects, logos or watermarks.
+Recreate THIS unique manicure design: Cobalt Glass Jelly. شفافیت شیشه‌ای و ته‌رنگ قابل‌دیدن با پالت کبالت. The precise nail shape is straight parallel sides and a genuinely FLAT squared free edge with minimal corner softening. The precise nail length is a MEDIUM free edge, visibly 4–6 mm beyond the fingertip. Dominant lacquer reference colour #385DA8, secondary accent colour #BED7FF. The required technical finish is jelly. CRITICAL design-specific correction: The pigment must be a sheer TRANSLUCENT GLASSLIKE JELLY GEL through which the natural nail-bed tone and tips remain faintly discernible on all five nails. Control pigment density so it does not read as opaque crème polish. Nail plates and free edges remain anatomically solid, smooth and physically plausible, especially the thumb; no tubular curled tips. The visible appearance must match the requested finish and exact nail geometry on all five separate nails; no added fingers, bent/merged nails, abnormal free edges or styles from another manicure. Deliver one clean photographic exposure of the original hand only, native high-resolution detail.
+END GENERATION PROMPT
+
+======== 06/16 ========
+CATALOG_ID: nail-atlas-jelly-coral
+STYLE: Coral Glass Jelly | ژلی شفاف مرجانی
+EXPECTED OUTPUT FILE: public/nails/photos/nail-atlas-jelly-coral.webp
+SPECIFICATION: jelly / square / short / #DA887A / #FBD2B9
+REASON: Prior uploaded source failed exact-design or nail-edge visual review.
+BEGIN GENERATION PROMPT
+Photograph ONE continuous, high-end professional luxury manicure editorial scene. One single attractive young ADULT woman's hand rests gently on uninterrupted flowing pure warm IVORY SILK, with soft luminous folds and no other objects. The full single hand has exactly FIVE anatomically normal separated fingers including one visible thumb, five clearly visible nail plates, natural knuckles, healthy cuticles, realistic skin pores and finger proportions. Accurate true-life studio photographic lighting with delicate highlights, sharp nail detail without plastic-skin smoothing, square 1:1 composition; no collage, contact sheet, written labels, borders, stones, tables, rings, objects, logos or watermarks.
+Recreate THIS unique manicure design: Coral Glass Jelly. شفافیت شیشه‌ای و ته‌رنگ قابل‌دیدن با پالت مرجانی. The precise nail shape is straight parallel sides and a genuinely FLAT squared free edge with minimal corner softening. The precise nail length is a SHORT free edge, only 1–2 mm beyond the fingertip. Dominant lacquer reference colour #DA887A, secondary accent colour #FBD2B9. The required technical finish is jelly. CRITICAL design-specific correction: The pigment must be a sheer TRANSLUCENT GLASSLIKE JELLY GEL through which the natural nail-bed tone and tips remain faintly discernible on all five nails. Control pigment density so it does not read as opaque crème polish. Nail plates and free edges remain anatomically solid, smooth and physically plausible, especially the thumb; no tubular curled tips. The visible appearance must match the requested finish and exact nail geometry on all five separate nails; no added fingers, bent/merged nails, abnormal free edges or styles from another manicure. Deliver one clean photographic exposure of the original hand only, native high-resolution detail.
+END GENERATION PROMPT
+
+======== 07/16 ========
+CATALOG_ID: nail-atlas-jelly-espresso
+STYLE: Espresso Glass Jelly | ژلی شفاف اسپرسو
+EXPECTED OUTPUT FILE: public/nails/photos/nail-atlas-jelly-espresso.webp
+SPECIFICATION: jelly / square / medium / #63473C / #D5AD93
+REASON: Prior uploaded source failed exact-design or nail-edge visual review.
+BEGIN GENERATION PROMPT
+Photograph ONE continuous, high-end professional luxury manicure editorial scene. One single attractive young ADULT woman's hand rests gently on uninterrupted flowing pure warm IVORY SILK, with soft luminous folds and no other objects. The full single hand has exactly FIVE anatomically normal separated fingers including one visible thumb, five clearly visible nail plates, natural knuckles, healthy cuticles, realistic skin pores and finger proportions. Accurate true-life studio photographic lighting with delicate highlights, sharp nail detail without plastic-skin smoothing, square 1:1 composition; no collage, contact sheet, written labels, borders, stones, tables, rings, objects, logos or watermarks.
+Recreate THIS unique manicure design: Espresso Glass Jelly. شفافیت شیشه‌ای و ته‌رنگ قابل‌دیدن با پالت اسپرسو. The precise nail shape is straight parallel sides and a genuinely FLAT squared free edge with minimal corner softening. The precise nail length is a MEDIUM free edge, visibly 4–6 mm beyond the fingertip. Dominant lacquer reference colour #63473C, secondary accent colour #D5AD93. The required technical finish is jelly. CRITICAL design-specific correction: The pigment must be a sheer TRANSLUCENT GLASSLIKE JELLY GEL through which the natural nail-bed tone and tips remain faintly discernible on all five nails. Control pigment density so it does not read as opaque crème polish. Nail plates and free edges remain anatomically solid, smooth and physically plausible, especially the thumb; no tubular curled tips. The visible appearance must match the requested finish and exact nail geometry on all five separate nails; no added fingers, bent/merged nails, abnormal free edges or styles from another manicure. Deliver one clean photographic exposure of the original hand only, native high-resolution detail.
+END GENERATION PROMPT
+
+======== 08/16 ========
+CATALOG_ID: nail-atlas-jelly-merlot
+STYLE: Merlot Glass Jelly | ژلی شفاف زرشکی
+EXPECTED OUTPUT FILE: public/nails/photos/nail-atlas-jelly-merlot.webp
+SPECIFICATION: jelly / square / short / #5F3046 / #E6A9BA
+REASON: Prior uploaded source failed exact-design or nail-edge visual review.
+BEGIN GENERATION PROMPT
+Photograph ONE continuous, high-end professional luxury manicure editorial scene. One single attractive young ADULT woman's hand rests gently on uninterrupted flowing pure warm IVORY SILK, with soft luminous folds and no other objects. The full single hand has exactly FIVE anatomically normal separated fingers including one visible thumb, five clearly visible nail plates, natural knuckles, healthy cuticles, realistic skin pores and finger proportions. Accurate true-life studio photographic lighting with delicate highlights, sharp nail detail without plastic-skin smoothing, square 1:1 composition; no collage, contact sheet, written labels, borders, stones, tables, rings, objects, logos or watermarks.
+Recreate THIS unique manicure design: Merlot Glass Jelly. شفافیت شیشه‌ای و ته‌رنگ قابل‌دیدن با پالت زرشکی. The precise nail shape is straight parallel sides and a genuinely FLAT squared free edge with minimal corner softening. The precise nail length is a SHORT free edge, only 1–2 mm beyond the fingertip. Dominant lacquer reference colour #5F3046, secondary accent colour #E6A9BA. The required technical finish is jelly. CRITICAL design-specific correction: The pigment must be a sheer TRANSLUCENT GLASSLIKE JELLY GEL through which the natural nail-bed tone and tips remain faintly discernible on all five nails. Control pigment density so it does not read as opaque crème polish. Nail plates and free edges remain anatomically solid, smooth and physically plausible, especially the thumb; no tubular curled tips. The visible appearance must match the requested finish and exact nail geometry on all five separate nails; no added fingers, bent/merged nails, abnormal free edges or styles from another manicure. Deliver one clean photographic exposure of the original hand only, native high-resolution detail.
+END GENERATION PROMPT
+
+======== 09/16 ========
+CATALOG_ID: nail-atlas-jelly-midnight
+STYLE: Midnight Glass Jelly | ژلی شفاف نیمه‌شب
+EXPECTED OUTPUT FILE: public/nails/photos/nail-atlas-jelly-midnight.webp
+SPECIFICATION: jelly / square / long / #2E344E / #B7C1E8
+REASON: Prior uploaded source failed exact-design or nail-edge visual review.
+BEGIN GENERATION PROMPT
+Photograph ONE continuous, high-end professional luxury manicure editorial scene. One single attractive young ADULT woman's hand rests gently on uninterrupted flowing pure warm IVORY SILK, with soft luminous folds and no other objects. The full single hand has exactly FIVE anatomically normal separated fingers including one visible thumb, five clearly visible nail plates, natural knuckles, healthy cuticles, realistic skin pores and finger proportions. Accurate true-life studio photographic lighting with delicate highlights, sharp nail detail without plastic-skin smoothing, square 1:1 composition; no collage, contact sheet, written labels, borders, stones, tables, rings, objects, logos or watermarks.
+Recreate THIS unique manicure design: Midnight Glass Jelly. شفافیت شیشه‌ای و ته‌رنگ قابل‌دیدن با پالت نیمه‌شب. The precise nail shape is straight parallel sides and a genuinely FLAT squared free edge with minimal corner softening. The precise nail length is a LONG free edge, visibly 8–12 mm beyond the fingertip. Dominant lacquer reference colour #2E344E, secondary accent colour #B7C1E8. The required technical finish is jelly. CRITICAL design-specific correction: The pigment must be a sheer TRANSLUCENT GLASSLIKE JELLY GEL through which the natural nail-bed tone and tips remain faintly discernible on all five nails. Control pigment density so it does not read as opaque crème polish. Nail plates and free edges remain anatomically solid, smooth and physically plausible, especially the thumb; no tubular curled tips. The visible appearance must match the requested finish and exact nail geometry on all five separate nails; no added fingers, bent/merged nails, abnormal free edges or styles from another manicure. Deliver one clean photographic exposure of the original hand only, native high-resolution detail.
+END GENERATION PROMPT
+
+======== 10/16 ========
+CATALOG_ID: nail-atlas-jelly-ruby
+STYLE: Ruby Glass Jelly | ژلی شفاف یاقوتی
+EXPECTED OUTPUT FILE: public/nails/photos/nail-atlas-jelly-ruby.webp
+SPECIFICATION: jelly / square / long / #A72E40 / #F3A7B2
+REASON: Prior uploaded source failed exact-design or nail-edge visual review.
+BEGIN GENERATION PROMPT
+Photograph ONE continuous, high-end professional luxury manicure editorial scene. One single attractive young ADULT woman's hand rests gently on uninterrupted flowing pure warm IVORY SILK, with soft luminous folds and no other objects. The full single hand has exactly FIVE anatomically normal separated fingers including one visible thumb, five clearly visible nail plates, natural knuckles, healthy cuticles, realistic skin pores and finger proportions. Accurate true-life studio photographic lighting with delicate highlights, sharp nail detail without plastic-skin smoothing, square 1:1 composition; no collage, contact sheet, written labels, borders, stones, tables, rings, objects, logos or watermarks.
+Recreate THIS unique manicure design: Ruby Glass Jelly. شفافیت شیشه‌ای و ته‌رنگ قابل‌دیدن با پالت یاقوتی. The precise nail shape is straight parallel sides and a genuinely FLAT squared free edge with minimal corner softening. The precise nail length is a LONG free edge, visibly 8–12 mm beyond the fingertip. Dominant lacquer reference colour #A72E40, secondary accent colour #F3A7B2. The required technical finish is jelly. CRITICAL design-specific correction: The pigment must be a sheer TRANSLUCENT GLASSLIKE JELLY GEL through which the natural nail-bed tone and tips remain faintly discernible on all five nails. Control pigment density so it does not read as opaque crème polish. Nail plates and free edges remain anatomically solid, smooth and physically plausible, especially the thumb; no tubular curled tips. The visible appearance must match the requested finish and exact nail geometry on all five separate nails; no added fingers, bent/merged nails, abnormal free edges or styles from another manicure. Deliver one clean photographic exposure of the original hand only, native high-resolution detail.
+END GENERATION PROMPT
+
+======== 11/16 ========
+CATALOG_ID: nail-atlas-jelly-sage
+STYLE: Sage Glass Jelly | ژلی شفاف سیج
+EXPECTED OUTPUT FILE: public/nails/photos/nail-atlas-jelly-sage.webp
+SPECIFICATION: jelly / square / long / #879C83 / #DCE8C8
+REASON: Prior uploaded source failed exact-design or nail-edge visual review.
+BEGIN GENERATION PROMPT
+Photograph ONE continuous, high-end professional luxury manicure editorial scene. One single attractive young ADULT woman's hand rests gently on uninterrupted flowing pure warm IVORY SILK, with soft luminous folds and no other objects. The full single hand has exactly FIVE anatomically normal separated fingers including one visible thumb, five clearly visible nail plates, natural knuckles, healthy cuticles, realistic skin pores and finger proportions. Accurate true-life studio photographic lighting with delicate highlights, sharp nail detail without plastic-skin smoothing, square 1:1 composition; no collage, contact sheet, written labels, borders, stones, tables, rings, objects, logos or watermarks.
+Recreate THIS unique manicure design: Sage Glass Jelly. شفافیت شیشه‌ای و ته‌رنگ قابل‌دیدن با پالت سیج. The precise nail shape is straight parallel sides and a genuinely FLAT squared free edge with minimal corner softening. The precise nail length is a LONG free edge, visibly 8–12 mm beyond the fingertip. Dominant lacquer reference colour #879C83, secondary accent colour #DCE8C8. The required technical finish is jelly. CRITICAL design-specific correction: The pigment must be a sheer TRANSLUCENT GLASSLIKE JELLY GEL through which the natural nail-bed tone and tips remain faintly discernible on all five nails. Control pigment density so it does not read as opaque crème polish. Nail plates and free edges remain anatomically solid, smooth and physically plausible, especially the thumb; no tubular curled tips. The visible appearance must match the requested finish and exact nail geometry on all five separate nails; no added fingers, bent/merged nails, abnormal free edges or styles from another manicure. Deliver one clean photographic exposure of the original hand only, native high-resolution detail.
+END GENERATION PROMPT
+
+======== 12/16 ========
+CATALOG_ID: nail-atlas-watercolor-champagne
+STYLE: Champagne Watercolour Cloud | آبرنگ ابری شامپاینی
+EXPECTED OUTPUT FILE: public/nails/photos/nail-atlas-watercolor-champagne.webp
+SPECIFICATION: art / oval / long / #C6A682 / #F9E3BD
+REASON: Prior uploaded source failed exact-design or nail-edge visual review.
+BEGIN GENERATION PROMPT
+Photograph ONE continuous, high-end professional luxury manicure editorial scene. One single attractive young ADULT woman's hand rests gently on uninterrupted flowing pure warm IVORY SILK, with soft luminous folds and no other objects. The full single hand has exactly FIVE anatomically normal separated fingers including one visible thumb, five clearly visible nail plates, natural knuckles, healthy cuticles, realistic skin pores and finger proportions. Accurate true-life studio photographic lighting with delicate highlights, sharp nail detail without plastic-skin smoothing, square 1:1 composition; no collage, contact sheet, written labels, borders, stones, tables, rings, objects, logos or watermarks.
+Recreate THIS unique manicure design: Champagne Watercolour Cloud. لکه‌رنگ‌های آبرنگی با لبه‌های نرم با پالت شامپاینی. The precise nail shape is an evenly curved elliptical tip without angular corners or pointed ends. The precise nail length is a LONG free edge, visibly 8–12 mm beyond the fingertip. Dominant lacquer reference colour #C6A682, secondary accent colour #F9E3BD. The required technical finish is art. CRITICAL design-specific correction: Apply overlapping SOFT TRANSLUCENT WATERCOLOR PIGMENT WASHES on at least three nails, with feathery diffuse softly bleeding edges and airy layering inside the nail polish. Avoid hard marble veins, cracks, rock-like mottling or thick dense solid colour patches. The visible appearance must match the requested finish and exact nail geometry on all five separate nails; no added fingers, bent/merged nails, abnormal free edges or styles from another manicure. Deliver one clean photographic exposure of the original hand only, native high-resolution detail.
+END GENERATION PROMPT
+
+======== 13/16 ========
+CATALOG_ID: nail-atlas-watercolor-espresso
+STYLE: Espresso Watercolour Cloud | آبرنگ ابری اسپرسو
+EXPECTED OUTPUT FILE: public/nails/photos/nail-atlas-watercolor-espresso.webp
+SPECIFICATION: art / almond / long / #63473C / #D5AD93
+REASON: Prior uploaded source failed exact-design or nail-edge visual review.
+BEGIN GENERATION PROMPT
+Photograph ONE continuous, high-end professional luxury manicure editorial scene. One single attractive young ADULT woman's hand rests gently on uninterrupted flowing pure warm IVORY SILK, with soft luminous folds and no other objects. The full single hand has exactly FIVE anatomically normal separated fingers including one visible thumb, five clearly visible nail plates, natural knuckles, healthy cuticles, realistic skin pores and finger proportions. Accurate true-life studio photographic lighting with delicate highlights, sharp nail detail without plastic-skin smoothing, square 1:1 composition; no collage, contact sheet, written labels, borders, stones, tables, rings, objects, logos or watermarks.
+Recreate THIS unique manicure design: Espresso Watercolour Cloud. لکه‌رنگ‌های آبرنگی با لبه‌های نرم با پالت اسپرسو. The precise nail shape is smoothly tapering sidewalls ending in a softly rounded almond point, never oval or flat square. The precise nail length is a LONG free edge, visibly 8–12 mm beyond the fingertip. Dominant lacquer reference colour #63473C, secondary accent colour #D5AD93. The required technical finish is art. CRITICAL design-specific correction: Apply overlapping SOFT TRANSLUCENT WATERCOLOR PIGMENT WASHES on at least three nails, with feathery diffuse softly bleeding edges and airy layering inside the nail polish. Avoid hard marble veins, cracks, rock-like mottling or thick dense solid colour patches. The visible appearance must match the requested finish and exact nail geometry on all five separate nails; no added fingers, bent/merged nails, abnormal free edges or styles from another manicure. Deliver one clean photographic exposure of the original hand only, native high-resolution detail.
+END GENERATION PROMPT
+
+======== 14/16 ========
+CATALOG_ID: nail-atlas-watercolor-pearl
+STYLE: Pearl Watercolour Cloud | آبرنگ ابری مرواریدی
+EXPECTED OUTPUT FILE: public/nails/photos/nail-atlas-watercolor-pearl.webp
+SPECIFICATION: art / square / long / #D1CCD0 / #FCF8FA
+REASON: Prior uploaded source failed exact-design or nail-edge visual review.
+BEGIN GENERATION PROMPT
+Photograph ONE continuous, high-end professional luxury manicure editorial scene. One single attractive young ADULT woman's hand rests gently on uninterrupted flowing pure warm IVORY SILK, with soft luminous folds and no other objects. The full single hand has exactly FIVE anatomically normal separated fingers including one visible thumb, five clearly visible nail plates, natural knuckles, healthy cuticles, realistic skin pores and finger proportions. Accurate true-life studio photographic lighting with delicate highlights, sharp nail detail without plastic-skin smoothing, square 1:1 composition; no collage, contact sheet, written labels, borders, stones, tables, rings, objects, logos or watermarks.
+Recreate THIS unique manicure design: Pearl Watercolour Cloud. لکه‌رنگ‌های آبرنگی با لبه‌های نرم با پالت مرواریدی. The precise nail shape is straight parallel sides and a genuinely FLAT squared free edge with minimal corner softening. The precise nail length is a LONG free edge, visibly 8–12 mm beyond the fingertip. Dominant lacquer reference colour #D1CCD0, secondary accent colour #FCF8FA. The required technical finish is art. CRITICAL design-specific correction: Apply overlapping SOFT TRANSLUCENT WATERCOLOR PIGMENT WASHES on at least three nails, with feathery diffuse softly bleeding edges and airy layering inside the nail polish. Avoid hard marble veins, cracks, rock-like mottling or thick dense solid colour patches. The visible appearance must match the requested finish and exact nail geometry on all five separate nails; no added fingers, bent/merged nails, abnormal free edges or styles from another manicure. Deliver one clean photographic exposure of the original hand only, native high-resolution detail.
+END GENERATION PROMPT
+
+======== 15/16 ========
+CATALOG_ID: nail-atlas-watercolor-sage
+STYLE: Sage Watercolour Cloud | آبرنگ ابری سیج
+EXPECTED OUTPUT FILE: public/nails/photos/nail-atlas-watercolor-sage.webp
+SPECIFICATION: art / oval / long / #879C83 / #DCE8C8
+REASON: Prior uploaded source failed exact-design or nail-edge visual review.
+BEGIN GENERATION PROMPT
+Photograph ONE continuous, high-end professional luxury manicure editorial scene. One single attractive young ADULT woman's hand rests gently on uninterrupted flowing pure warm IVORY SILK, with soft luminous folds and no other objects. The full single hand has exactly FIVE anatomically normal separated fingers including one visible thumb, five clearly visible nail plates, natural knuckles, healthy cuticles, realistic skin pores and finger proportions. Accurate true-life studio photographic lighting with delicate highlights, sharp nail detail without plastic-skin smoothing, square 1:1 composition; no collage, contact sheet, written labels, borders, stones, tables, rings, objects, logos or watermarks.
+Recreate THIS unique manicure design: Sage Watercolour Cloud. لکه‌رنگ‌های آبرنگی با لبه‌های نرم با پالت سیج. The precise nail shape is an evenly curved elliptical tip without angular corners or pointed ends. The precise nail length is a LONG free edge, visibly 8–12 mm beyond the fingertip. Dominant lacquer reference colour #879C83, secondary accent colour #DCE8C8. The required technical finish is art. CRITICAL design-specific correction: Apply overlapping SOFT TRANSLUCENT WATERCOLOR PIGMENT WASHES on at least three nails, with feathery diffuse softly bleeding edges and airy layering inside the nail polish. Avoid hard marble veins, cracks, rock-like mottling or thick dense solid colour patches. The visible appearance must match the requested finish and exact nail geometry on all five separate nails; no added fingers, bent/merged nails, abnormal free edges or styles from another manicure. Deliver one clean photographic exposure of the original hand only, native high-resolution detail.
+END GENERATION PROMPT
+
+======== 16/16 ========
+CATALOG_ID: nail-cobalt-lines
+STYLE: Cobalt Accent | آبی کبالت
+EXPECTED OUTPUT FILE: public/nails/photos/nail-cobalt-lines.webp
+SPECIFICATION: art / coffin / long / #325590 / #CFDFF9
+REASON: Prior uploaded source failed exact-design or nail-edge visual review.
+BEGIN GENERATION PROMPT
+Photograph ONE continuous, high-end professional luxury manicure editorial scene. One single attractive young ADULT woman's hand rests gently on uninterrupted flowing pure warm IVORY SILK, with soft luminous folds and no other objects. The full single hand has exactly FIVE anatomically normal separated fingers including one visible thumb, five clearly visible nail plates, natural knuckles, healthy cuticles, realistic skin pores and finger proportions. Accurate true-life studio photographic lighting with delicate highlights, sharp nail detail without plastic-skin smoothing, square 1:1 composition; no collage, contact sheet, written labels, borders, stones, tables, rings, objects, logos or watermarks.
+Recreate THIS unique manicure design: Cobalt Accent. آبی عمیق با خطوط دقیق مینیمال. The precise nail shape is tapered sides and a clear straight FLAT narrow free edge, never hollow or curled. The precise nail length is a LONG free edge, visibly 8–12 mm beyond the fingertip. Dominant lacquer reference colour #325590, secondary accent colour #CFDFF9. The required technical finish is art. CRITICAL design-specific correction: Create unmistakeable very fine PAINTED linear COBALT and ice-blue accents on two fingernails, using precise delicate deliberate nail-art lines visibly separate from studio specular reflections. Avoid an all-solid cobalt manicure. The visible appearance must match the requested finish and exact nail geometry on all five separate nails; no added fingers, bent/merged nails, abnormal free edges or styles from another manicure. Deliver one clean photographic exposure of the original hand only, native high-resolution detail.
+END GENERATION PROMPT

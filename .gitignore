@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.log
+.env
+.env.*
+.wrangler/
+.DS_Store
+
+.makeup-curated-80-approvals.local.json
+
+.makeup-curated-40-approvals.local.json

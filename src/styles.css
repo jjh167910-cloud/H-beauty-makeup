@@ -1,0 +1,32 @@
+/*
+ * حنانه بیوتی — stylesheet entry.
+ * Order: Tailwind → fonts → tokens → base → components → motion.
+ * See DESIGN.md for the system and the living style guide at #/design.
+ */
+@import "tailwindcss";
+
+@import "@fontsource-variable/estedad/wght.css";
+@import "@fontsource-variable/noto-nastaliq-urdu/wght.css";
+@import "@fontsource-variable/bodoni-moda/opsz.css";
+@import "@fontsource-variable/bodoni-moda/opsz-italic.css";
+
+@import "./styles/tokens.css";
+@import "./styles/base.css";
+@import "./styles/components.css";
+@import "./styles/motion.css";
+@import "./styles/atelier.css";
+
+@import "./styles/studio-v22.css";
+
+@import "./styles/modern-v23.css";
+
+@import "./styles/salon-v24.css";
+
+@import "./styles/photo-icons-v25.css";
+
+@import "./styles/visual-polish-v26.css";
+
+@import "./styles/makeup-v31.css";
+@import "./styles/makeup-curated-80.css";
+@import "./styles/nail-gallery.css";
+@import "./styles/background-music.css";

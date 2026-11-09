@@ -1,0 +1,258 @@
+/* H-Beauty 24 / SALON SIGNATURE
+ * Design thesis: a welcoming contemporary beauty salon, not a finance product or gilded atelier.
+ * Warm rose, soft ivory, aubergine type, authentic catalog portraits, clear appointment requests.
+ * Layers on v23 to retain functioning UI while changing visual identity.
+ */
+:root {
+  --color-canvas:#fff8f7;
+  --color-surface:#fffefd;
+  --color-raised:#ffffff;
+  --color-sunken:#f9edef;
+  --color-ink:#402c36;
+  --color-ink-2:#705b66;
+  --color-ink-3:#826a75;
+  --color-line:#ecdae1;
+  --color-line-2:#dbbdc9;
+  --color-gold:#974a65;
+  --color-gold-ink:#87415b;
+  --color-gold-soft:#f9e5eb;
+  --color-champagne:#f2d3dc;
+  --color-on-gold:#ffffff;
+  --color-rose:#ac456e;
+  --color-rose-soft:#fae6ed;
+  --color-inverse:#713c52;
+  --color-on-inverse:#ffffff;
+  --foil:#713c52;
+  --shadow-1:0 2px 7px rgb(94 45 62 / .045);
+  --shadow-2:0 7px 24px rgb(94 45 62 / .065);
+  --shadow-3:0 16px 38px rgb(94 45 62 / .13);
+  --shadow-gold:0 5px 15px rgb(113 60 82 / .14);
+  --focus-ring:0 0 0 2px var(--color-canvas),0 0 0 4px #974a65;
+  --radius-sm:.7rem;
+  --radius-md:.95rem;
+  --radius-lg:1.3rem;
+  --radius-xl:1.55rem;
+  --radius-2xl:1.75rem;
+}
+:root[data-theme="dark"] {
+  --color-canvas:#20171c;
+  --color-surface:#2c2027;
+  --color-raised:#37262f;
+  --color-sunken:#382831;
+  --color-ink:#fff0f4;
+  --color-ink-2:#e1c8d0;
+  --color-ink-3:#c4aab5;
+  --color-line:#573b48;
+  --color-line-2:#755463;
+  --color-gold:#eca8bd;
+  --color-gold-ink:#f0b9ca;
+  --color-gold-soft:#49313c;
+  --color-champagne:#e9b7c7;
+  --color-on-gold:#2a1720;
+  --color-rose:#efaac2;
+  --color-rose-soft:#563547;
+  --color-inverse:#ebc8d3;
+  --color-on-inverse:#2c1923;
+  --foil:#a15f76;
+  --focus-ring:0 0 0 2px var(--color-canvas),0 0 0 4px #eca8bd;
+}
+@layer components {
+  .app {background:var(--color-canvas);}
+  .topbar {border-bottom:1px solid var(--color-line);background:var(--color-surface);}
+  .topbar .t-headline {font-weight:680;color:var(--color-ink);}
+  .topbar .icon-btn {background:var(--color-sunken);color:var(--color-gold-ink);border:1px solid var(--color-line);}
+  .topbar [aria-label="حنانه بیوتی، خانه"] > svg {color:var(--color-gold-ink);}
+  .tabbar,.tabbar[data-minimized] {background:var(--color-surface);border-color:var(--color-line);}
+  .tabbar__item[aria-current="page"] {color:var(--color-gold-ink);}
+  .tabbar__item[aria-current="page"] .tabbar__label {font-weight:700;}
+  .tabbar__book,.tabbar[data-minimized] .tabbar__book {background:#8f4561;color:white;border-radius:1rem;}
+  .tabbar__dot {background:var(--color-rose);}
+  .dock {border-color:var(--color-line);background:var(--color-surface);}
+  .btn[data-variant="gold"],.btn[data-variant="primary"] {background:#843d58;color:white;box-shadow:none;}
+  .btn:not([data-variant]) {background:var(--color-inverse);color:var(--color-on-inverse);}
+  :root[data-theme="dark"] .btn[data-variant="gold"],:root[data-theme="dark"] .btn[data-variant="primary"] {background:#c9889f;color:#23131b;}
+  .btn[data-variant="secondary"] {background:var(--color-surface);color:var(--color-ink);box-shadow:inset 0 0 0 1px var(--color-line-2);}
+  .btn[data-variant="ghost"] {color:var(--color-gold-ink);}
+  .foil {background:#8f4561;color:white;animation:none;box-shadow:none;}
+  .card {background:var(--color-surface);border:1px solid var(--color-line);}
+  .chip {background:var(--color-surface);border:1px solid var(--color-line);box-shadow:none;}
+  .chip[aria-pressed="true"] {background:var(--color-inverse);color:var(--color-on-inverse);border-color:transparent;}
+  .search {background:var(--color-surface);border:1px solid var(--color-line);}
+  .search:focus-within {border-color:var(--color-gold-ink);}
+  .status[data-tone="gold"] {background:var(--color-gold-soft);color:var(--color-gold-ink);}
+  .status[data-tone="sage"] {background:var(--color-sunken);color:var(--color-gold-ink);}
+  .sheet {background:var(--color-canvas);}
+  .sheet__head,.sheet__foot {background:var(--color-surface);}
+  .sheet .choice[aria-pressed="true"],.sheet .slot[aria-pressed="true"],.sheet .day[aria-pressed="true"] {border-color:var(--color-gold-ink);}
+  .studio-booking-progress span {background:var(--color-gold-ink);}
+  .studio-booking-intro {background:var(--color-sunken);border-color:var(--color-line);}
+  .studio-booking-intro h2 {color:var(--color-ink);}
+  .studio-service-detail__hero {background:var(--color-sunken);border-color:var(--color-line);}
+  .studio-service-detail__hero > span:first-child {color:var(--color-gold-ink);}
+  .studio-look-detail__note {background:var(--color-sunken);color:var(--color-ink-2);}
+  /* Salon screen headers: comfortable, human, and immediately legible. */
+  .studio-page {gap:1.85rem;}
+  .studio-kicker {display:inline-flex;align-items:center;gap:.55rem;color:var(--color-gold-ink);font-size:.72rem;font-weight:650;}
+  .studio-kicker::before {content:"";width:.4rem;height:.4rem;border-radius:50%;background:#bd8194;flex:none;}
+  .studio-head h1 {font-size:clamp(1.7rem,6.4vw,2.12rem);letter-spacing:0;line-height:1.55;}
+  .studio-head h1 em {color:var(--color-gold-ink);font-weight:650;}
+  .studio-head > p {color:var(--color-ink-2);font-size:.85rem;}
+  .studio-section-title > span {color:var(--color-ink);font-weight:700;}
+  /* Service cards: premium salon menu without artificial appointment guarantees. */
+  .studio-feature--service {
+    position:relative;isolation:isolate;background:linear-gradient(115deg,#f4dfe6,#fff4f0 72%);
+    border:1px solid #ead2da;border-radius:var(--radius-lg);min-height:10rem;
+  }
+  .studio-feature--service::after {content:"";position:absolute;width:8rem;height:8rem;border-radius:50%;background:#fff9f57d;inset-block-start:-3rem;inset-inline-end:-2.5rem;z-index:-1;}
+  :root[data-theme="dark"] .studio-feature--service {background:linear-gradient(115deg,#543344,#3b2833);border-color:var(--color-line);}
+  .studio-feature__overline {color:var(--color-gold-ink);font-weight:680;}
+  .studio-feature__copy h2 {color:var(--color-ink);font-weight:700;}
+  .studio-feature__copy p {color:var(--color-ink-2);}
+  .studio-service-item {border-color:var(--color-line);}
+  .studio-service-item__content strong {color:var(--color-ink);font-weight:650;}
+  .studio-service-item__meta {color:var(--color-gold-ink);}
+  .studio-service-item__add {color:var(--color-gold-ink);border-color:var(--color-line);}
+  .studio-service-item__add[aria-pressed="true"] {background:var(--color-inverse);color:var(--color-on-inverse);}
+  /* Lookbook: strong portrait geometry, editorial but useful. */
+  .studio-look-card .look-card__media,.studio-look-card:nth-child(5n+4) .look-card__media {border-radius:1rem 1rem .75rem .75rem;box-shadow:0 3px 12px rgb(81 43 60 / .07);}
+  .studio-look-card__serial {background:rgb(54 29 42 / .55);}
+  .studio-look-card__category {color:var(--color-gold-ink);}
+  .studio-look-card__copy h3 {color:var(--color-ink);font-weight:670;}
+  .studio-look-card .look-card__actions .icon-btn {border:1px solid var(--color-line);color:var(--color-gold-ink);}
+  /* Request journal. */
+  .studio-bookings__hero {background:var(--color-sunken);border:1px solid var(--color-line);border-radius:var(--radius-lg);}
+  .studio-bookings__hero > strong {font-weight:710;}
+  .studio-bookings__hero > p {color:var(--color-ink-2);}
+  .studio-bookings__metrics > span {background:var(--color-surface);border:1px solid var(--color-line);}
+  .studio-bookings__metrics strong {color:var(--color-gold-ink);}
+  .studio-booking-card {border:1px solid var(--color-line);}
+  .studio-booking-card__date {background:var(--color-sunken);}
+  /* A salon profile, not a VIP banking account. */
+  .studio-profile__pass {background:var(--color-surface);border:1px solid var(--color-line);box-shadow:none;}
+  .studio-profile__portrait {background:linear-gradient(135deg,#f3ccd7,#e5acbf);color:#633448;}
+  :root[data-theme="dark"] .studio-profile__portrait {background:#5d3b4b;color:#fff0f4;}
+  .studio-profile__metrics button {background:var(--color-surface);border:1px solid var(--color-line);}
+  .studio-profile__metrics strong {color:var(--color-gold-ink);}
+  .studio-profile__action-icon {background:var(--color-sunken);color:var(--color-gold-ink);}
+  .studio-profile__settings {background:var(--color-surface);}
+  .studio-profile__saved-look .media {border-radius:.9rem;}
+  /* First run: brand story grounded in product photos. */
+  .modern-welcome {background:var(--color-canvas);color:var(--color-ink);}
+  .modern-welcome__brand {color:var(--color-gold-ink);}
+  .modern-welcome__image {border-radius:1.4rem;min-height:12rem;}
+  .modern-welcome__tag {color:var(--color-gold-ink);}
+  .modern-welcome__content h1 {font-weight:700;line-height:1.6;}
+  .modern-welcome__field input {background:var(--color-surface);border-color:var(--color-line-2);}
+  .modern-welcome__privacy {color:var(--color-ink-2);}
+  /* New salon home: photography-led composition and premium breathing room. */
+  .salon24-home {display:grid;gap:2.35rem;padding-block:.85rem 2.8rem;}
+  .salon24-welcome {display:grid;gap:.6rem;}
+  .salon24-welcome__micro {display:flex;flex-wrap:wrap;gap:.55rem 1rem;align-items:center;justify-content:space-between;font-size:.75rem;color:var(--color-ink-2);}
+  .salon24-welcome__micro > span:first-child span {color:#b76a83;padding-inline:.3rem;}
+  .salon24-welcome__micro > span:last-child {font:600 .58rem/1.6 var(--font-serif);letter-spacing:.09em;color:var(--color-gold-ink);direction:ltr;}
+  .salon24-welcome h1 {font-size:clamp(1.85rem,7.3vw,2.5rem);font-weight:720;line-height:1.55;letter-spacing:-.01em;}
+  .salon24-welcome h1 span {color:var(--color-gold-ink);display:inline;}
+  .salon24-welcome > p {font-size:.84rem;line-height:1.95;color:var(--color-ink-2);max-width:29rem;}
+  .salon24-hero {display:grid;gap:.85rem;}
+  .salon24-hero__stage {position:relative;min-width:0;}
+  .salon24-hero__photo {
+    position:relative;display:block;width:100%;min-height:17rem;aspect-ratio:1.12;
+    text-align:start;isolation:isolate;overflow:hidden;border-radius:1.3rem 1.3rem 1.3rem .35rem;
+    background:#d7b1bf;
+  }
+  .salon24-hero__photo img {position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 27%;}
+  .salon24-hero__shade {position:absolute;inset:0;background:linear-gradient(180deg,rgba(28,13,21,.13) 0%,transparent 40%,rgba(28,13,21,.82) 100%);}
+  .salon24-hero__badge {position:absolute;inset-block-start:1rem;inset-inline-start:1rem;background:rgba(255,253,251,.93);color:#713c52;border-radius:50rem;padding:.48rem .85rem;font-size:.68rem;font-weight:700;}
+  .salon24-hero__title {position:absolute;inset-inline:1.3rem;inset-block-end:1.2rem;display:grid;gap:.3rem;color:white;}
+  .salon24-hero__title > small {font:600 .65rem/1.7 var(--font-serif);letter-spacing:.14em;color:#ffe1eb;}
+  .salon24-hero__title > strong {font-size:clamp(1.4rem,5.5vw,2rem);font-weight:670;line-height:1.5;max-width:20rem;}
+  .salon24-hero__title > span {display:flex;align-items:center;gap:.45rem;font-size:.72rem;color:#fff0f5;}
+  .salon24-hero__actions {display:grid;grid-template-columns:1fr 1fr;gap:.55rem;}
+  .salon24-hero__actions .btn {min-width:0;min-height:3.1rem;font-size:.81rem;padding-inline:.45rem;}
+  .salon24-hero__fine {font-size:.7rem;line-height:1.8;color:var(--color-ink-2);padding-inline:.1rem;}
+  .salon24-next {border-color:var(--color-line);background:var(--color-surface);}
+  .salon24-next .modern-next__date {background:var(--color-sunken);color:var(--color-gold-ink);}
+  .salon24-next .modern-next__copy small {color:var(--color-gold-ink);}
+  .salon24-section {min-width:0;display:grid;gap:.85rem;}
+  .salon24-section__head {display:flex;align-items:end;justify-content:space-between;gap:.5rem 1rem;min-width:0;}
+  .salon24-section__head > div {min-width:0;}
+  .salon24-section__head h2 {font-size:clamp(1.14rem,4.2vw,1.4rem);font-weight:710;line-height:1.65;}
+  .salon24-section__head .link {flex:none;font-size:.73rem;}
+  .salon24-eyebrow {display:block;color:var(--color-gold-ink);font:600 .59rem/1.8 var(--font-serif);letter-spacing:.1em;direction:ltr;text-align:start;margin-bottom:.15rem;}
+  .salon24-styles {gap:.75rem;padding-top:.2rem;padding-bottom:.9rem;}
+  .salon24-style-card {display:grid;gap:.35rem;width:8.8rem;min-width:8.8rem;text-align:start;}
+  .salon24-style-card .media {width:100%;aspect-ratio:3/4;border-radius:1rem 1rem 1rem .35rem;background:var(--color-sunken);}
+  .salon24-style-card strong {font-size:.83rem;font-weight:650;line-height:1.6;}
+  .salon24-style-card > span:last-child {font:.59rem/1.5 var(--font-serif);letter-spacing:.08em;color:var(--color-ink-3);}
+  .salon24-section__intro {font-size:.8rem;line-height:1.8;color:var(--color-ink-2);}
+  .salon24-service-list {display:grid;gap:.65rem;}
+  .salon24-service-row {
+    display:flex;align-items:center;gap:.7rem;width:100%;min-height:4.9rem;padding:.75rem;
+    background:var(--color-surface);border:1px solid var(--color-line);
+    border-radius:var(--radius-lg);text-align:start;min-width:0;
+  }
+  .salon24-service-row__icon {display:grid;place-items:center;flex:none;width:2.8rem;height:2.8rem;background:var(--color-sunken);color:var(--color-gold-ink);border-radius:1rem;}
+  .salon24-service-row__copy {flex:1;min-width:0;display:grid;gap:.12rem;}
+  .salon24-service-row__copy strong {font-size:.85rem;font-weight:700;line-height:1.6;}
+  .salon24-service-row__copy small {font-size:.71rem;color:var(--color-ink-2);line-height:1.65;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .salon24-service-row__price {display:grid;gap:.1rem;min-width:fit-content;justify-items:end;text-align:end;font-size:.68rem;font-weight:700;line-height:1.65;color:var(--color-gold-ink);}
+  .salon24-service-row__price small {font-size:.64rem;font-weight:450;color:var(--color-ink-2);}
+  .salon24-service-row__chevron {color:var(--color-ink-3);flex:none;}
+  .salon24-section__footnote {font-size:.69rem;line-height:1.8;color:var(--color-ink-2);}
+  .salon24-concierge__inner {
+    display:grid;gap:.6rem;padding:1.45rem 1.2rem;
+    border-radius:1.3rem 1.3rem .35rem 1.3rem;
+    background:linear-gradient(135deg,#f1d5df 0%,#f9e9eb 55%,#fff4ef 100%);
+    border:1px solid #f0d1d9;color:#4f2f40;
+  }
+  :root[data-theme="dark"] .salon24-concierge__inner {background:linear-gradient(135deg,#57394b,#392731);border-color:var(--color-line);color:var(--color-ink);}
+  .salon24-concierge__header {display:flex;align-items:center;justify-content:space-between;gap:.7rem;}
+  .salon24-concierge__icon {display:grid;place-items:center;width:2.8rem;height:2.8rem;border-radius:50%;background:#fff9f7;color:#91415e;}
+  .salon24-concierge__header > span:last-child {font:600 .56rem/1.5 var(--font-serif);letter-spacing:.1em;color:#78465d;}
+  :root[data-theme="dark"] .salon24-concierge__header > span:last-child {color:#f5bed0;}
+  .salon24-concierge__inner h2 {font-size:1.2rem;font-weight:720;line-height:1.65;margin-top:.3rem;}
+  .salon24-concierge__inner > p {font-size:.82rem;line-height:1.95;max-width:28rem;}
+  .salon24-concierge__actions {display:flex;flex-wrap:wrap;align-items:center;gap:.45rem;margin-top:.4rem;}
+  .salon24-concierge__actions .btn[data-variant="secondary"] {background:white;color:#713c52;box-shadow:none;border:1px solid #d7a9bb;}
+  .salon24-concierge__actions .btn[data-variant="ghost"] {color:#713c52;}
+  :root[data-theme="dark"] .salon24-concierge__actions .btn[data-variant="ghost"] {color:#f7d3de;}
+  .salon24-featured {gap:.75rem;}
+  .salon24-featured__card {display:grid;gap:.6rem;width:9.2rem;min-width:9.2rem;text-align:start;}
+  .salon24-featured__card .media {width:100%;aspect-ratio:3/4;border-radius:1rem;}
+  .salon24-featured__card > span:last-child {font-size:.77rem;font-weight:650;line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .salon24-footer {display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap;border-top:1px solid var(--color-line);padding-top:1.35rem;}
+  .salon24-footer > span {font-weight:730;font-size:.9rem;}
+  .salon24-footer > small {font-size:.72rem;color:var(--color-ink-2);}
+}
+@media(max-width:360px) {
+  @layer components {
+    .salon24-hero__actions {grid-template-columns:1fr;}
+    .salon24-service-row {gap:.42rem;padding:.7rem .5rem;}
+    .salon24-service-row__icon {width:2.45rem;height:2.45rem;}
+    .salon24-service-row__chevron {display:none;}
+    .salon24-service-row__price {font-size:.65rem;}
+  }
+}
+@media(min-width:740px) {
+  @layer components {
+    .salon24-hero__photo {aspect-ratio:1.6;}
+    .salon24-hero__photo img {object-position:center 36%;}
+    .salon24-style-card {width:10rem;min-width:10rem;}
+    .salon24-featured__card {width:10.7rem;min-width:10.7rem;}
+    .salon24-service-list {grid-template-columns:repeat(2,minmax(0,1fr));}
+    .salon24-service-row__price {margin-inline-end:.25rem;}
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  @layer components {.salon24-hero__photo,.salon24-style-card,.salon24-service-row {transition:none;}}
+}
+
+/* Make the central booking action legible without competing with the other tabs. */
+@layer components {
+  .tabbar__book,.tabbar[data-minimized] .tabbar__book {width:3.5rem;height:3.5rem;min-width:3.5rem;min-height:3.5rem;display:grid;justify-items:center;align-content:center;gap:0;border-radius:1.05rem;}
+  .salon24-tabbar-book-label {display:block;font-size:.59rem;font-weight:660;line-height:1.45;}
+  .tabbar__item {min-width:0;}
+  .studio-bookings__metrics small,.studio-profile__metrics span {color:var(--color-ink-2);}
+  .studio-booking-card__actions .btn {font-size:.75rem;}
+  .salon24-service-row:focus-visible,.salon24-style-card:focus-visible,.salon24-hero__photo:focus-visible {outline:3px solid var(--color-gold-ink);outline-offset:3px;}
+}

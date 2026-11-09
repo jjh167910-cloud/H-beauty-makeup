@@ -1,0 +1,172 @@
+/* H-Beauty v31: makeup section — gallery, style list, style detail, saved looks,
+ * booking with a makeup style, and the makeup entry points on Home and Services.
+ * Layout follows the makeup design sheet; colours come from the salon tokens. */
+@layer components {
+  .mk-page {display:grid;gap:1.25rem;padding-bottom:calc(var(--dock-offset) + 1rem);}
+
+  /* Page bar: back · title · actions */
+  .mk-bar {display:grid;grid-template-columns:2.75rem 1fr auto;align-items:center;gap:.5rem;min-height:3rem;}
+  .mk-bar h1 {text-align:center;font-size:clamp(1.15rem,4.6vw,1.35rem);font-weight:720;line-height:1.5;text-wrap:balance;}
+  .mk-bar__spacer {width:2.75rem;}
+  .mk-bar__actions {display:flex;gap:.4rem;justify-content:flex-end;min-width:2.75rem;}
+  .mk-count {
+    position:absolute;inset-block-start:-.2rem;inset-inline-end:-.2rem;min-width:1.15rem;height:1.15rem;padding-inline:.25rem;
+    display:grid;place-items:center;border-radius:var(--radius-pill);background:var(--color-rose);color:#fff;
+    font-size:.6rem;font-weight:700;font-variant-numeric:tabular-nums;pointer-events:none;
+  }
+
+  /* Makeup | Hair segmented control */
+  .mk-segments {display:grid;grid-template-columns:1fr 1fr;gap:.25rem;padding:.25rem;border-radius:var(--radius-pill);background:var(--color-sunken);}
+  .mk-segments button {min-height:2.75rem;border-radius:var(--radius-pill);font-size:.9rem;font-weight:650;color:var(--color-ink-2);transition:background var(--duration-base),color var(--duration-base);}
+  .mk-segments button[aria-selected="true"] {background:var(--color-gold);color:var(--color-on-gold);box-shadow:var(--shadow-2);}
+  .mk-segments button:focus-visible {outline:2px solid var(--color-gold);outline-offset:2px;}
+
+  /* Screen 2: category cards */
+  .mk-cats {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem;}
+  .mk-cat {
+    display:grid;gap:.15rem;min-width:0;padding:.45rem .45rem .75rem;text-align:center;
+    background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-lg);box-shadow:var(--shadow-1);
+    transition:transform var(--duration-fast) var(--ease-out);
+  }
+  .mk-cat:active {transform:scale(.98);}
+  .mk-cat .media {aspect-ratio:1;max-width:100%;border-radius:calc(var(--radius-lg) - .35rem);margin-bottom:.45rem;}
+  .mk-cat .media img {object-position:center 28%;}
+  .mk-cat[data-mode="detail"] .media img {object-position:center;}
+  .mk-cat strong {font-size:.95rem;font-weight:720;line-height:1.55;}
+  .mk-cat span:not(.media) {font-size:.72rem;color:var(--color-ink-2);}
+
+  /* Screen 3: search and style grid */
+  .mk-search {display:flex;align-items:center;gap:.5rem;min-height:3rem;padding-inline:1rem;border-radius:var(--radius-pill);background:var(--color-surface);border:1px solid var(--color-line);color:var(--color-ink-2);}
+  .mk-search input {flex:1;min-width:0;background:transparent;border:0;outline:0;font-size:.9rem;color:var(--color-ink);}
+  .mk-search:focus-within {border-color:var(--color-gold);}
+  .mk-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem;}
+  .mk-card {position:relative;min-width:0;background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-1);}
+  .mk-card__open {display:grid;width:100%;text-align:center;}
+  .mk-card__visual {display:block;}
+  .mk-card__visual .media {aspect-ratio:4/5;max-width:100%;}
+  .mk-card__visual .media img {object-position:center 26%;}
+  .mk-card[data-mode="eyes"] .mk-card__visual .media,
+  .mk-card[data-mode="lips"] .mk-card__visual .media {aspect-ratio:3/2;}
+  .mk-card[data-mode="eyes"] .mk-card__visual .media img,
+  .mk-card[data-mode="lips"] .mk-card__visual .media img {object-position:center;}
+  .mk-card__open strong {padding:.6rem .5rem .7rem;font-size:.88rem;font-weight:700;line-height:1.55;}
+  .mk-card__fav {position:absolute;inset-block-start:.5rem;inset-inline-start:.5rem;}
+
+  /* Screen 4: style detail */
+  .mk-detail {display:grid;gap:1.1rem;padding-bottom:.5rem;}
+  .mk-detail__stage {position:relative;border-radius:var(--radius-xl);overflow:hidden;background:var(--color-sunken);box-shadow:var(--shadow-2);}
+  .mk-detail__track {display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;}
+  .mk-detail__track::-webkit-scrollbar {display:none;}
+  .mk-detail__slide {flex:0 0 100%;margin:0;scroll-snap-align:start;}
+  .mk-detail__slide .media {aspect-ratio:4/5;max-width:100%;}
+  .mk-detail__slide .media img {object-position:center 30%;}
+  .mk-detail__slide[data-size="eyes"] .media img,
+  .mk-detail__slide[data-size="lips"] .media img {object-fit:cover;object-position:center;}
+  .mk-detail__fav {position:absolute;inset-block-start:.75rem;inset-inline-start:.75rem;}
+  .mk-detail__count {
+    position:absolute;inset-block-end:.75rem;inset-inline-end:.75rem;padding:.2rem .65rem;border-radius:var(--radius-pill);
+    background:rgb(20 12 16 / .55);color:#fff;font-size:.72rem;font-weight:650;font-variant-numeric:tabular-nums;
+  }
+  .mk-detail__tag {
+    position:absolute;inset-block-end:.75rem;inset-inline-start:.75rem;padding:.2rem .65rem;border-radius:var(--radius-pill);
+    background:color-mix(in oklch, var(--color-surface) 88%, transparent);color:var(--color-ink-2);font-size:.62rem;font-weight:700;
+  }
+  .mk-detail__intro {display:grid;gap:.35rem;}
+  .mk-detail__intro small {font:600 .58rem/1.7 var(--font-serif);letter-spacing:.1em;color:var(--color-gold-ink);direction:ltr;text-align:start;}
+  .mk-detail__intro h2 {font-size:1.3rem;font-weight:740;line-height:1.5;}
+  .mk-detail__intro p {font-size:.84rem;line-height:1.95;color:var(--color-ink-2);}
+  .mk-tags {display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.3rem;}
+  .mk-tags li {padding:.3rem .75rem;border-radius:var(--radius-pill);background:var(--color-sunken);font-size:.72rem;font-weight:600;color:var(--color-ink-2);}
+  .mk-thumbs {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem;}
+  .mk-thumbs button {border-radius:var(--radius-md);overflow:hidden;box-shadow:inset 0 0 0 1px var(--color-line);opacity:.75;transition:opacity var(--duration-base),box-shadow var(--duration-base);}
+  .mk-thumbs button[aria-pressed="true"] {opacity:1;box-shadow:0 0 0 2px var(--color-gold);}
+  .mk-thumbs .media {aspect-ratio:4/3;max-width:100%;}
+  .mk-thumbs .media img {object-position:center 30%;}
+  .mk-related {display:grid;gap:.5rem;}
+  .mk-related h3,.mk-steps h3,.mk-booking h3 {font-size:.95rem;font-weight:720;}
+  .mk-related__row {
+    display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:.75rem;width:100%;min-height:3.6rem;padding:.6rem .85rem;
+    text-align:start;border-radius:var(--radius-lg);background:var(--color-surface);border:1px solid var(--color-line);
+  }
+  .mk-related__row[aria-checked="true"] {border-color:var(--color-gold);background:color-mix(in oklch, var(--color-gold-soft) 55%, var(--color-surface));}
+  .mk-related__check {display:grid;place-items:center;width:1.35rem;height:1.35rem;border-radius:.4rem;border:1.5px solid var(--color-line-2);color:var(--color-on-gold);}
+  .mk-related__row[aria-checked="true"] .mk-related__check {background:var(--color-gold);border-color:var(--color-gold);}
+  .mk-related__copy {display:grid;min-width:0;}
+  .mk-related__copy strong {font-size:.86rem;font-weight:650;}
+  .mk-related__copy small {font-size:.7rem;color:var(--color-ink-2);}
+  .mk-related__row b {font-size:.78rem;font-weight:700;color:var(--color-gold-ink);white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .mk-steps {display:grid;gap:.5rem;}
+  .mk-steps ul {display:grid;gap:.4rem;}
+  .mk-steps li {display:flex;align-items:center;gap:.7rem;padding:.55rem .75rem;background:var(--color-sunken);border-radius:var(--radius-md);}
+  .mk-steps li > span:last-child {display:grid;gap:.05rem;min-width:0;}
+  .mk-steps strong {font-size:.78rem;font-weight:700;}
+  .mk-steps small {font-size:.72rem;line-height:1.75;color:var(--color-ink-2);}
+  .mk-swatch {flex:none;width:1.6rem;height:1.6rem;border-radius:50%;box-shadow:inset 0 0 0 2px oklch(100% 0 0 / .55), 0 0 0 1px var(--color-line);}
+  .mk-sheet__fine {font-size:.7rem;line-height:1.85;color:var(--color-ink-3);text-align:center;}
+
+  /* Screen 6: booking with a makeup style */
+  .mk-booking {display:grid;gap:.65rem;}
+  .mk-booking__list {display:grid;gap:.6rem;}
+  .mk-booking__item {
+    display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:.8rem;padding:.6rem;
+    background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-lg);box-shadow:var(--shadow-1);
+  }
+  .mk-booking__photo {width:4.6rem;height:4.6rem;border-radius:var(--radius-md);overflow:hidden;}
+  .mk-booking__photo img {object-position:center 28%;}
+  .mk-booking__photo--icon {display:grid;place-items:center;background:var(--color-sunken);color:var(--color-gold-ink);}
+  .mk-booking__copy {display:grid;gap:.05rem;min-width:0;}
+  .mk-booking__copy strong {font-size:.92rem;font-weight:700;}
+  .mk-booking__copy small {font-size:.72rem;color:var(--color-gold-ink);font-weight:600;}
+  .mk-booking__copy span {font-size:.72rem;color:var(--color-ink-2);}
+  .mk-booking__copy b {font-size:.8rem;font-weight:700;color:var(--color-gold-ink);font-variant-numeric:tabular-nums;}
+  .mk-booking__add {
+    display:flex;align-items:center;justify-content:center;gap:.4rem;min-height:3.2rem;border-radius:var(--radius-lg);
+    background:var(--color-gold-soft);color:var(--color-gold-ink);font-size:.86rem;font-weight:700;
+  }
+
+  /* Screen 5: photos on makeup service rows */
+  .studio-service-item__photo {flex:none;width:3.6rem;height:3.6rem;border-radius:var(--radius-md);overflow:hidden;}
+  .studio-service-item__photo img {object-position:center 28%;}
+
+  /* Artist card */
+  .mk-artist {display:flex;align-items:center;gap:.8rem;padding:.9rem;background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-lg);}
+  .mk-artist__avatar {flex:none;width:3.1rem;height:3.6rem;font-size:1.3rem;}
+  .mk-artist__copy {display:grid;gap:.05rem;flex:1;min-width:0;}
+  .mk-artist__copy small {font:600 .55rem/1.7 var(--font-serif);letter-spacing:.1em;color:var(--color-gold-ink);direction:ltr;text-align:start;}
+  .mk-artist__copy strong {font-size:.95rem;font-weight:700;}
+  .mk-artist__copy span {font-size:.72rem;color:var(--color-ink-2);}
+
+  /* Home entry card */
+  .mk-entry {
+    display:grid;grid-template-columns:7.2rem 1fr;align-items:stretch;width:100%;overflow:hidden;text-align:start;
+    background:var(--color-surface);border:1px solid var(--color-line);border-radius:var(--radius-xl);box-shadow:var(--shadow-2);
+  }
+  .mk-entry .media {height:100%;min-height:9.5rem;border-radius:0;}
+  .mk-entry .media img {object-position:center 32%;}
+  .mk-entry__copy {display:grid;align-content:center;gap:.35rem;padding:1rem;min-width:0;}
+  .mk-entry__copy strong {font-size:1rem;font-weight:700;line-height:1.6;}
+  .mk-entry__copy > span {font-size:.74rem;line-height:1.8;color:var(--color-ink-2);}
+  .mk-entry__dots {display:flex;gap:.3rem;}
+  .mk-entry__dots i {width:.9rem;height:.9rem;border-radius:50%;box-shadow:0 0 0 1px var(--color-line);}
+  .mk-entry__cta {display:inline-flex;align-items:center;gap:.3rem;font-size:.76rem;font-weight:700;color:var(--color-rose);}
+
+  /* Services screen link inside the BEAUTY group */
+  .mk-service-link {
+    display:flex;align-items:center;gap:.7rem;width:100%;margin-block-end:.6rem;padding:.6rem;text-align:start;
+    background:color-mix(in oklch, var(--color-gold-soft) 60%, var(--color-surface));border:1px solid color-mix(in oklch, var(--color-gold) 45%, transparent);border-radius:var(--radius-lg);
+  }
+  .mk-service-link .media {flex:none;width:3.2rem;height:3.2rem;border-radius:50%;}
+  .mk-service-link__copy {display:grid;flex:1;min-width:0;}
+  .mk-service-link__copy strong {font-size:.85rem;font-weight:700;}
+  .mk-service-link__copy span {font-size:.7rem;color:var(--color-ink-2);}
+
+  @media (prefers-reduced-motion: reduce) {
+    .mk-cat,.mk-segments button,.mk-thumbs button {transition:none;}
+    .mk-detail__track {scroll-behavior:auto;}
+  }
+  @media (max-width: 22rem) {
+    .mk-entry {grid-template-columns:6rem 1fr;}
+    .mk-related__row {grid-template-columns:auto 1fr;}
+    .mk-related__row b {grid-column:2;}
+  }
+}

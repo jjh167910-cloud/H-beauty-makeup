@@ -1,0 +1,895 @@
+{
+  "review_date": "2026-10-30",
+  "baseline_commit": "36692cd7ad2c7213e0a139583bce9f1b9b310386",
+  "coverage": "All 74 manicure files decoded and checksum-checked; all screened on contact sheets. Eight suspect photos additionally inspected at native resolution. This is not a native-resolution signoff for every photo. Pedicure visuals were outside this review.",
+  "results": [
+    {
+      "id": "nail-milky-silk",
+      "sha256": "25e0838e5e94eed09ff30cacf63fdf9c0f78c70641399f9d56550e6f17764c1f",
+      "dimensions": [
+        640,
+        640
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "LEGACY_REPLACEMENT_RECOMMENDED",
+      "note": "640px legacy asset; lower detail and several legacy compositions include stone or jewelry. Retained pending a reviewed replacement."
+    },
+    {
+      "id": "nail-ballet-pink",
+      "sha256": "b9b003afceb98092f3ae94279dcaf60f40425a2e7dab398f7ab0da207762820b",
+      "dimensions": [
+        640,
+        640
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "LEGACY_REPLACEMENT_RECOMMENDED",
+      "note": "640px legacy asset; lower detail and several legacy compositions include stone or jewelry. Retained pending a reviewed replacement."
+    },
+    {
+      "id": "nail-old-money",
+      "sha256": "b1d83206edb4d5562a3e4d690a4b8fde4c9dce9229d1b2a955a9d99579775d83",
+      "dimensions": [
+        640,
+        640
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "LEGACY_REPLACEMENT_RECOMMENDED",
+      "note": "640px legacy asset; lower detail and several legacy compositions include stone or jewelry. Retained pending a reviewed replacement."
+    },
+    {
+      "id": "nail-ruby-red",
+      "sha256": "e9c798d20d6c35437c0b15d700a36a04e5017df6d8ce774ae220676823b3eee9",
+      "dimensions": [
+        640,
+        640
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "LEGACY_REPLACEMENT_RECOMMENDED",
+      "note": "640px legacy asset; lower detail and several legacy compositions include stone or jewelry. Retained pending a reviewed replacement."
+    },
+    {
+      "id": "nail-merlot",
+      "sha256": "e097a9d2f5ee6bd8615ce6b0b66a7033619f01fc327364236cba9ebea6702ab0",
+      "dimensions": [
+        640,
+        640
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "LEGACY_REPLACEMENT_RECOMMENDED",
+      "note": "640px legacy asset; lower detail and several legacy compositions include stone or jewelry. Retained pending a reviewed replacement."
+    },
+    {
+      "id": "nail-cocoa",
+      "sha256": "fdc31b7eed44d2f52c7aa26e05f14e843a2e23ea9e3f9e2db10715330f4288b4",
+      "dimensions": [
+        640,
+        640
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "LEGACY_REPLACEMENT_RECOMMENDED",
+      "note": "640px legacy asset; lower detail and several legacy compositions include stone or jewelry. Retained pending a reviewed replacement."
+    },
+    {
+      "id": "nail-classic-french",
+      "sha256": "cd8940724e8b77e559638bbb38778ae39ce55ebfd74e8f1aef53194ee1909ba7",
+      "dimensions": [
+        640,
+        640
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "LEGACY_REPLACEMENT_RECOMMENDED",
+      "note": "640px legacy asset; lower detail and several legacy compositions include stone or jewelry. Retained pending a reviewed replacement."
+    },
+    {
+      "id": "nail-pearl-chrome",
+      "sha256": "4e13c8e08943a7d83c36674031adfb321362605f7dad7e1fb4ea336cc1a23bbf",
+      "dimensions": [
+        640,
+        640
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "LEGACY_REPLACEMENT_RECOMMENDED",
+      "note": "640px legacy asset; lower detail and several legacy compositions include stone or jewelry. Retained pending a reviewed replacement."
+    },
+    {
+      "id": "nail-marble",
+      "sha256": "90ce33564a423cffb88a025c5cc4c1124690e25c9127ebe4a21006c7a1d08e9f",
+      "dimensions": [
+        640,
+        640
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "LEGACY_REPLACEMENT_RECOMMENDED",
+      "note": "640px legacy asset; lower detail and several legacy compositions include stone or jewelry. Retained pending a reviewed replacement."
+    },
+    {
+      "id": "nail-midnight-glitter",
+      "sha256": "3ab3970a802027953b13ae56f8272c2cf992a93580c46737b9722d1f6dfac530",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-botanical-ruby",
+      "sha256": "4b596290b3736c17678a0be4c9bf9ab883d693e03da8b2d7e679d24403c9408c",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-botanical-espresso",
+      "sha256": "ce3bdd96d94b9bd4acc0e9d10b88876af9d624467cb29b03140e04f07ca4717d",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-lavender-chrome",
+      "sha256": "fb052a47ae2712e9c04671335789de875c46221ecee234561d4605024fa82f3b",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-silver-chrome",
+      "sha256": "44ccb0b8ccbd97acb9ff63765367f0c2f546983a5718207f78d02954ec3ca116",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-micro-french",
+      "sha256": "8e3617ad3bf23209ad6faf96d99c3365cdb6f7399faf1acbd5b79c320585fa59",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-black-french",
+      "sha256": "df51c5099b471ec1bc8d07152ff2cd49bc99609b167c166cf049fa3574abbe34",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-cherry-french",
+      "sha256": "7cce0324141bf691e6d6dac30580dbf97c263fcc49e677910ec1a6b7a8234095",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-pink-ombre",
+      "sha256": "16cc1efc58ea1bec27875a11318786b6a2b5f6efe69d4d487c9fc53c2b279327",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-peach-ombre",
+      "sha256": "7c7899d7031fe983bb5538e3d719596583f2fac74ef5d1da00726d3809470999",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-geometry-ivory",
+      "sha256": "a2886dc8f5561450ab7d7dc874006ba87ba839d4cff3d966e490ee2076cf0494",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-foil-ivory",
+      "sha256": "805e951f33010bafdb15abc1faaf46a626698b70e691beec347864df17efa7e5",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-geometry-champagne",
+      "sha256": "b34b214b48f18de8be466f55f18ada6a9796c99e4179706faaf9e2bb3359d400",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-botanical-pearl",
+      "sha256": "09a2cb13e347943bfd0867f5db51ed6971675499269c71993a926089211393d0",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-gold-french",
+      "sha256": "0e8d355feecd24bb5a73e56f99e58e7e56dbcc8ed0613105032de87921d41fcf",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-champagne",
+      "sha256": "a456c511bcb7f1a793c8a0f2ed01d8353b60809c44a59c836ec01d28a26c2c1e",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-rose-glitter",
+      "sha256": "8aa34efeb71c932582ddb321c43e3e9a7bab38b1f3042df2875a068c1f131fc7",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-modern-lines",
+      "sha256": "15ee55f73498997de55fcd389edce5e05e08104ce466c31e54901fe2fa9eab20",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-velvet-ruby",
+      "sha256": "f4d8d9af91cb92841c240ba94a4053ba0a4477d7866405eebec6ae5ddba25411",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-velvet-champagne",
+      "sha256": "b61ddda621a74210ce435a9256152b95f99081b0ac752093bcc3d36a79fa26a1",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-gradient-merlot",
+      "sha256": "1a7f6db20a3508fcda587ba98aa4b7d5de818ed194be42fb4fd0f3c16afb531f",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-prism-blush",
+      "sha256": "d3d636fb6aafccb345de4f17f08b6bf95a7c4151cfda3b21d1c18c5f5f0c53d3",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-prism-champagne",
+      "sha256": "cd70c84d72719170057f7262a2255d8522a5d59ecfb7c5bf5946206546a6c601",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "NATIVE",
+      "disposition": "QUARANTINED",
+      "note": "Pink coffin nails instead of champagne almond chrome."
+    },
+    {
+      "id": "nail-atlas-prism-coral",
+      "sha256": "b8a9ae45772a10923d6cbd8ad90ff15cf5a03a87bf1211e1195cc8c0efa3a95a",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "NATIVE",
+      "disposition": "QUARANTINED",
+      "note": "Translucent orange jelly instead of metallic coral chrome."
+    },
+    {
+      "id": "nail-atlas-prism-midnight",
+      "sha256": "923e517264bb0380c2ecd310c662ca6841011fa4fbb84eff225d21947592e117",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-prism-pearl",
+      "sha256": "01927ab09f839c4e8973564a4dddb1057bf6a67ca1edd70c28c856c888c11654",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-prism-sage",
+      "sha256": "47759fad31c8895c8c1788666b0f1f5a101249e39c998c6b35b202ba9e43efc9",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-velvet-blush",
+      "sha256": "6b28fca70aca93c28ca73eb89ba6c30c8516ce26e88f6e65eeabfc674207296d",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-velvet-coral",
+      "sha256": "fd40a6ca704da3f955fdd00bd1d4e8610c5a0b9ec5786dd3b644c1d5763f38b2",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-velvet-midnight",
+      "sha256": "6e4bb2d37f1e3395610a7292b3b326059707e432f7e92e2290bffe8ada90cdd8",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "NATIVE",
+      "disposition": "QUARANTINED",
+      "note": "Short rounded nails instead of long almond nails."
+    },
+    {
+      "id": "nail-atlas-modern-french-espresso",
+      "sha256": "2d01e84845cb94c968f90067abed776c9f5ed4924b5399001296419abe7be588",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "NATIVE",
+      "disposition": "QUARANTINED",
+      "note": "Rounded tips instead of square; double-line French is not clearly visible."
+    },
+    {
+      "id": "nail-atlas-foil-cobalt",
+      "sha256": "db9c8880aabea58c5ff9b91113b83d90cecc9b1bb6c8801d66c355fbc49f037e",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-modern-french-merlot",
+      "sha256": "4340f04986bf73958b98e50c42ae4f4af08d4508c89739d034f54fc8d729d203",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-modern-french-sage",
+      "sha256": "e627503d10654391561398c0c3e1a0681464c1f2295dfd7d889d8e7cde181d6f",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-modern-french-lavender",
+      "sha256": "43700453822634e3fc6cfbb67681c898029da4ba0349e9d0889c35ef9d0bd7c9",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-rose-french",
+      "sha256": "d4c9de04e4fb54b20e56dcb844257354910c517653a86a23646a682eb5bb4312",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-magnetic-midnight",
+      "sha256": "0f1f0cb467f6ded300e59166f2ed639b9f79372ac1f35b28d4d88bbd961946bb",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-magnetic-coral",
+      "sha256": "21e1658fc4dae5ce5a8f0dcec24f5872a6fe4e0a151afaadf9e76f3b7b857618",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-magnetic-pearl",
+      "sha256": "ab604ccd40554ed61fc6251bec9fd3eacd6d8c6ee6f4838cbb036e0726b79f76",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-magnetic-espresso",
+      "sha256": "c313c4b3151a32fd9da5bb41d63f7fd232753e26063aac290621e48f1a316752",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-magnetic-sage",
+      "sha256": "cbeed8c6ea70689003824be732b60c6071e3273e38a06dc19d01ead6a9aa5d73",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-geometry-blush",
+      "sha256": "b19c8dd8d14761d7342315a192fb4bd75f4ba5a942a4e80f3cc607186f0b1e01",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "NATIVE",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-prism-ivory",
+      "sha256": "058095257e4b1ad37696f9ccb23cd7c7c5ca7af9b657d0933f85fd77ecc8e110",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-gradient-pearl",
+      "sha256": "04f1bf9aa1788cdcb41cfb8051fdc6946b54923fa1cf72a3a633134d9529e9bb",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-gradient-lavender",
+      "sha256": "836ee09d8d65b1c0d296db407852723fd7cef082ead2038225f83bbf46cc9788",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-gradient-ruby",
+      "sha256": "b29ba4f327be5a615e7dca97f2d76516fad7d5bc1b87bc7c737570cb3bb7c5fc",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "NATIVE",
+      "disposition": "QUARANTINED",
+      "note": "Central radial pink aura instead of a smooth smoky ombre."
+    },
+    {
+      "id": "nail-atlas-gradient-cobalt",
+      "sha256": "ac9b8b6c8496ae617fad7c64f5a27dcb945502294bb7d5ee49f81394bc12ed34",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "NATIVE",
+      "disposition": "QUARANTINED",
+      "note": "Flat coffin tips instead of long almond tips."
+    },
+    {
+      "id": "nail-berry-ombre",
+      "sha256": "b609a21ee50b6f02f714dfc33ed5e9185ba4844c09fcb28d68c834cccf36b002",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-velvet-ivory",
+      "sha256": "4bba14d502cb6e087dbc0b5e73e9ab375391d8eb521b9d29b160d8b5a9601e39",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-foil-merlot",
+      "sha256": "64a9d73ccd7dc60a7f4e7f840f0d49513010de8ab01620f01f6a3e004d91e884",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "NATIVE",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-celestial-lavender",
+      "sha256": "aa824991583021d03c0066353772f4b1ca1190cf7383ae33eefa9357926b5cc1",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-gradient-midnight",
+      "sha256": "045f19574eed07ce025052cca624a243b4462b0ae442c85ccb6faf11e91248f7",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-magnetic-ruby",
+      "sha256": "90ceb50ebeaa8bc09c0359259d014ccdce622256c5667da8fe8449caac11fc2e",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-prism-cobalt",
+      "sha256": "8d35f3dd81f462bc30de4771b7ace45d7db2ef5b8193e444aa4631aac0a9ddaa",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-prism-merlot",
+      "sha256": "3146eafcc442af61ff66ff98c6be63afac60a8fe91fd420cdffc0de0f12d1aef",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-prism-espresso",
+      "sha256": "c510c0b68f2d93cef71d16cdc835ce7f33fbd0679fbd3d56069d427cf8b4a014",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-prism-ruby",
+      "sha256": "cb969b252738b61a414e2707d79a16b181d0a48fbfde355dd57ca0a3bd692559",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-prism-lavender",
+      "sha256": "3fd74304149a2a1bdaafe9973bc0377b836ccae3ced73f0046fa3d2311312579",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-modern-french-champagne",
+      "sha256": "46db1bd56ea1bdae2c508fd44c87ba6b1b12d42c5cca60c12d20736c6068b9ef",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-modern-french-cobalt",
+      "sha256": "4b72e683e09868ea88a45ca8da3a168a74fa9b7913aff3bb4f82c49deca1b19d",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-rose-chrome",
+      "sha256": "a88aa00d04c688a8a6bd169b60f85007eb7c836456fc0e8de64899761c3c8d66",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-sculpture-ivory",
+      "sha256": "a60cc27c58f1e2ae27b0e134275e652abe9746608d7998392627d1291c78e15a",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-velvet-pearl",
+      "sha256": "f42daf9eb81cd009e1f0166535bab2e5a654b53b0ba7a011e468acd57fe63339",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-atlas-sculpture-blush",
+      "sha256": "c8f13eb81ce18494083c69b413ac4245ea7baa66f3cfa327ba803e6433b4b586",
+      "dimensions": [
+        1600,
+        1600
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    },
+    {
+      "id": "nail-botanical",
+      "sha256": "23d8717a31526c9e7f4f9d5a3c72bcf3ab85dec29479a4b33e471c3d6d1f5837",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "decode_and_checksum": "PASS",
+      "visual_review": "CONTACT_SHEET",
+      "disposition": "NO_CLEAR_ISSUE_IN_SCREENING",
+      "note": "No confirmed mismatch in the scope of this review."
+    }
+  ]
+}

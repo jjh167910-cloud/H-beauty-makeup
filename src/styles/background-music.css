@@ -1,0 +1,8 @@
+/* Subtle, accessible speaker control in the persistent header. */
+.salon-music { display: inline-flex; align-items: center; position: relative; }
+.salon-music__toggle { position: relative; min-width: 44px; min-height: 44px; display: inline-grid; place-items: center; color: var(--color-ink); }
+.salon-music__toggle[data-playing] { color: var(--color-gold-ink); }
+.salon-music__toggle:focus-visible { outline: 2px solid var(--color-gold-ink); outline-offset: 3px; }
+.salon-music__toggle:disabled { opacity: .45; cursor: not-allowed; }
+.salon-music__dot { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: var(--color-gold-ink); inset-inline-start: 6px; top: 8px; }
+@media (prefers-reduced-motion: reduce) { .salon-music__toggle { transition: none; } }
