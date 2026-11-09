@@ -32,7 +32,36 @@ try{
       });
       console.log('OFFLINE_PACK_SAMPLE',JSON.stringify(info));
     }
-    await context.setOffline(true);
+    if (viewport.name==='mobile') {
+      const path='/tryon/ort/ort-wasm-simd-threaded.asyncify.wasm';
+      const expected='39f9f0894d478800487ed9f7dbe92618498db320cf55c8e3d89adff8dce658da';
+      const initial=await page.evaluate(async ({path,expected})=>{
+        const r=await fetch(path,{cache:'no-store'});
+        if(!r.ok)throw Error('Model reconstruction failed HTTP '+r.status);
+        const bytes=await r.arrayBuffer();
+        const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
+        if(digest!==expected)throw Error('Mismatch of reconstructed original model SHA256 '+digest);
+        const storage=await caches.open('hb-ai-models-v2');
+        await storage.put(path,new Response(bytes,{headers:{'content-type':'application/wasm'}}));
+        return {bytes:bytes.byteLength,digest,stored:!!(await storage.match(path))};
+      },{path,expected});
+      assert.equal(initial.bytes,26781914,'Original on-device neural runtime bytes');
+      assert.ok(initial.stored,'Local cache must retain the verified model');
+      console.log('MODEL_CACHED',JSON.stringify(initial));
+      await context.setOffline(true);
+      const offline=await page.evaluate(async ({path,expected})=>{
+        const r=await fetch(path);
+        if(!r.ok)throw Error('Cached neural runtime unavailable offline HTTP '+r.status);
+        const bytes=await r.arrayBuffer();
+        const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
+        if(digest!==expected)throw Error('Offline model bytes differ '+digest);
+        return {bytes:bytes.byteLength,digest};
+      },{path,expected});
+      assert.equal(offline.bytes,26781914);
+      console.log('MODEL_OFFLINE_PASS',JSON.stringify(offline));
+    } else {
+      await context.setOffline(true);
+    }
     const offlineResponse=await page.reload({waitUntil:'domcontentloaded',timeout:45000});
     assert.ok(offlineResponse?.ok(),'Cached app shell must reload without any network');
     const offlineBody=await page.locator('body').innerText({timeout:15000});
