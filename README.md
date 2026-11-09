@@ -1,3 +1,13 @@
+## V18 hosting and offline browser validation — 9 November 2026
+
+- **Verified artifact:** [V18 reconstructed PWA release](https://github.com/jjh167910-cloud/H-beauty-makeup/releases/tag/v18-reconstructed-pwa-build), containing the SHA-pinned compiled `dist/` and 974 web files, including the PWA service worker and all eight oversized-model chunks.
+- **Verified browser test:** [GitHub Actions run 42671140772](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42671140772) passed on 390px mobile and 1280px desktop. Each browser installed the service worker, loaded the local app shell, switched network connectivity offline, and reloaded successfully with HTTP 200, zero page errors and zero external requests.
+- **Caveat:** This confirms the offline app shell, not automatic neural makeup inference or photographic quality.
+- **Cloudflare connection:** Both authenticated user links were tested on 9 Nov 2026. Both reject Workers and Pages reads with HTTP 403 due to missing Workers Editor/Admin and Pages Write scopes. An authenticated identity **is not** a deployment permission.
+- **GitHub Pages attempt:** [Run 42670815070](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42670815070) successfully verified and extracted the 166 MB PWA artifact but failed when enabling Pages with `Resource not accessible by integration`. The private repository has no enabled Pages site.
+- **Required authorized hosting action:** Grant the Cloudflare connection Workers write/admin (or Pages Write) on the staging account, **or** enable GitHub Pages for this private repository with account-level administrative rights. After that, rerun the prepared staging workflow. No user ZIP upload is necessary.
+- **Safety:** Never deploy to production `h-beauty`. Only isolated `h-beauty-makeup` is authorized as the staging target.
+
 # H-Beauty V18 — offline web application (isolated staging)
 
 **Release status (9 November 2026): COMPLETE verified source reconstruction and production PWA build. Website hosting remains unpublished.**
