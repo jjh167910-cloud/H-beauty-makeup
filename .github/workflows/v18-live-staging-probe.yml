@@ -1,0 +1,40 @@
+name: Smoke-test live h-beauty-makeup Worker only
+on:
+  push:
+    paths:
+      - '.github/workflows/v18-live-staging-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check staging hosts and pinned PWA artifacts
+        shell: bash
+        run: |
+          set -uo pipefail
+          for host in h-beauty-makeup.jjh167910.workers.dev h-beauty-makeup.mostifa2273.workers.dev; do
+            echo "HOST $host"
+            for path in / /offline-pack-v15.json /sw.js /_hbeauty_model_parts_v18/80f138d4b43058c820a5b22b-000.part; do
+              url="https://$host$path"
+              file=$(mktemp)
+              code=$(curl -sSL --connect-timeout 7 --max-time 22 -w '%{http_code}' -o "$file" "$url" || true)
+              size=$(wc -c < "$file")
+              ct=$(file -b --mime-type "$file")
+              sha=$(sha256sum "$file" | cut -c1-20)
+              echo "CHECK host=$host path=$path http=$code bytes=$size mime=$ct sha20=$sha"
+              if [[ "$path" == "/offline-pack-v15.json" && "$code" == 200 ]]; then
+                python3 - "$file" <<'PY'
+          import json,sys
+          try:
+              doc=json.load(open(sys.argv[1]))
+              print('MANIFEST_V18',doc.get('schema'),doc.get('version'),len(doc.get('assets',[])),doc.get('total_bytes'))
+          except Exception as e: print('MANIFEST_INVALID',str(e)[:100])
+          PY
+              fi
+              rm -f "$file"
+            done
+          done
+          echo 'Read-only external probes. No production changes.' >> "$GITHUB_STEP_SUMMARY"
