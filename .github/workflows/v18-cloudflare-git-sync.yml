@@ -1,0 +1,133 @@
+name: Stage verified V18 PWA for Cloudflare Git-connected builds
+on:
+  push:
+    paths:
+      - '.github/workflows/v18-cloudflare-git-sync.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: h-beauty-makeup-v18-git-sync
+  cancel-in-progress: false
+jobs:
+  stage-verified-v18:
+    if: github.repository == 'jjh167910-cloud/H-beauty-makeup'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 1
+      - name: Download exact verified V18 release artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/hbeauty-v18
+          gh release download v18-reconstructed-pwa-build --repo "$GITHUB_REPOSITORY" \
+            --pattern 'HBeauty-V18-COMPLETE-VERIFIED-PWA.zip' --dir /tmp/hbeauty-v18
+          gh release download v18-reconstructed-pwa-build --repo "$GITHUB_REPOSITORY" \
+            --pattern 'HBeauty-V18-COMPLETE-VERIFIED-PWA.sha256' --dir /tmp/hbeauty-v18
+          (cd /tmp/hbeauty-v18 && sha256sum -c HBeauty-V18-COMPLETE-VERIFIED-PWA.sha256)
+          unzip -tq /tmp/hbeauty-v18/HBeauty-V18-COMPLETE-VERIFIED-PWA.zip | tail -2
+          unzip -q /tmp/hbeauty-v18/HBeauty-V18-COMPLETE-VERIFIED-PWA.zip -d /tmp/hbeauty-v18/unpacked
+          test -s /tmp/hbeauty-v18/unpacked/dist/index.html
+          test -s /tmp/hbeauty-v18/unpacked/dist/sw.js
+          test -s /tmp/hbeauty-v18/unpacked/dist/offline-pack-v15.json
+      - name: Verify each V18 distribution file and prepare staging-only configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from hashlib import sha256
+          import json, shutil, stat
+          dist=Path('/tmp/hbeauty-v18/unpacked/dist')
+          assets=sorted(p for p in dist.rglob('*') if p.is_file())
+          assert len(assets)==974, f'Expected exactly 974 compiled V18 files, found {len(assets)}'
+          assert len(list(dist.rglob('*.part')))==8, 'Eight model chunks required'
+          assert len(json.loads((dist/'offline-pack-v15.json').read_text())['assets'])==935, 'Offline pack incomplete'
+          out=Path('pwa-v18')
+          if out.exists(): shutil.rmtree(out)
+          out.mkdir()
+          entries=[]
+          for src in assets:
+              assert not src.is_symlink(), 'Symlinks rejected'
+              rel=src.relative_to(dist)
+              size=src.stat().st_size
+              assert size <= 25_000_000, f'Cloudflare asset too large: {rel}'
+              dig=sha256(src.read_bytes()).hexdigest()
+              target=out/rel
+              target.parent.mkdir(parents=True,exist_ok=True)
+              shutil.copyfile(src,target)
+              entries.append({'path':rel.as_posix(),'size':size,'sha256':dig})
+          zipped=Path('/tmp/hbeauty-v18/HBeauty-V18-COMPLETE-VERIFIED-PWA.zip')
+          man={
+            'schema':1,
+            'source_release':'v18-reconstructed-pwa-build',
+            'source_archive_sha256':sha256(zipped.read_bytes()).hexdigest(),
+            'file_count':len(entries),
+            'files':entries,
+          }
+          Path('v18-pwa-file-manifest.json').write_text(json.dumps(man,separators=(',',':'))+'\n')
+          assert out.joinpath('index.html').is_file()
+          assert out.joinpath('sw.js').is_file()
+          assert out.joinpath('manifest.webmanifest').is_file()
+          print('PASS: compiled V18 distribution pinned',len(entries),'files, 8 model chunks, 935 offline assets')
+          PY
+          cat > wrangler.jsonc <<'WRANGLER'
+          {
+            "name": "h-beauty-makeup",
+            "compatibility_date": "2026-11-09",
+            "build": {
+              "command": "node scripts/verify-v18-staging-dist.mjs"
+            },
+            "assets": {
+              "directory": "./pwa-v18",
+              "not_found_handling": "single-page-application"
+            }
+          }
+          WRANGLER
+          mkdir -p scripts
+          cat > scripts/verify-v18-staging-dist.mjs <<'JS'
+          import { readFileSync, existsSync, statSync } from 'node:fs';
+          import { createHash } from 'node:crypto';
+          import { resolve } from 'node:path';
+          const expected=JSON.parse(readFileSync('v18-pwa-file-manifest.json','utf8'));
+          if(expected.file_count!==974 || expected.files.length!==974)
+            throw new Error('V18 asset manifest incomplete');
+          for(const f of expected.files){
+            if(!f.path || f.path.startsWith('/') || f.path.split('/').includes('..'))
+              throw new Error('Invalid V18 relative asset path');
+            const name=resolve('pwa-v18',f.path);
+            if(!existsSync(name) || statSync(name).size!==f.size)
+              throw new Error('Missing/modified V18 asset '+f.path);
+            const digest=createHash('sha256').update(readFileSync(name)).digest('hex');
+            if(digest!==f.sha256)throw new Error('Hash mismatch '+f.path);
+          }
+          const cfg=JSON.parse(readFileSync('wrangler.jsonc','utf8'));
+          if(cfg.name!=='h-beauty-makeup' || cfg.assets.directory!=='./pwa-v18')
+            throw new Error('Production worker target forbidden');
+          console.log('PASS: 974 original V18 files verified with SHA-256; staging Worker name is h-beauty-makeup');
+          JS
+          node scripts/verify-v18-staging-dist.mjs
+      - name: Commit compiled and verified V18 assets atomically to connected staging repo
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          test "$(git branch --show-current)" = "main"
+          test "$(node -e "process.stdout.write(JSON.parse(require('fs').readFileSync('wrangler.jsonc','utf8')).name)")" = "h-beauty-makeup"
+          git add -f pwa-v18/ v18-pwa-file-manifest.json wrangler.jsonc scripts/verify-v18-staging-dist.mjs
+          if git diff --cached --quiet; then
+            echo 'The same V18 staging distribution is already committed.'
+            exit 0
+          fi
+          git commit -m 'deploy(staging): pin complete verified offline V18 PWA for Cloudflare Git builds'
+          git push origin HEAD:main
+          echo 'Published V18 compiled web assets into staging Git branch. Cloudflare Git integration may now build h-beauty-makeup. Production h-beauty was not targeted.' >> "$GITHUB_STEP_SUMMARY"
