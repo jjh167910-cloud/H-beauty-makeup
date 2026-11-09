@@ -3,7 +3,7 @@ on:
   push:
     paths:
       - '.github/workflows/browser-capture.yml'
-      - 'scripts/ci-browser-capture.mjs'
+      - '.github/staging/ci-browser-capture.mjs'
       - 'QUALITY_V14_MANIFEST.json'
   workflow_dispatch:
 permissions:
@@ -32,7 +32,7 @@ jobs:
           cat /tmp/hbeauty-preview.log
           exit 1
       - name: Capture homepage and makeup catalog at real browser viewport sizes
-        run: node scripts/ci-browser-capture.mjs
+        run: node .github/staging/ci-browser-capture.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
