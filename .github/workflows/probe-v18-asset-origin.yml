@@ -15,7 +15,9 @@ jobs:
         shell: bash
         run: |
           set -uo pipefail
-          origin="https://h-beauty.mostifa2273.workers.dev"
+          for origin in "https://h-beauty.mostifa2273.workers.dev" \
+                        "https://h-beauty-try-on-v19-1-independent-preview-l4gpe4.v2.appdeploy.ai"; do
+          echo "ASSET_ORIGIN: $origin"
           for path in \
             /offline-pack-v15.json \
             /tryon/looks.json \
@@ -40,5 +42,6 @@ jobs:
               print('MANIFEST not_json')
           PY
             fi
+          done
           done
           echo 'Read-only diagnostic. No production data or configuration changed.' >> "$GITHUB_STEP_SUMMARY"
