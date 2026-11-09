@@ -27,12 +27,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          mkdir -p /tmp/hbeauty-v18-transfer
-          gh release download 'v18-verified-recovered-assets' \
-            --repo "$GITHUB_REPOSITORY" \
-            --pattern 'HBeauty-V18-VERIFIED-MODEL-SUBSET.zip' \
-            --dir /tmp/hbeauty-v18-transfer
-          test -s /tmp/hbeauty-v18-transfer/HBeauty-V18-VERIFIED-MODEL-SUBSET.zip
+          mkdir -p /tmp/hbeauty-v18-transfer/recovered
+          gh run download 42661023998 --repo "$GITHUB_REPOSITORY" \
+            -n hbeauty-v18-recovered-offline-models-VERIFIED \
+            -D /tmp/hbeauty-v18-transfer/recovered
+          test -s /tmp/hbeauty-v18-transfer/recovered/RECOVERY_MANIFEST.json
+          cd /tmp/hbeauty-v18-transfer/recovered
+          zip -q -r /tmp/hbeauty-v18-transfer/HBeauty-V18-VERIFIED-MODEL-SUBSET.zip RECOVERY_MANIFEST.json public/
       - name: Reconstruct source and verify every original V18 Git blob
         shell: bash
         run: |
