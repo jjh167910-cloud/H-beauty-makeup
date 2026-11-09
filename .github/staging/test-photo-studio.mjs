@@ -16,11 +16,14 @@ try{
     const stage=page.locator('#stage');
     await stage.waitFor({state:'visible'});
     await page.locator('#brushCanvas').scrollIntoViewIfNeeded();
-    const rect=await page.locator('#brushCanvas').boundingBox();
+    let rect=await page.locator('#brushCanvas').boundingBox();
     assert.ok(rect && rect.width>=100 && rect.height>=100,'Canvas must have real dimensions');
     assert.match(await page.locator('#dimensions').innerText(),/۷۲۰|720/);
     await page.locator('#validate').click();
     assert.match(await page.locator('#notice').innerText(),/باید یک ماسک/);
+    await page.locator('#brushCanvas').scrollIntoViewIfNeeded();
+    rect=await page.locator('#brushCanvas').boundingBox();
+    assert.ok(rect);
     const x=rect.x+rect.width*.52;
     const y=rect.y+rect.height*.60;
     await page.mouse.move(x,y);
