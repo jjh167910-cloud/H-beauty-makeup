@@ -1,0 +1,101 @@
+name: H-Beauty Makeup — isolated preview
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: h-beauty-makeup-staging
+  cancel-in-progress: true
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      source_present: ${{ steps.check.outputs.present }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        shell: bash
+        run: |
+          if test -f package.json && test -f package-lock.json && test -f index.html && test -d src && test -d public; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Source import required::The V14 FULL archive has not yet been imported into this repository. No deployment was attempted."
+            echo "## Preview not yet deployed" >> "$GITHUB_STEP_SUMMARY"
+            echo "The repo is missing the V14 application source and assets. The workflow safely skipped build and deployment." >> "$GITHUB_STEP_SUMMARY"
+          fi
+  staging:
+    needs: preflight
+    if: needs.preflight.outputs.source_present == 'true'
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify staging isolation
+        shell: bash
+        run: |
+          test "$GITHUB_REPOSITORY" = "jjh167910-cloud/H-beauty-makeup"
+          echo "Only the h-beauty-makeup staging Worker may be deployed."
+      - name: Validate assets and offline behavior
+        run: |
+          node scripts/verify-images.mjs
+          node --test tests-node/*.test.mjs
+      - name: Install dependencies, typecheck and build
+        run: |
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: h-beauty-makeup-staging-dist
+          path: dist/
+          retention-days: 7
+      - name: Validate staging deployment capability
+        id: deployment_gate
+        shell: bash
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Cloudflare not connected::CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID must be configured in this repository. Build artifact is available for inspection."
+            exit 0
+          fi
+          if find dist -type f -size +25M -print -quit | grep -q .; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=Large assets::The build contains files above 25 MiB. Validate the Cloudflare plan's per-asset limit before publishing; no assets were removed automatically."
+            exit 0
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+      - name: Deploy dedicated makeup preview (never production)
+        if: steps.deployment_gate.outputs.enabled == 'true'
+        shell: bash
+        run: |
+          cat > .wrangler-makeup-staging.jsonc <<'EOF'
+          {
+            "name": "h-beauty-makeup",
+            "compatibility_date": "2026-11-09",
+            "assets": {
+              "directory": "./dist",
+              "not_found_handling": "single-page-application"
+            }
+          }
+          EOF
+          npx --yes wrangler@4 deploy --config .wrangler-makeup-staging.jsonc
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## H-Beauty Makeup staging"
+            echo "Repository: jjh167910-cloud/H-beauty-makeup"
+            echo "Worker name: h-beauty-makeup (never h-beauty)"
+            echo "Deployment eligible: ${{ steps.deployment_gate.outputs.enabled }}"
+            echo "Production H-Beauty is never targeted by this workflow."
+          } >> "$GITHUB_STEP_SUMMARY"
