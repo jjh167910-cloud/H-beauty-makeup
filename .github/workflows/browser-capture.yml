@@ -4,6 +4,7 @@ on:
     paths:
       - '.github/workflows/browser-capture.yml'
       - 'scripts/ci-browser-capture.mjs'
+      - 'QUALITY_V14_MANIFEST.json'
   workflow_dispatch:
 permissions:
   contents: read
