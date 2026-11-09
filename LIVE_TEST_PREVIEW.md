@@ -17,3 +17,16 @@ The full V14 repository import remains pending because the existing [draft V14 r
 - The hosted app reports ready, with zero frontend and network errors in its deployment health check.
 
 These tests validate only the **manual browser companion**. They do not imply that the V14 neural model or full V14 archive is hosted. The GitHub release asset is still absent and Cloudflare credentials remain unavailable to this connection.
+
+## Replacement automatic neural studio — 9 November 2026
+
+**Current preferred test interface:** [H-Beauty Neural Makeup Studio](https://h-beauty-neural-makeup-studio-p8au6h.v2.appdeploy.ai/)
+
+- Uses a **real hosted Gemini neural image-editing model** via a server-side image-generation API; no manual painting or region-mask UI.
+- Takes the person's own photograph and a makeup reference (or named preset); generates an image automatically after explicit user consent for cloud processing.
+- Source code: [staging-neural-preview/](staging-neural-preview/).
+- Before/after comparison and download implemented.
+- **Current inference blocker:** During the first end-to-end synthetic fixture test, the image provider returned HTTP 429 (quota exhausted). Generation is therefore **not verified as operational** on the current hosting entitlement; the UI reports the error instead of fabricating a result.
+- **Not independently state-of-the-art certified**; original V14 package has no rights-cleared real-photo-trained neural checkpoint, and no real-photo benchmark or quality study was completed. The provider also caps request inputs and output bytes, so no native 2K output promise is made.
+- The old [manual photo test studio](https://h-beauty-makeup-photo-test-studio-phim6t.v2.appdeploy.ai/) is superseded and should not be used as evidence of neural makeup transfer.
+- Existing H-Beauty salon production is not modified.
