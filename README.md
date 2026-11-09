@@ -32,3 +32,11 @@ The private `import-v14-release.yml` workflow will then verify the full source a
 **Research safety**: V14 does not certify a trained makeup model, and the existing visual renderer still needs real photo comparisons. This repo is an isolated staging preview, never production. A public Cloudflare URL requires valid account credentials; the current GitHub workflow will not attempt deployment without them and source-provenance validation.
 
 Browser screenshot artifacts (baseline only until V14 is imported): [automated visual smoke workflow](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/workflows/browser-capture.yml).
+
+## Lossless model splitting for Cloudflare staging
+
+Cloudflare Workers Static Assets restrict each individual file to 25 MiB. V14 has three larger `.bin`/`.wasm` model assets (48,000,000, 37,577,374, and 26,781,914 bytes). The staging build runs `.github/staging/split-large-assets.mjs`, dividing these into seven chunks of at most 20 MiB, and the dedicated `.github/staging/worker.mjs` streams the original byte sequence to the app. No model weights are downscaled or omitted. Automated round-trip tests compare the complete SHA-256 digest and byte-for-byte reconstruction. Production H-Beauty is unchanged.
+
+[Passing staging CI with chunk-integrity tests](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42548855709).
+
+The **actual V14 application is still not imported** until the private draft release receives the pinned full ZIP; no live Cloudflare URL has been produced.
