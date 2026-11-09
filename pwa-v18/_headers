@@ -1,0 +1,8 @@
+# H-Beauty V15. The entire makeup runtime, models and customer photos are local.
+# No outbound AI calls: all read requests originate from the same app origin,
+# and the service worker blocks cross-origin traffic once installed.
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+  Content-Security-Policy: default-src 'self'; connect-src 'self'; img-src 'self' blob: data:; font-src 'self' data:; style-src 'self' 'unsafe-inline' data:; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Permissions-Policy: geolocation=(), microphone=(), camera=(self)
