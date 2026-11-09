@@ -74,14 +74,17 @@ jobs:
           out=fb.Output()
           digest=hashlib.sha256(out).hexdigest()
           print('Converted segmentation bytes:',len(out),'SHA-256:',digest)
-          assert len(out)==8290292 and digest=='d2cd8f253fb44f135900753d0124c5228285165cf2a8f8100fbe958ad7bc55df', 'Upstream segmentation variant/serialisation differs; do not substitute'
           pathlib.Path('/tmp/verified-models/tryon/segment.tflite').write_bytes(out)
+          if len(out)!=8290292 or digest!='d2cd8f253fb44f135900753d0124c5228285165cf2a8f8100fbe958ad7bc55df':
+            raise AssertionError('Upstream segmentation variant/serialisation differs; saved for offline comparison, do not substitute')
           PY
       - uses: actions/upload-artifact@v4
-        if: success()
+        if: always()
         with:
-          name: hbeauty-v18-reproducible-landmarker-segmentation
-          path: /tmp/verified-models/
+          name: hbeauty-v18-mp-comparison-not-verified
+          path: |
+            /tmp/verified-models/
+            /tmp/source-segment.tflite
           retention-days: 30
       - name: Summary
         if: always()
