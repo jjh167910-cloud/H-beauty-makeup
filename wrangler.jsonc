@@ -1,0 +1,18 @@
+{
+  "name": "h-beauty-makeup",
+  "compatibility_date": "2026-10-21",
+  // Build the SPA as part of every `wrangler deploy` / `versions upload`, so
+  // deploys from a clean checkout (e.g. Cloudflare Workers Builds) have ./dist.
+  // The isolated makeup preview retains the SHA256-verified 80-photo edition by default.
+  // Disabled editions must be selected explicitly with VITE_MAKEUP_CURATED_80=false.
+  "build": {
+    "command": "test -d node_modules || npm ci --no-audit --no-fund; export VITE_MAKEUP_CURATED_80=${VITE_MAKEUP_CURATED_80:-true}; if [ \"$VITE_MAKEUP_CURATED_80\" = \"true\" ]; then npm run prepare:makeup-curated-80 && npm run verify:makeup-curated-80 && npm run build; else npm run build; fi"
+  },
+  // Explicit Worker Preview base settings for branch builds. No live-production
+  // bindings are shared, and no preview secrets are required by this SPA.
+  "previews": {},
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
