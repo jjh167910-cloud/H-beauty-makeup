@@ -1,3 +1,20 @@
+## Latest verified offline web release: V18
+
+**Target:** Fully offline after one-time model installation, Persian-first installable PWA.
+**Source of truth:** SHA256-pinned [V18 FULL ZIP release intake](https://github.com/jjh167910-cloud/H-beauty-makeup/releases/tag/untagged-2597a9f82723255ebff3).
+**V18 full ZIP SHA256:** `c94b46dfb30e6bbcafa611d24399aada9f38a3f5a04ce220a1e75c146f3fec86` (1179 files, 220214068 bytes, ZIP integrity checked).
+**Automated workflow:** [V18 FULL build and isolated staging publish](.github/workflows/v18-full-release.yml).
+
+### Release status
+
+- V18 source archive verified locally; live V18 application **not yet deployed**.
+- Exact V18 FULL ZIP is not attached to the private GitHub release; the installed GitHub connector cannot upload local binary release assets.
+- Cloudflare account authorization is unavailable to this assistant; the publish step stays disabled without staging-only credentials.
+- Public H-Beauty Worker returns the current SPA HTML instead of the original model files, and the older hosted preview responds 404 for these files; neither can rehydrate the model pack safely.
+- Legacy V14 deployment workflow retired; only verified V18 source can publish to the separate `h-beauty-makeup` Worker.
+- On import, CI will verify SHA-256, test Node/asset readiness, compile the Vite PWA, check 935 offline files and lossless model chunk integrity, then publish to staging **only if** authorized.
+- No claim of physically tested airplane-mode rendering or independently validated photorealism; production salon unaffected.
+
 # H-beauty-makeup — staging repository
 
 This is an **isolated preview destination**, not the production H-Beauty website.
