@@ -22,6 +22,20 @@ try {
       ]);
       return {manifestCount:manifest.assets.length,serviceWorkerScope:reg.scope,manifestVersion:manifest.version};
     });
+    const diagnostic=await page.evaluate(async()=>{
+      const cacheNames=await caches.keys();
+      const result=[];
+      for(const key of cacheNames){
+        const c=await caches.open(key);
+        const found=await c.match('/index.html');
+        result.push({name:key,hasIndex:!!found,indexStatus:found?.status,entries:(await c.keys()).length});
+      }
+      const reg=await navigator.serviceWorker.getRegistration();
+      return {controller:!!navigator.serviceWorker.controller,state:reg?.active?.state,caches:result};
+    });
+    console.log('LIVE_PRE_RELOAD_DIAGNOSTIC',JSON.stringify({device:device.name,diagnostic}));
+    page.on('requestfailed',r=>console.log('LIVE_FAILED_REQUEST',JSON.stringify({url:r.url(),failure:r.failure()})));
+    page.on('console',m=>{if(m.type()==='error')console.log('LIVE_CONSOLE_ERROR',m.text().slice(0,400));});
     await page.reload({waitUntil:'domcontentloaded',timeout:45000});
     const controlled=await page.evaluate(()=>Boolean(navigator.serviceWorker.controller));
     assert.ok(controlled,'Live PWA must be service-worker controlled');
