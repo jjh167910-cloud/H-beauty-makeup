@@ -56,7 +56,7 @@ jobs:
                   assert not p.is_absolute() and '..' not in p.parts and not stat.S_ISLNK(item.external_attr>>16), 'Unsafe source path'
               assert z.testzip() is None, 'Corrupted ZIP entry'
           def object_sha(data):
-              return hashlib.sha1(f'blob {len(data)}\\0'.encode().replace(b'\\0',b'\\x00')+data).hexdigest()
+              return hashlib.sha1(b'blob '+str(len(data)).encode()+bytes([0])+data).hexdigest()
           with zipfile.ZipFile(io.BytesIO(data)) as overlay,zipfile.ZipFile(recovery) as recovered:
               safe_zip(overlay);safe_zip(recovered)
               manifest=json.loads(overlay.read('_V18_COMPLETE_GIT_MANIFEST.json'))
