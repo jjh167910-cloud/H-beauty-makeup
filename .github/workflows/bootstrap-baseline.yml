@@ -1,0 +1,70 @@
+name: Import public H-Beauty baseline (not V14)
+on:
+  push:
+    paths:
+      - '.github/workflows/bootstrap-baseline.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: h-beauty-makeup-baseline-import
+  cancel-in-progress: false
+jobs:
+  import_baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Assert isolated destination
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "jjh167910-cloud/H-beauty-makeup"
+          if test -f package.json || test -d src || test -d public; then
+            echo "::notice title=Already initialized::The destination already contains application source; import skipped safely."
+            echo "SKIP_IMPORT=1" >> "$GITHUB_ENV"
+          fi
+      - name: Import public-source baseline
+        if: env.SKIP_IMPORT != '1'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/jjh167910-cloud/H-beauty.git /tmp/hbeauty-original
+          source_sha="$(git -C /tmp/hbeauty-original rev-parse HEAD)"
+          rsync -a /tmp/hbeauty-original/ ./ \
+            --exclude '/.git/' --exclude '/.github/' \
+            --exclude '/README.md' --exclude '/wrangler.jsonc' \
+            --exclude '/node_modules/' --exclude '/.env' --exclude '/.env.*' \
+            --exclude '/dist/' --exclude '/.wrangler/'
+          cat > SOURCE_BASELINE.md <<EOF
+          # Imported application baseline
+
+          This code was imported from the publicly accessible repository
+          \`jjh167910-cloud/H-beauty\` at commit \`$source_sha\`.
+
+          **This is NOT the V14 source archive.** It is an isolated base for build
+          and asset verification, and it must not be labeled V14 until the actual
+          V14 application source and assets have been imported and compared.
+
+          The repository \`jjh167910-cloud/H-beauty-makeup\` is a staging
+          destination. Its deployment workflow targets only the
+          \`h-beauty-makeup\` Worker. Production is untouched.
+          EOF
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "baseline: import public H-beauty source for isolated makeup staging"
+            git push origin HEAD:main
+          fi
+      - name: Report provenance
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Import status"
+            echo "Source: public H-beauty baseline; **not** V14."
+            echo "Destination: isolated H-beauty-makeup."
+            echo "The production repository and Worker are unchanged."
+          } >> "$GITHUB_STEP_SUMMARY"
