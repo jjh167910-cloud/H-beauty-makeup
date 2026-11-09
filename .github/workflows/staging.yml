@@ -54,6 +54,10 @@ jobs:
         run: |
           npm run typecheck
           npm run build
+      - name: Validate and split oversized AI model assets without loss
+        run: |
+          node --test .github/staging/test-large-assets.mjs
+          node .github/staging/split-large-assets.mjs dist
       - uses: actions/upload-artifact@v4
         with:
           name: h-beauty-makeup-staging-dist
@@ -83,16 +87,24 @@ jobs:
         if: steps.deployment_gate.outputs.enabled == 'true'
         shell: bash
         run: |
-          cat > .wrangler-makeup-staging.jsonc <<'EOF'
-          {
-            "name": "h-beauty-makeup",
-            "compatibility_date": "2026-11-09",
-            "assets": {
-              "directory": "./dist",
-              "not_found_handling": "single-page-application"
+          node --input-type=module <<'NODE'
+          import {readFileSync,writeFileSync} from "node:fs";
+          const manifest=JSON.parse(readFileSync("dist/_hbeauty_chunks/manifest.json","utf8"));
+          const originals=Object.keys(manifest.files);
+          const config={
+            name:"h-beauty-makeup",
+            compatibility_date:"2026-11-09",
+            main:".github/staging/worker.mjs",
+            assets:{
+              directory:"./dist",
+              binding:"ASSETS",
+              not_found_handling:"single-page-application",
+              run_worker_first:originals.length?originals:true
             }
-          }
-          EOF
+          };
+          writeFileSync(".wrangler-makeup-staging.jsonc",JSON.stringify(config,null,2));
+          console.log("Staging Worker will stream",originals.length,"split AI assets.");
+          NODE
           npx --yes wrangler@4 deploy --config .wrangler-makeup-staging.jsonc
       - name: Summary
         if: always()
