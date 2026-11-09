@@ -101,6 +101,32 @@ jobs:
               print('PASS exact 1,179 original V18 files reconstructed, bytes=',total,'sources=',counts)
               (out/'_GITHUB_SOURCE_AUDIT.json').write_text(json.dumps({'source_sha256':source_sha,'files':len(expected),'bytes':total,'sources':counts},indent=2))
           PY
+      - name: Apply recorded web-build TypeScript annotation after original source verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,hashlib
+          root=Path('/tmp/hbeauty-v18-complete/H-beauty')
+          p=root/'src/lib/photo-export.ts'
+          source=p.read_text(encoding='utf-8')
+          before='pending.set(nonce, (success) => {'
+          after='pending.set(nonce, (success: boolean) => {'
+          assert source.count(before)==1, 'Source changed; refusing unreviewed code patch'
+          original_hash=hashlib.sha256(p.read_bytes()).hexdigest()
+          p.write_text(source.replace(before,after),encoding='utf-8')
+          audit=root/'_GITHUB_SOURCE_AUDIT.json'
+          report=json.loads(audit.read_text(encoding='utf-8'))
+          report['post_validation_build_patch']={
+            'file':'src/lib/photo-export.ts',
+            'reason':'TS7006 implicit any in Android compatibility callback, web behavior unchanged',
+            'original_sha256':original_hash,
+            'patched_sha256':hashlib.sha256(p.read_bytes()).hexdigest()
+          }
+          audit.write_text(json.dumps(report,indent=2))
+          print('Recorded and applied single explicit TS annotation after exact V18 source validation')
+          PY
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
