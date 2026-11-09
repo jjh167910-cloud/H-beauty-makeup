@@ -1,0 +1,61 @@
+name: Browser-verify V18 offline PWA shell
+on:
+  push:
+    paths:
+      - '.github/workflows/v18-offline-browser-qa.yml'
+      - '.github/staging/v18-offline-browser-qa.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install browser test dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Download the SHA-verified V18 PWA release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v18 /tmp/site
+          gh release download v18-reconstructed-pwa-build --repo "$GITHUB_REPOSITORY" --dir /tmp/v18 --pattern 'HBeauty-V18-COMPLETE-VERIFIED-PWA.zip'
+          gh release download v18-reconstructed-pwa-build --repo "$GITHUB_REPOSITORY" --dir /tmp/v18 --pattern 'HBeauty-V18-COMPLETE-VERIFIED-PWA.sha256'
+          (cd /tmp/v18 && sha256sum -c HBeauty-V18-COMPLETE-VERIFIED-PWA.sha256)
+          unzip -q /tmp/v18/HBeauty-V18-COMPLETE-VERIFIED-PWA.zip -d /tmp/v18/unpack
+          cp -a /tmp/v18/unpack/dist/. /tmp/site/
+          test -s /tmp/site/sw.js
+          test -s /tmp/site/offline-pack-v15.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('/tmp/site/offline-pack-v15.json')
+          d=json.loads(p.read_text())
+          print('MANIFEST_TOP_LEVEL',list(d.keys())[:20])
+          print('MODEL_PARTS',[(p.name,p.stat().st_size) for p in Path('/tmp/site/_hbeauty_model_parts_v18').glob('*.part')])
+          PY
+      - name: Start local static server
+        shell: bash
+        run: |
+          nohup python3 -m http.server 4179 --bind 127.0.0.1 --directory /tmp/site >/tmp/v18-http.log 2>&1 &
+          for n in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4179/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/v18-http.log
+          exit 1
+      - name: Verify cached shell reloads under simulated offline network
+        run: node .github/staging/v18-offline-browser-qa.mjs
+      - if: always()
+        run: |
+          echo 'PWA shell and service-worker offline test. Does not certify neural makeup output or photographic realism.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'No Cloudflare or production worker is modified.' >> "$GITHUB_STEP_SUMMARY"
