@@ -39,7 +39,7 @@ jobs:
           assert proof['sources']=={'overlay':382,'recovered':9,'baseline':788}
           assert proof['post_validation_build_patch']['file']=='src/lib/photo-export.ts'
           dist=root/'dist'
-          required=['index.html','sw.js','manifest.webmanifest','_hbeauty_chunks/manifest.json']
+          required=['index.html','sw.js','manifest.webmanifest','_hbeauty_model_parts_v18/manifest.json']
           for name in required:
               assert (dist/name).is_file(), f'Production offline PWA file missing: {name}'
           files=[x for x in dist.rglob('*') if x.is_file()]
