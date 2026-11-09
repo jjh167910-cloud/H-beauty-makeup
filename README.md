@@ -19,7 +19,7 @@
 
 ## What is not complete
 
-- **No live public V18 web URL yet.** GitHub Pages is not configured for this private repository ([read-only Pages diagnostic](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42667851364) reported HTTP 404). This repository's Cloudflare account authorization / staging Worker secrets are also unavailable. Those hosting permissions cannot be inferred from passing CI.
+- **No live public V18 web URL yet.** The [direct V18 PWA release deployment workflow](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42668173801) has passed release checksum, model-chunk integrity and static asset-size checks, but safely skipped Cloudflare publish because the staging account credentials are absent. GitHub Pages is not configured for this private repository ([read-only Pages diagnostic](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42667851364) reported HTTP 404). This repository's Cloudflare account authorization / staging Worker secrets are also unavailable. Those hosting permissions cannot be inferred from passing CI.
 - **Not physically verified offline on Android.** An installable PWA requires its model pack to be downloaded and installed once; after successful installation, on-device MediaPipe / ONNX inference is designed to work disconnected. Device storage eviction may require reinstalling offline assets.
 - **Not independently certified state-of-the-art photorealism** and no verified arbitrary reference-photo neural transfer. V18 retains earlier ONNX look-specific experimental models and local WebGL processing, not a validated high-resolution real-photo-trained checkpoint.
 
