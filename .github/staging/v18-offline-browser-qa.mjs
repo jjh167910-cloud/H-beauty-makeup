@@ -24,6 +24,14 @@ try{
     await page.reload({waitUntil:'domcontentloaded',timeout:60000});
     const controlled=await page.evaluate(()=>Boolean(navigator.serviceWorker.controller));
     assert.ok(controlled,'PWA shell not controlled by service worker');
+    if (viewport.name==='mobile') {
+      const info=await page.evaluate(async()=>{
+        const res=await fetch('/offline-pack-v15.json');
+        const doc=await res.json();
+        return {count:doc.assets?.length,first:doc.assets?.slice(0,3),largest:doc.assets?.filter(a=>(a.size??a.bytes??a.byte_length??0)>20000000).slice(0,6)};
+      });
+      console.log('OFFLINE_PACK_SAMPLE',JSON.stringify(info));
+    }
     await context.setOffline(true);
     const offlineResponse=await page.reload({waitUntil:'domcontentloaded',timeout:45000});
     assert.ok(offlineResponse?.ok(),'Cached app shell must reload without any network');
