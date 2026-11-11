@@ -5,7 +5,14 @@ dist/
 .env.*
 .wrangler/
 .DS_Store
+test-results/
+playwright-report/
 
-.makeup-curated-80-approvals.local.json
-
-.makeup-curated-40-approvals.local.json
+# TinyBeauty training work files
+.tinybeauty/
+__pycache__/
+scripts/tinybeauty/weights/
+scripts/gpu/faces/
+scripts/gpu/results/
+results.zip
+pilot-results.zip

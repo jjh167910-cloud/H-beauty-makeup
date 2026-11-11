@@ -1,10 +1,16 @@
 import {
   ArrowCounterClockwise,
   ArrowLeft,
+  ArrowUUpLeft,
+  ArrowUUpRight,
+  MagnifyingGlassMinus,
+  BezierCurve,
   ArrowRight,
   CalendarBlank,
   CalendarCheck,
   CalendarPlus,
+  Aperture,
+  Camera,
   CaretLeft,
   CaretUp,
   ChatCircleDots,
@@ -16,10 +22,12 @@ import {
   DownloadSimple,
   FlowerLotus,
   HairDryer,
-  HandPalm,
+  Pause,
+  FloppyDisk,
   Heart,
   House,
   IconContext,
+  ImageSquare,
   Info,
   MagnifyingGlass,
   MapPin,
@@ -48,6 +56,9 @@ import {
   X,
   type IconProps,
   type IconWeight,
+  VideoCamera,
+  Eye,
+  Faders,
 } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
 
@@ -109,7 +120,6 @@ const ICONS = {
   up: CaretUp,
   compare: SquareSplitHorizontal,
   share: ShareNetwork,
-  download: DownloadSimple,
   info: Info,
   play: Play,
   clock: Clock,
@@ -139,7 +149,24 @@ const ICONS = {
   styling: HairDryer,
   bridal: Crown,
   beauty: PaintBrush,
-  nails: HandPalm,
+  /* AI try-on */
+  camera: Camera,
+  gallery: ImageSquare,
+  magic: Sparkle,
+  download: DownloadSimple,
+  live: VideoCamera,
+  capture: Aperture,
+  pause: Pause,
+  outline: BezierCurve,
+  undo: ArrowUUpLeft,
+  redo: ArrowUUpRight,
+  zoomOut: MagnifyingGlassMinus,
+  /** Her photo without the makeup, while held. */
+  peek: Eye,
+  /** Fine-tune each part of the face. */
+  tune: Faders,
+  brush: PaintBrush,
+  save: FloppyDisk,
 } as const;
 
 export type IconName = keyof typeof ICONS;

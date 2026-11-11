@@ -1,14 +1,17 @@
-import { useRef, useState } from "react";
+import { Suspense, lazy, useRef, useState } from "react";
 import { persian } from "@/data/catalog";
 import { MAKEUP_ARTIST } from "@/data/makeup";
-import { lookPhoto, MAKEUP_CURATED_80 } from "@/data/makeup-photos";
-import { breakdown, serviceForStyle, tagsFor, type MakeupStyle } from "@/data/makeup-styles";
+import { lookPhoto } from "@/data/makeup-photos";
+import { breakdown, serviceForStyle, styleById, tagsFor, type MakeupStyle } from "@/data/makeup-styles";
+import { recipeLines, serviceFor } from "@/data/my-makeup";
 import { formatMinutes, formatPrice, serviceById } from "@/data/salon";
 import { useSalon } from "@/lib/salon-store";
 import { Icon } from "../icons";
 import { Button, IconButton, Media, Sheet, haptic, useSalonActions } from "../ui";
 
-/* Makeup style detail (design sheet screen 4). */
+/* Makeup style detail (design sheet screen 4) + AI try-on on the customer's photo. */
+
+const TryOnView = lazy(() => import("./tryon"));
 
 const SLIDES = [
   { size: "full", label: "چهره" },
@@ -27,6 +30,7 @@ export function MakeupSheet({ open, style, onClose }: { open: boolean; style: Ma
     .map((id) => serviceById.get(id))
     .filter((service): service is NonNullable<typeof service> => Boolean(service));
   const [picked, setPicked] = useState<string[]>([main]);
+  const [tryOn, setTryOn] = useState(false);
 
   function show(index: number) {
     const el = track.current;
@@ -37,6 +41,19 @@ export function MakeupSheet({ open, style, onClose }: { open: boolean; style: Ma
   function onScroll() {
     const el = track.current;
     if (el) setSlide(Math.round(Math.abs(el.scrollLeft) / Math.max(1, el.clientWidth)));
+  }
+
+  if (tryOn) {
+    return (
+      <Sheet open={open} onClose={onClose} title="امتحان روی عکس من" full
+        leading={<IconButton icon="back" label="بازگشت به جزئیات" size="sm" onClick={() => setTryOn(false)} />}>
+        <Suspense fallback={<div className="tryon__loading" role="status">در حال آماده‌سازی…</div>}>
+          <TryOnView style={style} onBook={(id, mine) => openBooking(mine
+            ? { services: [serviceFor(mine.recipe)], stylist: MAKEUP_ARTIST, mine: { name: mine.name, lines: recipeLines(mine.recipe) } }
+            : { services: [serviceForStyle(styleById.get(id) ?? style)], stylist: MAKEUP_ARTIST, makeupId: id })} />
+        </Suspense>
+      </Sheet>
+    );
   }
 
   return (
@@ -52,31 +69,31 @@ export function MakeupSheet({ open, style, onClose }: { open: boolean; style: Ma
         </Button>
       }
     >
-      <div className="mk-detail" data-curated80={MAKEUP_CURATED_80 && Boolean(style.promptNumber) || undefined}>
+      <div className="mk-detail">
         <div className="mk-detail__stage">
           <div className="mk-detail__track" ref={track} onScroll={onScroll} aria-label={`تصاویر سبک ${style.title}`}>
             {SLIDES.map((item, index) => (
               <figure key={item.size} className="mk-detail__slide" data-size={item.size} aria-label={`${item.label} · ${persian(index + 1)} از ${persian(SLIDES.length)}`}>
-                <Media src={lookPhoto(style.id, style.promptNumber ? "full" : item.size)} alt={style.promptNumber && index ? `نمای برش‌خوردهٔ ${item.label} از پرتره ${style.title}` : `${item.label} در سبک ${style.title}`} loading={index ? "lazy" : undefined} />
+                <Media src={lookPhoto(style.id, item.size)} alt={`${item.label} در سبک ${style.title}`} loading={index ? "lazy" : undefined} />
               </figure>
             ))}
           </div>
-          {!(MAKEUP_CURATED_80 && style.promptNumber) ? <IconButton icon="heart" variant="glass" love pressed={saved} className="mk-detail__fav"
-            label={saved ? "حذف از ذخیره‌شده‌ها" : "ذخیره این سبک"} onClick={() => { haptic(); toggleFav(style.id); }} /> : null}
+          <IconButton icon="heart" variant="glass" love pressed={saved} className="mk-detail__fav"
+            label={saved ? "حذف از ذخیره‌شده‌ها" : "ذخیره این سبک"} onClick={() => { haptic(); toggleFav(style.id); }} />
           <span className="mk-detail__count" aria-hidden="true">{persian(slide + 1)}/{persian(SLIDES.length)}</span>
           <span className="mk-detail__tag">نمونه هوش مصنوعی</span>
         </div>
 
-        {MAKEUP_CURATED_80 && style.promptNumber ? <div className="mk-curated-save">
-          <Button variant="tonal" icon="heart" size="sm"
-            onClick={() => { haptic(); toggleFav(style.id); }}>{saved ? "حذف از ذخیره‌شده‌ها" : "ذخیره این سبک"}</Button>
-          <span>تصاویر، طرح الهام‌بخش هستند و نمونه‌کار اجرایی سالن نیستند.</span>
-        </div> : null}
+        <button type="button" className="mk-tryon" onClick={() => { haptic(); setTryOn(true); }}>
+          <span className="mk-tryon__icon"><Icon name="magic" size={20} weight="fill" /></span>
+          <span className="mk-tryon__copy"><strong>امتحان روی عکس من</strong><small>این میکاپ را با هوش مصنوعی روی سلفی خودتان ببینید</small></span>
+          <Icon name="chevron" size={18} />
+        </button>
+
         <div className="mk-detail__intro">
           <small lang="en">{style.en}</small>
           <h2>{style.title}</h2>
           <p>{style.detail}</p>
-          {MAKEUP_CURATED_80 && style.promptNumber ? <p className="mk-detail__source-note">تصویر هوش مصنوعیِ منتخب، برای الهام میکاپ است؛ نمای چشم و لب از همان عکس اصلی برش خورده است، نه نمونه اجرای واقعی سالن.</p> : null}
           <ul className="mk-tags" aria-label="ویژگی‌ها">
             {tagsFor(style).map((tag) => <li key={tag}>{tag}</li>)}
           </ul>
@@ -85,7 +102,7 @@ export function MakeupSheet({ open, style, onClose }: { open: boolean; style: Ma
         <div className="mk-thumbs" role="group" aria-label="انتخاب تصویر">
           {SLIDES.map((item, index) => (
             <button key={item.size} type="button" aria-pressed={slide === index} aria-label={`نمای ${item.label}`} onClick={() => show(index)}>
-              <Media src={lookPhoto(style.id, style.promptNumber ? "sm" : item.size === "full" ? "sm" : item.size)} alt="" loading="lazy" />
+              <Media src={lookPhoto(style.id, item.size === "full" ? "sm" : item.size)} alt="" loading="lazy" />
             </button>
           ))}
         </div>

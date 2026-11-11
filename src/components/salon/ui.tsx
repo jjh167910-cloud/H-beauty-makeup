@@ -1,3 +1,4 @@
+import type { MyMakeupNote } from "@/lib/salon-store";
 import { createContext, useContext, useId, useState, type ButtonHTMLAttributes, type ImgHTMLAttributes, type ReactNode } from "react";
 import { Drawer } from "vaul";
 import { cn } from "@/lib/cn";
@@ -10,7 +11,6 @@ export type SheetState =
   | { kind: "discover"; id: number }
   | { kind: "service"; id: string }
   | { kind: "makeup"; id: string }
-  | { kind: "nail"; id: string }
   | { kind: "booking" }
   | { kind: "compare" }
   | { kind: "consult" }
@@ -18,7 +18,11 @@ export type SheetState =
   | null;
 
 /** `services` replaces the cart (rebooking); `service` adds one service to it. */
-export type BookingIntent = { service?: string; services?: string[]; stylist?: string; lookId?: number; makeupId?: string; nailStyleId?: string; note?: string };
+export type BookingIntent = {
+  service?: string; services?: string[]; stylist?: string; lookId?: number; makeupId?: string; note?: string;
+  /** Her own makeup («میکاپ من»): its name and recipe as text for the artist. */
+  mine?: MyMakeupNote;
+};
 
 export type SalonActions = {
   go: (tab: Tab) => void;

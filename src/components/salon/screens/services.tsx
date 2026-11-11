@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { SERVICES, SERVICE_CATEGORIES, formatMinutes, formatPrice, type ServiceCategory } from "@/data/salon";
-import { NAIL_COUNTS } from "@/data/nail-styles";
 import { hasPhoto, lookPhoto } from "@/data/makeup-photos";
 import { useSalon } from "@/lib/salon-store";
 import { Icon } from "../icons";
@@ -80,13 +79,6 @@ export function ServicesScreen() {
                   <Icon name="chevron" size={16} />
                 </button>
               ) : null}
-              {category.key === "nails" ? (
-                <button type="button" className="nail-service-entry" onClick={() => go("nails")} aria-label="ورود به گالری طراحی ناخن">
-                  <span className="nail-service-entry__icon"><Icon name="nails" size={25} weight="duotone" /></span>
-                  <span><strong>گالری طراحی ناخن</strong><small>رنگ، فرم، فرنچ و {NAIL_COUNTS.total} ایده برای انتخاب طرح دلخواه</small></span>
-                  <Icon name="chevron" size={17} />
-                </button>
-              ) : null}
               <div className="studio-service-list">
                 {services.map((service, index) => {
                   const selected = cart.includes(service.id);
@@ -127,7 +119,7 @@ export function ServicesScreen() {
 
       <section className="studio-service-footer px-gutter">
         <Ornament />
-        <p>قیمت‌ها برآورد «شروع از» هستند و پس از بررسی جزئیات هر خدمت در سالن مشخص می‌شوند. همه خدمات قابل درخواست‌اند؛ تأیید نوبت توسط سالن انجام می‌شود.</p>
+        <p>قیمت‌ها برآورد «شروع از» هستند و پس از بررسی شرایط مو در سالن مشخص می‌شوند. همه خدمات قابل درخواست‌اند؛ تأیید نوبت توسط سالن انجام می‌شود.</p>
         <Button variant="gold" orb onClick={() => openBooking()}>ساخت درخواست نوبت</Button>
       </section>
     </div>

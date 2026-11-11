@@ -4,8 +4,7 @@
  * and breakdown text.
  */
 
-import { CURATED_MAKEUP_40 } from "./makeup-curated-40";
-import { CURATED_MAKEUP_43_82 } from "./makeup-curated-43-82";
+import signatures from "./look-signatures.json";
 
 export type Skin = "sheer" | "matte" | "dewy" | "glow" | "bronzed";
 export type Shadow = "none" | "wash" | "crease" | "cutcrease" | "halo" | "smoky" | "gradient";
@@ -55,14 +54,13 @@ export type MakeupStyle = {
   look: FaceLook;
   /** The look worn in the reference model photo. */
   reference?: boolean;
-  promptNumber?: number;
 };
 
 function style(id: string, category: StyleCategory, title: string, en: string, detail: string, look: FaceLook, reference?: boolean): MakeupStyle {
   return { id, category, title, en, detail, look, reference };
 }
 
-const LEGACY_MAKEUP_STYLES: MakeupStyle[] = [
+export const MAKEUP_STYLES: MakeupStyle[] = [
   /* ---------- Everyday ---------- */
   style("no-makeup", "everyday", "میکاپ بدون میکاپ", "NO-MAKEUP MAKEUP", "پوست یکدست با پوشش بسیار سبک؛ فقط کمی ریمل و بالم رنگی.",
     { skin: "sheer", shadow: "wash", lid: ["#d9b19f", "#c39a87"], liner: "none", lashes: "natural", brow: "natural", blush: "apples", blushColor: "#e3a394", lip: "gloss", lipColor: "#c9877c" }),
@@ -166,50 +164,30 @@ const LEGACY_MAKEUP_STYLES: MakeupStyle[] = [
     { skin: "dewy", shadow: "wash", lid: ["#f2b9c0", "#e08e9d"], liner: "puppy", lashes: "volume", brow: "natural", blush: "under", blushColor: "#f29aa8", lip: "gloss", lipColor: "#d9607a", accents: ["aegyo", "bottomLashes", "glitter"] }),
 ];
 
-/** New portfolio is opt-in; preserve all original IDs for users' saved/booked looks. */
-const CURATED_80_STYLES: MakeupStyle[] = [...CURATED_MAKEUP_40, ...CURATED_MAKEUP_43_82].map((item) => {
-  const en = item.nameEn.toLowerCase();
-  const brief = item.description;
-  const smoky = /smokey|smoky|grunge|kohl|دودی|اسموکی|سرمه/.test(en + brief);
-  const bridal = item.category === "bridal";
-  const liner = /liner|line|wing|cat eye|fox eye|reverse/i.test(item.nameEn);
-  const graphic = /graphic|neon|white liner|gold liner/i.test(item.nameEn);
-  const coloredEye = /silver|gold|teal|blue|chrome|rose gold|fuchsia|sunflower|graphic|neon|foil/i.test(item.nameEn);
-  const skin: Skin = /bronze|برنزه/.test(en + brief) ? "bronzed"
-    : /مات/.test(item.finish) ? "matte"
-    : /براق|درخشان|شبنم|شیشه|صدفی/.test(item.finish) ? "glow" : "sheer";
-  const shadow: Shadow = smoky ? "smoky" : /halo|هاله/.test(en+brief) ? "halo"
-    : /cut crease|کات کریس|کات‌کریس/.test(en+brief) ? "cutcrease"
-    : /گرادیان|gradient|sunset/.test(en+brief) ? "gradient"
-    : /چین پلک|crease/.test(en+brief) ? "crease" : /بدون سایه/.test(brief) ? "none" : "wash";
-  const line: Liner = graphic ? "graphic"
-    : /siren|سایرن/.test(en+brief) ? "siren"
-    : /fox eye|روباهی/.test(en+brief) ? "fox"
-    : smoky ? "smudge" : liner || /کشیده|بال‌دار/.test(brief) ? "wing" : "thin";
-  const look: FaceLook = {
-    skin, shadow, lid: [item.lid, item.pigment], liner: line,
-    lashes: /دراماتیک|نمایشی|پرپشت|حجیم/.test(brief) ? "dramatic" : "volume",
-    brow: /لیفت/.test(brief) ? "lifted" : /پررنگ|مشخص/.test(brief) ? "bold" : "natural",
-    blush: /بینی/.test(brief) ? "nose" : /شقیقه/.test(brief) ? "draped" : "high",
-    blushColor: item.blush,
-    lip: /مات/.test(brief) && /رژلب|لب/.test(brief) ? "matte"
-      : /براق|شیشه/.test(brief) ? "gloss" : /دورلب|مداد لب|خط لب/.test(brief) ? "lined" : "satin",
-    lipColor: item.pigment,
-    accents: coloredEye ? ["shimmer"] : bridal ? ["contour"] : undefined,
-  };
-  const category: StyleCategory = bridal ? "bridal"
-    : item.category === "natural" ? "everyday"
-    : item.category === "soft" ? "soft"
-    : item.category === "evening" ? (smoky ? "smoky" : "glam")
-    : item.category === "eyes" ? (liner || graphic ? "liner" : "color")
-    : "glam";
-  return {id:item.id,category,title:item.name,en:item.nameEn,detail:item.description,look,promptNumber:item.promptNumber};
-});
-export const MAKEUP_STYLES: MakeupStyle[] = import.meta.env.VITE_MAKEUP_CURATED_80 === "true"
-  ? CURATED_80_STYLES
-  : LEGACY_MAKEUP_STYLES;
-export const styleById = new Map([...LEGACY_MAKEUP_STYLES, ...CURATED_80_STYLES].map((item) => [item.id, item]));
+export const styleById = new Map(MAKEUP_STYLES.map((item) => [item.id, item]));
 export const REFERENCE_STYLE = MAKEUP_STYLES.find((item) => item.reference) ?? MAKEUP_STYLES[0];
+
+/**
+ * The looks in an order that shows the catalog's range (the try-on's look rail): `first`, then each time the look most
+ * unlike all those before it, by each look's signature (its catalog photo's change on her lids, past her eyes, cheeks,
+ * lips..., from `strength.py sig`). So the rail's first pictures aren't four natural looks in a row; looks much alike
+ * come last. Looks without a signature keep their catalog order, at the end.
+ */
+export function variedLooks(first: MakeupStyle, all: MakeupStyle[] = MAKEUP_STYLES): MakeupStyle[] {
+  const sig = signatures as Record<string, number[]>;
+  const dist = (a: number[], b: number[]) => Math.sqrt(a.reduce((sum, x, i) => sum + (x - b[i]) ** 2, 0));
+  const rest = all.filter((item) => item.id !== first.id && sig[item.id]);
+  const near = new Map(rest.map((item) => [item.id, sig[first.id] ? dist(sig[item.id], sig[first.id]) : Infinity]));
+  const out = [first];
+  while (rest.length) {
+    let k = 0;
+    for (let i = 1; i < rest.length; i++) if (near.get(rest[i].id)! > near.get(rest[k].id)!) k = i;
+    const [pick] = rest.splice(k, 1);
+    out.push(pick);
+    for (const item of rest) near.set(item.id, Math.min(near.get(item.id)!, dist(sig[item.id], sig[pick.id])));
+  }
+  return [...out, ...all.filter((item) => item.id !== first.id && !sig[item.id])];
+}
 
 export function categoryOf(key: StyleCategory) {
   return STYLE_CATEGORIES.find((item) => item.key === key) ?? STYLE_CATEGORIES[0];

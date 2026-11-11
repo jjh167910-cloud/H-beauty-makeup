@@ -158,27 +158,21 @@ test("mobile action controls meet minimum tap dimensions", async ({ page }) => {
 
 test("offline homepage portrait failure has a readable fallback", async ({ page }) => {
   await prepare(page);
-  await page.route("**/looks/1.webp", route => route.fulfill({status:404,body:"missing"}));
+  await page.route("**/looks/30.webp", route => route.fulfill({status:404,body:"missing"}));
   await page.goto("/");
   await expect(page.locator(".salon24-hero__photo")).toHaveAttribute("data-image-error", "true");
   await expect(page.locator(".salon26-hero__missing")).toBeVisible();
 });
 
-test("square salon hairstyle thumbnails preserve full wide-hair compositions", async ({ page }) => {
+test("wide-hair salon thumbnails use intentional horizontal crop positions", async ({ page }) => {
   await prepare(page);
   await page.goto("/");
-  for (const id of [92, 26, 30]) {
-    const img = page.locator(`.salon24-style-card img[src="/looks/sm/${id}.webp"]`);
-    await img.scrollIntoViewIfNeeded();
-    await expect(img).toHaveCSS("object-fit", "contain");
-    const framing = await img.evaluate((image) => {
-      const photo = image as HTMLImageElement;
-      const frame = photo.parentElement!.getBoundingClientRect();
-      return { frameRatio: frame.width / frame.height, photoRatio: photo.naturalWidth / photo.naturalHeight };
-    });
-    expect(framing.frameRatio).toBeCloseTo(1, 1);
-    expect(framing.photoRatio).toBeCloseTo(1, 1);
-  }
+  const braid = page.locator('.salon24-style-card img[src="/looks/sm/77.webp"]');
+  const curly = page.locator('.salon24-style-card img[src="/looks/sm/84.webp"]');
+  await expect(braid).toHaveCSS("object-position", "11% 32%");
+  await expect(curly).toHaveCSS("object-position", "6% 32%");
+  const normal = page.locator('.salon24-style-card img[src="/looks/sm/30.webp"]');
+  await expect(normal).toHaveCSS("object-position", "50% 32%");
 });
 
 for (const theme of ["light", "dark"] as const) {

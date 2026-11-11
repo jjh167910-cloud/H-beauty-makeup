@@ -1,14 +1,13 @@
 import { create } from "zustand";
 import { familyById } from "@/data/catalog";
 import { styleById } from "@/data/makeup-styles";
-import { nailById } from "@/data/nail-styles";
 import { serviceById, stylistById } from "@/data/salon";
 
 const KEY = "hananeh-atelier-v1";
 
-export type Tab = "home" | "services" | "looks" | "makeup" | "nails" | "bookings" | "me" | "design";
-/** Order drives transition direction; makeup, nails, and design are reached from screens, not the tab bar. */
-export const TABS: Tab[] = ["home", "services", "looks", "makeup", "nails", "bookings", "me", "design"];
+export type Tab = "home" | "services" | "looks" | "makeup" | "bookings" | "me" | "design";
+/** Order drives transition direction; "makeup" and "design" are reached from screens, not the tab bar. */
+export const TABS: Tab[] = ["home", "services", "looks", "makeup", "bookings", "me", "design"];
 
 export type ThemePref = "system" | "light" | "dark";
 
@@ -24,11 +23,14 @@ export type BookingRequest = {
   lookId: number | null;
   /** Makeup style the request was made from, if any. */
   makeupId: string | null;
-  /** Selected nail inspiration reference. */
-  nailStyleId: string | null;
+  /** Her own makeup («میکاپ من») sent with the request, if any. */
+  mine?: MyMakeupNote | null;
   createdAt: number;
   sent: boolean;
 };
+
+/** Her own makeup («میکاپ من») as the artist reads it: its name and one line per step (recipeLines in data/my-makeup.ts). */
+export type MyMakeupNote = { name: string; lines: string[] };
 
 export type Draft = {
   stylist: string;
@@ -37,15 +39,20 @@ export type Draft = {
   note: string;
   lookId: number | null;
   makeupId: string | null;
-  nailStyleId: string | null;
+  mine: MyMakeupNote | null;
 };
 
-const EMPTY_DRAFT: Draft = { stylist: "any", date: "", time: "", note: "", lookId: null, makeupId: null, nailStyleId: null };
+const EMPTY_DRAFT: Draft = { stylist: "any", date: "", time: "", note: "", lookId: null, makeupId: null, mine: null };
+
+function mineNote(value: unknown): MyMakeupNote | null {
+  const v = value as Partial<MyMakeupNote> | null;
+  if (!v || typeof v.name !== "string" || !Array.isArray(v.lines)) return null;
+  return { name: v.name.slice(0, 40), lines: v.lines.filter((x): x is string => typeof x === "string").slice(0, 12).map((x) => x.slice(0, 200)) };
+}
 
 type Persisted = {
   favs?: unknown;
   favMakeup?: unknown;
-  favNails?: unknown;
   compare?: unknown;
   cart?: unknown;
   bookings?: unknown;
@@ -65,11 +72,6 @@ function makeupIds(value: unknown) {
   return value.filter((id): id is string => typeof id === "string" && styleById.has(id));
 }
 
-function nailIds(value: unknown) {
-  if (!Array.isArray(value)) return [];
-  return value.filter((id): id is string => typeof id === "string" && nailById.has(id));
-}
-
 function serviceIds(value: unknown) {
   if (!Array.isArray(value)) return [];
   return value.filter((id): id is string => typeof id === "string" && serviceById.has(id));
@@ -87,7 +89,7 @@ function bookingList(value: unknown): BookingRequest[] {
     stylist: stylistById.has(item.stylist) ? item.stylist : "any",
     lookId: typeof item.lookId === "number" && familyById.has(item.lookId) ? item.lookId : null,
     makeupId: typeof item.makeupId === "string" && styleById.has(item.makeupId) ? item.makeupId : null,
-    nailStyleId: typeof item.nailStyleId === "string" && nailById.has(item.nailStyleId) ? item.nailStyleId : null,
+    mine: mineNote(item.mine),
     sent: Boolean(item.sent),
   }));
 }
@@ -97,8 +99,6 @@ type SalonState = {
   favs: number[];
   /** Saved makeup style ids. */
   favMakeup: string[];
-  /** Saved nail references, kept independently from makeup styles. */
-  favNails: string[];
   compare: number[];
   cart: string[];
   draft: Draft;
@@ -116,7 +116,6 @@ type SalonState = {
   setTab: (tab: Tab) => void;
   toggleFav: (id: number) => void;
   toggleFavMakeup: (id: string) => boolean;
-  toggleFavNail: (id: string) => boolean;
   toggleCompare: (id: number) => "added" | "removed" | "limit";
   clearCompare: () => void;
   toggleCart: (id: string) => boolean;
@@ -141,9 +140,9 @@ type SalonState = {
 
 export const useSalon = create<SalonState>((set, get) => {
   function save() {
-    const { favs, favMakeup, favNails, compare, cart, bookings, theme, profile, welcomed } = get();
+    const { favs, favMakeup, compare, cart, bookings, theme, profile, welcomed } = get();
     try {
-      localStorage.setItem(KEY, JSON.stringify({ favs, favMakeup, favNails, compare, cart, bookings, theme, profile, welcomed }));
+      localStorage.setItem(KEY, JSON.stringify({ favs, favMakeup, compare, cart, bookings, theme, profile, welcomed }));
       if (get().storageError) set({ storageError: false });
     } catch {
       // The UI may still hold edits in memory, but they are not durable.
@@ -160,7 +159,6 @@ export const useSalon = create<SalonState>((set, get) => {
     tab: "home",
     favs: [],
     favMakeup: [],
-    favNails: [],
     compare: [],
     cart: [],
     draft: EMPTY_DRAFT,
@@ -183,7 +181,6 @@ export const useSalon = create<SalonState>((set, get) => {
         set({
           favs: ids(data.favs),
           favMakeup: makeupIds(data.favMakeup),
-          favNails: nailIds(data.favNails),
           compare: ids(data.compare, 3),
           cart: serviceIds(data.cart),
           bookings: bookingList(data.bookings),
@@ -208,12 +205,6 @@ export const useSalon = create<SalonState>((set, get) => {
     toggleFavMakeup: (id) => {
       const has = get().favMakeup.includes(id);
       update({ favMakeup: has ? get().favMakeup.filter((item) => item !== id) : [...get().favMakeup, id] });
-      return !has;
-    },
-    toggleFavNail: (id) => {
-      if (!nailById.has(id)) return false;
-      const has = get().favNails.includes(id);
-      update({ favNails: has ? get().favNails.filter((item) => item !== id) : [...get().favNails, id] });
       return !has;
     },
     toggleCompare: (id) => {
@@ -250,7 +241,7 @@ export const useSalon = create<SalonState>((set, get) => {
       } catch {
         storageError = true;
       }
-      set({ welcomed: false, favs: [], favMakeup: [], favNails: [], compare: [], cart: [], bookings: [], profile: { name: "", phone: "" }, theme: "system", draft: EMPTY_DRAFT, storageError });
+      set({ welcomed: false, favs: [], favMakeup: [], compare: [], cart: [], bookings: [], profile: { name: "", phone: "" }, theme: "system", draft: EMPTY_DRAFT, storageError });
     },
     welcome: () => update({ welcomed: true }),
     setFilter: (filter) => set({ filter, savedOnly: false }),

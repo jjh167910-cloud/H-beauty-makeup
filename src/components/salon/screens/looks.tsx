@@ -82,7 +82,7 @@ export function LooksScreen() {
       </header>
       <section className="studio-look-tools" aria-label="ابزارهای جست‌وجوی استایل">
         <div className="studio-look-tools__title px-gutter">
-          <h2>آرشیو استایل</h2>
+          <span>آرشیو استایل</span>
           {list.length ? (
             <Button variant="secondary" size="sm" icon="play" onClick={() => openDiscover(list[0].id)}>مرور تمام‌صفحه</Button>
           ) : null}

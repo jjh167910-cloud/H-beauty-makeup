@@ -231,7 +231,7 @@ test("salon brand and photo-led catalog remain legible in dark RTL", async ({ pa
   await page.screenshot({ path: "test-results/salon-home-320-dark.png", fullPage: true });
 });
 
-test("lookbook photos show full square sources with actions below the images", async ({ page }) => {
+test("lookbook photos share uniform 3:4 frames with actions below the images", async ({ page }) => {
   await seed(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/#/looks");
@@ -252,7 +252,7 @@ test("lookbook photos show full square sources with actions below the images", a
   }));
   expect(positions.length).toBeGreaterThanOrEqual(4);
   for (const p of positions) {
-    expect(Math.abs(p.width / p.height - 1)).toBeLessThan(0.025);
+    expect(Math.abs(p.width / p.height - 0.75)).toBeLessThan(0.025);
     expect(p.actionTop).toBeGreaterThanOrEqual(p.imageBottom - 1);
     expect(p.overlaid).toBe(false);
   }
@@ -295,7 +295,7 @@ test("featured salon photography contains no icons or caption overlays", async (
     const box = node.getBoundingClientRect();
     return { width: box.width, height: box.height };
   });
-  expect(Math.abs(rect.width / rect.height - 1)).toBeLessThan(0.025);
+  expect(Math.abs(rect.width / rect.height - 0.75)).toBeLessThan(0.025);
 });
 
 test("full-screen discovery keeps its icon controls outside the portrait", async ({ page }) => {

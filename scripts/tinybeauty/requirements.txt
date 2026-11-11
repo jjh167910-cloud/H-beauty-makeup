@@ -1,0 +1,10 @@
+# Python 3.11+ for training the look networks (not needed to run the app)
+numpy
+opencv-python-headless
+mediapipe>=0.10.20
+torch>=2.3
+onnx
+onnxruntime
+remotezip
+transformers
+pillow

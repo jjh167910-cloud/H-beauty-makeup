@@ -1,6 +1,5 @@
 import { familyById } from "@/data/catalog";
 import { styleById } from "@/data/makeup-styles";
-import { nailById } from "@/data/nail-styles";
 import { SALON, formatMinutes, longDate, stylistName, summarize, timeLabel } from "@/data/salon";
 import type { BookingRequest } from "./salon-store";
 
@@ -18,8 +17,7 @@ export function bookingMessage(booking: BookingRequest) {
   if (look) lines.push(`مدل منتخب: ${look.code} — ${look.name}`);
   const makeup = booking.makeupId ? styleById.get(booking.makeupId) : null;
   if (makeup) lines.push(`سبک میکاپ: ${makeup.title} (${makeup.en})`);
-  const nail = booking.nailStyleId ? nailById.get(booking.nailStyleId) : null;
-  if (nail) lines.push(`طرح ناخن منتخب: ${nail.title} (${nail.en}) — شناسه ${nail.id}`);
+  if (booking.mine) lines.push(`میکاپ خودم («${booking.mine.name}»):`, ...booking.mine.lines.map((line) => `• ${line}`));
   lines.push(`نام: ${booking.name}`, `شماره تماس: ${booking.phone}`);
   if (booking.note.trim()) lines.push(`توضیحات: ${booking.note.trim()}`);
   lines.push("", "لطفاً برای تأیید زمان با من تماس بگیرید. ممنونم.");

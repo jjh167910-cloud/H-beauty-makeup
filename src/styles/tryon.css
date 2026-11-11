@@ -1,0 +1,309 @@
+/* H-Beauty: AI makeup try-on (entry card on the style detail + try-on view). */
+@layer components {
+  .mk-tryon {
+    display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:.75rem;width:100%;padding:.8rem .9rem;text-align:start;
+    border-radius:var(--radius-lg);background:linear-gradient(135deg, var(--color-gold-soft), var(--color-surface) 70%);
+    border:1px solid color-mix(in oklch, var(--color-gold) 45%, var(--color-line));color:var(--color-ink);
+  }
+  .mk-tryon:active {transform:scale(.99);}
+  .mk-tryon__icon {display:grid;place-items:center;width:2.6rem;height:2.6rem;border-radius:50%;background:var(--color-gold);color:var(--color-on-gold);}
+  .mk-tryon__copy {display:grid;gap:.1rem;min-width:0;}
+  .mk-tryon__copy strong {font-size:.95rem;font-weight:760;}
+  .mk-tryon__copy small {font-size:.74rem;color:var(--color-ink-2);line-height:1.6;}
+
+  .tryon__loading {padding:3rem 1rem;text-align:center;color:var(--color-ink-2);}
+  .tryon {display:grid;gap:1rem;padding-bottom:1rem;}
+  .tryon__intro {display:grid;gap:.85rem;text-align:center;justify-items:center;}
+  .tryon__hero {position:relative;width:min(13rem, 62%);border-radius:50%;overflow:hidden;aspect-ratio:1;box-shadow:var(--shadow-2);border:3px solid var(--color-surface);}
+  .tryon__hero .media {width:100%;height:100%;}
+  .tryon__hero .media img {object-position:center 32%;}
+  .tryon__badge {
+    position:absolute;inset-inline:0;inset-block-end:.6rem;margin-inline:auto;width:max-content;display:flex;align-items:center;gap:.3rem;
+    padding:.2rem .6rem;border-radius:var(--radius-pill);background:rgb(20 12 16 / .6);color:#fff;font-size:.68rem;font-weight:700;
+  }
+  .tryon__intro h2 {font-size:1.2rem;font-weight:760;line-height:1.6;}
+  .tryon__intro > p {font-size:.86rem;line-height:1.9;color:var(--color-ink-2);max-width:30rem;}
+  .tryon__actions {display:grid;gap:.6rem;width:100%;max-width:24rem;}
+  .tryon__get {display:grid;gap:.55rem;justify-items:center;width:100%;max-width:24rem;}
+  .tryon__get small {font-size:.74rem;line-height:1.8;color:var(--color-ink-2);}
+  .tryon__get strong {font-size:.85rem;line-height:1.8;color:var(--color-ink);}
+  .tryon__bar {width:100%;height:.55rem;border-radius:var(--radius-pill);background:var(--color-sunken);overflow:hidden;}
+  .tryon__bar span {display:block;height:100%;border-radius:inherit;background:var(--color-gold);transition:width .2s ease;}
+  .tryon__tips {display:flex;flex-wrap:wrap;justify-content:center;gap:.4rem;}
+  .tryon__tips li {padding:.25rem .65rem;border-radius:var(--radius-pill);background:var(--color-sunken);font-size:.72rem;color:var(--color-ink-2);}
+  .tryon__privacy {display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:var(--color-ink-3);text-align:start;}
+
+  .tryon__result {display:grid;gap:.9rem;}
+  .tryon__stage {
+    position:relative;display:grid;border-radius:var(--radius-xl);overflow:hidden;background:var(--color-sunken);box-shadow:var(--shadow-2);
+    min-height:16rem;touch-action:pan-y;
+  }
+  .tryon__img {grid-area:1/1;width:100%;max-height:68vh;object-fit:contain;display:block;}
+  .tryon__img--empty {aspect-ratio:4/5;}
+  .tryon__img--after {pointer-events:none;}
+  .tryon__was {grid-area:1/1;width:100%;max-height:68vh;object-fit:contain;display:block;pointer-events:none;}
+  .tryon__stage--live {aspect-ratio:3/4;max-height:68vh;}
+  .tryon__live {grid-area:1/1;width:100%;height:100%;object-fit:cover;display:block;transform:scaleX(-1);}
+  .tryon__hint {
+    position:absolute;inset-inline:1rem;inset-block-end:1rem;padding:.4rem .8rem;border-radius:var(--radius-pill);text-align:center;
+    background:rgb(20 12 16 / .55);color:#fff;font-size:.78rem;font-weight:650;pointer-events:none;
+  }
+  .tryon__divider {position:absolute;inset-block:0;width:2px;margin-inline-end:-1px;background:#fff;box-shadow:0 0 0 1px rgb(0 0 0 / .15);pointer-events:none;}
+  .tryon__divider::after {
+    content:"";position:absolute;top:50%;left:50%;width:2.2rem;height:2.2rem;translate:-50% -50%;border-radius:50%;
+    background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M9 7l-5 5 5 5M15 7l5 5-5 5'/%3E%3C/svg%3E") center/1.2rem no-repeat;
+    box-shadow:var(--shadow-2);
+  }
+  .tryon__slider {position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:ew-resize;}
+  /* Hold to see her photo without the makeup. */
+  .tryon__peek {
+    position:absolute;inset-inline-start:.7rem;inset-block-end:.7rem;display:grid;place-items:center;width:2.75rem;height:2.75rem;border-radius:50%;
+    background:rgb(20 12 16 / .55);color:#fff;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+  }
+  .tryon__peek[aria-pressed="true"] {background:var(--color-gold);color:var(--color-on-gold);}
+  .tryon__tag {
+    position:absolute;inset-block-start:.7rem;padding:.15rem .6rem;border-radius:var(--radius-pill);background:rgb(20 12 16 / .55);
+    color:#fff;font-size:.7rem;font-weight:700;pointer-events:none;
+  }
+  .tryon__tag--after {left:.7rem;}
+  .tryon__tag--before {right:.7rem;}
+  .tryon__busy {
+    position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:.5rem;padding:1.5rem;text-align:center;color:#fff;
+    background:rgb(20 12 16 / .45);
+  }
+  .tryon__busy strong {font-size:.95rem;font-weight:720;line-height:1.7;text-shadow:0 1px 6px rgb(0 0 0 / .4);}
+  .tryon__busy small {font-size:.74rem;opacity:.9;}
+  .tryon__bar--light {width:min(14rem, 70%);background:rgb(255 255 255 / .3);}
+  .tryon__bar--light span {background:#fff;}
+
+  /* The look rail: her own face in each look (made on the phone), the look's photo until then. */
+  .tryon__looks-head {display:flex;align-items:baseline;justify-content:space-between;margin-block-end:-.45rem;font-size:.8rem;color:var(--color-ink-2);}
+  .tryon__looks {display:flex;gap:.55rem;overflow-x:auto;padding:.1rem .1rem .4rem;scrollbar-width:none;overscroll-behavior-x:contain;}
+  .tryon__looks::-webkit-scrollbar {display:none;}
+  .tryon__looks button {position:relative;flex:0 0 4.9rem;display:grid;gap:.3rem;justify-items:center;font-size:.64rem;color:var(--color-ink-2);text-align:center;}
+  .tryon__looks button .media {width:4.6rem;height:5.6rem;border-radius:1rem;overflow:hidden;border:2px solid transparent;background:var(--color-sunken);}
+  .tryon__looks button .media img {width:100%;height:100%;object-fit:cover;object-position:center 32%;}
+  .tryon__looks button .tryon__her img {object-position:center 40%;animation:tryon-her .35s ease;}
+  @keyframes tryon-her {from {opacity:0;}}
+  .tryon__looks button[aria-pressed="true"] .media {border-color:var(--color-gold);}
+  .tryon__looks button[aria-pressed="true"] {color:var(--color-ink);font-weight:700;}
+  /* (while a look is being made the others wait; the one being made stays clear) */
+  .tryon__looks button:disabled:not([aria-pressed="true"]) {opacity:.55;}
+  .tryon__looks i {
+    position:absolute;inset-block-start:0;inset-inline-end:.3rem;display:grid;place-items:center;width:1.1rem;height:1.1rem;border-radius:50%;
+    background:var(--color-gold);color:var(--color-on-gold);
+  }
+  .tryon__row {display:flex;flex-wrap:wrap;gap:.5rem;}
+  .tryon__row > * {flex:1 1 8rem;}
+  .tryon__levels {display:grid;grid-template-columns:auto repeat(3, minmax(0, 1fr)) auto;align-items:center;gap:.45rem;font-size:.8rem;color:var(--color-ink-2);}
+  .tryon__levels .tryon__tune-open {width:2.5rem;padding:0;}
+  .tryon__levels .tryon__tune-open[aria-expanded="true"] {background:var(--color-gold);color:var(--color-on-gold);}
+  /* Each part of her face's intensity. */
+  .tryon__zones {display:grid;gap:.35rem;padding:.6rem .8rem;border-radius:var(--radius-lg);background:var(--color-sunken);font-size:.78rem;color:var(--color-ink-2);}
+  .tryon__zone {display:grid;grid-template-columns:6.5rem minmax(0, 1fr) 2.6rem;align-items:center;gap:.6rem;min-height:2.5rem;}
+  .tryon__zone input {width:100%;accent-color:var(--color-gold);}
+  .tryon__zone output {font-variant-numeric:tabular-nums;color:var(--color-ink);font-weight:650;text-align:end;}
+  .tryon__zones .chip {justify-self:start;min-height:2.25rem;}
+  .tryon__levels .chip {justify-content:center;padding-inline:.5rem;min-height:2.5rem;}
+  .tryon__levels .chip:disabled {opacity:.55;}
+  .tryon__clarity {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem .6rem;font-size:.78rem;line-height:1.6;color:var(--color-ink-2);}
+  .tryon__clarity-chips {display:flex;flex-wrap:wrap;gap:.4rem;margin-inline-start:auto;}
+  .tryon__clarity .chip {flex:none;gap:.3rem;min-height:2.5rem;padding-inline:.75rem;}
+  .tryon__clarity .chip:disabled {opacity:.55;}
+  .tryon__fine {font-size:.72rem;line-height:1.8;color:var(--color-ink-3);}
+
+  /* Lipstick picker: shade swatches (scroll sideways) and finish chips. */
+  .tryon__lips {display:grid;gap:.5rem;}
+  .tryon__lips-head {display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;font-size:.8rem;color:var(--color-ink-2);}
+  .tryon__lips-head small {font-size:.74rem;color:var(--color-ink);font-weight:650;}
+  .tryon__swatches {display:flex;align-items:center;gap:.5rem;overflow-x:auto;padding:.3rem .2rem .4rem;scrollbar-width:none;overscroll-behavior-x:contain;}
+  .tryon__swatches::-webkit-scrollbar {display:none;}
+  .tryon__swatch {
+    flex:none;width:2.75rem;height:2.75rem;border-radius:50%;background:var(--swatch);
+    box-shadow:inset 0 -6px 10px rgb(0 0 0 / .18), inset 0 4px 8px rgb(255 255 255 / .22), 0 0 0 1px var(--color-line);
+  }
+  .tryon__swatch[data-finish="gloss"] {background:radial-gradient(circle at 35% 30%, rgb(255 255 255 / .55), transparent 38%), var(--swatch);}
+  .tryon__swatch[data-finish="metallic"] {background:linear-gradient(135deg, rgb(255 255 255 / .55), transparent 45%, rgb(255 255 255 / .3) 70%, transparent), var(--swatch);}
+  .tryon__swatch[data-finish="glitter"] {
+    background:radial-gradient(circle, rgb(255 255 255 / .9) 0 1px, transparent 1.5px) 0 0/6px 6px,
+      radial-gradient(circle, rgb(255 255 255 / .7) 0 1px, transparent 1.5px) 3px 3px/7px 7px, var(--swatch);
+  }
+  .tryon__swatch[aria-pressed="true"] {outline:2.5px solid var(--color-gold);outline-offset:2.5px;}
+  .tryon__swatch--look {
+    width:auto;height:2.75rem;padding-inline:.85rem;border-radius:var(--radius-pill);background:var(--color-sunken);box-shadow:inset 0 0 0 1px var(--color-line);
+    font-size:.74rem;font-weight:650;color:var(--color-ink);white-space:nowrap;
+  }
+  .tryon__swatch:disabled {opacity:.55;}
+  .tryon__finishes {display:grid;grid-template-columns:repeat(5, minmax(0, 1fr));gap:.35rem;}
+  .tryon__finishes .chip {justify-content:center;padding-inline:.3rem;min-height:2.5rem;font-size:.74rem;}
+  .tryon__finishes .chip:disabled {opacity:.55;}
+
+  /* Result / step-by-step switch. */
+  .tryon__modes {display:grid;grid-template-columns:repeat(auto-fit, minmax(0, 1fr));gap:.25rem;padding:.25rem;border-radius:var(--radius-pill);background:var(--color-sunken);}
+  .tryon__modes button {
+    display:flex;align-items:center;justify-content:center;gap:.3rem;min-height:2.5rem;border-radius:var(--radius-pill);padding-inline:.3rem;
+    font-size:.78rem;font-weight:650;color:var(--color-ink-2);white-space:nowrap;
+  }
+  .tryon__modes button[aria-selected="true"] {background:var(--color-surface);color:var(--color-ink);box-shadow:var(--shadow-1, 0 1px 3px rgb(0 0 0 / .12));}
+
+  /* Her own makeup's stage, step card and tutorial bar (tryon-mine.tsx). */
+  .steps {display:grid;gap:.8rem;}
+  .steps__stage {user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}
+  .steps__view {grid-area:1/1;width:100%;max-height:62vh;object-fit:contain;display:block;}
+  .steps__bar {
+    position:absolute;inset-inline:0;inset-block-end:0;display:flex;align-items:center;gap:.6rem;padding:2.2rem .7rem .7rem;
+    background:linear-gradient(to top, rgb(20 12 16 / .72), rgb(20 12 16 / .35) 60%, transparent);color:#fff;
+  }
+  .steps__label {flex:1;display:grid;justify-items:center;text-align:center;min-width:0;}
+  .steps__label small {font-size:.7rem;opacity:.85;}
+  .steps__label strong {font-size:1rem;font-weight:760;line-height:1.5;text-shadow:0 1px 6px rgb(0 0 0 / .35);}
+  .steps__nav {
+    flex:none;display:grid;place-items:center;width:2.9rem;height:2.9rem;border-radius:50%;color:#fff;
+    background:rgb(255 255 255 / .18);box-shadow:inset 0 0 0 1px rgb(255 255 255 / .35);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  }
+  .steps__nav--go {background:var(--color-gold);color:var(--color-on-gold);box-shadow:none;}
+  .steps__nav:disabled {opacity:.35;}
+  .steps__actions {display:flex;flex-wrap:wrap;gap:.5rem;}
+  .steps__actions > * {flex:1 1 9rem;}
+  .steps__rail {display:flex;gap:.4rem;overflow-x:auto;padding:.1rem .1rem .3rem;scrollbar-width:none;overscroll-behavior-x:contain;}
+  .steps__rail::-webkit-scrollbar {display:none;}
+  .steps__rail li {flex:none;}
+  .steps__rail button {
+    display:flex;align-items:center;gap:.35rem;min-height:2.5rem;padding:.2rem .7rem .2rem .3rem;border-radius:var(--radius-pill);
+    background:var(--color-sunken);font-size:.74rem;font-weight:600;color:var(--color-ink-2);white-space:nowrap;
+  }
+  .steps__dot {
+    display:grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:50%;background:var(--color-surface);
+    font-size:.72rem;font-weight:750;color:var(--color-ink-2);box-shadow:inset 0 0 0 1px var(--color-line);
+  }
+  .steps__rail button[data-done] .steps__dot {background:var(--color-gold-soft);color:var(--color-ink);box-shadow:none;}
+  .steps__rail button[aria-current="step"] {background:var(--color-ink);color:var(--color-surface);}
+  .steps__rail button[aria-current="step"] .steps__dot {background:var(--color-gold);color:var(--color-on-gold);box-shadow:none;}
+  .steps__card {
+    display:grid;gap:.55rem;padding:.95rem 1rem;border-radius:var(--radius-lg);background:var(--color-surface);
+    border:1px solid var(--color-line);box-shadow:var(--shadow-1, 0 1px 3px rgb(0 0 0 / .08));
+  }
+  .steps__card header {display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;}
+  .steps__card h3 {font-size:1.1rem;font-weight:760;line-height:1.6;}
+  .steps__card header small {font-size:.66rem;letter-spacing:.12em;color:var(--color-ink-3);}
+  .steps__facts {display:grid;gap:.35rem;font-size:.8rem;line-height:1.7;}
+  .steps__facts div {display:grid;grid-template-columns:3.4rem 1fr;gap:.5rem;align-items:baseline;}
+  .steps__facts dt {color:var(--color-ink-3);font-size:.74rem;}
+  .steps__facts dd {color:var(--color-ink);font-weight:600;}
+  .steps__facts dd small {font-weight:500;color:var(--color-ink-2);}
+  .steps__swatch {
+    display:inline-block;width:1rem;height:1rem;margin-inline-end:.3rem;vertical-align:-.15rem;border-radius:50%;background:var(--swatch);
+    box-shadow:inset 0 -2px 3px rgb(0 0 0 / .18), 0 0 0 1px var(--color-line);
+  }
+  .steps__how {font-size:.84rem;line-height:1.95;color:var(--color-ink);}
+  .steps__tip {display:flex;gap:.35rem;align-items:flex-start;font-size:.76rem;line-height:1.8;color:var(--color-ink-2);}
+  .steps__tip svg {flex:none;margin-top:.3rem;color:var(--color-gold);}
+  .steps__note {font-size:.72rem;line-height:1.8;color:var(--color-ink-3);}
+  .steps__replay {justify-self:start;display:flex;align-items:center;gap:.3rem;min-height:2.5rem;padding-inline:.2rem;font-size:.76rem;color:var(--color-ink-2);}
+  .steps__replay:disabled {opacity:.45;}
+
+  /* Her own makeup's shade chips and amount slider. */
+  .steps__chips {display:flex;gap:.35rem;overflow-x:auto;padding:.1rem .1rem .3rem;scrollbar-width:none;overscroll-behavior-x:contain;}
+  .steps__chips::-webkit-scrollbar {display:none;}
+  .steps__chips .chip {flex:none;min-height:2.5rem;padding-inline:.75rem;font-size:.74rem;}
+  .steps__amount {display:grid;grid-template-columns:auto 1fr 3rem;align-items:center;gap:.6rem;font-size:.78rem;color:var(--color-ink-2);}
+  .steps__amount input {width:100%;min-height:2.75rem;accent-color:var(--color-gold);}
+  .steps__amount output {font-variant-numeric:tabular-nums;text-align:end;color:var(--color-ink);font-weight:650;}
+
+  /* Her own outlines: a quiet row under the result, a note when the app isn't sure, and the editor. */
+  .tryon__outline {display:flex;align-items:center;gap:.45rem;font-size:.78rem;color:var(--color-ink-2);}
+  .tryon__outline > span {flex:1;min-width:0;line-height:1.6;}
+  .tryon__outline .chip {flex:none;gap:.3rem;min-height:2.5rem;padding-inline:.75rem;}
+  .tryon__doubt {
+    display:flex;align-items:center;gap:.55rem;padding:.6rem .7rem;border-radius:var(--radius-lg);font-size:.78rem;line-height:1.7;
+    background:var(--color-gold-soft);border:1px solid color-mix(in oklch, var(--color-gold) 45%, var(--color-line));color:var(--color-ink);
+  }
+  .tryon__doubt > svg {flex:none;color:var(--color-gold-ink, var(--color-ink));}
+  .tryon__doubt > span {flex:1;min-width:0;}
+  .tryon__doubt .chip {flex:none;min-height:2.5rem;padding-inline:.85rem;font-weight:700;}
+  .tryon__doubt-close {flex:none;display:grid;place-items:center;width:2.25rem;height:2.25rem;margin-inline-end:-.3rem;border-radius:50%;color:var(--color-ink-2);}
+
+  .contour {display:grid;gap:.7rem;}
+  .contour__stage {
+    position:relative;border-radius:var(--radius-xl);overflow:hidden;background:#111;box-shadow:var(--shadow-2);
+    aspect-ratio:1;max-height:68vh;width:100%;margin-inline:auto;
+  }
+  .contour__view {display:block;width:100%;height:100%;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;}
+  .contour__dot {fill:rgb(255 255 255 / .95);stroke:var(--color-gold);cursor:grab;outline:none;}
+  .contour__dot[data-picked] {fill:var(--color-gold);stroke:#fff;}
+  .contour__dot:focus-visible {stroke:var(--color-ink);fill:var(--color-gold);}
+  .contour__loupe {
+    position:absolute;inset-block-start:.6rem;width:30%;aspect-ratio:1;border-radius:50%;overflow:hidden;pointer-events:none;
+    border:2px solid #fff;box-shadow:0 2px 10px rgb(0 0 0 / .35);background:#111;
+  }
+  .contour__loupe[data-side="left"] {left:.6rem;}
+  .contour__loupe[data-side="right"] {right:.6rem;}
+  .contour__tools {display:flex;align-items:center;justify-content:space-between;gap:.5rem;direction:ltr;}
+  .contour__zoom, .contour__nudge {display:flex;gap:.3rem;}
+  .contour__tools button {
+    display:grid;place-items:center;width:2.6rem;height:2.6rem;border-radius:50%;font-size:.85rem;line-height:1;font-weight:600;
+    background:var(--color-sunken);color:var(--color-ink);
+  }
+  .contour__zoom button {font-size:1.3rem;}
+  .contour__tools button:disabled {opacity:.4;}
+  .contour__parts {display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:.25rem;padding:.25rem;border-radius:var(--radius-pill);background:var(--color-sunken);}
+  .contour__parts button {
+    position:relative;display:flex;align-items:center;justify-content:center;min-height:2.5rem;border-radius:var(--radius-pill);
+    font-size:.78rem;font-weight:650;color:var(--color-ink-2);white-space:nowrap;
+  }
+  .contour__parts button[aria-selected="true"] {background:var(--color-surface);color:var(--color-ink);box-shadow:var(--shadow-1, 0 1px 3px rgb(0 0 0 / .12));}
+  .contour__parts i {position:absolute;inset-block-start:.35rem;inset-inline-end:.45rem;width:.4rem;height:.4rem;border-radius:50%;background:var(--color-gold);}
+  .contour__hint {font-size:.76rem;line-height:1.8;color:var(--color-ink-2);text-align:center;}
+  .contour__hint small {display:block;font-size:.7rem;color:var(--color-ink-3);}
+  .contour__actions {display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:.5rem;}
+
+  /* «میکاپ من»: her own makeup, step by step on her bare face. */
+  /* (her photo stays in view while she picks: on top of the sheet's scroll, a little shorter) */
+  .mine__stage {position:sticky;inset-block-start:0;z-index:2;touch-action:pan-y;box-shadow:0 6px 18px -10px rgb(20 12 16 / .35);}
+  .mine .steps__view {max-height:46vh;}
+  /* (before and after: the "after" tag under her undo and compare buttons) */
+  .mine__stage .tryon__tag--after {inset-block-start:3.7rem;}
+  .mine__history button[aria-pressed="true"] {background:#fff;color:#1b1311;}
+  /* zoomed in: her fingers move her photo, so the page doesn't scroll from it; it never leaves its frame */
+  .mine__stage[data-zoomed] {touch-action:none;}
+  .mine__stage .steps__view {will-change:transform;}
+  /* (undo and redo of every change, over the photo) */
+  .mine__history {position:absolute;inset-block-start:.55rem;left:.55rem;display:flex;gap:.35rem;}
+  .mine__history button {
+    display:grid;place-items:center;width:2.6rem;height:2.6rem;border-radius:50%;color:#fff;
+    background:rgb(20 12 16 / .5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  }
+  .mine__history button:disabled {opacity:.35;}
+  .mine__show {display:grid;grid-template-columns:repeat(auto-fit, minmax(9.5rem, 1fr));gap:.5rem;}
+  .mine__stage[data-tour] .steps__view {max-height:52vh;}
+  .steps__rail button .mine__dot {background:var(--swatch, var(--color-surface));}
+  .steps__rail button[data-done] .mine__dot {background:var(--swatch);box-shadow:inset 0 0 0 1.5px rgb(255 255 255 / .55);}
+  .steps__rail button[aria-current="step"] .mine__dot {background:var(--swatch, var(--color-gold));}
+  .mine__card header h3 {flex:1;}
+  .mine__remove {display:flex;align-items:center;gap:.25rem;min-height:2.5rem;padding-inline:.4rem;font-size:.74rem;font-weight:600;color:var(--color-ink-2);}
+  .mine__group {display:grid;gap:.15rem;}
+  .mine__group > span {font-size:.74rem;font-weight:700;color:var(--color-ink-2);}
+  .mine__group > span small {font-weight:500;color:var(--color-ink-3);margin-inline-start:.35rem;}
+  .mine__saved {display:grid;gap:.5rem;}
+  .mine__saved-head {display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;}
+  .mine__saved-head h3 {font-size:1rem;font-weight:760;}
+  .mine__saved-head small {font-size:.72rem;color:var(--color-ink-3);}
+  .mine__saved-list {display:flex;gap:.6rem;overflow-x:auto;padding:.2rem .1rem .4rem;scrollbar-width:none;overscroll-behavior-x:contain;}
+  .mine__saved-list::-webkit-scrollbar {display:none;}
+  .mine__saved-list li {position:relative;flex:none;}
+  .mine__saved-open {display:grid;gap:.3rem;justify-items:center;width:5.4rem;font-size:.72rem;font-weight:600;color:var(--color-ink);text-align:center;}
+  .mine__saved-open img, .mine__saved-empty {
+    width:5.4rem;height:6.75rem;border-radius:var(--radius-md, .9rem);object-fit:cover;background:var(--color-sunken);
+    box-shadow:inset 0 0 0 1px var(--color-line);
+  }
+  .mine__saved-empty {display:grid;place-items:center;color:var(--color-ink-3);}
+  .mine__saved-open span {max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .mine__saved-list li[data-current] img, .mine__saved-list li[data-current] .mine__saved-empty {outline:2.5px solid var(--color-gold);outline-offset:2px;}
+  .mine__saved-drop {
+    position:absolute;inset-block-start:-.35rem;inset-inline-end:-.35rem;display:grid;place-items:center;width:2rem;height:2rem;border-radius:50%;
+    background:var(--color-surface);color:var(--color-ink-2);box-shadow:var(--shadow-1, 0 1px 3px rgb(0 0 0 / .18));
+  }
+  .mine__name {display:grid;gap:.6rem;}
+  .mine__note {font-size:.76rem;color:var(--color-ink-2);}
+  .mine__actions > :first-child {flex-basis:100%;}
+}

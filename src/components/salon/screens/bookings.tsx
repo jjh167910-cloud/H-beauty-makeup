@@ -111,6 +111,7 @@ function BookingCard({ booking, past }: { booking: BookingRequest; past: boolean
           <p className="t-caption mt-1 flex flex-wrap gap-x-3 gap-y-1 text-ink-2">
             <span className="inline-flex items-center gap-1"><Icon name="clock" size={13} />{timeLabel(booking.time)} · {formatMinutes(minutes)}</span>
             <span className="inline-flex items-center gap-1"><Icon name="profile" size={13} />{stylistName(booking.stylist)}</span>
+            {booking.mine ? <span className="inline-flex items-center gap-1"><Icon name="brush" size={13} />میکاپ خودم: {booking.mine.name}</span> : null}
           </p>
         </div>
         {look ? <Media src={lookThumb(look.repId)} alt={look.name} className="arch h-16 w-12 shrink-0" />
@@ -119,7 +120,7 @@ function BookingCard({ booking, past }: { booking: BookingRequest; past: boolean
       <p className="sr-only">{longDate(booking.date)}</p>
       <div className="studio-booking-card__actions mt-5 flex gap-2 border-t border-line pt-4">
         {past ? (
-          <Button variant="tonal" icon="rebook" className="flex-1" onClick={() => openBooking({ services: booking.services, stylist: booking.stylist, makeupId: booking.makeupId ?? undefined })}>درخواست مجدد</Button>
+          <Button variant="tonal" icon="rebook" className="flex-1" onClick={() => openBooking({ services: booking.services, stylist: booking.stylist, makeupId: booking.makeupId ?? undefined, mine: booking.mine ?? undefined })}>درخواست مجدد</Button>
         ) : wa ? (
           <a className="btn flex-1" href={wa} target="_blank" rel="noreferrer">
             <Icon name="whatsapp" size={18} weight="regular" /> ارسال در واتساپ

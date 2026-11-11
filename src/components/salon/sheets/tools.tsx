@@ -36,7 +36,7 @@ export function CompareBody() {
         {selected.map((family) => (
           <article key={family.id} className="relative">
             <button type="button" className="tile w-full" onClick={() => openSheet({ kind: "look", id: family.id })}>
-              <Media src={lookThumb(family.repId)} alt={family.name} className="tile__media salon-hair-reference-photo" />
+              <Media src={lookThumb(family.repId)} alt={family.name} className="tile__media" />
               <span className="t-caption mt-2 line-clamp-2 font-medium">{family.name}</span>
               <span className="t-caption text-ink-2">{labelOf(family.category)}</span>
             </button>
@@ -78,7 +78,7 @@ export function ConsultBody() {
       <p className="t-callout text-ink-2">مدل‌های ذخیره‌شده و مقایسه‌شده در یک پیام آماده می‌شوند تا برای آرتیست بفرستید.</p>
       {selected.length ? (
         <div className="rail -mx-gutter gap-2">
-          {selected.map((family) => <Media key={family.id} src={lookThumb(family.repId)} alt={family.name} className="salon-hair-reference-photo salon-hair-reference-photo--small" />)}
+          {selected.map((family) => <Media key={family.id} src={lookThumb(family.repId)} alt={family.name} className="arch h-20 w-15" />)}
         </div>
       ) : (
         <button type="button" className="card t-callout text-ink-2" data-variant="outline" onClick={() => go("looks")}>
@@ -158,7 +158,7 @@ export function FinderBody() {
         <div className="mt-5 grid grid-cols-3 gap-3">
           {picks.map((family) => (
             <button key={family.id} type="button" className="tile" onClick={() => openSheet({ kind: "look", id: family.id })}>
-              <Media src={lookThumb(family.repId)} alt={family.name} className="tile__media salon-hair-reference-photo" />
+              <Media src={lookThumb(family.repId)} alt={family.name} className="tile__media" />
               <span className="t-caption mt-2 text-gold-ink">{labelOf(family.category)}</span>
               <span className="t-caption line-clamp-2 font-medium">{family.name}</span>
             </button>

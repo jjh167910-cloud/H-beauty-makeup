@@ -5,18 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "node scripts/build-salon.mjs",
+    "build": "vite build && node scripts/finalize-service-worker.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc --noEmit",
     "test:ui": "playwright test",
     "test:offline": "node --test tests-node/*.test.mjs",
-    "verify:assets": "node scripts/verify-images.mjs",
-    "review:nail-photo-candidates": "node scripts/audit-nail-photo-candidates.mjs",
-    "review:nail-photo-pixels": "node scripts/review-nail-photo-pixels.mjs",
-    "prepare:makeup-curated-80": "node scripts/import-makeup80-archive.mjs --if-present",
-    "verify:makeup-curated-80": "node scripts/verify-curated-80.mjs",
-    "verify:makeup-curated-80-release": "node scripts/verify-curated-80.mjs --release",
-    "build:makeup-curated-80": "node scripts/build-curated-80.mjs"
+    "verify:assets": "node scripts/verify-images.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",
@@ -24,6 +18,7 @@
     "@fontsource-variable/estedad": "^5.3.0",
     "@fontsource-variable/noto-nastaliq-urdu": "^5.3.0",
     "@hookform/resolvers": "^5.7.0",
+    "@mediapipe/tasks-vision": "1.1.1",
     "@phosphor-icons/react": "^2.1.10",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -53,6 +48,7 @@
     "@tanstack/react-table": "^8.21.0",
     "@tanstack/router-plugin": "^1.168.0",
     "@vitejs/plugin-react": "^5.2.0",
+    "better-auth": "~1.6.30",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -61,6 +57,7 @@
     "kysely": "^0.28.5",
     "lightningcss": "^1.28.0",
     "nitro": "3.0.260610-beta",
+    "onnxruntime-web": "1.30.0",
     "pg": "^8.16.3",
     "react": "^19.2.0",
     "react-day-picker": "^9.14.0",
@@ -75,7 +72,7 @@
     "typescript": "^5.7.0",
     "vaul": "^1.1.2",
     "vite": "^8.2.0",
-    "zod": "^4.6.7",
+    "zod": "^4.4.0",
     "zustand": "^5.0.0"
   },
   "devDependencies": {

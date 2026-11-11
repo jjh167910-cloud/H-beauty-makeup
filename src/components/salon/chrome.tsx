@@ -4,13 +4,11 @@ import { formatMinutes, formatPrice, summarize } from "@/data/salon";
 import { useSalon, type Tab } from "@/lib/salon-store";
 import { Icon, type IconName } from "./icons";
 import { BrandMark, Wordmark } from "./logo";
-import { BackgroundMusicControl } from "./background-music";
 import { Button, IconButton, haptic, useSalonActions } from "./ui";
 
 const TITLES: Partial<Record<Tab, string>> = {
   services: "منوی خدمات",
   looks: "گالری مدل مو",
-  nails: "آتلیه ناخن",
   bookings: "درخواست‌های من",
   me: "حساب من",
   design: "سیستم طراحی",
@@ -44,8 +42,6 @@ export function TopBar() {
           <Wordmark className="text-[1.4rem]" latin={false} />
         )}
       </button>
-      <div className="flex items-center gap-1">
-        <BackgroundMusicControl />
       <button
         type="button"
         onClick={() => go("me")}
@@ -56,7 +52,6 @@ export function TopBar() {
       >
         {name ? <span className="font-calligraphy text-lg leading-none">{name.slice(0, 1)}</span> : <Icon name="profile" size={20} />}
       </button>
-      </div>
     </header>
   );
 }

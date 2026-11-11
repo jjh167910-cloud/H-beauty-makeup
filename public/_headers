@@ -1,0 +1,7 @@
+# Cross-origin isolation lets the on-device AI try-on use several CPU cores
+# (SharedArrayBuffer threads). Everything the app loads is same-origin.
+# connect-src: the app never sends data to other servers (photos stay on the phone).
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+  Content-Security-Policy: connect-src 'self' blob: data:

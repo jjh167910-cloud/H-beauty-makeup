@@ -27,7 +27,7 @@ export function Welcome() {
           <Wordmark latin={false} />
           <span lang="en">HANANEH · BEAUTY SALON</span>
         </header>
-        <Media className="modern-welcome__image" src={lookSrc(1)}
+        <Media className="modern-welcome__image" src={lookSrc(30)}
           alt="نمونه استایل مو از مجموعه حنانه بیوتی" />
         <div className="modern-welcome__content">
           <p className="modern-welcome__tag">به سالن زیبایی حنانه خوش آمدید</p>

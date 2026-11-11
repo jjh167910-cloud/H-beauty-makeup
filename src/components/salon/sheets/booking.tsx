@@ -18,7 +18,6 @@ import {
 } from "@/data/salon";
 import { hasPhoto, lookPhoto } from "@/data/makeup-photos";
 import { styleById } from "@/data/makeup-styles";
-import { nailById } from "@/data/nail-styles";
 import { useSalon, type BookingRequest } from "@/lib/salon-store";
 import { bookingMessage, copyText, shareText, whatsappLink } from "@/lib/share";
 import { Icon } from "../icons";
@@ -36,10 +35,9 @@ export function BookingSheet({ open, onClose }: { open: boolean; onClose: () => 
   const setProfile = useSalon((state) => state.setProfile);
   const addBooking = useSalon((state) => state.addBooking);
   // A request started from a makeup style opens on the services step, showing the chosen style.
-  const [step, setStep] = useState(() => ((draft.makeupId || draft.nailStyleId) ? 0 : cart.length ? (draft.stylist !== ANY_STYLIST ? 2 : 1) : 0));
+  const [step, setStep] = useState(() => (draft.makeupId ? 0 : cart.length ? (draft.stylist !== ANY_STYLIST ? 2 : 1) : 0));
   const makeup = draft.makeupId ? styleById.get(draft.makeupId) ?? null : null;
-  const nail = draft.nailStyleId ? nailById.get(draft.nailStyleId) ?? null : null;
-  const [browsing, setBrowsing] = useState(() => !makeup && !nail);
+  const [browsing, setBrowsing] = useState(() => !makeup);
   const [name, setName] = useState(profile.name);
   const [phone, setPhone] = useState(profile.phone);
   const [touched, setTouched] = useState(false);
@@ -78,7 +76,7 @@ export function BookingSheet({ open, onClose }: { open: boolean; onClose: () => 
       note: draft.note,
       lookId: draft.lookId,
       makeupId: draft.makeupId,
-      nailStyleId: draft.nailStyleId,
+      mine: draft.mine,
       createdAt: Date.now(),
       sent: false,
     };
@@ -137,16 +135,6 @@ export function BookingSheet({ open, onClose }: { open: boolean; onClose: () => 
         ))}
       </ol>
 
-      {step === 0 && nail ? (
-        <section className="mk-booking rise mt-7" aria-label="طرح ناخن انتخاب‌شده">
-          <div className="flex items-center justify-between gap-3">
-            <div><h3>طرح ناخن انتخاب‌شده</h3><p className="t-footnote text-ink-2">{nail.title} · {nail.en}</p></div>
-            <IconButton icon="close" label="حذف طرح ناخن" size="sm" variant="tonal" onClick={() => { setDraft({ nailStyleId: null }); setBrowsing(true); }} />
-          </div>
-          <p className="t-caption mt-2 text-ink-2">نام این طرح همراه با درخواست نوبت به سالن منتقل می‌شود.</p>
-          <button type="button" className="mk-booking__add" onClick={() => setBrowsing(true)}><Icon name="plus" size={18}/> افزودن خدمت دیگر</button>
-        </section>
-      ) : null}
       {step === 0 && makeup ? (
         <section className="mk-booking rise mt-7" aria-labelledby="mk-booking-title">
           <h3 id="mk-booking-title">خدمات انتخاب‌شده</h3>
@@ -274,10 +262,14 @@ export function BookingSheet({ open, onClose }: { open: boolean; onClose: () => 
               <IconButton icon="close" label="حذف سبک میکاپ" size="sm" variant="tonal" onClick={() => setDraft({ makeupId: null })} />
             </div>
           ) : null}
-          {nail ? (
-            <div className="flex items-center gap-3">
-              <span className="min-w-0 flex-1"><span className="t-caption block text-ink-2">طرح ناخن</span><strong className="t-callout block truncate font-medium">{nail.title}</strong></span>
-              <IconButton icon="close" label="حذف طرح ناخن" size="sm" variant="tonal" onClick={() => setDraft({ nailStyleId: null })} />
+          {draft.mine ? (
+            <div className="card grid gap-1.5" data-variant="sunken" aria-label="میکاپ من">
+              <div className="flex items-center gap-3">
+                <span className="grid size-11 shrink-0 place-items-center rounded-full bg-noir text-champagne"><Icon name="brush" size={20} /></span>
+                <span className="min-w-0 flex-1"><span className="t-caption block text-ink-2">میکاپ خودم · برای آرتیست فرستاده می‌شود</span><strong className="t-callout block truncate font-medium">{draft.mine.name}</strong></span>
+                <IconButton icon="close" label="حذف میکاپ من" size="sm" variant="tonal" onClick={() => setDraft({ mine: null })} />
+              </div>
+              <ul className="t-caption grid gap-0.5 text-ink-2">{draft.mine.lines.map((line) => <li key={line}>{line}</li>)}</ul>
             </div>
           ) : null}
           {look ? (

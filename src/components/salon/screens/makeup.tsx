@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { familyById, lookThumb, normalize, persian } from "@/data/catalog";
 import { MAKEUP_ARTIST, MAKEUP_SERVICE_IDS } from "@/data/makeup";
-import { hasPhoto, lookPhoto, MAKEUP_CURATED_80 } from "@/data/makeup-photos";
-import { MAKEUP_STYLES, STYLE_CATEGORIES, categoryOf, styleById, type MakeupStyle, type StyleCategory } from "@/data/makeup-styles";
+import { hasPhoto, lookPhoto } from "@/data/makeup-photos";
+import { MAKEUP_STYLES, STYLE_CATEGORIES, categoryOf, type MakeupStyle, type StyleCategory } from "@/data/makeup-styles";
 import { formatPrice, serviceById, stylistById } from "@/data/salon";
 import { useSalon } from "@/lib/salon-store";
 import { Icon } from "../icons";
@@ -85,23 +85,22 @@ function Gallery({ onOpen }: { onOpen: (view: View) => void }) {
   const artist = stylistById.get(MAKEUP_ARTIST);
   const cards = useMemo(() => {
     const list: Array<{ key: string; title: string; note: string; src: string; view: View }> = [
-      { key: "all", title: "همه سبک‌ها", note: `${persian(COUNT)} سبک حرفه‌ای`, src: lookPhoto(MAKEUP_CURATED_80 ? READY[0].id : "hollywood", "sm"), view: { kind: "list", filter: "all", mode: "face" } },
+      { key: "all", title: "همه سبک‌ها", note: `${persian(COUNT)} سبک حرفه‌ای`, src: lookPhoto("hollywood", "sm"), view: { kind: "list", filter: "all", mode: "face" } },
     ];
     for (const category of STYLE_CATEGORIES) {
       const count = READY.filter((item) => item.category === category.key).length;
-      const cover = MAKEUP_CURATED_80 ? READY.find((item) => item.category === category.key)?.id : category.cover;
-      if (!count || !cover || !hasPhoto(cover)) continue;
-      list.push({ key: category.key, title: category.label, note: category.note, src: lookPhoto(cover, "sm"), view: { kind: "list", filter: category.key, mode: "face" } });
+      if (!count || !hasPhoto(category.cover)) continue;
+      list.push({ key: category.key, title: category.label, note: category.note, src: lookPhoto(category.cover, "sm"), view: { kind: "list", filter: category.key, mode: "face" } });
     }
     list.push(
-      { key: "eyes", title: "آرایش چشم", note: "مدل‌های متنوع", src: lookPhoto(MAKEUP_CURATED_80 ? (READY.find((item) => item.category === "liner")?.id ?? READY[0].id) : "arabic-glam", "eyes"), view: { kind: "list", filter: "all", mode: "eyes" } },
-      { key: "lips", title: "آرایش لب", note: "رنگ‌ها و مدل‌ها", src: lookPhoto(MAKEUP_CURATED_80 ? (READY.find((item) => /lip|لب/i.test(item.en+" "+item.title))?.id ?? READY[0].id) : "hollywood", "lips"), view: { kind: "list", filter: "all", mode: "lips" } },
+      { key: "eyes", title: "آرایش چشم", note: "مدل‌های متنوع", src: lookPhoto("arabic-glam", "eyes"), view: { kind: "list", filter: "all", mode: "eyes" } },
+      { key: "lips", title: "آرایش لب", note: "رنگ‌ها و مدل‌ها", src: lookPhoto("hollywood", "lips"), view: { kind: "list", filter: "all", mode: "lips" } },
     );
     return list;
   }, []);
 
   return (
-    <div className="mk-page pt-2" data-curated80={MAKEUP_CURATED_80 || undefined}>
+    <div className="mk-page pt-2">
       <PageBar
         title="گالری میکاپ"
         actions={
@@ -173,7 +172,6 @@ function Gallery({ onOpen }: { onOpen: (view: View) => void }) {
 function StyleList({ view, onOpen }: { view: Extract<View, { kind: "list" }>; onOpen: (view: View) => void }) {
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
-  const [collection,setCollection] = useState<"all"|"original"|"new">("all");
   const input = useRef<HTMLInputElement>(null);
   const { filter, mode } = view;
   const title = mode === "eyes" ? "آرایش چشم" : mode === "lips" ? "آرایش لب" : filter === "all" ? "همه سبک‌ها" : categoryOf(filter).label;
@@ -181,16 +179,15 @@ function StyleList({ view, onOpen }: { view: Extract<View, { kind: "list" }>; on
   const list = useMemo(() => {
     const q = normalize(query);
     return READY.filter((item) => (filter === "all" || item.category === filter)
-      && (!MAKEUP_CURATED_80 || collection === "all" || (collection === "new" ? (item.promptNumber ?? 0) >= 43 : (item.promptNumber ?? 0) < 43))
-      && (!q || normalize(`${item.title} ${item.en} ${item.promptNumber ?? ""} ${item.detail} ${categoryOf(item.category).label}`).includes(q)));
-  }, [filter, query, collection]);
+      && (!q || normalize(`${item.title} ${item.en} ${item.detail} ${categoryOf(item.category).label}`).includes(q)));
+  }, [filter, query]);
 
   useEffect(() => {
     if (searching) input.current?.focus();
   }, [searching]);
 
   return (
-    <div className="mk-page pt-2" data-curated80={MAKEUP_CURATED_80 || undefined}>
+    <div className="mk-page pt-2">
       <PageBar
         title={title}
         onBack={() => onOpen({ kind: "gallery" })}
@@ -206,11 +203,6 @@ function StyleList({ view, onOpen }: { view: Extract<View, { kind: "list" }>; on
         </div>
       ) : null}
 
-      {MAKEUP_CURATED_80 ? <div className="mk-collection-switch px-gutter" role="group" aria-label="مجموعه تصاویر میکاپ">
-        {([["all","همهٔ ۸۰ سبک"],["original","مجموعهٔ اول"],["new","۴۰ سبک جدید"]] as const).map(([key,label])=>
-          <button key={key} type="button" aria-pressed={collection===key}
-            onClick={()=>setCollection(key)}>{label}</button>)}
-      </div> : null}
       <div className="chip-row studio-chip-row" data-sticky="" role="group" aria-label="دسته‌بندی سبک‌ها">
         <Chip active={filter === "all"} onClick={() => onOpen({ kind: "list", filter: "all", mode })}>همه</Chip>
         {categories.map((category) => (
@@ -219,7 +211,7 @@ function StyleList({ view, onOpen }: { view: Extract<View, { kind: "list" }>; on
       </div>
 
       {list.length ? (
-        <div className="mk-grid px-gutter" data-mode={mode} data-curated80={MAKEUP_CURATED_80 || undefined}>
+        <div className="mk-grid px-gutter" data-mode={mode}>
           {list.map((item) => <StyleCard key={item.id} item={item} mode={mode} />)}
         </div>
       ) : (
@@ -234,11 +226,10 @@ function StyleCard({ item, mode }: { item: MakeupStyle; mode: Mode }) {
   const saved = useSalon((state) => state.favMakeup.includes(item.id));
   const toggle = useSalon((state) => state.toggleFavMakeup);
   return (
-    <article className="mk-card" data-mode={mode} data-curated80={Boolean(item.promptNumber) || undefined}>
+    <article className="mk-card" data-mode={mode}>
       <button type="button" className="mk-card__open" onClick={() => openSheet({ kind: "makeup", id: item.id })} aria-label={`جزئیات سبک ${item.title}`}>
         <span className="mk-card__visual"><Media src={photoFor(item, mode)} alt="" loading="lazy" /></span>
         <strong>{item.title}</strong>
-        {MAKEUP_CURATED_80 && item.promptNumber ? <small className="mk-card__subtitle" lang="en" dir="ltr">LOOK {String(item.promptNumber).padStart(2,"0")} · {item.en}</small> : null}
       </button>
       <IconButton icon="heart" size="sm" variant="glass" love pressed={saved} className="mk-card__fav"
         label={saved ? `حذف ${item.title} از ذخیره‌شده‌ها` : `ذخیره ${item.title}`}
@@ -254,17 +245,16 @@ function SavedLooks({ onOpen }: { onOpen: (view: View) => void }) {
   const [tab, setTab] = useState<"makeup" | "hair">("makeup");
   const favMakeup = useSalon((state) => state.favMakeup);
   const favs = useSalon((state) => state.favs);
-  const makeup = favMakeup.map((id)=>styleById.get(id))
-    .filter((item): item is MakeupStyle => Boolean(item && hasPhoto(item.id)));
+  const makeup = READY.filter((item) => favMakeup.includes(item.id));
   const hair = favs.map((id) => familyById.get(id)).filter((family): family is NonNullable<typeof family> => Boolean(family));
 
   return (
-    <div className="mk-page pt-2" data-curated80={MAKEUP_CURATED_80 || undefined}>
+    <div className="mk-page pt-2">
       <PageBar title="مدل‌های ذخیره‌شده" onBack={() => onOpen({ kind: "gallery" })} />
       <div className="px-gutter"><Segments active={tab} onMakeup={() => setTab("makeup")} onHair={() => setTab("hair")} /></div>
       {tab === "makeup" ? (
         makeup.length ? (
-          <div className="mk-grid px-gutter" data-mode="face" data-curated80={MAKEUP_CURATED_80 || undefined}>
+          <div className="mk-grid px-gutter" data-mode="face">
             {makeup.map((item) => <StyleCard key={item.id} item={item} mode="face" />)}
           </div>
         ) : (

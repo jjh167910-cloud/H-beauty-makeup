@@ -1,44 +1,52 @@
-## V18 hosting and offline browser validation — 9 November 2026
+# H-beauty — Hananeh Beauty salon app
 
-- **Verified artifact:** [V18 reconstructed PWA release](https://github.com/jjh167910-cloud/H-beauty-makeup/releases/tag/v18-reconstructed-pwa-build), containing the SHA-pinned compiled `dist/` and 974 web files, including the PWA service worker and all eight oversized-model chunks.
-- **Verified browser test:** [GitHub Actions run 42671140772](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42671140772) passed on 390px mobile and 1280px desktop. Each browser installed the service worker, loaded the local app shell, switched network connectivity offline, and reloaded successfully with HTTP 200, zero page errors and zero external requests.
-- **Caveat:** This confirms the offline app shell, not automatic neural makeup inference or photographic quality.
-- **Cloudflare connection:** Both authenticated user links were tested on 9 Nov 2026. Both reject Workers and Pages reads with HTTP 403 due to missing Workers Editor/Admin and Pages Write scopes. An authenticated identity **is not** a deployment permission.
-- **GitHub Pages attempt:** [Run 42670815070](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42670815070) successfully verified and extracted the 166 MB PWA artifact but failed when enabling Pages with `Resource not accessible by integration`. The private repository has no enabled Pages site.
-- **Required authorized hosting action:** Grant the Cloudflare connection Workers write/admin (or Pages Write) on the staging account, **or** enable GitHub Pages for this private repository with account-level administrative rights. After that, rerun the prepared staging workflow. No user ZIP upload is necessary.
-- **Safety:** Never deploy to production `h-beauty`. Only isolated `h-beauty-makeup` is authorized as the staging target.
+«حنانه بیوتی» (Hananeh Beauty) — a luxury, mobile-first Persian (RTL) salon **app**: an installable PWA with a first-launch concierge welcome, a Liquid Glass tab bar, native-style bottom sheets and light ("porcelain & champagne") / dark ("noir & gold") themes.
 
-# H-Beauty V18 — offline web application (isolated staging)
+Design system: **Estedad** for UI text, **Noto Nastaliq** calligraphy for the wordmark and accents, **Bodoni Moda** for Latin, OKLCH colour tokens, Phosphor icons and arch-framed imagery. Full documentation is in [`DESIGN.md`](DESIGN.md); the living style guide is at `#/design` in the app.
 
-**Release status (9 November 2026): COMPLETE verified source reconstruction and production PWA build. Website hosting remains unpublished.**
+## Modern platform features (all progressive enhancements)
 
-## Deliverables
+| Feature | Where | Fallback |
+| --- | --- | --- |
+| View Transitions API | Directional tab slides with fixed chrome; shared-element morph from a tapped look into the Discover feed (`src/lib/transition.ts`) | Instant state change |
+| Scroll-driven animations (`animation-timeline: view()`) | Section reveals, hero parallax, depth effect between Discover slides | Static, fully visible content |
+| Liquid Glass materials (`backdrop-filter`, layered specular highlights) | Tab bar with sliding lens that minimises on scroll, top bar, docks, floating controls | Solid surfaces under `prefers-reduced-transparency` |
+| `@starting-style` | Entry animations for docks and the Discover overlay | Appears without animation |
+| CSS scroll snap + container query units | Discover vertical feed, variant carousel in the look sheet, card overlay placement | Normal scrolling |
+| Responsive images | 560px thumbnails in `public/looks/sm/` for grids and rails; full 2048px images fade in only in immersive views | — |
 
-- [**Verified complete V18 PWA build release**](https://github.com/jjh167910-cloud/H-beauty-makeup/releases/tag/v18-reconstructed-pwa-build): `HBeauty-V18-COMPLETE-VERIFIED-PWA.zip`, ~166 MB compressed, with SHA-256 checksum and source-provenance audit.
-- [Successful complete V18 source reconstruction, tests, and production build](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42666794114).
-- [Successful archival of production build](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42667572203).
-- [Source transfer chunks and provenance](.github/v18-transfer/PROVENANCE.md).
+Everything honours `prefers-reduced-motion`.
 
-## What was verified
+## App structure
 
-1. **Exactly 1,179 original V18 files, 222,537,413 bytes**, reconstructed from 788 matching baseline Git files, 382 transferred changed files, and 9 SHA-256-verified model/runtime files recovered from GitHub Actions.
-2. Original Git blob SHA-1 and byte count checked for every source file before compilation. The original source archive SHA-256 is pinned: `c94b46dfb30e6bbcafa611d24399aada9f38a3f5a04ce220a1e75c146f3fec86`.
-3. One explicit **post-provenance TypeScript annotation fix** was applied to `src/lib/photo-export.ts` for a previously failing TS7006 check. Both pre- and post-patch SHA-256 values are recorded in the build audit. The neural weights were **not changed**.
-4. `npm ci`, offline Node/PWA checks, catalog asset audit, TypeScript checking, `npm run build`, and `npm run verify:pwa-dist` **all passed**.
-5. A complete browser deploy artifact was archived as a permanent GitHub Release rather than relying solely on expiring Actions artifacts.
+| Tab | What it does |
+| --- | --- |
+| خانه (Home) | Greeting, live open/closed status (Tehran time), next appointment, look of the week, quick actions, popular services, artists, curated looks, visit info |
+| خدمات (Services) | Categorised service menu with durations and starting prices; add several services to one booking (floating cart) |
+| رزرو (centre button) | 4-step booking sheet: services → artist → day & time (Persian calendar, Fridays closed, slots fit service length) → details |
+| لوک‌بوک (Lookbook) | 283-look gallery with search, filters, saved looks, infinite scroll, compare (up to 3); tapping a look opens **Discover**, a full-screen swipe feed with double-tap to save |
+| نوبت‌ها (Bookings) | Upcoming/past requests with draft/sent status; send, re-book or delete |
+| پروفایل (avatar) | Member card (name/phone prefill), saved looks, compare, style finder, consult, theme, clear local data |
 
-## What is not complete
+Tabs are hash routes (`#/services`, `#/looks`, …) and the browser/Android back button closes open sheets first.
 
-- **No live public V18 web URL yet.** The [direct V18 PWA release deployment workflow](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42668173801) has passed release checksum, model-chunk integrity and static asset-size checks, but safely skipped Cloudflare publish because the staging account credentials are absent. GitHub Pages is not configured for this private repository ([read-only Pages diagnostic](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/42667851364) reported HTTP 404). This repository's Cloudflare account authorization / staging Worker secrets are also unavailable. Those hosting permissions cannot be inferred from passing CI.
-- **Not physically verified offline on Android.** An installable PWA requires its model pack to be downloaded and installed once; after successful installation, on-device MediaPipe / ONNX inference is designed to work disconnected. Device storage eviction may require reinstalling offline assets.
-- **Not independently certified state-of-the-art photorealism** and no verified arbitrary reference-photo neural transfer. V18 retains earlier ONNX look-specific experimental models and local WebGL processing, not a validated high-resolution real-photo-trained checkpoint.
+Salon content (services, prices, artists, address, hours, optional WhatsApp/phone) lives in `src/data/salon.ts`. These are **placeholders to verify with the salon**. Setting `SALON.whatsapp` adds one-tap WhatsApp sending for bookings and consultations.
 
-## Isolation
+## Run / build
 
-The intended staging Worker is **`h-beauty-makeup`** only. The original `jjh167910-cloud/H-beauty` repository and production salon website were not edited. The older manual test studio is not the V18 offline application and must not be presented as such.
+Requires Node.js 22+.
 
-## Rebuilding
+```bash
+npm ci
+npm run build
+npx wrangler deploy
+```
 
-Open [`v18-reconstruct-build.yml`](.github/workflows/v18-reconstruct-build.yml), select **Run workflow**, and inspect the SHA-backed source reconstruction and PWA build. It uses the committed 12-part overlay and previously verified model artifact; if the model artifact eventually expires, obtain it from the separately stored recovered release asset. This build does **not** deploy to production.
+The frontend is a static Vite/React SPA and Cloudflare Workers static assets are served from `dist/` using `wrangler.jsonc`. Every push to `main` runs `.github/workflows/deploy.yml` (typecheck, build, `wrangler deploy`). Deploying from GitHub Actions needs a `CLOUDFLARE_API_TOKEN` repository secret with "Workers Scripts: Edit" permission; without it the workflow builds and uploads `dist/` but skips the deploy with a warning.
 
-Use the actual compiled PWA ZIP for a hosting provider with HTTPS, service-worker support and enough space for ~220 MB of offline assets. Never configure the hosting Worker name as `h-beauty`.
+## Important functional distinctions
+
+- The salon gallery has 292 bundled hairstyle images and can cache previously opened images offline. A first-time offline visitor will not have the whole catalog cached; full offline access to all hairstyles requires explicit prefetch.
+- The "استایل‌یاب" (style finder) is questionnaire-based, not a neural hairstyle-transfer model, and is labelled as such. Upload-your-own-photo AI try-on is **not implemented** in this source archive.
+- Booking/consultation UI does not connect to an operational reservation backend. Requests are stored only on the device and shown as "draft" until the user sends them (share sheet / copy / WhatsApp); the app never claims a booking is confirmed.
+- Photo images are bundled for this website; rights/provenance should be verified by the operator before commercial publication.

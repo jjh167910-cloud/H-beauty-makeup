@@ -165,7 +165,7 @@
   .studio-service-item__add[aria-pressed="true"] {background:var(--color-inverse);}
   .studio-service-footer {gap:.8rem;text-align:center;}
   .studio-looks {gap:1rem;}
-  .studio-look-tools__title > h2 {font-size:.98rem;font-weight:620;}
+  .studio-look-tools__title > span {font-size:.98rem;font-weight:620;}
   .studio-looks .search {box-shadow:none;}
   .studio-results-count {border:0;font-size:.75rem;}
   .studio-look-grid {gap:1.4rem .75rem;}

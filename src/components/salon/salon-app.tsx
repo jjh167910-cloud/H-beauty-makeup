@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Toaster } from "sonner";
 import { TABS, useSalon, type Tab } from "@/lib/salon-store";
-import { nailStyleFromHash, nailKindFromHash } from "@/data/nail-links";
 import { withTransition } from "@/lib/transition";
 import { Docks, TabBar, TopBar } from "./chrome";
 import { HomeScreen } from "./screens/home";
 import { ServicesScreen } from "./screens/services";
 import { LooksScreen } from "./screens/looks";
 import { MakeupScreen } from "./screens/makeup";
-import { NailsScreen } from "./screens/nails";
 import { BookingsScreen } from "./screens/bookings";
 import { MeScreen } from "./screens/me";
 import { DesignScreen } from "./screens/design";
@@ -18,7 +16,7 @@ import { Welcome } from "./welcome";
 import { SalonProvider, type BookingIntent, type SalonActions, type SheetState } from "./ui";
 
 function tabFromHash(): Tab {
-  const key = window.location.hash.replace(/^#\/?/, "").split("?")[0] as Tab;
+  const key = window.location.hash.replace(/^#\/?/, "") as Tab;
   return TABS.includes(key) ? key : "home";
 }
 
@@ -86,19 +84,10 @@ export function SalonApp() {
     sheetRef.current = sheet;
   }, [sheet]);
 
-  // Sheet entries include a validated reference, so Back closes the dialog
-  // and Forward can reopen the exact same design. No extra network required.
+  // Browser/hardware back closes the open sheet first, then follows tab hashes.
   useEffect(() => {
     const onPop = () => {
-      const state = window.history.state as { sheet?: boolean; sheetState?: SheetState } | null;
-      let target: SheetState = null;
-      if (state?.sheet) {
-        const linkedId = nailStyleFromHash(window.location.hash);
-        if (state.sheetState) target = state.sheetState;
-        else if (linkedId) target = { kind: "nail", id: linkedId };
-      }
-      sheetRef.current = target;
-      setSheet(target);
+      if (sheetRef.current && !(window.history.state as { sheet?: boolean } | null)?.sheet) setSheet(null);
       const next = tabFromHash();
       if (next !== useSalon.getState().tab) {
         const current = useSalon.getState().tab;
@@ -115,23 +104,7 @@ export function SalonApp() {
   }, [tab]);
 
   const openSheet = useCallback((next: Exclude<SheetState, null>) => {
-    if (!sheetRef.current) window.history.pushState({ sheet: true, sheetState: next }, "");
-    else if ((window.history.state as { sheet?: boolean } | null)?.sheet)
-      window.history.replaceState({ sheet: true, sheetState: next }, "");
-    sheetRef.current = next;
-    setSheet(next);
-  }, []);
-
-  // An external nail deep link needs a local gallery history entry. Without
-  // this, closing a directly linked sheet can navigate out of the salon.
-  // Keep the shared hash in the forward entry, so Forward restores the style.
-  useEffect(() => {
-    const id = nailStyleFromHash(window.location.hash);
-    if (!id) return;
-    const linkedUrl = window.location.href;
-    window.history.replaceState(null, "", nailKindFromHash(window.location.hash)==="pedicure" ? "#/nails?kind=pedicure" : "#/nails");
-    const next: Exclude<SheetState, null> = { kind: "nail", id };
-    window.history.pushState({ sheet: true, sheetState: next }, "", linkedUrl);
+    if (!sheetRef.current) window.history.pushState({ sheet: true }, "");
     sheetRef.current = next;
     setSheet(next);
   }, []);
@@ -187,7 +160,7 @@ export function SalonApp() {
         else if (intent?.service && !store.cart.includes(intent.service)) store.setCart([...store.cart, intent.service]);
         if (intent?.stylist || intent?.lookId != null) store.setDraft({ stylist: intent.stylist ?? "any", lookId: intent.lookId ?? null });
         if (intent?.makeupId) store.setDraft({ makeupId: intent.makeupId });
-        if (intent?.nailStyleId) store.setDraft({ nailStyleId: intent.nailStyleId });
+        if (intent?.mine) store.setDraft({ mine: intent.mine });
         if (intent?.note) store.setDraft({ note: intent.note });
         openSheet({ kind: "booking" });
       },
@@ -210,7 +183,6 @@ export function SalonApp() {
           {tab === "services" ? <ServicesScreen /> : null}
           {tab === "looks" ? <LooksScreen /> : null}
           {tab === "makeup" ? <MakeupScreen /> : null}
-          {tab === "nails" ? <NailsScreen /> : null}
           {tab === "bookings" ? <BookingsScreen /> : null}
           {tab === "me" ? <MeScreen /> : null}
           {tab === "design" ? <DesignScreen /> : null}

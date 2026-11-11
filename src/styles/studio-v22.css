@@ -85,7 +85,7 @@
   .studio-looks { gap:1.1rem; }
   .studio-look-tools { display:grid; gap:0; }
   .studio-look-tools__title { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
-  .studio-look-tools__title > h2 { font-size:1.16rem; font-weight:570; }
+  .studio-look-tools__title > span { font-size:1.16rem; font-weight:570; }
   .studio-look-tools__title .btn { flex:none; }
   .studio-looks .search { border:1px solid var(--color-line); background:var(--color-surface); border-radius:var(--radius-lg); box-shadow:var(--shadow-1); }
   .studio-results-count { border-bottom:1px solid var(--color-line); margin-inline:var(--spacing-gutter); padding-inline:0; padding-block:.5rem; }

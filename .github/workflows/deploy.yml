@@ -1,37 +1,131 @@
-name: Legacy release checks (isolated, no deployment)
+name: Deploy حنانه بیوتی
+
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
-    inputs:
-      staging_url:
-        description: 'Optional URL for independent live manicure verification'
-        required: false
-        type: string
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
 permissions:
   contents: read
+
 jobs:
-  compatibility:
+  deploy:
     runs-on: ubuntu-latest
     env:
-      HBEAUTY_CURATED_80: 'true'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || 'a22c80a102037bf59a1a25426cb93d66' }}
+      # When Cloudflare Workers Builds is connected, GitHub Actions should run CI only.
+      # The default mode intentionally fails if the GitHub API token is absent.
+      HBEAUTY_DEPLOY_MODE: ${{ vars.HBEAUTY_DEPLOY_MODE || 'github-actions' }}
     steps:
+      - name: Verify automatic deployment configuration
+        shell: bash
+        run: |
+          case "$HBEAUTY_DEPLOY_MODE" in
+            github-actions)
+              if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+                echo "::error title=Worker deployment not configured::The CLOUDFLARE_API_TOKEN secret is missing. Configure GitHub Actions authentication, or connect Cloudflare Workers Builds and set HBEAUTY_DEPLOY_MODE=cloudflare-builds."
+                exit 1
+              fi
+              echo "GitHub Actions will publish h-beauty after all checks pass."
+              ;;
+            cloudflare-builds)
+              echo "::notice title=Cloudflare publishes this Worker::This GitHub workflow only tests. Check Workers & Pages > h-beauty > Builds for the production deployment."
+              ;;
+            *)
+              echo "::error::Invalid HBEAUTY_DEPLOY_MODE=$HBEAUTY_DEPLOY_MODE (expected github-actions or cloudflare-builds)"
+              exit 1
+              ;;
+          esac
+
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: "22"
           cache: npm
-      - run: npm ci --no-audit --no-fund
-      - name: Verify optional eighty-makeup edition
+
+      - name: Verify catalog images and PWA assets
+        run: node scripts/verify-images.mjs
+      - name: Verify offline app shell
+        run: node --test tests-node/*.test.mjs
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify runner Chrome
+        run: google-chrome --version
+
+      - name: Verify mobile UI before production
+        run: npm run test:ui
+
+      - name: Upload build artifact
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: h-beauty-dist
+          path: dist
+          retention-days: 14
+
+      - name: Deploy to Cloudflare Workers
+        if: ${{ env.HBEAUTY_DEPLOY_MODE == 'github-actions' }}
+        run: npx --yes wrangler@4 deploy
+
+      - name: Check public Worker after deployment
+        if: ${{ env.HBEAUTY_DEPLOY_MODE == 'github-actions' }}
+        shell: bash
         run: |
-          if [ "$HBEAUTY_CURATED_80" = "true" ]; then
-            npm run prepare:makeup-curated-80
-            npm run verify:makeup-curated-80
+          curl --fail --show-error --silent --location --retry 3 --retry-delay 3 \
+            --max-time 30 https://h-beauty.mostifa2273.workers.dev/ -o /tmp/hbeauty-live.html
+          grep -q 'id="root"' /tmp/hbeauty-live.html || {
+            echo "::error::Deployed Worker did not return the expected H-Beauty SPA."
+            exit 1
+          }
+          # A HTTP 200 can still be an older release; compare the generated
+          # content-addressed service worker byte-for-byte with the live one.
+          expected_sha="$(sha256sum dist/sw.js | cut -d' ' -f1)"
+          matched=0
+          for attempt in 1 2 3 4 5 6; do
+            if curl --fail --show-error --silent --location --max-time 30 \
+                "https://h-beauty.mostifa2273.workers.dev/sw.js?revision=${GITHUB_SHA}-${attempt}" \
+                -o /tmp/hbeauty-live-sw.js; then
+              live_sha="$(sha256sum /tmp/hbeauty-live-sw.js | cut -d' ' -f1)"
+              if [ "$expected_sha" = "$live_sha" ]; then
+                matched=1
+                break
+              fi
+            fi
+            sleep 8
+          done
+          if [ "$matched" != 1 ]; then
+            echo "::error::Live h-beauty service worker does not match the current build (stale deployment, wrong Worker, or caching)."
+            exit 1
           fi
-      - run: npm run verify:assets
-      - name: Verify live manicure independently only when an actual staging URL exists
-        if: ${{ inputs.staging_url != '' }}
-        env:
-          STAGING_URL: ${{ inputs.staging_url }}
+          echo "Verified the live H-Beauty SPA and exact service worker artifact."
+
+      - name: Deployment result
+        if: ${{ always() }}
+        shell: bash
         run: |
-          node scripts/verify-live-manicure-batch50d.mjs "$STAGING_URL"
-      - name: Explain
-        run: echo 'This compatibility workflow NEVER deploys and cannot touch h-beauty.'
+          {
+            echo "## H-Beauty automatic deployment"
+            echo ""
+            echo "Publishing mode: \`$HBEAUTY_DEPLOY_MODE\`"
+            if [ "$HBEAUTY_DEPLOY_MODE" = "cloudflare-builds" ]; then
+              echo "GitHub Actions performed CI only. Verify publishing in Cloudflare Workers Builds."
+            else
+              echo "GitHub Actions is the designated publisher. The Deploy and Check public Worker steps must succeed."
+            fi
+            echo ""
+            echo "Target Worker: [h-beauty](https://h-beauty.mostifa2273.workers.dev/)"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -2,9 +2,7 @@ import { useMemo, useState } from "react";
 import { byRep, lookSrc, lookThumb, persian } from "@/data/catalog";
 import { photoObjectPosition } from "@/data/photo-focal";
 import { MAKEUP_STYLES } from "@/data/makeup-styles";
-import { NAIL_STYLES, NAIL_COUNTS } from "@/data/nail-styles";
-import { NailVisual } from "../nail-visual";
-import { MAKEUP_PHOTOS, lookPhoto, MAKEUP_CURATED_80 } from "@/data/makeup-photos";
+import { MAKEUP_PHOTOS, lookPhoto } from "@/data/makeup-photos";
 import { SERVICES, dayOf, formatPrice, greeting, isPast, longDate, monthOf, summarize, timeLabel } from "@/data/salon";
 import { useSalon } from "@/lib/salon-store";
 import { Icon } from "../icons";
@@ -12,13 +10,13 @@ import { Button, Media, TextLink, useSalonActions } from "../ui";
 
 const STYLES = [
   { repId: 30, filter: "waves", label: "موج‌های نرم", caption: "WAVES" },
-  { repId: 26, filter: "curly", label: "فرِ پرحجم", caption: "CURLS" },
-  { repId: 92, filter: "braid", label: "بافتِ خلاق", caption: "BRAIDS" },
+  { repId: 84, filter: "curly", label: "فرِ پرحجم", caption: "CURLS" },
+  { repId: 77, filter: "braid", label: "بافتِ خلاق", caption: "BRAIDS" },
   { repId: 43, filter: "ponytail", label: "دم‌اسبی", caption: "PONYTAIL" },
   { repId: 125, filter: "pixie", label: "موی کوتاه", caption: "SHORT HAIR" },
 ] as const;
 
-const FEATURED_SERVICES = ["signature-cut", "bespoke-balayage", "event-styling", "event-makeup", "luxe-manicure", "spa-pedicure"];
+const FEATURED_SERVICES = ["signature-cut", "bespoke-balayage", "event-styling", "event-makeup", "luxe-manicure"];
 
 export function HomeScreen() {
   const { go, openSheet, openBooking, openDiscover } = useSalonActions();
@@ -26,8 +24,7 @@ export function HomeScreen() {
   const bookings = useSalon((state) => state.bookings);
   const clearAll = useSalon((state) => state.clearAll);
   const setFilter = useSalon((state) => state.setFilter);
-  // The lead photograph is the most recent owner-selected HB-001 portrait.
-  const hero = byRep(1);
+  const hero = byRep(30);
   const [heroFailed, setHeroFailed] = useState(false);
   const next = useMemo(
     () => bookings.filter((item) => !isPast(item.date, item.time))
@@ -94,11 +91,11 @@ export function HomeScreen() {
           <TextLink onClick={() => { clearAll(); go("looks"); }}>همه مدل‌ها</TextLink>
         </div>
         <div className="salon24-styles rail">
-          {STYLES.slice(0,4).map((style) => (
+          {STYLES.map((style) => (
             <button key={style.filter} type="button" className="salon24-style-card"
               aria-label={`دیدن مدل‌های ${style.label}`}
               onClick={() => { clearAll(); setFilter(style.filter); go("looks"); }}>
-              <Media src={lookThumb(style.repId)} alt="" loading="eager" />
+              <Media src={lookThumb(style.repId)} alt="" loading="lazy" />
               <strong>{style.label}</strong>
               <span lang="en">{style.caption}</span>
             </button>
@@ -137,9 +134,9 @@ export function HomeScreen() {
         </div>
         <div className="px-gutter">
           <button type="button" className="mk-entry" onClick={() => go("makeup")} aria-label="ورود به بخش میکاپ">
-            <Media src={lookPhoto(MAKEUP_CURATED_80 ? MAKEUP_STYLES[0].id : "soft-glam", "sm")} alt="" loading="eager" />
+            <Media src={lookPhoto("soft-glam", "sm")} alt="" loading="lazy" />
             <span className="mk-entry__copy">
-              <span className="mk-entry__dots" aria-hidden="true">{(MAKEUP_CURATED_80 ? MAKEUP_STYLES.slice(0,5).map((style)=>style.id) : ["soft-glam", "hollywood", "plum-smokey", "romantic-bride", "sunset"]).map((id) => {
+              <span className="mk-entry__dots" aria-hidden="true">{["soft-glam", "hollywood", "plum-smokey", "romantic-bride", "sunset"].map((id) => {
                 const item = MAKEUP_STYLES.find((entry) => entry.id === id);
                 return item ? <i key={id} style={{ background: item.look.lipColor }} /> : null;
               })}</span>
@@ -147,19 +144,6 @@ export function HomeScreen() {
               <span>از نچرال روزانه تا گلم شب، عروس و سبک‌های رترو؛ همه روی یک مدل.</span>
               <span className="mk-entry__cta">مشاهده سبک‌ها<Icon name="chevron" size={14} /></span>
             </span>
-          </button>
-        </div>
-      </section>
-
-      <section className="salon24-section" aria-labelledby="nail-home-title">
-        <div className="salon24-section__head px-gutter">
-          <div><span className="salon24-eyebrow">NAIL ATELIER</span><h2 id="nail-home-title">آرایش دست و پا، هنر جزئیات</h2></div>
-          <TextLink onClick={() => go("nails")}>گالری ناخن</TextLink>
-        </div>
-        <div className="px-gutter">
-          <button type="button" className="nail-home-banner" onClick={() => go("nails")} aria-label={`دیدن گالری ${NAIL_COUNTS.total} طرح ناخن`}>
-            <span className="nail-home-banner__copy"><small lang="en">NAIL EDIT / 2026</small><strong>از مانیکور تا پدیکور</strong><span>{persian(NAIL_COUNTS.total)} ایده رنگ و طراحی برای انتخاب استایل شما</span><b>مشاهده طرح‌ها <Icon name="chevron" size={15}/></b></span>
-            <NailVisual style={NAIL_STYLES[12]} className="nail-home-banner__art" priority />
           </button>
         </div>
       </section>
@@ -185,14 +169,14 @@ export function HomeScreen() {
           <TextLink onClick={() => { clearAll(); go("looks"); }}>گالری کامل</TextLink>
         </div>
         <div className="salon24-featured rail">
-          {[63, 55, 213, 125].map((repId) => {
+          {[27, 43, 84, 125].map((repId) => {
             const look = byRep(repId);
             if (!look) return null;
             return (
               <button key={repId} type="button" className="salon24-featured__card"
                 aria-label={`مشاهده ${look.name}`}
                 onClick={(event) => openDiscover(look.id, event.currentTarget.querySelector("img"))}>
-                <Media src={lookThumb(repId)} alt="" loading="eager" />
+                <Media src={lookThumb(repId)} alt={look.name} loading="lazy" />
                 <span>{look.name}</span>
               </button>
             );

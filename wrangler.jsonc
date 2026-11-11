@@ -1,11 +1,13 @@
 {
-  "name": "h-beauty-makeup",
-  "compatibility_date": "2026-11-09",
+  "name": "h-beauty",
+  "compatibility_date": "2026-10-21",
+  // Build the SPA as part of every `wrangler deploy` / `versions upload`, so
+  // deploys from a clean checkout (e.g. Cloudflare Workers Builds) have ./dist.
   "build": {
-    "command": "node scripts/verify-v18-staging-dist.mjs"
+    "command": "test -d node_modules || npm ci --no-audit --no-fund; npm run build"
   },
   "assets": {
-    "directory": "./pwa-v18",
+    "directory": "./dist",
     "not_found_handling": "single-page-application"
   }
 }

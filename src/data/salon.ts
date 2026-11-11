@@ -21,7 +21,7 @@ export const SALON = {
   closeHour: 19,
 };
 
-export type ServiceCategory = "cut" | "color" | "care" | "styling" | "bridal" | "beauty" | "nails";
+export type ServiceCategory = "cut" | "color" | "care" | "styling" | "bridal" | "beauty";
 
 export const SERVICE_CATEGORIES: Array<{ key: ServiceCategory; label: string; en: string }> = [
   { key: "cut", label: "کوتاهی و فرم", en: "CUT & SHAPE" },
@@ -29,8 +29,7 @@ export const SERVICE_CATEGORIES: Array<{ key: ServiceCategory; label: string; en
   { key: "care", label: "مراقبت و احیا", en: "TREATMENTS" },
   { key: "styling", label: "استایل و براشینگ", en: "STYLING" },
   { key: "bridal", label: "عروس", en: "BRIDAL" },
-  { key: "beauty", label: "میکاپ و ابرو", en: "MAKEUP & BROWS" },
-  { key: "nails", label: "مانیکور و پدیکور", en: "NAIL ATELIER" },
+  { key: "beauty", label: "میکاپ و ناخن", en: "BEAUTY" },
 ];
 
 export type Service = {
@@ -181,90 +180,9 @@ export const SERVICES: Service[] = [
     minutes: 75,
     price: 1_600_000,
   },
-  // Nail atelier. New prices are intentionally consultation-only until approved.
-  {
-    id: "classic-manicure",
-    category: "nails",
-    title: "مانیکور کلاسیک",
-    en: "CLASSIC MANICURE",
-    detail: "فرم‌دهی و مرتب‌سازی ناخن طبیعی با مراقبت دست",
-    includes: ["بررسی وضعیت ناخن", "فرم‌دهی ناخن", "مراقبت کوتیکول", "مرطوب‌سازی دست"],
-    minutes: 45,
-    price: null,
-  },
-  {
-    id: "gel-manicure",
-    category: "nails",
-    title: "مانیکور و ژلیش",
-    en: "GEL MANICURE",
-    detail: "مانیکور مرتب و لاک ژل با رنگ انتخابی",
-    includes: ["فرم‌دهی و آماده‌سازی", "لاک ژل", "روغن کوتیکول", "مراقبت پایانی"],
-    minutes: 75,
-    price: null,
-  },
-  {
-    id: "classic-pedicure",
-    category: "nails",
-    title: "پدیکور کلاسیک",
-    en: "CLASSIC PEDICURE",
-    detail: "مراقبت زیبایی پا و مرتب‌سازی ناخن‌های پا",
-    includes: ["بررسی ظاهری پا و ناخن", "پاک‌سازی و فرم‌دهی", "مراقبت ملایم پوست", "مرطوب‌سازی"],
-    minutes: 60,
-    price: null,
-  },
-  {
-    id: "spa-pedicure",
-    category: "nails",
-    title: "پدیکور اسپا",
-    en: "SPA PEDICURE",
-    detail: "پدیکور آرامش‌بخش همراه با ماساژ و رطوبت‌رسانی",
-    includes: ["شست‌وشوی بهداشتی", "فرم‌دهی ناخن", "لایه‌برداری ملایم", "ماساژ و رطوبت‌رسانی"],
-    minutes: 75,
-    price: null,
-  },
-  {
-    id: "gel-pedicure",
-    category: "nails",
-    title: "پدیکور و ژلیش",
-    en: "GEL PEDICURE",
-    detail: "پدیکور همراه با لاک ژل و رنگ انتخابی",
-    includes: ["آماده‌سازی و فرم‌دهی", "مراقبت ملایم پوست پا", "لاک ژل", "مراقبت پایانی"],
-    minutes: 75,
-    price: null,
-  },
-  {
-    id: "nail-strengthening",
-    category: "nails",
-    title: "تقویت و کاور ناخن",
-    en: "NAIL OVERLAY",
-    detail: "کاور زیبایی ناخن طبیعی بر اساس وضعیت آن",
-    includes: ["مشاوره ناخن", "آماده‌سازی سطح", "کاور مناسب", "فرم‌دهی و پرداخت"],
-    minutes: 75,
-    price: null,
-  },
-  {
-    id: "nail-art",
-    category: "nails",
-    title: "طراحی ناخن",
-    en: "NAIL ART",
-    detail: "فرنچ، کروم یا طرح دلخواه؛ مدت و هزینه با طرح تغییر می‌کند",
-    includes: ["انتخاب طرح و رنگ", "اجرای جزئیات", "فینیش نهایی"],
-    minutes: 30,
-    price: null,
-  },
-  {
-    id: "gel-removal",
-    category: "nails",
-    title: "ریموو ژل",
-    en: "GEL REMOVAL",
-    detail: "برداشتن ژل و مراقبت پایانی بدون کندن پوشش",
-    includes: ["بررسی نوع پوشش", "ریموو متناسب", "فرم‌دهی ملایم", "روغن کوتیکول"],
-    minutes: 30,
-    price: null,
-  },
   {
     id: "luxe-manicure",
-    category: "nails",
+    category: "beauty",
     title: "مانیکور لوکس",
     en: "LUXE MANICURE",
     detail: "فرم‌دهی، کوتیکول و لاک ژل",
@@ -290,7 +208,7 @@ export const STYLISTS: Stylist[] = [
   { id: "hananeh", name: "حنانه", role: "مدیر هنری · مستر استایلیست", focus: ["cut", "styling", "bridal"], tone: "from-[#c9a46c] to-[#7a5a33]" },
   { id: "sara", name: "سارا", role: "کالریست ارشد", focus: ["color", "care"], tone: "from-[#d9a99a] to-[#8f5a4c]" },
   { id: "negar", name: "نگار", role: "متخصص مراقبت و کراتین", focus: ["care", "styling"], tone: "from-[#a9bfae] to-[#4f6a5b]" },
-  { id: "mahsa", name: "مهسا", role: "آرتیست میکاپ و ناخن", focus: ["beauty", "bridal", "nails"], tone: "from-[#c7b4d6] to-[#6d5781]" },
+  { id: "mahsa", name: "مهسا", role: "آرتیست میکاپ و ناخن", focus: ["beauty", "bridal"], tone: "from-[#c7b4d6] to-[#6d5781]" },
 ];
 
 export const stylistById = new Map(STYLISTS.map((stylist) => [stylist.id, stylist]));
