@@ -1,5 +1,10 @@
 # H-beauty — Hananeh Beauty salon app
 
+> **This repository (H-beauty-makeup) publishes the makeup try-on on its own** (`src/components/tryon-page.tsx`):
+> the salon app's try-on screen — her photo or the live mirror, every look, «میکاپ من» — without the salon around it.
+> The whole salon app is still here: `npm run dev:salon` (`VITE_SITE=salon`); the tests use it, and
+> `tests/site.spec.ts` checks the published try-on page. Its Cloudflare Worker is `h-beauty-makeup`, never H-Beauty's.
+
 «حنانه بیوتی» (Hananeh Beauty) — a luxury, mobile-first Persian (RTL) salon **app**: an installable PWA with a first-launch concierge welcome, a Liquid Glass tab bar, native-style bottom sheets and light ("porcelain & champagne") / dark ("noir & gold") themes.
 
 Design system: **Estedad** for UI text, **Noto Nastaliq** calligraphy for the wordmark and accents, **Bodoni Moda** for Latin, OKLCH colour tokens, Phosphor icons and arch-framed imagery. Full documentation is in [`DESIGN.md`](DESIGN.md); the living style guide is at `#/design` in the app.

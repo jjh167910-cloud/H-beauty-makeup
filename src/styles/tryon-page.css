@@ -1,0 +1,16 @@
+/* This site's frame around the try-on screen (src/components/tryon-page.tsx). */
+@layer components {
+  .tp { max-width: 34rem; margin-inline: auto; padding-block: max(1rem, env(safe-area-inset-top, 0px)) 3rem;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 1rem; }
+  .tp__head { display: grid; gap: .35rem; }
+  .tp__brand { font-size: .74rem; font-weight: 700; color: var(--color-ink-3); letter-spacing: .02em; }
+  .tp__head h1 { font-size: 1.35rem; font-weight: 800; line-height: 1.5; color: var(--color-ink); }
+  .tp__head p { font-size: .84rem; line-height: 1.9; color: var(--color-ink-2); }
+  .tp__book { position: fixed; inset: 0; z-index: 60; padding-bottom: env(safe-area-inset-bottom, 0px); display: grid; align-items: end; background: rgb(20 12 16 / .45); }
+  .tp__book > div { display: grid; gap: .7rem; max-width: 34rem; width: 100%; margin-inline: auto; max-height: 88dvh; overflow-y: auto; padding: 1.2rem 1rem 1.4rem;
+    border-radius: 1.35rem 1.35rem 0 0; background: var(--color-canvas); color: var(--color-ink); box-shadow: 0 -20px 50px rgb(0 0 0 / .3); }
+  .tp__book h2 { font-size: 1.1rem; font-weight: 800; }
+  .tp__book ul { display: grid; gap: .25rem; padding-inline-start: 1.1rem; list-style: disc; font-size: .84rem; line-height: 1.8; }
+  .tp__book small { font-size: .74rem; color: var(--color-ink-3); line-height: 1.8; }
+  .tp__actions { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: flex-end; }
+}
