@@ -84,10 +84,13 @@ A soft or small face is redrawn in HD on the phone before the studio light and t
 v1.4 (Tencent ARC, Apache-2.0), a face-restoration network, sees her face aligned to FFHQ's five
 points at 512 × 512 (her iris centres, nose tip and mouth corners) and draws its eyes, lashes, brows,
 lips and skin texture sharp. Its weights are stored as int8 per output channel
-(`public/tryon/face-hd/`, 85 MB in two parts; 57–60 dB from the float32 network) and it runs in ONNX
+(`public/tryon/face-hd/`, 85 MB; 57–60 dB from the float32 network) and it runs in ONNX
 Runtime Web on the graphics chip (WebGPU), or on four or more processor cores where the app is
 cross-origin isolated; elsewhere, or past 30 s, her photo is used as it is. A phone whose page stopped
 while it was running (out of memory: the browser reloads the page) doesn't try it again for a week.
+Cloudflare Workers serve no file over 25 MiB, so the network is in four parts of 20.4 MiB and ONNX
+Runtime's WebGPU WebAssembly (25.5 MiB) in two, joined on the phone (`gfpgan-1.4-q8.N-of-4.bin`,
+`ort-wasm-simd-threaded.asyncify.N-of-2.bin`); a phone that kept them whole drops those copies.
 
 A face network can change who she is. Only its fine detail is kept (finer than 4 pixels of the 512
 face): her face's shape, tones and colours stay her photo's own (her photo + the network's fine

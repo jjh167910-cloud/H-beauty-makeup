@@ -77,9 +77,14 @@ const EYES_META = `${BASE}eyes.json${EYES_V}`;
 const DATA_V = "?v=6";
 const LOOKS_META = `${BASE}looks.json${DATA_V}`;
 const ENHANCE = `${BASE}enhance-x4.bin`;
-/** HD face (face-hd.ts): the network's two parts, and ONNX Runtime's WebGPU build. */
-const HD_PARTS = [0, 1].map((i) => `${BASE}face-hd/gfpgan-1.4-q8.${i}.bin`);
-const ORT_GPU = [`${ORT_DIR}ort-wasm-simd-threaded.asyncify.mjs`, `${ORT_DIR}ort-wasm-simd-threaded.asyncify.wasm`];
+/**
+ * HD face (face-hd.ts): the network in four parts, and ONNX Runtime's WebGPU build (its glue script, its WebAssembly in two
+ * parts). Cloudflare Workers serve no file over 25 MiB: the network is 82 MiB, the WebAssembly 25.5.
+ */
+const HD_PARTS = [0, 1, 2, 3].map((i) => `${BASE}face-hd/gfpgan-1.4-q8.${i}-of-4.bin`);
+const ORT_GPU_GLUE = `${ORT_DIR}ort-wasm-simd-threaded.asyncify.mjs`;
+const ORT_GPU_WASM = [0, 1].map((i) => `${ORT_DIR}ort-wasm-simd-threaded.asyncify.${i}-of-2.bin`);
+const ORT_GPU = [ORT_GPU_GLUE, ...ORT_GPU_WASM];
 const HD_FILES = [...HD_PARTS, ...ORT_GPU];
 export const lookModel = (id: string) => `${BASE}tiny/${id}.onnx`;
 const lookLayer = (id: string) => `${BASE}layers/${id}.webp${DATA_V}`;
@@ -89,6 +94,8 @@ const lookCov = (id: string) => `${BASE}cov/${id}.webp${DATA_V}`;
 const OLD_DATA = (ids: string[]) => [
   ...["", "?v=2", "?v=3", "?v=4", "?v=5"].flatMap((v) => [`${BASE}looks.json${v}`, ...ids.flatMap((id) => [`${BASE}layers/${id}.webp${v}`, `${BASE}cov/${id}.webp${v}`])]),
   ...["", "?v=2"].flatMap((v) => [`${BASE}eyes.json${v}`, ...ids.map((id) => `${BASE}eyes/${id}.png${v}`)]),
+  // (the HD face's files as they were, whole or in two parts)
+  `${BASE}face-hd/gfpgan-1.4-q8.0.bin`, `${BASE}face-hd/gfpgan-1.4-q8.1.bin`, `${ORT_DIR}ort-wasm-simd-threaded.asyncify.wasm`,
 ];
 const SIZE = 256;
 const MAX_SIDE = 1600;
@@ -163,7 +170,7 @@ export async function downloadModels(lookIds: string[], onProgress: (done: numbe
   const small = [...need.filter((url) => !big.includes(url)), ...thumbs];
   // Byte weights so the bar moves smoothly even without content-length.
   const weights = new Map<string, number>([[ORT_WASM, 14_300_000], [FACE_FILES[1], 13_600_000], [FACE_FILES[2], 3_800_000], [SEGMENT, 8_300_000], [LOOKS_META, 330_000], [ENHANCE, 2_430_000],
-    [HD_PARTS[0], 48_000_000], [HD_PARTS[1], 37_600_000], [ORT_GPU[0], 53_000], [ORT_GPU[1], 26_800_000]]);
+    ...HD_PARTS.map((url): [string, number] => [url, 21_400_000]), [ORT_GPU_GLUE, 53_000], ...ORT_GPU_WASM.map((url): [string, number] => [url, 13_400_000])]);
   for (const id of lookIds) { weights.set(lookModel(id), 230_000); weights.set(lookLayer(id), 130_000); weights.set(lookCov(id), 25_000); }
   const total = [...big, ...small].reduce((sum, url) => sum + (weights.get(url) ?? 30_000), 0);
   let done = 0;
@@ -1040,7 +1047,8 @@ async function faceHd(prepared: Prepared, onStep?: (step: "sharp" | "hd", done: 
   hdRunning(true);
   try {
     const run = (async () => {
-      const s = await hdSession(async () => joinParts(await Promise.all(HD_PARTS.map((url) => cached(url).then((r) => r.arrayBuffer())))), new URL(ORT_DIR, location.href).href, backend);
+      const join = async (urls: string[]) => joinParts(await Promise.all(urls.map((url) => cached(url).then((r) => r.arrayBuffer()))));
+      const s = await hdSession(() => join(HD_PARTS), { mjs: new URL(ORT_GPU_GLUE, location.href).href, wasm: () => join(ORT_GPU_WASM) }, backend);
       if (plain.vis === undefined) plain.vis = await visibility(plain.photo, plain.points);
       const target = prepared.sharp ?? plain;
       const photo = await hdFace(s, plain.photo, plain.points, target.photo, target.points, plain.vis ?? null);
