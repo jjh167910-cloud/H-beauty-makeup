@@ -1,31 +1,12 @@
 /*
- * حنانه بیوتی — stylesheet entry.
- * Order: Tailwind → fonts → tokens → base → components → motion.
- * See DESIGN.md for the system and the living style guide at #/design.
+ * The try-on's stylesheet. Order: Tailwind (reset) → font → tokens → base → shared pieces → the try-on.
  */
-@import "tailwindcss";
+@import "tailwindcss" source(".");   /* utilities only from the app's own code (src/) */
 
 @import "@fontsource-variable/estedad/wght.css";
-@import "@fontsource-variable/noto-nastaliq-urdu/wght.css";
-@import "@fontsource-variable/bodoni-moda/opsz.css";
-@import "@fontsource-variable/bodoni-moda/opsz-italic.css";
 
 @import "./styles/tokens.css";
 @import "./styles/base.css";
-@import "./styles/components.css";
-@import "./styles/motion.css";
-@import "./styles/atelier.css";
-
-@import "./styles/studio-v22.css";
-
-@import "./styles/modern-v23.css";
-
-@import "./styles/salon-v24.css";
-
-@import "./styles/photo-icons-v25.css";
-
-@import "./styles/visual-polish-v26.css";
-
-@import "./styles/makeup-v31.css";
+@import "./styles/ui.css";
 @import "./styles/tryon.css";
 @import "./styles/tryon-page.css";

@@ -1,15 +1,5 @@
-/* H-Beauty: AI makeup try-on (entry card on the style detail + try-on view). */
+/* The makeup try-on screen (src/components/tryon.tsx, tryon-mine.tsx, tryon-outline.tsx). */
 @layer components {
-  .mk-tryon {
-    display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:.75rem;width:100%;padding:.8rem .9rem;text-align:start;
-    border-radius:var(--radius-lg);background:linear-gradient(135deg, var(--color-gold-soft), var(--color-surface) 70%);
-    border:1px solid color-mix(in oklch, var(--color-gold) 45%, var(--color-line));color:var(--color-ink);
-  }
-  .mk-tryon:active {transform:scale(.99);}
-  .mk-tryon__icon {display:grid;place-items:center;width:2.6rem;height:2.6rem;border-radius:50%;background:var(--color-gold);color:var(--color-on-gold);}
-  .mk-tryon__copy {display:grid;gap:.1rem;min-width:0;}
-  .mk-tryon__copy strong {font-size:.95rem;font-weight:760;}
-  .mk-tryon__copy small {font-size:.74rem;color:var(--color-ink-2);line-height:1.6;}
 
   .tryon__loading {padding:3rem 1rem;text-align:center;color:var(--color-ink-2);}
   .tryon {display:grid;gap:1rem;padding-bottom:1rem;}
@@ -258,7 +248,7 @@
   .contour__actions {display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:.5rem;}
 
   /* «میکاپ من»: her own makeup, step by step on her bare face. */
-  /* (her photo stays in view while she picks: on top of the sheet's scroll, a little shorter) */
+  /* (her photo stays in view while she picks: at the top of the page as it scrolls, a little shorter) */
   .mine__stage {position:sticky;inset-block-start:0;z-index:2;touch-action:pan-y;box-shadow:0 6px 18px -10px rgb(20 12 16 / .35);}
   .mine .steps__view {max-height:46vh;}
   /* (before and after: the "after" tag under her undo and compare buttons) */

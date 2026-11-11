@@ -1,14 +1,14 @@
 /**
- * This site (H-beauty-makeup): the salon app's makeup try-on on its own. The same screen as in the app
- * (sheets/tryon.tsx): her photo or the live mirror, every look on the rail, «میکاپ من», all on her phone.
- * The rest of the salon app stays in the code (VITE_SITE=salon: npm run dev:salon, and the tests).
+ * This site (H-beauty-makeup): the salon's makeup try-on. Her photo or the live mirror, every look on the rail,
+ * «میکاپ من» (her own makeup), all on her phone; «رزرو» gives the look or her recipe as text for the salon.
+ * `?look=<id>` opens it on that look (ids in src/data/makeup-styles.ts); otherwise on Hollywood glam.
  */
 import { Suspense, lazy, useEffect, useState } from "react";
 import { styleById, MAKEUP_STYLES } from "@/data/makeup-styles";
 import { recipeLines, type MyMakeup } from "@/data/my-makeup";
-import { Button } from "@/components/salon/ui";
+import { Button } from "@/components/ui";
 
-const TryOnView = lazy(() => import("@/components/salon/sheets/tryon"));
+const TryOnView = lazy(() => import("@/components/tryon"));
 
 /** The system's light or dark (the app's colours follow data-theme). */
 function useSystemTheme() {
@@ -28,7 +28,7 @@ type Booking = { title: string; lines: string[] };
 
 export function TryOnPage() {
   useSystemTheme();
-  const style = styleById.get("hollywood") ?? MAKEUP_STYLES[0];
+  const [style] = useState(() => styleById.get(new URLSearchParams(location.search).get("look") ?? "") ?? styleById.get("hollywood") ?? MAKEUP_STYLES[0]);
   const [booking, setBooking] = useState<Booking | null>(null);
   const [copied, setCopied] = useState(false);
 

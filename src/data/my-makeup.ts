@@ -347,13 +347,6 @@ export function mySteps(recipe: MyMakeup): Step[] {
   });
 }
 
-/** Which makeup service a recipe asks for: an evening one when its eyes are bold. */
-export function serviceFor(recipe: MyMakeup): string {
-  const bold = recipe.lashes?.place === "dramatic" || (recipe.liner && ["wing", "fox", "smudge"].includes(recipe.liner.place ?? "wing"))
-    || (recipe.shadow && ["smoky", "cutcrease", "halo"].includes(recipe.shadow.place ?? ""));
-  return bold ? "event-makeup" : "natural-makeup";
-}
-
 /* ---------------------------------------------------------------- on her phone */
 
 export type SavedMakeup = { id: string; name: string; at: number; recipe: MyMakeup; thumb?: string };

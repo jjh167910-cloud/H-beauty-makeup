@@ -6,20 +6,18 @@ import { test, expect, type Page } from "playwright/test";
  * graphics chip, or the TinyBeauty-style tiny networks where WebGL2 is missing) run in the
  * browser. No request leaves the device.
  */
-const KEY = "hananeh-atelier-v1";
 const ROOT = process.cwd();
-const CUSTOMER = join(ROOT, "public/makeup/looks/no-makeup.webp");
+const CUSTOMER = join(ROOT, "public/makeup/looks/no-makeup.webp");   // the catalog model without makeup (no real person)
 const NOT_A_FACE = join(ROOT, "public/icons/icon-512.png");
 /** Synthetic faces (no real people; see tests/fixtures/README.md) with something in front of the face. */
 const FIXTURE = (name: string) => `/@fs${join(ROOT, "tests/fixtures", name)}`;
+/** The looks the tests open (the page's `?look=` link, ids from src/data/makeup-styles.ts). */
+const LOOK: Record<string, string> = { "گلم هالیوودی": "hollywood", "گلم نرم": "soft-glam", "خط چشم گربه‌ای": "cat-eye", "فول گلم": "full-glam" };
 
 async function openTryOn(page: Page, title: string, megabytes = "۳۶") {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.addInitScript((key) => localStorage.setItem(key, JSON.stringify({ welcomed: true, theme: "light", bookings: [] })), KEY);
-  await page.goto("/#/makeup");
-  await page.getByText("همه سبک‌ها").first().click();
-  await page.getByRole("button", { name: `جزئیات سبک ${title}` }).first().click();
-  await page.locator(".mk-tryon").click();
+  await page.goto(`/?look=${LOOK[title]}`);
+  await expect(page.getByRole("heading", { name: `«${title}» روی چهره خودتان` })).toBeVisible();
   await expect(page.getByText(`حدود ${megabytes} مگابایت`)).toBeVisible();
   await page.getByRole("button", { name: "آماده‌سازی هوش مصنوعی" }).click();
   await expect(page.getByRole("button", { name: "انتخاب از گالری" })).toBeVisible({ timeout: 120_000 });
@@ -1197,20 +1195,13 @@ test("her own makeup: built step by step on her bare face, each product where it
 
   // Booked with it: the request carries her recipe as text for the artist (no photo).
   await page.getByRole("button", { name: "رزرو با این میکاپ" }).click();
-  await page.locator(".slot").first().click();
-  await page.getByRole("button", { name: "ادامه" }).click();
-  const card = page.getByLabel("میکاپ من", { exact: true });
-  await expect(card).toContainText("مهمانی جمعه");
-  await expect(card).toContainText("رژ لب: قرمز کلاسیک");
-  await page.getByLabel("نام و نام خانوادگی").fill("سارا");
-  await page.getByLabel("شماره همراه").fill("09123456789");
-  await page.getByRole("button", { name: "ثبت درخواست" }).click();
-  await expect(page.getByText("درخواست شما")).toBeVisible();
-  const booking = await page.evaluate(() => JSON.parse(localStorage.getItem("hananeh-atelier-v1")!).bookings[0]);
-  expect(booking.mine.name).toBe("مهمانی جمعه");
-  expect(booking.mine.lines.join("\n")).toContain("رژگونه: بری");
-  expect(booking.mine.lines.join("\n")).toContain("نور گوشه چشم مرواریدی");
-  expect(JSON.stringify(booking)).not.toContain("data:image");
+  const booking = page.getByRole("dialog", { name: "درخواست رزرو" });
+  await expect(booking).toContainText("میکاپ من: مهمانی جمعه");
+  await expect(booking).toContainText("رژ لب: قرمز کلاسیک");
+  await expect(booking).toContainText("رژگونه: بری");
+  await expect(booking).toContainText("نور گوشه چشم مرواریدی");
+  await expect(booking.locator("img, canvas")).toHaveCount(0);
+  expect(await booking.innerHTML()).not.toContain("data:image");
 });
 
 test.describe("on a phone", () => {

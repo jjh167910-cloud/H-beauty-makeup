@@ -1,0 +1,87 @@
+/*
+ * The try-on's shared pieces: photos (.media), buttons (.btn, components/ui.tsx), chips and form fields.
+ * Variants are data attributes (data-variant, data-size, data-block) and states are ARIA (aria-pressed,
+ * aria-invalid), so styling follows semantics. Colours come from tokens.css.
+ */
+
+@layer components {
+  /* ============ Photos ============ */
+  /* A quiet shimmer until the photo paints over it, and a real fallback if it cannot load (offline). */
+  .media {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(100deg, var(--color-sunken) 30%, color-mix(in oklch, var(--color-sunken) 50%, var(--color-surface)) 50%, var(--color-sunken) 70%) 0 0 / 300% 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+  .media > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .media[data-loaded] { animation: none; }
+  .media[data-error] { animation: none; background: var(--color-sunken); border: 1px solid var(--color-line); }
+  .media[data-error] > img { opacity: 0; }
+  .media__error {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    padding: .65rem; color: var(--color-ink-2);
+    font-size: .7rem; font-weight: 600; line-height: 1.7; text-align: center;
+  }
+
+  /* ============ Buttons ============ */
+  .btn {
+    display: inline-flex;
+    min-height: 2.9rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--radius-md);
+    padding-inline: 1rem;
+    font-size: .83rem;
+    font-weight: 580;
+    line-height: 1.5;
+    text-align: center;
+    white-space: normal;
+    transition: transform var(--duration-fast) var(--ease-out), background-color var(--duration-base) ease, color var(--duration-base) ease, box-shadow var(--duration-base) ease, opacity var(--duration-base) ease;
+    background: var(--color-inverse);
+    color: var(--color-on-inverse);
+    box-shadow: none;
+  }
+  .btn:active:not(:disabled) { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.38; box-shadow: none; cursor: default; }
+  .btn[data-size="sm"] { padding-inline: 1rem; font-size: 0.8125rem; }
+  .btn[data-size="lg"] { min-height: 3.2rem; padding-inline: 1.75rem; font-size: 0.9375rem; }
+  .btn[data-block] { width: 100%; }
+  .btn[data-variant="gold"] { background: #843d58; color: white; box-shadow: none; }
+  :root[data-theme="dark"] .btn[data-variant="gold"] { background: #c9889f; color: #23131b; }
+  .btn[data-variant="secondary"] { background: var(--color-surface); color: var(--color-ink); box-shadow: inset 0 0 0 1px var(--color-line-2); }
+  .btn[data-variant="tonal"] { background: var(--color-sunken); color: var(--color-ink); box-shadow: none; }
+  .btn[data-variant="ghost"] { background: transparent; color: var(--color-gold-ink); box-shadow: none; padding-inline: 0.5rem; }
+  .btn[data-variant="light"] { background: var(--color-white); color: var(--color-noir); }
+
+  /* ============ Chips ============ */
+  .chip {
+    display: inline-flex;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    flex: none;
+    align-items: center;
+    gap: 0.375rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-md);
+    padding-inline: 1rem;
+    background: var(--color-surface);
+    color: var(--color-ink-2);
+    font-size: 0.8125rem;
+    font-weight: 520;
+    white-space: nowrap;
+    box-shadow: none;
+    transition: background-color var(--duration-base) ease, color var(--duration-base) ease, transform var(--duration-fast) var(--ease-out);
+  }
+  .chip:active { transform: scale(0.96); }
+  .chip[aria-pressed="true"] { background: var(--color-inverse); color: var(--color-on-inverse); border-color: transparent; box-shadow: none; }
+
+  /* ============ Form fields ============ */
+  .field { display: grid; gap: 0.125rem; }
+  .field > span:first-child { color: var(--color-ink-2); font-size: 0.75rem; font-weight: 450; }
+  .field :is(input, textarea) { width: 100%; border: 0; border-bottom: 1px solid var(--color-line-2); background: transparent; padding: 0.625rem 0; font-size: 1.0625rem; font-weight: 320; line-height: 1.7; outline: none; transition: border-color var(--duration-base) ease; }
+  .field :is(input, textarea):focus { border-color: var(--color-gold); box-shadow: 0 1px 0 var(--color-gold); }
+  .field [aria-invalid="true"] { border-color: var(--color-garnet); }
+}
+
+@keyframes shimmer { to { background-position: -300% 0; } }

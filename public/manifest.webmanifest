@@ -1,7 +1,7 @@
 {
-  "name": "حنانه بیوتی",
+  "name": "امتحان میکاپ · حنانه بیوتی",
   "short_name": "حنانه بیوتی",
-  "description": "سالن زیبایی حنانه بیوتی — گالری مدل مو، منوی خدمات و درخواست نوبت",
+  "description": "امتحان میکاپ‌های حنانه بیوتی روی عکس یا دوربین خودتان، روی خود گوشی و بدون اینترنت",
   "lang": "fa",
   "dir": "rtl",
   "id": "/",
@@ -17,9 +17,5 @@
     { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ],
-  "shortcuts": [
-    { "name": "درخواست نوبت", "url": "/#/bookings" },
-    { "name": "مدل‌های مو", "url": "/#/looks" }
   ]
 }

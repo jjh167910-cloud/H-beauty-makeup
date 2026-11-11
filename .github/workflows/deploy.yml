@@ -1,4 +1,4 @@
-name: Deploy حنانه بیوتی
+name: Deploy the makeup try-on
 
 on:
   push:
@@ -51,8 +51,6 @@ jobs:
           node-version: "22"
           cache: npm
 
-      - name: Verify catalog images and PWA assets
-        run: node scripts/verify-images.mjs
       - name: Verify offline app shell
         run: node --test tests-node/*.test.mjs
       - name: Install dependencies
@@ -67,14 +65,14 @@ jobs:
       - name: Verify runner Chrome
         run: google-chrome --version
 
-      - name: Verify mobile UI before production
+      - name: Try-on tests before production
         run: npm run test:ui
 
       - name: Upload build artifact
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: h-beauty-dist
+          name: h-beauty-makeup-dist
           path: dist
           retention-days: 14
 
@@ -89,7 +87,7 @@ jobs:
           curl --fail --show-error --silent --location --retry 3 --retry-delay 3 \
             --max-time 30 https://h-beauty-makeup.jjh167910.workers.dev/ -o /tmp/hbeauty-live.html
           grep -q 'id="root"' /tmp/hbeauty-live.html || {
-            echo "::error::Deployed Worker did not return the expected H-Beauty SPA."
+            echo "::error::Deployed Worker did not return the expected try-on page."
             exit 1
           }
           # A HTTP 200 can still be an older release; compare the generated
@@ -112,14 +110,14 @@ jobs:
             echo "::error::Live h-beauty-makeup service worker does not match the current build (stale deployment, wrong Worker, or caching)."
             exit 1
           fi
-          echo "Verified the live H-Beauty SPA and exact service worker artifact."
+          echo "Verified the live try-on page and exact service worker artifact."
 
       - name: Deployment result
         if: ${{ always() }}
         shell: bash
         run: |
           {
-            echo "## H-Beauty automatic deployment"
+            echo "## H-Beauty makeup try-on deployment"
             echo ""
             echo "Publishing mode: \`$HBEAUTY_DEPLOY_MODE\`"
             if [ "$HBEAUTY_DEPLOY_MODE" = "cloudflare-builds" ]; then

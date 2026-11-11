@@ -1,5 +1,5 @@
-/* H-Beauty offline shell: build step injects hashed app assets and cache identity.
- * Hairstyle photos are intentionally cached as viewed, not all preloaded. */
+/* H-Beauty makeup try-on, offline: the build injects the hashed app assets and the cache identity.
+ * Look photos are cached as viewed; the AI files (/tryon/) have their own cache. */
 const PREFIX='h-beauty-';
 const AI_CACHE='hb-ai-models-v2';
 const CACHE='h-beauty-v5-unbuilt';
@@ -56,7 +56,7 @@ self.addEventListener('fetch', event => {
     const response=await fetch(req);
     if (response.ok && response.type==='basic') {
       try { await (await caches.open(CACHE)).put(req,response.clone()); }
-      catch (error) { console.warn('Could not cache salon asset',error); }
+      catch (error) { console.warn('Could not cache asset',error); }
     }
     return response;
   })());

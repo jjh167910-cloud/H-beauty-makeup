@@ -1,6 +1,7 @@
 # On-device makeup try-on
 
-Each makeup style page has **«امتحان روی عکس من»**. The customer opens a **live mirror** on her
+This site is the try-on (`src/components/tryon-page.tsx`; `?look=<id>` opens it on a look). The
+customer opens a **live mirror** on her
 front camera, takes a selfie or picks a photo, and the catalog look is painted on her own face,
 at **soft / natural / bold** intensity («ملایم / طبیعی / پررنگ»). Everything runs inside the
 phone's browser: no server, no API key, works offline after a one-time download, and no picture
@@ -364,7 +365,7 @@ her lips, a hand on her cheek, a scarf, a phone.
 - Limits: the face points come from MediaPipe; on extreme poses (head thrown far back, face upside
   down) they can be off and the makeup follows them, unless she moves them (below).
 
-### The try-on screen (`src/components/salon/sheets/tryon.tsx`)
+### The try-on screen (`src/components/tryon.tsx`)
 
 - **Her face on the look rail** («سبک‌ها روی چهره شما»). Once a look is on her photo, each look on the
   rail shows her own face in it, not the catalog model: a small copy of her photo around her face
@@ -388,7 +389,7 @@ her lips, a hand on her cheek, a scarf, a phone.
 The face model's points can be off on some photos, so she can move them herself, and the app says
 when it isn't sure.
 
-- **Editor** (`src/components/salon/sheets/tryon-outline.tsx`). Four parts: lips (12 handles on the
+- **Editor** (`src/components/tryon-outline.tsx`). Four parts: lips (12 handles on the
   lip line, 6 more on the inner line when her mouth is open), eyes (6 per eye: corners, upper and
   lower lid), brows (head, arch and tail of each) and the edge of her face (12 along it). The view
   zooms to the part. One finger always moves a point, never the photo: touching near a point
@@ -474,7 +475,7 @@ lipsticks in `lipsticks.ts`.
 
 A second tab next to «قبل و بعد»: her own makeup, built step by step on her bare
 face, independent of the catalog looks (`src/data/my-makeup.ts`, screen
-`src/components/salon/sheets/tryon-mine.tsx`, engine `paintMine` in `src/lib/tryon.ts`). Eleven
+`src/components/tryon-mine.tsx`, engine `paintMine` in `src/lib/tryon.ts`). Eleven
 steps in an artist's order — coloured lenses (in before any makeup), foundation, concealer, contour,
 blush, highlight, brows, eyeshadow, liner, mascara/lashes, lipstick — each with:
 
@@ -602,9 +603,8 @@ Nothing goes on her eyeballs or inside her mouth, and nothing over hair, hands o
 
 Her makeups are saved on her phone only (`localStorage`, with a small thumbnail of her face that
 never leaves the phone); the one she's working on is kept between visits. «رزرو با این میکاپ»
-opens a booking request that carries the recipe as text, one line per step (colour, finish,
-placement, tool, amount), so the artist sees it in the WhatsApp message; her photo
-is not sent. The tiny-network fallback has no «میکاپ من» (like the tutorial). There is no Python
+shows the recipe as text to copy into her booking message, one line per step (colour, finish,
+placement, tool, amount), so the artist sees what she made; her photo is not part of it. The tiny-network fallback has no «میکاپ من» (like the tutorial). There is no Python
 reference for this mode yet: the pigments and foundation share their code (and reference) with
 the modes above.
 

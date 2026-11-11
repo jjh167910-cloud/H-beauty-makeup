@@ -1,41 +1,30 @@
-# H-beauty — Hananeh Beauty salon app
+# H-beauty makeup try-on
 
-> **This repository (H-beauty-makeup) publishes the makeup try-on on its own** (`src/components/tryon-page.tsx`):
-> the salon app's try-on screen — her photo or the live mirror, every look, «میکاپ من» — without the salon around it.
-> The whole salon app is still here: `npm run dev:salon` (`VITE_SITE=salon`); the tests use it, and
-> `tests/site.spec.ts` checks the published try-on page. Its Cloudflare Worker is `h-beauty-makeup`, never H-Beauty's.
+«حنانه بیوتی» (Hananeh Beauty) salon's **makeup try-on**, a Persian (RTL) mobile web app: the customer opens a
+live mirror on her front camera, takes a selfie or picks a photo, and the salon's 42 catalog looks are painted on
+her own face. She can also build her own makeup step by step («میکاپ من»). Everything runs on her phone: no
+server, no API key, offline after a one-time download, and her photo never leaves the phone. «رزرو» gives the
+look (or her recipe) as text to send to the salon.
 
-«حنانه بیوتی» (Hananeh Beauty) — a luxury, mobile-first Persian (RTL) salon **app**: an installable PWA with a first-launch concierge welcome, a Liquid Glass tab bar, native-style bottom sheets and light ("porcelain & champagne") / dark ("noir & gold") themes.
+`?look=<id>` opens it on a look (ids in `src/data/makeup-styles.ts`), e.g. `/?look=cat-eye`.
 
-Design system: **Estedad** for UI text, **Noto Nastaliq** calligraphy for the wordmark and accents, **Bodoni Moda** for Latin, OKLCH colour tokens, Phosphor icons and arch-framed imagery. Full documentation is in [`DESIGN.md`](DESIGN.md); the living style guide is at `#/design` in the app.
+How the try-on works (face model, makeup engine, HD face, studio light, live mirror, «میکاپ من»):
+[`docs/AI_TRYON.md`](docs/AI_TRYON.md).
 
-## Modern platform features (all progressive enhancements)
+## Where things are
 
-| Feature | Where | Fallback |
-| --- | --- | --- |
-| View Transitions API | Directional tab slides with fixed chrome; shared-element morph from a tapped look into the Discover feed (`src/lib/transition.ts`) | Instant state change |
-| Scroll-driven animations (`animation-timeline: view()`) | Section reveals, hero parallax, depth effect between Discover slides | Static, fully visible content |
-| Liquid Glass materials (`backdrop-filter`, layered specular highlights) | Tab bar with sliding lens that minimises on scroll, top bar, docks, floating controls | Solid surfaces under `prefers-reduced-transparency` |
-| `@starting-style` | Entry animations for docks and the Discover overlay | Appears without animation |
-| CSS scroll snap + container query units | Discover vertical feed, variant carousel in the look sheet, card overlay placement | Normal scrolling |
-| Responsive images | 560px thumbnails in `public/looks/sm/` for grids and rails; full 2048px images fade in only in immersive views | — |
-
-Everything honours `prefers-reduced-motion`.
-
-## App structure
-
-| Tab | What it does |
+| Path | What |
 | --- | --- |
-| خانه (Home) | Greeting, live open/closed status (Tehran time), next appointment, look of the week, quick actions, popular services, artists, curated looks, visit info |
-| خدمات (Services) | Categorised service menu with durations and starting prices; add several services to one booking (floating cart) |
-| رزرو (centre button) | 4-step booking sheet: services → artist → day & time (Persian calendar, Fridays closed, slots fit service length) → details |
-| لوک‌بوک (Lookbook) | 283-look gallery with search, filters, saved looks, infinite scroll, compare (up to 3); tapping a look opens **Discover**, a full-screen swipe feed with double-tap to save |
-| نوبت‌ها (Bookings) | Upcoming/past requests with draft/sent status; send, re-book or delete |
-| پروفایل (avatar) | Member card (name/phone prefill), saved looks, compare, style finder, consult, theme, clear local data |
-
-Tabs are hash routes (`#/services`, `#/looks`, …) and the browser/Android back button closes open sheets first.
-
-Salon content (services, prices, artists, address, hours, optional WhatsApp/phone) lives in `src/data/salon.ts`. These are **placeholders to verify with the salon**. Setting `SALON.whatsapp` adds one-tap WhatsApp sending for bookings and consultations.
+| `src/components/tryon-page.tsx` | The page: header, the try-on, the booking text |
+| `src/components/tryon.tsx`, `tryon-mine.tsx`, `tryon-outline.tsx` | The try-on screen, «میکاپ من», her own face outlines |
+| `src/lib/` | The engine: face finding, makeup on the graphics chip (`makeup-gl.ts`), HD face, studio light, live mirror |
+| `src/data/` | The looks, lipsticks, products and her own makeup's steps |
+| `src/styles/` | Tokens (the salon's rose palette, light and dark), base, shared pieces, the try-on |
+| `public/tryon/` | The AI files and the looks' makeup layers (downloaded once, kept for offline) |
+| `public/makeup/looks/` | The catalog photos (AI-generated model); `sm/` are the look rail's thumbnails |
+| `scripts/tinybeauty/` | The engine's Python reference and the tools that make `public/tryon/` from the catalog photos |
+| `scripts/gpu/` | Experiments with a larger AI as a teacher for the phone model (nothing here goes into the app) |
+| `tests/` | Playwright tests of the try-on (synthetic faces in `tests/fixtures/`); `tests-node/`: the offline service worker |
 
 ## Run / build
 
@@ -43,15 +32,19 @@ Requires Node.js 22+.
 
 ```bash
 npm ci
-npm run build
-npx wrangler deploy
+npm run dev          # http://localhost:5173
+npm run typecheck
+npm run build        # dist/, with the offline service worker
+npm run test:ui      # Playwright (starts the dev server)
+npm run test:offline
 ```
 
-The frontend is a static Vite/React SPA and Cloudflare Workers static assets are served from `dist/` using `wrangler.jsonc`. Every push to `main` runs `.github/workflows/deploy.yml` (typecheck, build, `wrangler deploy`). Deploying from GitHub Actions needs a `CLOUDFLARE_API_TOKEN` repository secret with "Workers Scripts: Edit" permission; without it the workflow builds and uploads `dist/` but skips the deploy with a warning.
+Cloudflare Workers Builds deploys the Worker `h-beauty-makeup` from `main` (`wrangler.jsonc`: static assets from
+`dist/`). Cloudflare refuses files over 25 MiB, so the large AI files are stored in parts and joined on the phone.
+`.github/workflows/deploy.yml` runs the same checks on every push; `review.yml` on pull requests.
 
-## Important functional distinctions
+## Notes
 
-- The salon gallery has 292 bundled hairstyle images and can cache previously opened images offline. A first-time offline visitor will not have the whole catalog cached; full offline access to all hairstyles requires explicit prefetch.
-- The "استایل‌یاب" (style finder) is questionnaire-based, not a neural hairstyle-transfer model, and is labelled as such. Upload-your-own-photo AI try-on is **not implemented** in this source archive.
-- Booking/consultation UI does not connect to an operational reservation backend. Requests are stored only on the device and shown as "draft" until the user sends them (share sheet / copy / WhatsApp); the app never claims a booking is confirmed.
-- Photo images are bundled for this website; rights/provenance should be verified by the operator before commercial publication.
+- The try-on is an approximation made by AI on the phone; the salon's artist adjusts colours to her skin.
+- The catalog photos are AI-generated samples of one model; replace them with the salon's own shoot when available.
+- Booking is text only: there is no reservation backend, and nothing is sent anywhere by the app.

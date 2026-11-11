@@ -68,7 +68,7 @@ test('activation preserves the last app release while clearing older and unrelat
   });
   assert.equal(previousAsset.body,'previous app');
   const offlineShell=await app.trigger('fetch', {
-    method:'GET',url:'https://salon.test/#/looks',mode:'navigate',
+    method:'GET',url:'https://salon.test/?look=cat-eye',mode:'navigate',
   });
   assert.equal(offlineShell.body,'/index.html');
 });
@@ -77,7 +77,7 @@ test('online navigation never swaps a newer HTML into the cached JS version',asy
   const app=simulate(TEMPLATE, async () => ({ok:true,body:'newer deployment'}));
   await app.trigger('install');
   const fresh=await app.trigger('fetch', {
-    method:'GET',url:'https://salon.test/#/looks',mode:'navigate',
+    method:'GET',url:'https://salon.test/?look=cat-eye',mode:'navigate',
   });
   assert.equal(fresh.body,'newer deployment');
   assert.equal(app.stores.get(app.CACHE).get('/index.html').body,'/index.html');
@@ -86,7 +86,7 @@ test('online navigation never swaps a newer HTML into the cached JS version',asy
 test('offline navigation returns cached application HTML',async()=>{
   const app=simulate();await app.trigger('install');
   const result=await app.trigger('fetch',{
-    method:'GET',url:'https://salon.test/#/looks',mode:'navigate',
+    method:'GET',url:'https://salon.test/?look=cat-eye',mode:'navigate',
   });
   assert.equal(result.body,'/index.html');
 });
@@ -108,7 +108,7 @@ test('production finalizer explicitly precaches compiled JS, CSS and fonts',asyn
   assert.ok(output.version.startsWith('h-beauty-v5-'));
   for(const url of ['/assets/app.js','/assets/style.css','/assets/font.woff2'])
     assert.ok(output.urls.includes(url),url);
-  assert.ok(!output.urls.some(path=>path.startsWith('/looks/')));
+  assert.ok(!output.urls.some(path=>path.startsWith('/tryon/')));
   const app=simulate(readFileSync(join(folder,'sw.js'),'utf8'));
   await app.trigger('install');
   for(const url of output.urls){

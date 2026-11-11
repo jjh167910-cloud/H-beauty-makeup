@@ -1,4 +1,5 @@
-/** Post-Vite build: package the offline React shell but NOT the hairstyle collection.
+/** Post-Vite build: package the offline app shell (dist/assets). The try-on's AI files (/tryon/) are not part of it:
+ * they have their own cache, filled by the app's one-time download.
  * Run: node scripts/finalize-service-worker.mjs [--dist /path/to/dist]. */
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync, statSync, writeFileSync, existsSync } from 'node:fs';
