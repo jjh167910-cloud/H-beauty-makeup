@@ -1,5 +1,5 @@
 {
-  "name": "h-beauty",
+  "name": "h-beauty-makeup",
   "compatibility_date": "2026-10-21",
   // Build the SPA as part of every `wrangler deploy` / `versions upload`, so
   // deploys from a clean checkout (e.g. Cloudflare Workers Builds) have ./dist.

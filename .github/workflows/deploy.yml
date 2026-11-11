@@ -17,7 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || 'a22c80a102037bf59a1a25426cb93d66' }}
+      # This repository's own Cloudflare account and Worker (h-beauty-makeup), never H-Beauty's.
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       # When Cloudflare Workers Builds is connected, GitHub Actions should run CI only.
       # The default mode intentionally fails if the GitHub API token is absent.
       HBEAUTY_DEPLOY_MODE: ${{ vars.HBEAUTY_DEPLOY_MODE || 'github-actions' }}
@@ -31,10 +32,10 @@ jobs:
                 echo "::error title=Worker deployment not configured::The CLOUDFLARE_API_TOKEN secret is missing. Configure GitHub Actions authentication, or connect Cloudflare Workers Builds and set HBEAUTY_DEPLOY_MODE=cloudflare-builds."
                 exit 1
               fi
-              echo "GitHub Actions will publish h-beauty after all checks pass."
+              echo "GitHub Actions will publish h-beauty-makeup after all checks pass."
               ;;
             cloudflare-builds)
-              echo "::notice title=Cloudflare publishes this Worker::This GitHub workflow only tests. Check Workers & Pages > h-beauty > Builds for the production deployment."
+              echo "::notice title=Cloudflare publishes this Worker::This GitHub workflow only tests. Check Workers & Pages > h-beauty-makeup > Builds for the production deployment."
               ;;
             *)
               echo "::error::Invalid HBEAUTY_DEPLOY_MODE=$HBEAUTY_DEPLOY_MODE (expected github-actions or cloudflare-builds)"
@@ -86,7 +87,7 @@ jobs:
         shell: bash
         run: |
           curl --fail --show-error --silent --location --retry 3 --retry-delay 3 \
-            --max-time 30 https://h-beauty.mostifa2273.workers.dev/ -o /tmp/hbeauty-live.html
+            --max-time 30 https://h-beauty-makeup.jjh167910.workers.dev/ -o /tmp/hbeauty-live.html
           grep -q 'id="root"' /tmp/hbeauty-live.html || {
             echo "::error::Deployed Worker did not return the expected H-Beauty SPA."
             exit 1
@@ -97,7 +98,7 @@ jobs:
           matched=0
           for attempt in 1 2 3 4 5 6; do
             if curl --fail --show-error --silent --location --max-time 30 \
-                "https://h-beauty.mostifa2273.workers.dev/sw.js?revision=${GITHUB_SHA}-${attempt}" \
+                "https://h-beauty-makeup.jjh167910.workers.dev/sw.js?revision=${GITHUB_SHA}-${attempt}" \
                 -o /tmp/hbeauty-live-sw.js; then
               live_sha="$(sha256sum /tmp/hbeauty-live-sw.js | cut -d' ' -f1)"
               if [ "$expected_sha" = "$live_sha" ]; then
@@ -108,7 +109,7 @@ jobs:
             sleep 8
           done
           if [ "$matched" != 1 ]; then
-            echo "::error::Live h-beauty service worker does not match the current build (stale deployment, wrong Worker, or caching)."
+            echo "::error::Live h-beauty-makeup service worker does not match the current build (stale deployment, wrong Worker, or caching)."
             exit 1
           fi
           echo "Verified the live H-Beauty SPA and exact service worker artifact."
@@ -127,5 +128,5 @@ jobs:
               echo "GitHub Actions is the designated publisher. The Deploy and Check public Worker steps must succeed."
             fi
             echo ""
-            echo "Target Worker: [h-beauty](https://h-beauty.mostifa2273.workers.dev/)"
+            echo "Target Worker: [h-beauty-makeup](https://h-beauty-makeup.jjh167910.workers.dev/)"
           } >> "$GITHUB_STEP_SUMMARY"
