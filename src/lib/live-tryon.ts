@@ -115,10 +115,19 @@ export class LiveMirror {
     }
     else warmUp(this.look);
     this.running = true;
+    let frameFailures = 0;
     const tick = () => {
       if (!this.running) return;
-      this.draw(landmarker);
-      requestAnimationFrame(tick);
+      try {
+        this.draw(landmarker);
+        frameFailures = 0;
+      } catch (error) {
+        // A transient decoder/graphics error must not permanently halt the
+        // camera loop. Subsequent frames can recover without restarting video.
+        if (frameFailures++ < 2) console.warn("Live makeup frame skipped", error);
+      } finally {
+        if (this.running) requestAnimationFrame(tick);
+      }
     };
     requestAnimationFrame(tick);
   }
