@@ -95,10 +95,13 @@ function fixture(testBody) {
   const folder=mkdtempSync(join(tmpdir(),'hananeh-offline-'));
   mkdirSync(join(folder,'assets'));
   const put=(path,bytes)=>writeFileSync(join(folder,path),bytes);
-  put('index.html','<html><script type="module" src="/assets/app.js"></script></html>');
+  put('index.html','<html><link rel="stylesheet" href="/assets/style.css"><script type="module" src="/assets/app.js"></script></html>');
   put('sw.js',TEMPLATE);
-  put('assets/app.js','console.log("beauty")');
-  put('assets/style.css','body{direction:rtl}');
+  put('assets/app.js','import "./shared.js"; import("./tryon.js"); console.log("beauty")');
+  put('assets/shared.js','console.log("shared startup code")');
+  put('assets/tryon.js','import("./tryon-mine.js");console.log("initial try-on screen")');
+  put('assets/tryon-mine.js','console.log("optional makeup editor")');
+  put('assets/style.css','@font-face{font-family:Estedad;src:url("./font.woff2")}body{direction:rtl}');
   put('assets/font.woff2','dummy-font');
   try{return testBody({folder,put});}finally{rmSync(folder,{recursive:true,force:true});}
 }
@@ -106,9 +109,10 @@ function fixture(testBody) {
 test('production finalizer explicitly precaches compiled JS, CSS and fonts',async()=>fixture(async({folder})=>{
   const output=finalizeServiceWorker(folder);
   assert.ok(output.version.startsWith('h-beauty-v5-'));
-  for(const url of ['/assets/app.js','/assets/style.css','/assets/font.woff2'])
+  for(const url of ['/assets/app.js','/assets/shared.js','/assets/tryon.js','/assets/style.css','/assets/font.woff2'])
     assert.ok(output.urls.includes(url),url);
   assert.ok(!output.urls.some(path=>path.startsWith('/tryon/')));
+  assert.ok(!output.urls.includes('/assets/tryon-mine.js'),'deeper optional editor must not be downloaded at install time');
   const app=simulate(readFileSync(join(folder,'sw.js'),'utf8'));
   await app.trigger('install');
   for(const url of output.urls){
@@ -116,6 +120,42 @@ test('production finalizer explicitly precaches compiled JS, CSS and fonts',asyn
     const response=await app.trigger('fetch',{method:'GET',url:'https://salon.test'+url,mode:'cors'});
     assert.equal(response.body,url);
   }
+}));
+
+test('Vite-minified static imports are precached while dynamic imports stay optional',()=>fixture(({folder,put})=>{
+  put('assets/app.js','import{shared as x}from"./shared.js";import("./tryon.js");');
+  put('assets/shared.js','export{thing}from"./nested.js";');
+  put('assets/nested.js','export const thing=1;');
+  const {urls}=finalizeServiceWorker(folder);
+  assert.ok(urls.includes('/assets/shared.js'),'minified static import');
+  assert.ok(urls.includes('/assets/nested.js'),'minified static re-export');
+  assert.ok(urls.includes('/assets/tryon.js'),'immediately rendered try-on is precached');
+  assert.ok(!urls.includes('/assets/tryon-mine.js'),'deeper lazy feature remains optional');
+}));
+
+test('optional makeup editor code is cached when used and works offline afterwards',async()=>fixture(async({folder})=>{
+  finalizeServiceWorker(folder);
+  const live=simulate(readFileSync(join(folder,'sw.js'),'utf8'),async()=>({
+    ok:true,type:'basic',body:'optional module',clone(){return this;},
+  }));
+  await live.trigger('install');
+  assert.equal(live.stores.get(live.CACHE).has('/assets/tryon.js'),true);
+  assert.equal(live.stores.get(live.CACHE).has('/assets/tryon-mine.js'),false);
+  const req={method:'GET',url:'https://salon.test/assets/tryon-mine.js',mode:'cors'};
+  const online=await live.trigger('fetch',req);
+  assert.equal(online.body,'optional module');
+  assert.equal(live.stores.get(live.CACHE).has('/assets/tryon-mine.js'),true);
+  const offline=await live.trigger('fetch',req);
+  assert.equal(offline.body,'optional module');
+}));
+
+test('changing a lazy module still changes the release cache version',()=>fixture(({folder,put})=>{
+  const first=finalizeServiceWorker(folder).version;
+  put('assets/tryon-mine.js','console.log("changed optional module")');
+  put('sw.js',TEMPLATE);
+  const second=finalizeServiceWorker(folder);
+  assert.notEqual(first,second.version);
+  assert.ok(!second.urls.includes('/assets/tryon-mine.js'));
 }));
 
 test('new asset content creates a distinct cache version',()=>fixture(({folder,put})=>{
