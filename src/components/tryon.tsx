@@ -233,6 +233,14 @@ export default function TryOnView({ style, onBook }: {
       lastRun.current = Math.max(kind === "gpu" ? 400 : 2_000, performance.now() - started);
       if (ticket !== job.current) return;
       setAfter((map) => (fresh ? { [key]: url } : { ...map, [key]: url }));
+      // A newly downloaded look can now have its personal preview generated.
+      const thumbKey = `${id}:${lvl}:${which}`;
+      setThumbs((map) => {
+        if (map[thumbKey] !== "") return map;
+        const next = { ...map };
+        delete next[thumbKey];
+        return next;
+      });
       if (fresh) setCut(50);
       setPhase("done");
       haptic();
