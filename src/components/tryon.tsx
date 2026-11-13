@@ -161,6 +161,11 @@ export default function TryOnView({ style, onBook }: {
     return () => { active = false; };
   }, [phase, hdStatus, kind]);
 
+  // Never keep transferring optional HD data after leaving the finished-photo view.
+  useEffect(() => {
+    if (hdStatus === "downloading" && (phase !== "done" || mode !== "result")) hdAbort.current?.abort();
+  }, [hdStatus, phase, mode]);
+
   async function enableHd() {
     if (hdAbort.current) return;
     const controller = new AbortController();
@@ -216,6 +221,9 @@ export default function TryOnView({ style, onBook }: {
     const key = `${id}:${lvl}:${which}:${lipKey(pick)}:${zonesKey(z)}`;
     if (!fresh && after[key]) { setPhase("done"); return; }
     const ticket = ++job.current;
+    // Show the pending state immediately: asynchronous cache checks must not hide
+    // the existing result controls while a toggle or another look is loading.
+    setPhase("paint");
     if (!(await modelsReady([id]))) {
       if (ticket !== job.current) return;
       setPhase("look-download");
