@@ -15,9 +15,15 @@ occlusion segmentation and sharpening data. Estimated AI bytes: ~28 MiB with Web
 selects them, and are cached for offline reuse; previews never silently fetch them.
 The 108 MiB high-resolution face-restoration model is offered explicitly as an
 optional improvement for soft photos, not part of mandatory setup. Previously installed
-HD files are reused. The interface reports per-download progress and completed individual
-AI files survive a network retry. Cache eviction by the browser or device can require
-downloading again, so offline support applies to files that remain stored.
+HD files are reused. The HD button also offers «توقف دانلود HD»; stopping a download
+cancels its active network request and keeps *fully completed files* in Cache Storage.
+Reopening the HD download fetches the still-missing parts only; bytes of an interrupted
+file must be retransferred because HTTP byte-range resumption is not implemented.
+Large network responses are streamed directly into Cache Storage instead of being
+assembled into a temporary JS array and Blob, reducing peak memory usage on mobile.
+Progress counts the estimated bytes of missing files and completes only after cache writes.
+Cache eviction by the browser or device can still require downloading again, so offline
+support applies to files that remain stored.
 
 ## How it works
 
