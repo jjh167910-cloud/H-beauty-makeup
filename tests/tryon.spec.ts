@@ -14,7 +14,7 @@ const FIXTURE = (name: string) => `/@fs${join(ROOT, "tests/fixtures", name)}`;
 /** The looks the tests open (the page's `?look=` link, ids from src/data/makeup-styles.ts). */
 const LOOK: Record<string, string> = { "گلم هالیوودی": "hollywood", "گلم نرم": "soft-glam", "خط چشم گربه‌ای": "cat-eye", "فول گلم": "full-glam" };
 
-async function openTryOn(page: Page, title: string, megabytes = "۳۶") {
+async function openTryOn(page: Page, title: string, megabytes = "۲۸") {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/?look=${LOOK[title]}`);
   await expect(page.getByRole("heading", { name: `«${title}» روی چهره خودتان` })).toBeVisible();
@@ -30,7 +30,12 @@ test("try-on downloads the AI once and paints the look on the customer's photo o
     const url = new URL(request.url());
     if (url.pathname.startsWith("/api/") || (url.hostname !== "127.0.0.1" && url.protocol.startsWith("http"))) external.push(request.url());
   });
+  const requested: string[] = [];
+  page.on("request", (request) => requested.push(new URL(request.url()).pathname));
   await openTryOn(page, "گلم هالیوودی");
+  expect(requested.some(path => path.includes("/face-hd/"))).toBe(false);
+  expect(requested.some(path => path.includes("/ort-wasm-simd-threaded.asyncify"))).toBe(false);
+  expect(requested.some(path => path.includes("/layers/cat-eye"))).toBe(false);
   await expect(page.getByRole("button", { name: "گرفتن سلفی" })).toBeVisible();
 
   await page.locator(".tryon input[type=file]:not([capture])").setInputFiles(CUSTOMER);
@@ -69,10 +74,11 @@ test("the try-on screen shows her own face in each look, the photo before while 
   await expect(after).toBeVisible({ timeout: 240_000 });
   const look = await after.getAttribute("src");
 
-  // The look rail: her face in each look, made on the phone one at a time.
+  // The look rail remains available without triggering dozens of automatic model downloads.
+  // Unselected looks show their catalog photos until explicitly requested.
   const rail = page.getByRole("group", { name: "امتحان سبک‌های دیگر" });
-  await expect.poll(() => rail.locator(".tryon__her img").count(), { timeout: 120_000 }).toBeGreaterThanOrEqual(4);
-  expect(await rail.locator(".tryon__her img").first().getAttribute("src")).toMatch(/^blob:/);
+  await expect(rail.locator("button").first()).toBeVisible();
+  await expect.poll(() => rail.locator(".tryon__her img").count(), { timeout: 30_000 }).toBeLessThanOrEqual(1);
 
   // Hold to see her photo without the makeup; let go to see it again.
   const peek = page.getByRole("button", { name: "نگه دارید: عکس بدون میکاپ" });
@@ -326,7 +332,12 @@ test("HD face: a soft face is redrawn in HD on the phone, her face's shape and c
   // (the test browser has no WebGPU: the same network on its processor; the photo isn't sharpened first)
   await page.addInitScript(() => Object.assign(globalThis, { hbFaceHd: "wasm", hbHdBudgetMs: 900_000, hbSharpBudgetMs: 1 }));
   page.on("console", (m) => { if (/HD face/.test(m.text())) console.log(m.text()); });
-  await openTryOn(page, "گلم هالیوودی", "۱۴۸");
+  await openTryOn(page, "گلم هالیوودی");
+  // HD restoration is intentionally NOT part of the basic first-visit package.
+  await page.evaluate(async () => {
+    const { downloadHdModels } = await import("/src/lib/tryon.ts");
+    await downloadHdModels(() => undefined);
+  });
   const soft = await page.evaluate(async () => {
     const img = new Image(); img.src = "/makeup/looks/no-makeup.webp"; await img.decode();
     const c = document.createElement("canvas"); c.width = img.naturalWidth; c.height = img.naturalHeight;
@@ -464,7 +475,7 @@ test("phones without WebGL2 get the tiny-network engine and still paint on the d
       return kind === "webgl2" ? null : (original as (...args: unknown[]) => RenderingContext | null).call(this, kind, ...rest);
     } as typeof original;
   });
-  await openTryOn(page, "گلم هالیوودی", "۵۳");
+  await openTryOn(page, "گلم هالیوودی", "۴۰");
   await page.locator(".tryon input[type=file]:not([capture])").setInputFiles(CUSTOMER);
   await expect(page.locator(".tryon__img--after")).toBeVisible({ timeout: 240_000 });
   await expect(page.locator(".tryon__stage")).toHaveAttribute("data-engine", "tiny");
