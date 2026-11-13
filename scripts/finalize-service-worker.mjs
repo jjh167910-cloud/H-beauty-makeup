@@ -29,9 +29,9 @@ export function finalizeServiceWorker(distDir = 'dist') {
   files.sort();
   if (!files.some(file => file.endsWith('.js')) || !files.some(file => file.endsWith('.css')))
     throw new Error('Built app must contain JavaScript and CSS in dist/assets');
-  // Offline install must preload the app's *static* entry graph, not every
-  // dynamic-imported studio/AI chunk. Those optional chunks are cached by the
-  // service worker on first use, alongside their on-demand model downloads.
+  // Offline install must preload the static entry graph and its immediately
+  // rendered try-on screen, but not deeper optional AI/photo-editing chunks.
+  // Optional chunks are runtime cached when used.
   const fileByUrl=new Map(files.map(file=>['/'+relative(root,file).split(sep).join('/'),file]));
   const shell=new Set();
   const canonical=(spec,from='/index.html')=>{
@@ -60,9 +60,23 @@ export function finalizeServiceWorker(distDir = 'dist') {
     }
   };
   const htmlContent=readFileSync(html,'utf8');
+  const entryJs=[];
   for(const tag of htmlContent.matchAll(/<(?:script|link)\b[^>]*>/gi)){
-    for(const attribute of tag[0].matchAll(/\b(?:src|href)\s*=\s*["']([^"']+)["']/gi))
+    for(const attribute of tag[0].matchAll(/\b(?:src|href)\s*=\s*["']([^"']+)["']/gi)){
       add(attribute[1],'/index.html');
+      // The root screen immediately renders the lazy TryOnView, sometimes
+      // BEFORE the service worker controls the first page load. Its compiled
+      // chunk must be installed proactively or offline reopening can fail.
+      if(/^<script\b/i.test(tag[0])){
+        const entry=canonical(attribute[1],'/index.html');
+        if(entry?.endsWith('.js')&&fileByUrl.has(entry))entryJs.push(entry);
+      }
+    }
+  }
+  for(const entry of entryJs){
+    const code=readFileSync(fileByUrl.get(entry),'utf8');
+    for(const m of code.matchAll(/\bimport\(\s*["']([^"']+)["']\s*\)/g))
+      add(m[1],entry);
   }
   const urls=[...shell].sort();
   if(!urls.some(url=>url.endsWith('.js'))||!urls.some(url=>url.endsWith('.css')))
