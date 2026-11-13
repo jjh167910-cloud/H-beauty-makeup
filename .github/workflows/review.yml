@@ -27,6 +27,8 @@ jobs:
         run: npm run build
       - name: Verify runner Chrome
         run: google-chrome --version
+      - name: Verify streamed download cancellation and retry
+        run: npm run test:ui -- tests/tryon-download.spec.ts
       - name: Try-on tests
         run: npm run test:ui
       - name: Upload test results
