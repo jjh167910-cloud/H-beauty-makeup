@@ -2,10 +2,10 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ChangeEvent,
 import { persian } from "@/lib/persian";
 import { lookPhoto } from "@/data/makeup-photos";
 import { FINISHES, LIPSTICKS, lipstickById } from "@/data/lipsticks";
-import { MAKEUP_STYLES, styleById, variedLooks, type MakeupStyle } from "@/data/makeup-styles";
+import { styleById, variedLooks, type MakeupStyle } from "@/data/makeup-styles";
 import { loadDraft, minePicks, saveDraft, type MyMakeup } from "@/data/my-makeup";
 import {
-  downloadMB, downloadModels, engine, errorText, faceShot, modelsReady, paintLook, paintThumb, preparePhoto, relight, studio, warmUp, withPoints,
+  downloadMB, downloadModels, downloadHdModels, hdDownloadAvailable, hdModelsReady, HD_DOWNLOAD_MB, engine, errorText, faceShot, modelsReady, paintLook, paintThumb, preparePhoto, relight, studio, warmUp, withPoints,
   type Finish, type Level, type LipChoice, type Prepared, type ProductPicks, type Pt, type Shot, type StepKey,
 } from "@/lib/tryon";
 import { LiveMirror, type LiveStats } from "@/lib/live-tryon";
@@ -18,8 +18,7 @@ const TryOnMine = lazy(() => import("./tryon-mine"));
 
 /* AI makeup try-on on the customer's own photo or live camera. Runs fully on the phone; lazy-loaded. */
 
-type Phase = "check" | "get" | "download" | "pick" | "live" | "face" | "sharp" | "paint" | "done" | "error";
-const ALL_IDS = MAKEUP_STYLES.map((item) => item.id);
+type Phase = "check" | "get" | "download" | "look-download" | "pick" | "live" | "face" | "sharp" | "paint" | "done" | "error";
 const LEVELS: Array<[Level, string]> = [["soft", "ملایم"], ["natural", "طبیعی"], ["bold", "پررنگ"]];
 /** Why the app suggests checking the outlines. */
 const DOUBTS: Record<Doubt["reason"], string> = {
@@ -64,6 +63,9 @@ export default function TryOnView({ style, onBook }: {
 }) {
   const [phase, setPhase] = useState<Phase>("check");
   const [progress, setProgress] = useState(0);
+  const [hdStatus, setHdStatus] = useState<"checking" | "unavailable" | "available" | "downloading" | "ready">("checking");
+  const [hdProgress, setHdProgress] = useState(0);
+  const [hdError, setHdError] = useState("");
   const [error, setError] = useState("");
   const [look, setLook] = useState(style.id);
   const [level, setLevel] = useState<Level>("natural");
@@ -92,6 +94,7 @@ export default function TryOnView({ style, onBook }: {
   const job = useRef(0);
   /** The latest photo she gave: an earlier one still being prepared is dropped. */
   const photoJob = useRef(0);
+  const sourcePhoto = useRef<Blob | null>(null);
   const bar = useRef<HTMLSpanElement>(null);
   const lastRun = useRef(1_500);
   const urls = useRef<string[]>([]);
@@ -124,7 +127,7 @@ export default function TryOnView({ style, onBook }: {
 
   useEffect(() => {
     let active = true;
-    modelsReady(ALL_IDS).then((ready) => {
+    modelsReady([style.id]).then((ready) => {
       if (!active) return;
       setPhase(ready ? "pick" : "get");
       if (ready) warmUp(style.id);
@@ -136,13 +139,38 @@ export default function TryOnView({ style, onBook }: {
     setPhase("download");
     setProgress(0);
     try {
-      await downloadModels(ALL_IDS, setProgress, ALL_IDS.map((id) => lookPhoto(id, "sm")));
+      await downloadModels([style.id], setProgress, [lookPhoto(style.id, "sm")]);
       warmUp(style.id);
       setPhase("pick");
       haptic();
     } catch (reason) {
-      setError(navigator.onLine === false ? "برای دانلود یک‌باره به اینترنت نیاز است." : errorText(reason));
+      setError(navigator.onLine === false ? "برای دانلود اولیه به اینترنت نیاز است." : errorText(reason));
       setPhase("error");
+    }
+  }
+
+  // High-resolution model support is only checked after the app has produced a result.
+  useEffect(() => {
+    if (phase !== "done" || hdStatus !== "checking" || kind !== "gpu") return;
+    let active = true;
+    hdDownloadAvailable().then(async (available) => {
+      const ready = available && await hdModelsReady();
+      if (active) setHdStatus(!available ? "unavailable" : ready ? "ready" : "available");
+    }).catch(() => { if (active) setHdStatus("unavailable"); });
+    return () => { active = false; };
+  }, [phase, hdStatus, kind]);
+
+  async function enableHd() {
+    setHdStatus("downloading");
+    setHdProgress(0);
+    setHdError("");
+    try {
+      await downloadHdModels(setHdProgress);
+      setHdStatus("ready");
+      if (sourcePhoto.current) await takePhoto(sourcePhoto.current);
+    } catch (reason) {
+      setHdStatus("available");
+      setHdError(navigator.onLine === false ? "برای دریافت HD به اینترنت نیاز است." : errorText(reason));
     }
   }
 
@@ -177,6 +205,21 @@ export default function TryOnView({ style, onBook }: {
     const key = `${id}:${lvl}:${which}:${lipKey(pick)}:${zonesKey(z)}`;
     if (!fresh && after[key]) { setPhase("done"); return; }
     const ticket = ++job.current;
+    if (!(await modelsReady([id]))) {
+      if (ticket !== job.current) return;
+      setPhase("look-download");
+      setProgress(0);
+      try {
+        await downloadModels([id], setProgress, [lookPhoto(id, "sm")]);
+      } catch (reason) {
+        if (ticket === job.current) {
+          setError(navigator.onLine === false ? "برای دریافت این سبک به اینترنت نیاز است." : errorText(reason));
+          setPhase("error");
+        }
+        return;
+      }
+    }
+    if (ticket !== job.current) return;
     setPhase("paint");
     // Estimated progress, written straight to the DOM once a second: no re-renders or
     // continuous animation while the phone's CPU is busy painting.
@@ -209,6 +252,7 @@ export default function TryOnView({ style, onBook }: {
   }
 
   async function takePhoto(file: Blob) {
+    sourcePhoto.current = file;
     job.current++;
     const ticket = ++photoJob.current;
     setAfter({});
@@ -375,7 +419,7 @@ export default function TryOnView({ style, onBook }: {
   /** The look rail: her look first, then the looks most unlike those before (variedLooks). */
   const others = useMemo(() => variedLooks(style), [style]);
   const intro = phase === "check" || phase === "get" || phase === "download" || phase === "pick" || (phase === "error" && !before.p);
-  const busy = phase === "paint" || phase === "face" || phase === "sharp";
+  const busy = phase === "paint" || phase === "face" || phase === "sharp" || phase === "look-download";
   /** Her own makeup needs the phone's graphics engine and a photo. */
   const canMine = kind === "gpu" && !!prep && (phase === "done" || phase === "error");
   const own = mode === "mine" && canMine;
@@ -401,6 +445,11 @@ export default function TryOnView({ style, onBook }: {
       started = true;
       thumbBusy.current = true;
       try {
+        // Preview generation must never trigger an all-look background download.
+        if (!(await modelsReady([next.id]))) {
+          if (ticket === photoJob.current) setThumbs((map) => ({ ...map, [key]: "" }));
+          return;
+        }
         if (thumbShot.current?.key !== shotKey) thumbShot.current = { key: shotKey, shot: faceShot(shot) };
         const made = await paintThumb(thumbShot.current.shot, next.id, level, next.id === look);
         if (!made) { window.setTimeout(() => setThumbTry((n) => n + 1), 400); return; }   // (the phone was painting)
@@ -439,7 +488,7 @@ export default function TryOnView({ style, onBook }: {
           {phase === "get" ? (
             <div className="tryon__get">
               <Button variant="gold" size="lg" block icon="download" onClick={download}>آماده‌سازی هوش مصنوعی</Button>
-              <small>یک‌بار حدود {persian(downloadMB())} مگابایت دانلود می‌شود؛ بعد از آن بدون اینترنت کار می‌کند.</small>
+              <small>حدود {persian(downloadMB())} مگابایت برای اولین سبک؛ بقیه سبک‌ها فقط هنگام انتخاب دریافت و برای استفاده آفلاین ذخیره می‌شوند.</small>
             </div>
           ) : null}
           {phase === "download" ? (
@@ -452,7 +501,7 @@ export default function TryOnView({ style, onBook }: {
           {phase === "error" ? (
             <div className="tryon__get" role="alert">
               <strong>{error}</strong>
-              <Button variant="secondary" icon="rebook" onClick={() => modelsReady(ALL_IDS).then((ok) => (ok ? setPhase("pick") : download()))}>دوباره</Button>
+              <Button variant="secondary" icon="rebook" onClick={() => modelsReady([style.id]).then((ok) => (ok ? setPhase("pick") : download()))}>دوباره</Button>
             </div>
           ) : null}
           {phase === "pick" ? (
@@ -519,12 +568,13 @@ export default function TryOnView({ style, onBook }: {
                 </button>
               </>
             ) : null}
-            {phase === "face" || phase === "sharp" || phase === "paint" ? (
+            {phase === "face" || phase === "sharp" || phase === "paint" || phase === "look-download" ? (
               <div className="tryon__busy" role="status">
-                <strong>{phase === "face" ? "در حال پیدا کردن چهره…" : phase === "sharp" ? (sharpStep === "hd" ? "در حال ساختن چهره HD با هوش مصنوعی…" : "در حال بهتر کردن وضوح عکس…") : `در حال اجرای «${current.title}»…`}</strong>
+                <strong>{phase === "face" ? "در حال پیدا کردن چهره…" : phase === "sharp" ? (sharpStep === "hd" ? "در حال ساختن چهره HD با هوش مصنوعی…" : "در حال بهتر کردن وضوح عکس…") : phase === "look-download" ? `در حال دریافت سبک «${current.title}»…` : `در حال اجرای «${current.title}»…`}</strong>
                 {phase === "paint" ? <div className="tryon__bar tryon__bar--light"><span ref={bar} style={{ width: "4%" }} /></div> : null}
+                {phase === "look-download" ? <div className="tryon__bar tryon__bar--light"><span style={{ width: `${Math.round(progress * 100)}%` }} /></div> : null}
                 {phase === "sharp" ? <div className="tryon__bar tryon__bar--light"><span style={{ width: `${Math.max(4, Math.round(sharpDone * 100))}%` }} /></div> : null}
-                <small>روی گوشی شما و بدون اینترنت؛ چند ثانیه صبر کنید</small>
+                <small>{phase === "look-download" ? "فقط یک‌بار برای این سبک؛ سپس آفلاین در دسترس است" : "روی گوشی شما و بدون اینترنت؛ چند ثانیه صبر کنید"}</small>
               </div>
             ) : null}
             {phase === "error" ? (
@@ -616,6 +666,20 @@ export default function TryOnView({ style, onBook }: {
             </div>
           ) : null}
 
+          {!own && !editing && kind === "gpu" && phase === "done" && hdStatus !== "unavailable" ? (
+            <div className="tryon__get" role="group" aria-label="افزایش کیفیت HD">
+              {hdStatus === "available" ? (
+                <Button variant="secondary" icon="download" onClick={enableHd}>افزایش کیفیت چهره HD · دانلود اختیاری {persian(HD_DOWNLOAD_MB)} مگابایت</Button>
+              ) : hdStatus === "downloading" ? (
+                <div role="status" style={{ width: "100%" }}>
+                  <div className="tryon__bar"><span style={{ width: `${Math.round(hdProgress * 100)}%` }} /></div>
+                  <small>دریافت اختیاری HD… {persian(Math.round(hdProgress * 100))}٪</small>
+                </div>
+              ) : hdStatus === "ready" ? <small>بسته HD روی گوشی ذخیره شده است؛ در صورت نیاز برای عکس‌های تار استفاده می‌شود.</small> : null}
+              {hdStatus === "available" ? <small>مخصوص عکس‌های تار؛ برای استفاده عادی لازم نیست.</small> : null}
+              {hdError ? <small role="alert">{hdError}</small> : null}
+            </div>
+          ) : null}
           {own ? null : <div className="tryon__looks-head">
             <span>{kind === "gpu" && prep && phase !== "live" ? "سبک‌ها روی چهره شما" : "سبک‌های دیگر"}</span>
           </div>}

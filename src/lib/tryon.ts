@@ -17,8 +17,9 @@
  * Both engines paint only where her face can be seen: MediaPipe's multi-class segmentation marks
  * her face skin, so nothing goes over hair, hands, glasses frames or sunglasses (visibility()).
  *
- * All files are downloaded once into Cache Storage and served from there by the service
- * worker, so everything keeps working offline.
+ * Shared data and the first selected look are downloaded once into Cache Storage.
+ * Other looks are fetched as selected; the HD face model is opt-in.
+ * Cached features continue working offline without uploading the user's photo.
  */
 import type { FaceLandmarker, ImageSegmenter } from "@mediapipe/tasks-vision";
 import { Enhancer } from "./enhance-gl";
@@ -127,18 +128,20 @@ async function hdWanted(): Promise<boolean> {
   return hdOn;
 }
 
-/** About how many MB the one-time download is for this phone's engine (the HD face adds 112 MB where it runs). */
-export const downloadMB = () => (engine() === "gpu" ? 36 + (hdOn ? 112 : 0) : 53);
+/** Approximate initial AI data for ONE selected look. HD is never a prerequisite. */
+export const downloadMB = () => (engine() === "gpu" ? 28 : 40);
+export const HD_DOWNLOAD_MB = 108;
+export const hdDownloadAvailable = () => hdWanted();
 
 /* ---------------------------------------------------------------- files */
 
 /** Every file the try-on needs on this phone. */
-async function files(lookIds: string[]) {
+async function files(lookIds: string[], includeHD = false) {
   const shared = [...FACE_FILES, SEGMENT, EYES_META, ...lookIds.map(lookEyes)];
-  const hd = await hdWanted();
+  const hd = includeHD && await hdWanted();
   return engine() === "gpu"
     ? { need: [...shared, LOOKS_META, ENHANCE, ...(hd ? HD_FILES : []), ...lookIds.map(lookLayer), ...lookIds.map(lookCov)], drop: [ORT_WASM, ORT_GLUE, ...lookIds.map(lookModel), ...OLD_DATA(lookIds)] }
-    : { need: [...shared, ORT_WASM, ORT_GLUE, ...lookIds.map(lookModel)], drop: [ENHANCE, ...HD_FILES, ...OLD_DATA(lookIds)] };
+    : { need: [...shared, ORT_WASM, ORT_GLUE, ...lookIds.map(lookModel)], drop: [ENHANCE, ...OLD_DATA(lookIds)] };
 }
 
 export async function modelsReady(lookIds: string[] = []): Promise<boolean> {
@@ -159,13 +162,14 @@ async function dropOldCaches() {
 }
 
 /**
- * Download every file the try-on needs (about 36 MB with the graphics-chip engine, 53 MB with
- * the tiny networks; once), reporting 0..1 progress. `thumbs` (the look rail's photos) are kept
- * in the same cache so the rail works offline too; the service worker finds them there.
+ * Download ONLY the supplied looks plus common model data (~28 MB GPU or ~40 MB tiny for
+ * the first selected look), reporting 0..1 progress. The ~108 MB HD model is included
+ * only with explicit includeHD=true. Previously completed files stay cached across retries.
+ * The caller can cache explicitly selected look thumbnails for offline reuse too.
  */
-export async function downloadModels(lookIds: string[], onProgress: (done: number) => void, thumbs: string[] = []): Promise<void> {
+export async function downloadModels(lookIds: string[], onProgress: (done: number) => void, thumbs: string[] = [], includeHD = false): Promise<void> {
   const cache = await caches.open(AI_CACHE);
-  const { need, drop } = await files(lookIds);
+  const { need, drop } = await files(lookIds, includeHD);
   const big = need.filter((url) => url === ORT_WASM || url === ENHANCE || url === SEGMENT || FACE_FILES.includes(url) || HD_FILES.includes(url));
   const small = [...need.filter((url) => !big.includes(url)), ...thumbs];
   // Byte weights so the bar moves smoothly even without content-length.
@@ -210,12 +214,33 @@ export async function downloadModels(lookIds: string[], onProgress: (done: numbe
   onProgress(1);
 }
 
+/** A look not included in the starter package is fetched only when selected, then kept offline. */
 async function cached(url: string): Promise<Response> {
-  const hit = await caches.open(AI_CACHE).then((cache) => cache.match(url)).catch(() => undefined);
+  const cache = await caches.open(AI_CACHE).catch(() => null);
+  const hit = await cache?.match(url);
   if (hit) return hit;
   const response = await fetch(url).catch(() => null);
   if (!response?.ok) throw "no-model" satisfies TryOnError;
+  if (cache) {
+    try { await cache.put(url, response.clone()); }
+    catch (error) { console.warn("Could not cache optional AI asset", error); }
+  }
   return response;
+}
+
+/** HD face restoration is a separate, optional 108 MiB package. */
+export async function hdModelsReady(): Promise<boolean> {
+  if (!(await hdWanted())) return false;
+  try {
+    const cache = await caches.open(AI_CACHE);
+    for (const url of HD_FILES) if (!(await cache.match(url))) return false;
+    return true;
+  } catch { return false; }
+}
+
+export async function downloadHdModels(onProgress: (done: number) => void): Promise<void> {
+  if (!(await hdWanted())) throw "no-model" satisfies TryOnError;
+  await downloadModels([], onProgress, [], true);
 }
 
 /* --------------------------------------------------------------- models */
