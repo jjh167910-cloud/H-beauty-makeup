@@ -167,49 +167,67 @@ async function dropOldCaches() {
  * only with explicit includeHD=true. Previously completed files stay cached across retries.
  * The caller can cache explicitly selected look thumbnails for offline reuse too.
  */
-export async function downloadModels(lookIds: string[], onProgress: (done: number) => void, thumbs: string[] = [], includeHD = false): Promise<void> {
+export async function downloadModels(lookIds: string[], onProgress: (done: number) => void, thumbs: string[] = [], includeHD = false, signal?: AbortSignal): Promise<void> {
+  const cancelled = () => {
+    if (signal?.aborted) throw new DOMException("Download cancelled", "AbortError");
+  };
+  cancelled();
+  // Free the disk space of obsolete engines BEFORE attempting large downloads.
+  await dropOldCaches();
   const cache = await caches.open(AI_CACHE);
   const { need, drop } = await files(lookIds, includeHD);
   const big = need.filter((url) => url === ORT_WASM || url === ENHANCE || url === SEGMENT || FACE_FILES.includes(url) || HD_FILES.includes(url));
   const small = [...need.filter((url) => !big.includes(url)), ...thumbs];
-  // Byte weights so the bar moves smoothly even without content-length.
+  // Weighted progress represents only bytes that are missing, so retrying a
+  // partial HD package starts from zero and counts its remaining complete parts.
   const weights = new Map<string, number>([[ORT_WASM, 14_300_000], [FACE_FILES[1], 13_600_000], [FACE_FILES[2], 3_800_000], [SEGMENT, 8_300_000], [LOOKS_META, 330_000], [ENHANCE, 2_430_000],
     ...HD_PARTS.map((url): [string, number] => [url, 21_400_000]), [ORT_GPU_GLUE, 53_000], ...ORT_GPU_WASM.map((url): [string, number] => [url, 13_400_000])]);
   for (const id of lookIds) { weights.set(lookModel(id), 230_000); weights.set(lookLayer(id), 130_000); weights.set(lookCov(id), 25_000); }
-  const total = [...big, ...small].reduce((sum, url) => sum + (weights.get(url) ?? 30_000), 0);
+  const pending = new Set<string>();
+  for (const url of [...big, ...small]) {
+    cancelled();
+    if (!(await cache.match(url))) pending.add(url);
+  }
+  const total = [...pending].reduce((sum, url) => sum + (weights.get(url) ?? 30_000), 0);
   let done = 0;
-  const bump = (n: number) => { done += n; onProgress(Math.min(1, done / total)); };
+  const bump = (n: number) => {
+    done += n;
+    onProgress(total ? Math.min(0.99, done / total) : 1);
+  };
+  onProgress(total ? 0 : 1);
+
   for (const url of big) {
+    cancelled();
+    if (!pending.has(url)) continue;
     const expected = weights.get(url) ?? 30_000;
-    if (await cache.match(url)) { bump(expected); continue; }
-    const response = await fetch(url, { cache: "no-cache" });
+    const response = await fetch(url, { cache: "no-cache", signal });
     if (!response.ok || !response.body) throw "no-model" satisfies TryOnError;
     const length = Number(response.headers.get("content-length")) || expected;
-    const reader = response.body.getReader();
-    const parts: Uint8Array[] = [];
-    for (;;) {
-      const { done: end, value } = await reader.read();
-      if (end) break;
-      parts.push(value);
-      bump((value.length / length) * expected);
-    }
     const type = response.headers.get("content-type") ?? "application/octet-stream";
-    await cache.put(url, new Response(new Blob(parts as BlobPart[], { type }), { headers: { "content-type": type } }));
+    // Stream straight into CacheStorage: do not retain a 14-21 MB model in a
+    // JS array/Blob while writing a second copy to the browser's offline cache.
+    // Cache.put commits a complete response; a failed/aborted stream is retried.
+    const body = response.body.pipeThrough(new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        bump((chunk.byteLength / length) * expected);
+        controller.enqueue(chunk);
+      },
+    }));
+    await cache.put(url, new Response(body, { headers: { "content-type": type } }));
   }
-  for (let i = 0; i < small.length; i += 8) {
-    await Promise.all(small.slice(i, i + 8).map(async (url) => {
-      if (!(await cache.match(url))) {
-        const response = await fetch(url, { cache: "no-cache" });
-        if (!response.ok) throw "no-model" satisfies TryOnError;
-        await cache.put(url, response);
-      }
+  const missingSmall = small.filter((url) => pending.has(url));
+  for (let i = 0; i < missingSmall.length; i += 8) {
+    cancelled();
+    await Promise.all(missingSmall.slice(i, i + 8).map(async (url) => {
+      const response = await fetch(url, { cache: "no-cache", signal });
+      if (!response.ok) throw "no-model" satisfies TryOnError;
+      await cache.put(url, response);
       bump(weights.get(url) ?? 30_000);
     }));
   }
-  await dropOldCaches();
-  // Files of the other engine (e.g. the tiny networks from before the graphics-chip engine).
+  cancelled();
+  // Remove obsolete files of the other rendering engine only once new data is safe.
   await Promise.all(drop.map((url) => cache.delete(url).catch(() => false)));
-  // Ask the browser not to evict the offline AI files under storage pressure.
   await navigator.storage?.persist?.().catch(() => false);
   onProgress(1);
 }
@@ -238,9 +256,9 @@ export async function hdModelsReady(): Promise<boolean> {
   } catch { return false; }
 }
 
-export async function downloadHdModels(onProgress: (done: number) => void): Promise<void> {
+export async function downloadHdModels(onProgress: (done: number) => void, signal?: AbortSignal): Promise<void> {
   if (!(await hdWanted())) throw "no-model" satisfies TryOnError;
-  await downloadModels([], onProgress, [], true);
+  await downloadModels([], onProgress, [], true, signal);
 }
 
 /* --------------------------------------------------------------- models */

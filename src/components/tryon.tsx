@@ -66,6 +66,7 @@ export default function TryOnView({ style, onBook }: {
   const [hdStatus, setHdStatus] = useState<"checking" | "unavailable" | "available" | "downloading" | "ready">("checking");
   const [hdProgress, setHdProgress] = useState(0);
   const [hdError, setHdError] = useState("");
+  const hdAbort = useRef<AbortController | null>(null);
   const [error, setError] = useState("");
   const [look, setLook] = useState(style.id);
   const [level, setLevel] = useState<Level>("natural");
@@ -132,7 +133,7 @@ export default function TryOnView({ style, onBook }: {
       setPhase(ready ? "pick" : "get");
       if (ready) warmUp(style.id);
     });
-    return () => { active = false; job.current++; mirror.current?.stop(); urls.current.forEach((url) => URL.revokeObjectURL(url)); };
+    return () => { active = false; job.current++; hdAbort.current?.abort(); mirror.current?.stop(); urls.current.forEach((url) => URL.revokeObjectURL(url)); };
   }, []);
 
   async function download() {
@@ -160,17 +161,32 @@ export default function TryOnView({ style, onBook }: {
     return () => { active = false; };
   }, [phase, hdStatus, kind]);
 
+  // Never keep transferring optional HD data after leaving the finished-photo view.
+  useEffect(() => {
+    if (hdStatus === "downloading" && (phase !== "done" || mode !== "result")) hdAbort.current?.abort();
+  }, [hdStatus, phase, mode]);
+
   async function enableHd() {
+    if (hdAbort.current) return;
+    const controller = new AbortController();
+    hdAbort.current = controller;
     setHdStatus("downloading");
     setHdProgress(0);
     setHdError("");
     try {
-      await downloadHdModels(setHdProgress);
+      await downloadHdModels(setHdProgress, controller.signal);
+      if (controller.signal.aborted) {
+        // A late Stop (during cache cleanup or storage.persist) still restores the retry button.
+        setHdStatus("available");
+        return;
+      }
       setHdStatus("ready");
       if (sourcePhoto.current) await takePhoto(sourcePhoto.current);
     } catch (reason) {
       setHdStatus("available");
-      setHdError(navigator.onLine === false ? "برای دریافت HD به اینترنت نیاز است." : errorText(reason));
+      setHdError(controller.signal.aborted ? "" : navigator.onLine === false ? "برای دریافت HD به اینترنت نیاز است." : errorText(reason));
+    } finally {
+      if (hdAbort.current === controller) hdAbort.current = null;
     }
   }
 
@@ -205,6 +221,9 @@ export default function TryOnView({ style, onBook }: {
     const key = `${id}:${lvl}:${which}:${lipKey(pick)}:${zonesKey(z)}`;
     if (!fresh && after[key]) { setPhase("done"); return; }
     const ticket = ++job.current;
+    // Show the pending state immediately: asynchronous cache checks must not hide
+    // the existing result controls while a toggle or another look is loading.
+    setPhase("paint");
     if (!(await modelsReady([id]))) {
       if (ticket !== job.current) return;
       setPhase("look-download");
@@ -674,6 +693,8 @@ export default function TryOnView({ style, onBook }: {
                 <div role="status" style={{ width: "100%" }}>
                   <div className="tryon__bar"><span style={{ width: `${Math.round(hdProgress * 100)}%` }} /></div>
                   <small>دریافت اختیاری HD… {persian(Math.round(hdProgress * 100))}٪</small>
+                  <Button variant="secondary" icon="close" onClick={() => hdAbort.current?.abort()}>توقف دانلود HD</Button>
+                  <small>بخش‌های کامل ذخیره می‌شوند؛ بعداً می‌توانید ادامه دهید.</small>
                 </div>
               ) : hdStatus === "ready" ? <small>بسته HD روی گوشی ذخیره شده است؛ در صورت نیاز برای عکس‌های تار استفاده می‌شود.</small> : null}
               {hdStatus === "available" ? <small>مخصوص عکس‌های تار؛ برای استفاده عادی لازم نیست.</small> : null}
