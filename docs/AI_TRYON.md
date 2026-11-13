@@ -4,8 +4,20 @@ This site is the try-on (`src/components/tryon-page.tsx`; `?look=<id>` opens it 
 customer opens a **live mirror** on her
 front camera, takes a selfie or picks a photo, and the catalog look is painted on her own face,
 at **soft / natural / bold** intensity («ملایم / طبیعی / پررنگ»). Everything runs inside the
-phone's browser: no server, no API key, works offline after a one-time download, and no picture
+phone's browser: no server, no API key, downloaded styles work offline, and no picture
 leaves the phone.
+
+## Progressive download (mobile data)
+
+On first use only the selected style is installed, along with the shared face landmark,
+occlusion segmentation and sharpening data. Estimated AI bytes: ~28 MiB with WebGL2,
+~40 MiB on the ONNX fallback. All other styles are downloaded only when the customer
+selects them, and are cached for offline reuse; previews never silently fetch them.
+The 108 MiB high-resolution face-restoration model is offered explicitly as an
+optional improvement for soft photos, not part of mandatory setup. Previously installed
+HD files are reused. The interface reports per-download progress and completed individual
+AI files survive a network retry. Cache eviction by the browser or device can require
+downloading again, so offline support applies to files that remain stored.
 
 ## How it works
 
