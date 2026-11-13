@@ -121,6 +121,16 @@ test('production finalizer explicitly precaches compiled JS, CSS and fonts',asyn
   }
 }));
 
+test('Vite-minified static imports are precached while dynamic imports stay optional',()=>fixture(({folder,put})=>{
+  put('assets/app.js','import{shared as x}from"./shared.js";import("./tryon.js");');
+  put('assets/shared.js','export{thing}from"./nested.js";');
+  put('assets/nested.js','export const thing=1;');
+  const {urls}=finalizeServiceWorker(folder);
+  assert.ok(urls.includes('/assets/shared.js'),'minified static import');
+  assert.ok(urls.includes('/assets/nested.js'),'minified static re-export');
+  assert.ok(!urls.includes('/assets/tryon.js'),'dynamic import remains optional');
+}));
+
 test('lazy try-on code is downloaded only when used and works offline afterwards',async()=>fixture(async({folder})=>{
   finalizeServiceWorker(folder);
   const live=simulate(readFileSync(join(folder,'sw.js'),'utf8'),async()=>({
