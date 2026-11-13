@@ -17,8 +17,9 @@
  * Both engines paint only where her face can be seen: MediaPipe's multi-class segmentation marks
  * her face skin, so nothing goes over hair, hands, glasses frames or sunglasses (visibility()).
  *
- * All files are downloaded once into Cache Storage and served from there by the service
- * worker, so everything keeps working offline.
+ * Shared data and the first selected look are downloaded once into Cache Storage.
+ * Other looks are fetched as selected; the HD face model is opt-in.
+ * Cached features continue working offline without uploading the user's photo.
  */
 import type { FaceLandmarker, ImageSegmenter } from "@mediapipe/tasks-vision";
 import { Enhancer } from "./enhance-gl";
@@ -161,9 +162,10 @@ async function dropOldCaches() {
 }
 
 /**
- * Download every file the try-on needs (about 36 MB with the graphics-chip engine, 53 MB with
- * the tiny networks; once), reporting 0..1 progress. `thumbs` (the look rail's photos) are kept
- * in the same cache so the rail works offline too; the service worker finds them there.
+ * Download ONLY the supplied looks plus common model data (~28 MB GPU or ~40 MB tiny for
+ * the first selected look), reporting 0..1 progress. The ~108 MB HD model is included
+ * only with explicit includeHD=true. Previously completed files stay cached across retries.
+ * The caller can cache explicitly selected look thumbnails for offline reuse too.
  */
 export async function downloadModels(lookIds: string[], onProgress: (done: number) => void, thumbs: string[] = [], includeHD = false): Promise<void> {
   const cache = await caches.open(AI_CACHE);
