@@ -50,9 +50,13 @@ export function finalizeServiceWorker(distDir = 'dist') {
       for(const m of code.matchAll(/url\(\s*["']?([^"'()]+)["']?\s*\)/g))add(m[1].trim(),path);
       for(const m of code.matchAll(/@import\s+["']([^"']+)["']/g))add(m[1],path);
     }else{
-      // Follow static imports/re-exports, never dynamic import("...").
-      for(const m of code.matchAll(/\b(?:import|export)\s+[^;]*?\bfrom\s*["']([^"']+)["']/g))add(m[1],path);
-      for(const m of code.matchAll(/\bimport\s*["']([^"']+)["']/g))add(m[1],path);
+      // Match both readable and Vite-minified ES module syntax:
+      // import{a}from"./x.js", export{a}from"./x.js" and import"./x.js".
+      // Anchoring to statement boundaries avoids including import("./lazy.js").
+      const staticFrom=/(?:^|[;\n])\s*(?:import|export)\s*(?:\{[^{}]*\}|\*\s*(?:as\s*[\w$]+)?|[\w$]+(?:\s*,\s*\{[^{}]*\})?)\s*from\s*["']([^"']+)["']/g;
+      const sideEffect=/(?:^|[;\n])\s*import\s*["']([^"']+)["']/g;
+      for(const m of code.matchAll(staticFrom))add(m[1],path);
+      for(const m of code.matchAll(sideEffect))add(m[1],path);
     }
   };
   const htmlContent=readFileSync(html,'utf8');
