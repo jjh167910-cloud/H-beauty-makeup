@@ -170,7 +170,11 @@ export default function TryOnView({ style, onBook }: {
     setHdError("");
     try {
       await downloadHdModels(setHdProgress, controller.signal);
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted) {
+        // A late Stop (during cache cleanup or storage.persist) still restores the retry button.
+        setHdStatus("available");
+        return;
+      }
       setHdStatus("ready");
       if (sourcePhoto.current) await takePhoto(sourcePhoto.current);
     } catch (reason) {
