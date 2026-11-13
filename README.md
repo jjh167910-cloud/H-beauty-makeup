@@ -45,6 +45,7 @@ Cloudflare Workers Builds deploys the Worker `h-beauty-makeup` from `main` (`wra
 
 ## First-run downloads and offline behavior
 
+- The service worker precaches the HTML entrypoint, essential JavaScript/CSS and fonts only. Lazy try-on/HD code is fetched when its feature is opened and cached for subsequent offline reuse. Visiting a feature online once is required to make its code available offline; downloaded AI models alone cannot guarantee offline operation for an unvisited feature.
 - The app's offline shell is installed separately from its AI files. When someone starts try-on, only the selected look plus the face landmark, segmentation and enhancement files are required (~28 MiB with WebGL2; ~40 MiB with the tiny-network fallback).
 - The other 41 looks are downloaded individually as selected, then retained in Cache Storage for later offline use. Merely displaying the catalog rail does not predownload them.
 - High-resolution face restoration is a separate ~108 MiB **optional** download on supported devices after a photo is rendered. Previously downloaded HD assets remain usable, and ordinary try-on never requires HD.
