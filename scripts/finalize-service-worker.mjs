@@ -29,10 +29,43 @@ export function finalizeServiceWorker(distDir = 'dist') {
   files.sort();
   if (!files.some(file => file.endsWith('.js')) || !files.some(file => file.endsWith('.css')))
     throw new Error('Built app must contain JavaScript and CSS in dist/assets');
-  const total=files.reduce((sum,file)=>sum+statSync(file).size,0);
-  if (total>LIMIT) throw new Error(`Offline app shell ${(total/1048576).toFixed(1)} MiB exceeds 35 MiB budget`);
-  const urls=files.map(file=>'/'+relative(root,file).split(sep).join('/'));
-  const hash=createHash('sha256').update(readFileSync(html));
+  // Offline install must preload the app's *static* entry graph, not every
+  // dynamic-imported studio/AI chunk. Those optional chunks are cached by the
+  // service worker on first use, alongside their on-demand model downloads.
+  const fileByUrl=new Map(files.map(file=>['/'+relative(root,file).split(sep).join('/'),file]));
+  const shell=new Set();
+  const canonical=(spec,from='/index.html')=>{
+    if(/^(?:data:|blob:|https?:)/i.test(spec))return null;
+    try{return new URL(spec,'https://h-beauty.invalid'+from).pathname;}catch{return null;}
+  };
+  const add=(spec,from)=>{
+    const path=canonical(spec,from);
+    if(!path||!fileByUrl.has(path)||shell.has(path))return;
+    shell.add(path);
+    if(!/\.(?:js|css)$/i.test(path))return;
+    const code=readFileSync(fileByUrl.get(path),'utf8');
+    if(path.endsWith('.css')){
+      // CSS url() references its own font/image assets. Imported CSS was
+      // consolidated by Vite, but follow it too if present.
+      for(const m of code.matchAll(/url\(\s*["']?([^"'()]+)["']?\s*\)/g))add(m[1].trim(),path);
+      for(const m of code.matchAll(/@import\s+["']([^"']+)["']/g))add(m[1],path);
+    }else{
+      // Follow static imports/re-exports, never dynamic import("...").
+      for(const m of code.matchAll(/\b(?:import|export)\s+[^;]*?\bfrom\s*["']([^"']+)["']/g))add(m[1],path);
+      for(const m of code.matchAll(/\bimport\s*["']([^"']+)["']/g))add(m[1],path);
+    }
+  };
+  const htmlContent=readFileSync(html,'utf8');
+  for(const tag of htmlContent.matchAll(/<(?:script|link)\b[^>]*>/gi)){
+    for(const attribute of tag[0].matchAll(/\b(?:src|href)\s*=\s*["']([^"']+)["']/gi))
+      add(attribute[1],'/index.html');
+  }
+  const urls=[...shell].sort();
+  if(!urls.some(url=>url.endsWith('.js'))||!urls.some(url=>url.endsWith('.css')))
+    throw new Error('HTML entrypoint must reference built JavaScript and CSS to guarantee offline startup');
+  const total=urls.reduce((sum,url)=>sum+statSync(fileByUrl.get(url)).size,0);
+  if(total>LIMIT)throw new Error(\`Offline app shell \${(total/1048576).toFixed(1)} MiB exceeds 35 MiB budget\`);
+  const hash=createHash('sha256').update(htmlContent);
   for(let i=0;i<files.length;i++) hash.update(urls[i]).update(readFileSync(files[i]));
   const version=`h-beauty-v5-${hash.digest('hex').slice(0,12)}`;
   const source=readFileSync(worker,'utf8');
@@ -41,7 +74,7 @@ export function finalizeServiceWorker(distDir = 'dist') {
   const output=source.replace(CACHE_TOKEN,`const CACHE='${version}';`)
     .replace(ASSET_TOKEN,`const BUILD_ASSETS=${JSON.stringify(urls)};`);
   writeFileSync(worker,output);
-  console.log(`Offline shell: ${urls.length} built assets, ${(total/1048576).toFixed(2)} MiB, cache ${version}`);
+  console.log(`Offline shell: ${urls.length}/${files.length} built assets, ${(total/1048576).toFixed(2)} MiB, cache ${version}`);
   return { version, urls, bytes:total };
 }
 
