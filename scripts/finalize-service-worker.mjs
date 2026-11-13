@@ -64,9 +64,11 @@ export function finalizeServiceWorker(distDir = 'dist') {
   if(!urls.some(url=>url.endsWith('.js'))||!urls.some(url=>url.endsWith('.css')))
     throw new Error('HTML entrypoint must reference built JavaScript and CSS to guarantee offline startup');
   const total=urls.reduce((sum,url)=>sum+statSync(fileByUrl.get(url)).size,0);
-  if(total>LIMIT)throw new Error(\`Offline app shell \${(total/1048576).toFixed(1)} MiB exceeds 35 MiB budget\`);
+  if(total>LIMIT)throw new Error(`Offline app shell ${(total/1048576).toFixed(1)} MiB exceeds 35 MiB budget`);
   const hash=createHash('sha256').update(htmlContent);
-  for(let i=0;i<files.length;i++) hash.update(urls[i]).update(readFileSync(files[i]));
+  // Fingerprint *all* compiled assets, including lazy chunks: changing any
+  // chunk still updates the cache version and prevents cross-release mixing.
+  for(const file of files)hash.update('/'+relative(root,file).split(sep).join('/')).update(readFileSync(file));
   const version=`h-beauty-v5-${hash.digest('hex').slice(0,12)}`;
   const source=readFileSync(worker,'utf8');
   if(!source.includes(CACHE_TOKEN) || !source.includes(ASSET_TOKEN))
