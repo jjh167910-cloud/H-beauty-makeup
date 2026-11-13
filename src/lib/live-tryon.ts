@@ -115,6 +115,10 @@ export class LiveMirror {
     }
     else warmUp(this.look);
     this.running = true;
+    // Start the FPS clock when camera processing actually begins, not when
+    // the page loaded or AI files finished downloading.
+    this.frames = 0;
+    this.fpsAt = performance.now();
     let frameFailures = 0;
     const tick = () => {
       if (!this.running) return;
@@ -249,7 +253,9 @@ export class LiveMirror {
     this.frames++;
     const now = performance.now();
     if (now - this.fpsAt > 1000) {
-      this.stats.fps = Math.round((this.frames * 1000) / (now - this.fpsAt));
+      // Preserve fractional frame rates: a very slow but working camera must
+      // not display 0 FPS just because an integer rounded down to zero.
+      this.stats.fps = Math.max(0.1, Math.round((this.frames * 10_000) / (now - this.fpsAt)) / 10);
       this.frames = 0;
       this.fpsAt = now;
       this.onStats?.({ ...this.stats });
