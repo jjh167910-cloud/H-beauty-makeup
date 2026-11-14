@@ -106,6 +106,8 @@ def verify_record(root: Path, entry: dict) -> dict:
         "pigment":entry["pigment"].lower(),
         "files":{name:str(path.relative_to(root)) for name,path in files.items()},
         "source_sha256":src_hash,"target_sha256":tgt_hash,
+        "mask_sha256":sha256(files["mask"].read_bytes()).hexdigest(),
+        "alpha_sha256":sha256(files["alpha"].read_bytes()).hexdigest(),
         "size":[source.shape[1],source.shape[0]],
         "outside_mae":round(outside_mae,4),
         "outside_fraction_gt8":round(outside_fraction,6),
