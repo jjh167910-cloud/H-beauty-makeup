@@ -19,6 +19,8 @@ on:
       - "scripts/quality/detect_source_face.py"
       - "scripts/quality/author_mesh_pilot_masks.py"
       - "scripts/quality/test_source_mesh_pipeline.py"
+      - "scripts/quality/compare_material_v5.py"
+      - "scripts/quality/test_material_comparison_v5.py"
       - "scripts/quality/render_rhinestones.py"
       - "scripts/quality/test_rhinestones.py"
       - "scripts/quality/material_recipes/rhinestone-accessories-STUDY.json"
@@ -69,6 +71,23 @@ jobs:
           print("Bundled MediaPipe model and face-specific mask author passed integration smoke test.")
           print("The public catalog photo is already made up; this is NOT V2 photorealism approval.")
           PY
+      - name: Create four legacy-vs-V5 public-sample A/B image reviews
+        run: |
+          python scripts/quality/compare_material_v5.py \
+            --photo public/makeup/looks/no-makeup.webp \
+            --drafts /tmp/public-example-four-pilot-masks \
+            --out /tmp/public-v5-material-comparisons
+      - name: Publish side-by-side PUBLIC V5 material experiment (NOT approved)
+        uses: actions/upload-artifact@v4
+        with:
+          name: PUBLIC-v5-material-A-B-review-NOT-APPROVED
+          path: |
+            /tmp/public-v5-material-comparisons/before-after-v5-contact-sheet.jpg
+            /tmp/public-v5-material-comparisons/*-eyes-lips-review.jpg
+            /tmp/public-v5-material-comparisons/review-report.json
+            /tmp/public-v5-material-comparisons/*/rendered/material-render.png
+            /tmp/public-v5-material-comparisons/*/rendered/material-render-report.json
+          retention-days: 7
       # Public existing catalog example is permitted as a reference,
       # but NEVER upload any private user's face or landmarks to Actions.
       - name: Publish PUBLIC catalog-derived research previews, never customer data
@@ -131,6 +150,8 @@ jobs:
         run: python scripts/quality/test_source_locked_compositor.py
       - name: Verify source-locked cosmetic material rendering and original texture preservation
         run: python scripts/quality/test_material_look.py
+      - name: Verify V5 side-by-side source-original appearance study
+        run: python scripts/quality/test_material_comparison_v5.py
       - name: Verify manual four-look mask geometry and exact source identity gates
         run: python scripts/quality/test_author_four_pilot_masks.py
       - name: Reject lip, eye and liner masks that violate source-specific face geometry
