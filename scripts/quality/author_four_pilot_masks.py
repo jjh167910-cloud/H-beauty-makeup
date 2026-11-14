@@ -150,7 +150,7 @@ def write_masks(master:Path, expected_sha256:str, out:Path):
         folder.mkdir(parents=True,exist_ok=True)
         records=[]
         for name,mask in files.items():
-            array=np.asarray(mask,dtype=np.uint8)
+            array=np.array(mask,dtype=np.uint8,copy=True)
             array[array<2]=0
             Image.fromarray(array,"L").save(folder/name)
             records.append({"name":name,"covered_pixels":int(np.count_nonzero(array))})
