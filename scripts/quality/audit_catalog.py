@@ -34,7 +34,8 @@ ROIS = {
     "lips": (0.23, 0.54, 0.59, 0.67),
     "cheek_left": (0.11, 0.41, 0.32, 0.60),
     "cheek_right": (0.48, 0.41, 0.74, 0.60),
-    "background_left": (0.005, 0.12, 0.04, 0.25),
+    # Near the top-left corner, away from the loose hair by her cheek.
+    "background_upper_left": (0.005, 0.005, 0.045, 0.055),
     "hair_right": (0.79, 0.40, 0.95, 0.91),
     "hair_bottom_left": (0.01, 0.76, 0.16, 0.98),
 }
@@ -113,7 +114,7 @@ def audit() -> tuple[list[dict], list[str], list[str]]:
                 row["max_region_change"] = round(max_feature, 3)
                 if style_id != "no-makeup" and max_feature < 5.0:
                     row["warnings"].append("Low regional change versus baseline: check visual distinction")
-                if row["regions"]["background_left"] > 8.0:
+                if row["regions"]["background_upper_left"] > 8.0:
                     row["warnings"].append("Potential background/white-balance drift: inspect manually")
                 if max(row["regions"]["hair_right"],
                        row["regions"]["hair_bottom_left"]) > 12.0:
