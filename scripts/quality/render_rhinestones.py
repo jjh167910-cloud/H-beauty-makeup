@@ -80,8 +80,12 @@ def recipe_check(recipe: object, image_sha: str, width: int, height: int) -> tup
         y=finite(g.get("y"),f"gem#{i}.y",0,height)
         r=finite(g.get("radius_px"),f"gem#{i}.radius_px",1.8,9.0)
         angle=finite(g.get("angle_deg",0),f"gem#{i}.angle_deg",-180,180)
-        if not ((x0*width + r + 3) <= x <= (x1*width - r - 3)
-                and (y0*height + r + 3) <= y <= (y1*height - r - 3)):
+        # Bound the complete supersampled sprite, including Gaussian contact
+        # shadow; validating only the glass radius would allow soft shadow
+        # pixels to leak beyond the user-reviewed skin placement rectangle.
+        extent = math.ceil(r * 3.5 + 4)
+        if not ((x0*width + extent) <= x <= (x1*width - extent)
+                and (y0*height + extent) <= y <= (y1*height - extent)):
             raise ValueError(f"gem #{i}: footprint extends outside reviewed skin-only box")
         if any(math.hypot(x-px,y-py) < (r+pr)*0.85 for px,py,pr in seen):
             raise ValueError(f"gem #{i}: collision or near-overlap with another stone")
