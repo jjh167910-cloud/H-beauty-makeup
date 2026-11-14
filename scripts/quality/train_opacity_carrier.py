@@ -218,6 +218,17 @@ def train(index: Path,out: Path,*,epochs: int=25,side: int=192,
     index_data=json.loads(index.read_text(encoding="utf8"))
     if index_data.get("subject_disjoint") is not True:
         raise ValueError("Source photo split is not subject-disjoint")
+    # The flag alone is not proof: verify actual per-person isolation
+    # before seeing any held-out image or optimizer step.
+    owners={}
+    for record in index_data.get("records",[]):
+        subject=record.get("subject_id")
+        split=record.get("split")
+        if split not in ("train","val","test") or not isinstance(subject,str):
+            raise ValueError("Invalid subject/split metadata in private dataset")
+        previous=owners.setdefault(subject,split)
+        if previous!=split:
+            raise ValueError("Subject leakage between train/val/test detected")
     torch.manual_seed(seed);np.random.seed(seed);random.seed(seed)
     # Avoid oversubscription on CPU-limited CI/phone-development machines.
     if not torch.cuda.is_available():
