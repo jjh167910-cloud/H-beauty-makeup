@@ -136,6 +136,30 @@ class PairedOpacityDataset(torch.utils.data.Dataset):
             raise ValueError("Missing verified subject-disjoint data index")
         if index.get("model_promoted") is not False:
             raise ValueError("Imported index wrongly claims model promotion")
+        # Do not trust a mutable JSON boolean alone: verify that all records
+        # of a subject remain in only ONE partition, and an image hash never
+        # appears in two partitions even under different pseudonyms.
+        if index.get("commercial_rights_independently_verified") is not False:
+            raise ValueError("Private index cannot falsely certify commercial rights")
+        subject_split={}
+        hash_split={}
+        for record in index.get("records", []):
+            partition=record.get("split")
+            if partition not in ("train","val","test"):
+                raise ValueError("Unrecognized or missing dataset partition")
+            identity=record.get("subject_id")
+            if not isinstance(identity,str) or len(identity)<3:
+                raise ValueError("Each record requires a pseudonymous subject ID")
+            if identity in subject_split and subject_split[identity]!=partition:
+                raise ValueError("Person leakage between train/validation/test splits")
+            subject_split[identity]=partition
+            for key in ("source_sha256","target_sha256"):
+                hash_value=record.get(key)
+                if not isinstance(hash_value,str) or len(hash_value)!=64:
+                    raise ValueError("Missing original photo fingerprint")
+                if hash_value in hash_split and hash_split[hash_value]!=partition:
+                    raise ValueError("Identical photo leakage between held-out partitions")
+                hash_split[hash_value]=partition
         self.root=Path(index["data_root"]).resolve()
         self.entries=[e for e in index["records"] if e["split"]==split]
         if not self.entries:
