@@ -35,6 +35,13 @@ class ReferenceV2KitTests(unittest.TestCase):
             self.assertIn("bare-reference.png", hollywood)
             rhinestone = (p / "prompts" / "rhinestone.txt").read_text("utf8")
             self.assertIn("rhinestones", rhinestone)
+            self.assertIn("RIGHT of the image", rhinestone)
+            electric = (p / "prompts" / "electric-blue.txt").read_text("utf8")
+            self.assertIn("CHEEKS: no added blush.", electric)
+            self.assertNotIn("Blush color", electric)
+            natural = (p / "prompts" / "no-makeup.txt").read_text("utf8")
+            self.assertIn("EYELINER: no eyeliner.", natural)
+            self.assertNotIn("Natural dark liner if", natural)
 
     def test_missing_authentic_master_fails_without_crashing(self):
         with tempfile.TemporaryDirectory() as tmp:
