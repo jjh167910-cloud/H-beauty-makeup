@@ -19,8 +19,14 @@ source image in the output PNG.
 - Extract bounded, fine-scale luminance variations from the source, preserving
   much of the native texture in pigmented lips and cheeks.
 - Respect local lighting with a conservative luminance factor.
-- Apply each pigment with a configured coverage/opacity and a strictly inward
-  edge feather, never changing a pixel outside a selected mask.
+- Apply each pigment with configured coverage/opacity and a distance-derived,
+  zero-at-the-boundary inward feather. Gaussian clipping alone is rejected
+  because it can produce a hard semi-opaque outline on a binary mask.
+  Never change a pixel outside the approved mask.
+- Require genuine sRGB input; preserve its ICC profile if embedded. Reject
+  unconverted wide-gamut originals rather than risk changing their appearance
+  simply by discarding Display P3/AdobeRGB metadata. Untagged files are
+  treated explicitly as assumed sRGB.
 - Composite overlapping cosmetics in declared order **only when the later
   layer explicitly sets `allow_overlap: true`**. This supports eyeliner over
   eyelid pigment and highlights over blush without silent layer collisions.
