@@ -1,0 +1,46 @@
+name: Research opacity carrier and data-integrity smoke
+
+on:
+  pull_request:
+    paths:
+      - "scripts/quality/extract_paired_transparency.py"
+      - "scripts/quality/prepare_paired_dataset.py"
+      - "scripts/quality/test_paired_dataset.py"
+      - "scripts/quality/train_opacity_carrier.py"
+      - "scripts/quality/test_train_opacity_carrier.py"
+      - ".github/workflows/opacity-carrier-smoke.yml"
+      - "docs/OPACITY_CARRIER_TRAINING.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  private-data-schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install lightweight synthetic-only requirements
+        run: python -m pip install --disable-pip-version-check numpy pillow
+      - name: Verify paired masks, rights records, fingerprints and person-disjoint data
+        run: python scripts/quality/test_paired_dataset.py
+
+  opacity-only-train-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install CPU-only PyTorch for synthetic model smoke
+        run: |
+          python -m pip install --disable-pip-version-check numpy pillow
+          python -m pip install --disable-pip-version-check torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Verify no-pixel-leak alpha-only neural model and one-epoch synthetic training
+        run: python scripts/quality/test_train_opacity_carrier.py
+      # No customer data or trained model weights may be uploaded to CI artifacts.
