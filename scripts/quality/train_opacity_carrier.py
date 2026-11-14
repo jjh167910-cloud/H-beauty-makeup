@@ -115,13 +115,15 @@ def region_crop(mask: np.ndarray, padding: float=0.50) -> tuple[int,int,int,int]
     return (cx-side//2,cy-side//2,cx-side//2+side,cy-side//2+side)
 
 
-def resized_crop(img: Image.Image, box, size: int, mode: str) -> np.ndarray:
+def resized_crop(img: Image.Image, box, size: int, mode: str, *, hard_mask: bool=False) -> np.ndarray:
     if img.mode!=mode:
         img=img.convert(mode)
-    fill=(0,0,0) if mode=="RGB" else 0
     # Pillow pads out-of-image crop areas using zero. No upscaling is
     # allowed for released master imagery; these are training patches only.
-    patch=img.crop(box).resize((size,size),Image.Resampling.BILINEAR if mode=="RGB" else Image.Resampling.NEAREST)
+    # Keep soft fractional opacity labels continuous; legal safety masks
+    # are binary, thresholded after nearest-neighbor interpolation.
+    method=Image.Resampling.NEAREST if hard_mask else Image.Resampling.BILINEAR
+    patch=img.crop(box).resize((size,size),method)
     return np.asarray(patch,dtype=np.float32)/255
 
 
@@ -152,7 +154,8 @@ class PairedOpacityDataset(torch.utils.data.Dataset):
                 raise ValueError("Source path escaped private dataset")
             files[name]=path
         # Never silently train on pixels changed since signed dataset indexing.
-        for name,key in (("source","source_sha256"),("target","target_sha256")):
+        for name,key in (("source","source_sha256"),("target","target_sha256"),
+                         ("mask","mask_sha256"),("alpha","alpha_sha256")):
             if sha256(files[name].read_bytes()).hexdigest()!=entry[key]:
                 raise ValueError("Dataset image hash changed since private preflight")
         with Image.open(files["mask"]) as m:
@@ -162,7 +165,8 @@ class PairedOpacityDataset(torch.utils.data.Dataset):
         for name in ("source","target","mask","alpha"):
             with Image.open(files[name]) as img:
                 patches[name]=resized_crop(img,box,self.side,
-                    "RGB" if name in ("source","target") else "L")
+                    "RGB" if name in ("source","target") else "L",
+                    hard_mask=(name=="mask"))
         source=torch.from_numpy(patches["source"].transpose(2,0,1).copy()).float()
         target=torch.from_numpy(patches["target"].transpose(2,0,1).copy()).float()
         mask=torch.from_numpy((patches["mask"]>0.5).astype(np.float32)).unsqueeze(0)
@@ -215,6 +219,9 @@ def train(index: Path,out: Path,*,epochs: int=25,side: int=192,
     if index_data.get("subject_disjoint") is not True:
         raise ValueError("Source photo split is not subject-disjoint")
     torch.manual_seed(seed);np.random.seed(seed);random.seed(seed)
+    # Avoid oversubscription on CPU-limited CI/phone-development machines.
+    if not torch.cuda.is_available():
+        torch.set_num_threads(min(4,max(1,torch.get_num_threads())))
     device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
     ds={name:PairedOpacityDataset(index,name,side) for name in ("train","val","test")}
     model=OpacityCarrier().to(device)
