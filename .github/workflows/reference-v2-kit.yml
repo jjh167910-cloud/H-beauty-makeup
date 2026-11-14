@@ -30,6 +30,37 @@ permissions:
   contents: read
 
 jobs:
+  source-mesh-integration:
+    name: Actual bundled MediaPipe face-mesh smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install local landmark runtime and image dependencies
+        run: python -m pip install --disable-pip-version-check mediapipe pillow numpy
+      - name: Detect public example face locally and author its pilot masks
+        run: |
+          python scripts/quality/detect_source_face.py \
+            --photo public/makeup/looks/no-makeup.webp \
+            --out /tmp/public-example-face-landmarks.json
+          python scripts/quality/author_mesh_pilot_masks.py \
+            --photo public/makeup/looks/no-makeup.webp \
+            --landmarks /tmp/public-example-face-landmarks.json \
+            --out /tmp/public-example-four-pilot-masks
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path("/tmp/public-example-four-pilot-masks")
+          manifest=json.loads((root/"draft-manifest.json").read_text())
+          assert len(manifest["styles"]) == 4
+          assert all(x["anatomical_gate_passed"] for x in manifest["styles"].values())
+          assert not manifest["artist_approved"]
+          print("Bundled MediaPipe model and face-specific mask author passed integration smoke test.")
+          print("The public catalog photo is already made up; this is NOT V2 photorealism approval.")
+          PY
+      # Deliberately do not upload the facial geometry, photographs or masks.
   build-kit:
     runs-on: ubuntu-latest
     steps:
