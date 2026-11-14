@@ -1,23 +1,23 @@
 {
   "style_id": "hollywood",
-  "status": "staged-pilot-not-approved",
+  "status": "v4-source-specific-research-not-approved",
   "layers": [
     {
       "name": "lid_neutral_wash",
       "mask": "masks/hollywood-lid-wash.png",
       "pigment": "#e7cfae",
-      "opacity": 0.3,
-      "feather_px": 3,
-      "texture_strength": 0.7,
+      "opacity": 0.18,
+      "feather_px": 2,
+      "texture_strength": 0.75,
       "finish": "satin"
     },
     {
       "name": "lid_outer_contour",
       "mask": "masks/hollywood-lid-crease.png",
       "pigment": "#c7a27c",
-      "opacity": 0.4,
-      "feather_px": 3,
-      "texture_strength": 0.65,
+      "opacity": 0.15,
+      "feather_px": 2,
+      "texture_strength": 0.75,
       "finish": "matte",
       "allow_overlap": true
     },
@@ -25,7 +25,7 @@
       "name": "wing_liner",
       "mask": "masks/hollywood-wing.png",
       "pigment": "#171314",
-      "opacity": 0.98,
+      "opacity": 0.96,
       "feather_px": 0,
       "texture_strength": 0.15,
       "finish": "matte",
@@ -35,18 +35,18 @@
       "name": "cheek_blush",
       "mask": "masks/hollywood-cheek.png",
       "pigment": "#dc9488",
-      "opacity": 0.28,
-      "feather_px": 6,
-      "texture_strength": 0.85,
+      "opacity": 0.16,
+      "feather_px": 5,
+      "texture_strength": 0.9,
       "finish": "satin"
     },
     {
       "name": "matte_red_lips",
       "mask": "masks/hollywood-lips.png",
       "pigment": "#b3242f",
-      "opacity": 0.96,
-      "feather_px": 0.7,
-      "texture_strength": 1,
+      "opacity": 0.87,
+      "feather_px": 0.4,
+      "texture_strength": 1.12,
       "finish": "matte"
     }
   ],

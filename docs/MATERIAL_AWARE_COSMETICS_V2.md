@@ -175,3 +175,45 @@ photorealism in changing light or a moving live-camera view.
 Next quality gate: compare gems and liner against photographed cosmetic
 references, repair masks against the real native master, and conduct blind
 side-by-side artist reviews before releasing a single new catalog image.
+
+## V4 anatomical source-lock refinements (2026-11-14)
+
+On the fixed 1086x1448 synthetic black-satin editorial pilot, 100-200% zoom
+revealed that previous markup extended red lipstick above the natural
+vermilion, made blush too broad, and painted broad solid blocks above the
+eyelid in Electric Blue. Long duplicate eyeliner strokes appeared to float
+above the natural lash roots.
+
+V4 addresses these as follows:
+
+- Independently traced **upper and lower lip polygons** protect the actual
+  dark mouth opening. Exact lip geometry belongs to THIS source only.
+- Narrower photographed eyelid contours with a **soft two-tone cobalt
+  gradient** replace hard blocks. The source lashes and sclera remain visible.
+- Only **short, anchored outer-canthus flicks** are drawn instead of a
+  second full-length eyeliner hovering over the existing source lashes.
+- Existing small cheek masks remain inside the cheek silhouette;
+  opacity is reduced to preserve photographed local skin variation.
+- Hollywood matte-red lip opacity is tuned to retain its existing photographed
+  relief. This is still a source-locked color-material approximation.
+- The Rhinestone pilot keeps the separately tested **two-gem** accessory
+  study consistent with the original catalog reference.
+
+The tests in test_author_four_pilot_masks.py now explicitly reject upper-lip
+skin contamination and long floating eyeliner strokes. Source identity and
+photo-size locks are unchanged.
+
+V4 comparison images and changed-pixel reports were generated separately
+from the approved V2 masks, and remain **research only**. On the earlier V3
+drafts, many changed pixels lay outside the more accurately localized V4
+cosmetic regions (23,433 for Hollywood, 5,379 for Electric Blue, and 35,325
+for Rhinestone). These figures are *relative to the V4 research mask*,
+not counts of proven anatomical errors. All four new research outputs have
+zero changed pixels outside their own cosmetic+accessory masks.
+
+The source image is still 1086x1448 and synthetic. This is NOT a genuine
+native premium 2048x2732 photographic master. These changes do NOT produce
+authentic facial texture where absent, medically verify a makeup-free face,
+or certify professional luxury appearance. It would be incorrect to send the
+V4 generated sample straight to production without human artistic review,
+a truly controlled photographic source, and cross-face benchmarking.

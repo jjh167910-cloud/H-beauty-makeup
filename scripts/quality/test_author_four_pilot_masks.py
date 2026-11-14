@@ -35,6 +35,29 @@ class FourPilotMaskTests(unittest.TestCase):
                 union|=pixels
             self.assertLess(float(union.mean()),0.10,sid)
 
+    def test_v4_masks_do_not_paint_upper_lip_skin_or_detached_eyeliner(self):
+        sets = build_masks()
+        for sid in PILOTS:
+            lips_name = f"{sid}-lips.png"
+            lip = np.asarray(sets[sid][lips_name], dtype=np.uint8)
+            # The old mask painted normal skin above the cupid's bow.
+            # It was several pixels too high around the middle upper lip.
+            self.assertFalse((lip[:595, 390:545] > 1).any(),sid)
+            self.assertTrue((lip[620:680, 390:535] > 1).any(),sid)
+        for sid,liner_name in (
+            ("hollywood","hollywood-wing.png"),
+            ("electric-blue","electric-blue-graphic-liner.png"),
+            ("rhinestone","rhinestone-liner.png"),
+        ):
+            liner = np.asarray(sets[sid][liner_name],dtype=np.uint8)
+            # Only short outer-canthus strokes: no second floating line
+            # spanning the whole eyelid above the original eyelashes.
+            self.assertFalse((liner[:,290:605] > 1).any(),sid)
+            self.assertGreater(int((liner > 1).sum()),20,sid)
+        for sid in PILOTS:
+            lid = np.asarray(sets[sid][f"{sid}-lid-wash.png"],dtype=np.uint8) if sid != "electric-blue" else np.asarray(sets[sid]["electric-blue-inner-lid.png"],dtype=np.uint8)
+            self.assertFalse((lid[:345] > 1).any(),sid)
+
     def test_exact_sha_is_required_for_unsupported_source(self):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td)

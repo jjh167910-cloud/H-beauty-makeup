@@ -1,12 +1,12 @@
 {
   "style_id": "no-makeup",
-  "status": "staged-pilot-not-approved",
+  "status": "v4-source-specific-research-not-approved",
   "layers": [
     {
       "name": "barely_there_lid",
       "mask": "masks/no-makeup-lid-wash.png",
       "pigment": "#d9b19f",
-      "opacity": 0.12,
+      "opacity": 0.1,
       "feather_px": 4,
       "texture_strength": 0.9,
       "finish": "satin"
@@ -15,7 +15,7 @@
       "name": "soft_apple_blush",
       "mask": "masks/no-makeup-cheeks.png",
       "pigment": "#e3a394",
-      "opacity": 0.16,
+      "opacity": 0.12,
       "feather_px": 8,
       "texture_strength": 1,
       "finish": "satin"
@@ -24,7 +24,7 @@
       "name": "tinted_lip_gloss",
       "mask": "masks/no-makeup-lips.png",
       "pigment": "#c9877c",
-      "opacity": 0.28,
+      "opacity": 0.19,
       "feather_px": 2,
       "texture_strength": 1,
       "finish": "gloss"
