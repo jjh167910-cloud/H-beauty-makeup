@@ -63,6 +63,7 @@ def build_payload(
         "detection_policy": {
             "framework": "mediapipe.tasks.vision.FaceLandmarker",
             "running_mode": "IMAGE",
+            "max_faces_checked": 2,
             "min_face_detection_confidence": float(min_face_detection_confidence),
             "min_face_presence_confidence": float(min_face_presence_confidence),
             "reported_per_face_confidence_available": False,
@@ -98,7 +99,9 @@ def detect(photo: Path, task: Path = DEFAULT_TASK) -> dict[str, Any]:
     options = mp.tasks.vision.FaceLandmarkerOptions(
         base_options=base,
         running_mode=mp.tasks.vision.RunningMode.IMAGE,
-        num_faces=1,
+        # Request at least TWO faces; otherwise a multi-person image is
+        # silently truncated to one and could falsely pass the one-face gate.
+        num_faces=2,
         min_face_detection_confidence=THRESHOLD,
         min_face_presence_confidence=THRESHOLD,
         min_tracking_confidence=THRESHOLD,
