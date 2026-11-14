@@ -40,6 +40,28 @@ class OpacityTrainerTests(unittest.TestCase):
             after[(mask==0).expand_as(source)]
         ))
 
+    def test_black_protected_pixels_cannot_corrupt_backward_gradients(self):
+        from train_opacity_carrier import losses
+        model=OpacityCarrier(base=8)
+        source=torch.zeros(1,3,96,96)
+        source[:,:,24:70,24:70]=torch.tensor([.45,.31,.24]).view(1,3,1,1)
+        mask=torch.zeros(1,1,96,96)
+        mask[:,:,37:56,38:59]=1
+        pigment=torch.tensor([.60,.09,.16]).view(1,3,1,1)
+        region=torch.tensor([1.,0.,0.]).view(1,3,1,1)
+        expected=torch.zeros_like(mask)
+        expected[:,:,39:54,40:57]=.55
+        measured_source=source.clone()
+        target=masked_composite(source,pigment,expected,mask)
+        predicted=model(source,mask,pigment,region)
+        objective,_=losses(predicted,expected,measured_source,target,mask,pigment)
+        self.assertTrue(torch.isfinite(objective))
+        objective.backward()
+        self.assertTrue(all(
+            param.grad is None or torch.isfinite(param.grad).all()
+            for param in model.parameters()
+        ), "Black source pixels produced nonfinite image-compositor gradients")
+
     def test_synthetic_subject_disjoint_train_val_test_and_report(self):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td)
