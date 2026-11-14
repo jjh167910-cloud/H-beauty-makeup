@@ -1,0 +1,50 @@
+{
+  "style_id": "electric-blue",
+  "status": "staged-pilot-not-approved",
+  "layers": [
+    {
+      "name": "lid_inner_blue",
+      "mask": "masks/electric-blue-inner-lid.png",
+      "pigment": "#4aa3f0",
+      "opacity": 0.73,
+      "feather_px": 1.5,
+      "texture_strength": 0.7,
+      "finish": "satin"
+    },
+    {
+      "name": "lid_outer_cobalt",
+      "mask": "masks/electric-blue-outer-lid.png",
+      "pigment": "#1d3fb8",
+      "opacity": 0.89,
+      "feather_px": 1,
+      "texture_strength": 0.6,
+      "finish": "satin",
+      "allow_overlap": true
+    },
+    {
+      "name": "graphic_cobalt_liner",
+      "mask": "masks/electric-blue-graphic-liner.png",
+      "pigment": "#1d3fb8",
+      "opacity": 0.98,
+      "feather_px": 0,
+      "texture_strength": 0.1,
+      "finish": "matte",
+      "allow_overlap": true
+    },
+    {
+      "name": "soft_nude_lips",
+      "mask": "masks/electric-blue-lips.png",
+      "pigment": "#b57a72",
+      "opacity": 0.71,
+      "feather_px": 1.4,
+      "texture_strength": 0.9,
+      "finish": "matte"
+    }
+  ],
+  "manual_review_requirements": [
+    "No blush: original recipe specifies none",
+    "Cobalt pigment remains confined to eyelids, never sclera",
+    "Graphic liner has crisp intentional symmetry",
+    "Individual lashes and no image-wide blue cast"
+  ]
+}
