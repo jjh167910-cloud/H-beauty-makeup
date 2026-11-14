@@ -36,13 +36,14 @@ def compare(source: Path, drafts: Path, v5: Path, out: Path) -> dict:
     # Research area is /tmp; never overwrite the original mask or recipe.
     # The material renderer requires masks within its recipe directory.
     copied=folder/"masks"/"photo-guided-lips-research.png"
-    shutil.copyfile(masks/"refined-lips.png",copied)
+    shutil.copyfile(masks/"refined-lips-alpha.png",copied)
     corrected=json.loads(json.dumps(recipe))
     for layer in corrected["layers"]:
         if "lip" in layer["name"]:
             layer["mask"]="masks/photo-guided-lips-research.png"
             layer["appearance_model"]="source-relief-v5"
-            layer["tone"]=.92
+            layer["tone"]=.86
+            layer["feather_px"]=2.25
         elif "lid" in layer["name"]:
             layer["appearance_model"]="source-relief-v5"
             layer["tone"]=1.02
