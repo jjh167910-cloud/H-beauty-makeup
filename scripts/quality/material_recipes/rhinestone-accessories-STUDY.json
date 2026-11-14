@@ -1,0 +1,44 @@
+{
+  "style_id": "rhinestone",
+  "status": "experimental-unapproved",
+  "source_dimensions": [
+    1086,
+    1448
+  ],
+  "source_sha256": "d1e7968c854dab30be7f1e6f6438debe1b6f60a7f4156f95c9a50e4bd8b3042c",
+  "source_description": "One specific 1086x1448 pixel-locked synthetic rhinestone pigment preview; NOT an authentic bare-face photo",
+  "allowed_skin_box": [
+    0.575,
+    0.245,
+    0.665,
+    0.316
+  ],
+  "gems": [
+    {
+      "x": 660,
+      "y": 387,
+      "radius_px": 3.6,
+      "angle_deg": -12
+    },
+    {
+      "x": 680,
+      "y": 396,
+      "radius_px": 3,
+      "angle_deg": 19
+    },
+    {
+      "x": 657,
+      "y": 410,
+      "radius_px": 4.2,
+      "angle_deg": 8
+    },
+    {
+      "x": 676,
+      "y": 422,
+      "radius_px": 2.8,
+      "angle_deg": -33
+    }
+  ],
+  "visual_review": "pending",
+  "approved_for_catalog": false
+}
