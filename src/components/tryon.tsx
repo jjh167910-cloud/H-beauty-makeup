@@ -559,7 +559,7 @@ export default function TryOnView({ style, onBook }: {
           ) : phase === "live" ? (
             <div className="tryon__stage tryon__stage--live">
               <canvas ref={liveView} className="tryon__live" aria-label={liveMine ? "آینه زنده با میکاپ خودتان" : `آینه زنده با میکاپ ${current.title}`}
-                data-fps={live?.fps ?? 0} data-net-ms={live?.netMs ?? 0} data-face={live?.face ? "" : undefined} data-engine={kind} data-mine={liveMine ? "" : undefined} />
+                data-fps={live?.fps ?? 0} data-drawn-frames={live?.drawnFrames ?? 0} data-net-ms={live?.netMs ?? 0} data-face={live?.face ? "" : undefined} data-engine={kind} data-mine={liveMine ? "" : undefined} />
               {!live ? <div className="tryon__busy" role="status"><strong>در حال روشن کردن دوربین…</strong></div> : null}
               {live && !live.face ? <span className="tryon__hint">صورت را روبه‌روی دوربین بگیرید</span> : null}
               {live ? <span className="tryon__tag tryon__tag--after">زنده · {liveMine ? "میکاپ من" : current.title}</span> : null}
