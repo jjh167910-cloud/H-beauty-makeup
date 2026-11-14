@@ -107,3 +107,40 @@ Reject an image when any of the following occurs:
 **Current catalog status:** no luxury presentation master has been approved.
 The original images remain unchanged; this direction is a mandatory
 production brief, not proof that the generated renders passed the standard.
+
+
+## E. Automatic pixel-lock release gate
+
+Each finished catalog image must ship with a **grayscale approved-change mask**
+on the exact same pixel grid as the frozen presentation master. White pixels
+allow only cosmetic pigment/edge changes; black pixels are immutable hair,
+wardrobe, jewelry, background, and unedited skin. A look must be rendered
+against this master, not independently generated from a text description.
+
+The new strict mask audit is:
+
+```bash
+python scripts/quality/audit_pixel_locked_look.py \
+  --master candidates/reference-v2/bare-reference.png \
+  --look candidates/reference-v2/styles/hollywood.png \
+  --mask candidates/reference-v2/masks/hollywood-allowed.png \
+  --out /tmp/hollywood-pixel-audit --premium
+```
+
+It reports exact protected-pixel differences, rejected mask coverage,
+incorrect dimensions, unchanged looks, and whether the native resolution
+meets the separate premium requirement. The result includes a heatmap of
+forbidden changes. It does **not** certify cosmetics, authentic identity
+inside the mask, seamlessly aligned eyelids, original camera provenance,
+or skin photorealism: every pilot still requires side-by-side visual review
+at 100% zoom on the target device.
+
+The first generated black-satin/Hollywood pair was rejected because the
+hair/clothing changed; a crude local copy-and-mask composite was also rejected
+because it left visible eyelid/cheek seams. Neither is a production reference,
+even if an automated pixel check can be engineered to pass. Reject any
+result with visible boundary artifacts regardless of structural status.
+
+**Do not upscale the 1086×1448 experimental generated images.**
+They may serve as art-direction studies only; premium release requires
+genuine native-size image masters and independently verified source provenance.

@@ -26,6 +26,7 @@ import re
 import sys
 
 from PIL import Image, ImageChops, ImageStat, UnidentifiedImageError
+from audit_pixel_locked_look import audit as audit_pixel_lock
 
 ROOT = Path(__file__).resolve().parents[2]
 STYLES_FILE = ROOT / "src/data/makeup-styles.ts"
@@ -405,6 +406,29 @@ def validate(candidate_dir: Path, phase: str, out: Path) -> dict:
                         detail["issues"].append("hair changed: visual review required")
             except (OSError, ValueError, UnidentifiedImageError) as exc:
                 detail["issues"].append(f"unreadable image: {exc}")
+        # Every V2 style must include an explicitly approved, same-grid cosmetic
+        # mask. The look may not change even ONE pixel of hair/clothing/background.
+        # Pixel equality is necessary, never sufficient for visual approval.
+        mask_path = candidate_dir / "masks" / (style_id + ".png")
+        if not mask_path.is_file():
+            detail["issues"].append("missing cosmetic-change mask")
+        elif photo.is_file() and master is not None:
+            try:
+                pixel_lock = audit_pixel_lock(
+                    master_path, photo, mask_path,
+                    out / "pixel-lock" / style_id, premium=True
+                )
+                detail["pixel_lock"] = {
+                    "passed": pixel_lock["passed"],
+                    "mask_coverage_percent": pixel_lock.get("allowed_coverage_percent"),
+                    "changed_outside_mask_pixels": pixel_lock.get("changed_outside_mask_pixels"),
+                }
+                if not pixel_lock["passed"]:
+                    detail["issues"].extend(
+                        "pixel-lock: " + problem for problem in pixel_lock["errors"]
+                    )
+            except (OSError, ValueError) as exc:
+                detail["issues"].append(f"invalid cosmetic-change mask: {exc}")
         if meta.is_file() and master_hash:
             try:
                 provenance = json.loads(meta.read_text("utf8"))

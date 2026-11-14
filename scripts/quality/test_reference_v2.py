@@ -67,11 +67,17 @@ class ReferenceV2KitTests(unittest.TestCase):
             }), encoding="utf8"
         )
         (directory / "styles").mkdir(exist_ok=True)
+        (directory / "masks").mkdir(exist_ok=True)
         for style_id in PILOTS:
             edited = face.copy()
             draw = ImageDraw.Draw(edited)
+            mask = Image.new("L", face.size, 0)
             # Arbitrary lipstick-colored patch for TESTING ONLY, no real person.
-            draw.ellipse((430, 1250, 760, 1400), fill=(159, 45, 70))
+            # Mask must cover exactly the pixels the synthetic paint is allowed to change.
+            bounds = (430, 1250, 760, 1400)
+            draw.ellipse(bounds, fill=(159, 45, 70))
+            ImageDraw.Draw(mask).ellipse(bounds, fill=255)
+            mask.save(directory / "masks" / (style_id + ".png"))
             edited.save(directory / "styles" / (style_id + ".png"))
             (directory / "styles" / (style_id + ".json")).write_text(
                 json.dumps({"style_id": style_id,
@@ -107,6 +113,32 @@ class ReferenceV2KitTests(unittest.TestCase):
             by_id = {item["id"]: item for item in report["styles"]}
             self.assertIn("hair changed", " ".join(by_id["hollywood"]["issues"]))
             self.assertIn("pixel-identical", " ".join(by_id["rhinestone"]["issues"]))
+
+    def test_missing_cosmetic_mask_blocks_pilot_promotion(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            candidate = root / "candidate"
+            self.make_fixture(candidate)
+            (candidate / "masks" / "electric-blue.png").unlink()
+            report = validate(candidate, "pilot", root / "result")
+            self.assertFalse(report["passed_structural_check"])
+            by_id = {item["id"]: item for item in report["styles"]}
+            self.assertIn("missing cosmetic-change mask", by_id["electric-blue"]["issues"])
+
+    def test_changed_protected_background_blocks_pilot_promotion(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            candidate = root / "candidate"
+            self.make_fixture(candidate)
+            photo = candidate / "styles" / "hollywood.png"
+            with Image.open(photo) as original:
+                edited = original.copy()
+            edited.putpixel((15, 15), (1, 2, 3))
+            edited.save(photo)
+            report = validate(candidate, "pilot", root / "result")
+            self.assertFalse(report["passed_structural_check"])
+            by_id = {item["id"]: item for item in report["styles"]}
+            self.assertEqual(by_id["hollywood"]["pixel_lock"]["changed_outside_mask_pixels"], 1)
 
     def test_master_source_metadata_cannot_certify_synthetic_demakeup(self):
         with tempfile.TemporaryDirectory() as tmp:

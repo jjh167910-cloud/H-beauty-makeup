@@ -6,6 +6,8 @@ on:
       - "scripts/quality/prepare_reference_v2.py"
       - "scripts/quality/make_catalog_review_sheets.py"
       - "scripts/quality/test_reference_v2.py"
+      - "scripts/quality/audit_pixel_locked_look.py"
+      - "scripts/quality/test_pixel_locked_look.py"
       - "src/data/makeup-styles.ts"
       - ".github/workflows/reference-v2-kit.yml"
   workflow_dispatch:
@@ -59,6 +61,8 @@ jobs:
           PY
       - name: Run V2 reference source-provenance and asset safety tests
         run: python scripts/quality/test_reference_v2.py
+      - name: Enforce makeup-only pixel protection and mask safety
+        run: python scripts/quality/test_pixel_locked_look.py
       - name: Generate seven existing-catalog visual comparison sheets
         run: python scripts/quality/make_catalog_review_sheets.py --out catalog-review-sheets
       - name: Publish existing-catalog visual comparison sheets
