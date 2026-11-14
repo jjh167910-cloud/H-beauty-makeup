@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "scripts/quality/prepare_reference_v2.py"
+      - "scripts/quality/make_catalog_review_sheets.py"
       - "src/data/makeup-styles.ts"
       - ".github/workflows/reference-v2-kit.yml"
   workflow_dispatch:
@@ -55,6 +56,14 @@ jobs:
           assert 'MISSING MASTER' in ' '.join(report['errors'])
           print('Missing genuine bare face is correctly rejected.')
           PY
+      - name: Generate seven existing-catalog visual comparison sheets
+        run: python scripts/quality/make_catalog_review_sheets.py --out catalog-review-sheets
+      - name: Publish existing-catalog visual comparison sheets
+        uses: actions/upload-artifact@v4
+        with:
+          name: hbeauty-42-look-review-sheets
+          path: catalog-review-sheets
+          retention-days: 30
       - name: Publish 43-image production brief pack
         uses: actions/upload-artifact@v4
         with:
