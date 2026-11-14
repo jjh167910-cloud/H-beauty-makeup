@@ -11,7 +11,8 @@ test("a stopped or dropped first download goes on from the pieces it kept, and t
   const state = await page.evaluate(async () => {
     const { AI_CACHE, downloadModels } = await import("/src/lib/tryon.ts");
     const { PIECES } = await import("/@id/__x00__virtual:ai-pieces");
-    const isPiece = (url: string) => /\.[0-9a-f]{10}\.\d+-of-\d+\.[a-z]+$/.test(url);
+    const isPiece = (url: string) => /\.[0-9a-f]{10}\.\d+-of-\d+\.[a-z]+(\.gz)?$/.test(url);
+    const plain = (url: string) => url.replace(/\.gz$/, "");   // (a gzipped piece is kept as the piece itself)
     const path = (input: RequestInfo | URL) => new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input.url, location.href).pathname;
     const original = globalThis.fetch;
     const cache = await caches.open(AI_CACHE);
@@ -37,7 +38,7 @@ test("a stopped or dropped first download goes on from the pieces it kept, and t
       try { await downloadModels(["hollywood"], (v) => progress.push(v), [], false, signal); }
       catch (e) { error = e instanceof DOMException ? e.name : String(e); }
       finally { globalThis.fetch = original; }
-      return { asked, progress, error };
+      return { asked: asked.map(plain), gzipped: asked.filter((url) => isPiece(url) && url.endsWith(".gz")).length, progress, error };
     };
 
     // 1. Stopped after the 6th piece.
@@ -46,7 +47,8 @@ test("a stopped or dropped first download goes on from the pieces it kept, and t
     const kept = (await cache.keys()).map((r) => new URL(r.url).pathname).filter(isPiece);
     // 2. Again: the connection drops in the middle of a piece.
     let dropped = false;
-    const second = await run((_, n) => (n >= 3 && !dropped ? (dropped = true, "drop") : "ok"));
+    // (on the 8th piece: four at a time, so at least four of this run's pieces are kept by then)
+    const second = await run((_, n) => (n >= 8 && !dropped ? (dropped = true, "drop") : "ok"));
     const keptAfterDrop = (await cache.keys()).map((r) => new URL(r.url).pathname).filter(isPiece);
     // 3. Again, to the end.
     const third = await run(() => "ok");
@@ -66,6 +68,7 @@ test("a stopped or dropped first download goes on from the pieces it kept, and t
       second: { error: second.error, pieces: second.asked.filter(isPiece) },
       keptAfterDrop,
       third: { error: third.error, pieces: third.asked.filter(isPiece), progress: third.progress },
+      gzipped: first.gzipped + second.gzipped + third.gzipped,
       left,
       files,
       sharpener: [...first.asked, ...second.asked, ...third.asked].some((url) => url.includes("enhance-x4")),
@@ -86,6 +89,8 @@ test("a stopped or dropped first download goes on from the pieces it kept, and t
   expect(state.third.progress[0]).toBe(0);
   expect(state.third.progress.at(-1)).toBe(1);
   expect(state.third.progress.every((v, i, all) => v >= 0 && v <= 1 && (i === 0 || v >= all[i - 1]))).toBe(true);
+  // The models Cloudflare doesn't compress came gzipped and were unpacked on the phone (the files are exact, above).
+  expect(state.gzipped).toBeGreaterThan(0);
   // The sharpener is not part of the first download (it comes when a soft photo needs it).
   expect(state.sharpener).toBe(false);
 });

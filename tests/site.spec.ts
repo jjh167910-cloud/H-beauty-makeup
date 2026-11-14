@@ -10,6 +10,9 @@ test("the page is the makeup try-on: her photo, every look, and a booking text w
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "امتحان میکاپ روی چهره خودتان" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "«گلم هالیوودی» روی چهره خودتان" })).toBeVisible();
+  // One tap: her photo first; the first download starts with it, and the look is painted when it's done.
+  await expect(page.getByRole("button", { name: "انتخاب از گالری" })).toBeVisible();
+  await expect(page.getByText(/حدود ۱۴ مگابایت هوش مصنوعی یک‌بار دانلود می‌شود/)).toBeVisible();
   await page.locator(".tryon input[type=file]:not([capture])").setInputFiles(CUSTOMER);
   await expect(page.locator(".tryon__img--after")).toBeVisible({ timeout: 240_000 });
   await expect(page.getByRole("group", { name: "امتحان سبک‌های دیگر" }).getByRole("button")).not.toHaveCount(0);

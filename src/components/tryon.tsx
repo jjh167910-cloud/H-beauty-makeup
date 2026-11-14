@@ -62,6 +62,15 @@ export default function TryOnView({ style, onBook }: {
   onBook: (id: string, mine?: { name: string; recipe: MyMakeup }) => void;
 }) {
   const [phase, setPhase] = useState<Phase>("check");
+  /** The AI files for her look are on the phone. Until then, what she taps (her photo, the live mirror) waits for the
+   * first download, which starts with that tap: picking a photo hides part of it. */
+  const [aiReady, setAiReady] = useState(false);
+  const [waiting, setWaiting] = useState<"photo" | "live" | null>(null);
+  /** Her chosen photo, shown while it waits for the download. */
+  const [waitingPhoto, setWaitingPhoto] = useState<string | null>(null);
+  useEffect(() => () => { if (waitingPhoto) URL.revokeObjectURL(waitingPhoto); }, [waitingPhoto]);
+  const queued = useRef<Blob | "live" | null>(null);
+  const pending = useRef<Promise<boolean> | null>(null);
   const [progress, setProgress] = useState(0);
   const [hdStatus, setHdStatus] = useState<"checking" | "unavailable" | "available" | "downloading" | "ready">("checking");
   const [hdProgress, setHdProgress] = useState(0);
@@ -131,23 +140,53 @@ export default function TryOnView({ style, onBook }: {
     modelsReady([style.id]).then((ready) => {
       if (!active) return;
       setPhase(ready ? "pick" : "get");
+      setAiReady(ready);
       if (ready) warmUp(style.id);
     });
     return () => { active = false; job.current++; hdAbort.current?.abort(); mirror.current?.stop(); urls.current.forEach((url) => URL.revokeObjectURL(url)); };
   }, []);
 
-  async function download() {
-    setPhase("download");
-    setProgress(0);
-    try {
-      await downloadModels([style.id], setProgress, [lookPhoto(style.id, "sm")]);
-      warmUp(style.id);
-      setPhase("pick");
-      haptic();
-    } catch (reason) {
-      setError(navigator.onLine === false ? "برای دانلود اولیه به اینترنت نیاز است." : errorText(reason));
-      setPhase("error");
-    }
+  /** The first download (one at a time); then what she asked for while it ran. */
+  function download(): Promise<boolean> {
+    pending.current ??= (async () => {
+      setPhase("download");
+      setProgress(0);
+      try {
+        await downloadModels([style.id], setProgress, [lookPhoto(style.id, "sm")]);
+        warmUp(style.id);
+        setAiReady(true);
+        haptic();
+        const next = queued.current;
+        queued.current = null;
+        setWaiting(null);
+        setWaitingPhoto(null);
+        if (next === "live") startLive();
+        else if (next) void takePhoto(next);
+        else setPhase("pick");
+        return true;
+      } catch (reason) {
+        setError(navigator.onLine === false ? "برای دانلود اولیه به اینترنت نیاز است." : errorText(reason));
+        setPhase("error");
+        return false;
+      } finally {
+        pending.current = null;
+      }
+    })();
+    return pending.current;
+  }
+
+  /** Her photo (from the camera or the gallery) or the live mirror: now, or after the first download. */
+  function ask(what: Blob | "live") {
+    if (aiReady) { if (what === "live") startLive(); else void takePhoto(what); return; }
+    queued.current = what;
+    setWaiting(what === "live" ? "live" : "photo");
+    setWaitingPhoto(what === "live" ? null : URL.createObjectURL(what));
+    void download();
+  }
+  /** The camera or the gallery: the first download starts with the tap, while she picks. */
+  function pickPhoto(input: HTMLInputElement | null) {
+    input?.click();
+    if (!aiReady) void download();
   }
 
   // High-resolution model support is only checked after the app has produced a result.
@@ -264,10 +303,10 @@ export default function TryOnView({ style, onBook }: {
     }
   }
 
-  async function onFile(event: ChangeEvent<HTMLInputElement>) {
+  function onFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
-    if (file) await takePhoto(file);
+    if (file) ask(file);
   }
 
   async function takePhoto(file: Blob) {
@@ -517,44 +556,45 @@ export default function TryOnView({ style, onBook }: {
       {intro ? (
         <section className="tryon__intro">
           <div className="tryon__hero">
-            <Media src={lookPhoto(style.id, "sm")} alt="" />
+            <Media src={waitingPhoto ?? lookPhoto(style.id, "sm")} alt={waitingPhoto ? "عکس شما" : ""} />
             <span className="tryon__badge"><Icon name="magic" size={14} weight="fill" /> هوش مصنوعی</span>
           </div>
           <h2>«{style.title}» روی چهره خودتان</h2>
           <p>آینه زنده را باز کنید، یا یک سلفی بگیرید یا عکسی از گالری انتخاب کنید؛ هوش مصنوعیِ داخل گوشی همین میکاپ را روی چهره شما اجرا می‌کند.</p>
 
+          {phase === "check" ? <div className="tryon__get"><small>در حال بررسی…</small></div> : null}
+          {phase === "error" ? (
+            <div className="tryon__get" role="alert">
+              <strong>{error}</strong>
+              <Button variant="secondary" icon="rebook" onClick={() => modelsReady([style.id]).then((ok) => { if (ok) { setAiReady(true); setPhase("pick"); } else void download(); })}>دوباره</Button>
+            </div>
+          ) : null}
+          {phase === "get" || phase === "download" || phase === "pick" || phase === "error" ? (
+            <div className="tryon__actions">
+              <Button variant="gold" size="lg" block icon="live" onClick={() => ask("live")}>آینه زنده</Button>
+              <Button variant="secondary" size="lg" block icon="camera" onClick={() => pickPhoto(camera.current)}>گرفتن سلفی</Button>
+              <Button variant="secondary" size="lg" block icon="gallery" onClick={() => pickPhoto(gallery.current)}>انتخاب از گالری</Button>
+            </div>
+          ) : null}
           {phase === "get" ? (
             <div className="tryon__get">
-              <Button variant="gold" size="lg" block icon="download" onClick={download}>آماده‌سازی هوش مصنوعی</Button>
-              <small>حدود {persian(downloadMB())} مگابایت برای اولین سبک؛ بقیه سبک‌ها فقط هنگام انتخاب دریافت و برای استفاده آفلاین ذخیره می‌شوند.</small>
+              <small>با اولین عکس یا آینه زنده، حدود {persian(downloadMB())} مگابایت هوش مصنوعی یک‌بار دانلود می‌شود؛ سبک‌های دیگر فقط هنگام انتخاب.</small>
+              <Button variant="ghost" size="sm" icon="download" onClick={() => void download()}>آماده‌سازی هوش مصنوعی</Button>
             </div>
           ) : null}
           {phase === "download" ? (
             <div className="tryon__get" role="status">
               <div className="tryon__bar"><span style={{ width: `${Math.round(progress * 100)}%` }} /></div>
               <small>در حال دانلود هوش مصنوعی… {persian(Math.round(progress * 100))}٪</small>
+              {waiting ? <small>{waiting === "live" ? "پس از دانلود، آینه زنده باز می‌شود." : "عکس شما انتخاب شد؛ پس از دانلود، میکاپ روی آن اجرا می‌شود."}</small> : null}
             </div>
           ) : null}
-          {phase === "check" ? <div className="tryon__get"><small>در حال بررسی…</small></div> : null}
-          {phase === "error" ? (
-            <div className="tryon__get" role="alert">
-              <strong>{error}</strong>
-              <Button variant="secondary" icon="rebook" onClick={() => modelsReady([style.id]).then((ok) => (ok ? setPhase("pick") : download()))}>دوباره</Button>
-            </div>
-          ) : null}
-          {phase === "pick" ? (
-            <>
-              <div className="tryon__actions">
-                <Button variant="gold" size="lg" block icon="live" onClick={() => startLive()}>آینه زنده</Button>
-                <Button variant="secondary" size="lg" block icon="camera" onClick={() => camera.current?.click()}>گرفتن سلفی</Button>
-                <Button variant="secondary" size="lg" block icon="gallery" onClick={() => gallery.current?.click()}>انتخاب از گالری</Button>
-              </div>
-              <ul className="tryon__tips">
-                <li>صورت کامل و روبه‌روی دوربین</li>
-                <li>نور روشن و یکنواخت، بدون فیلتر</li>
-                <li>بدون عینک، ماسک یا موی روی صورت</li>
-              </ul>
-            </>
+          {phase === "get" || phase === "pick" ? (
+            <ul className="tryon__tips">
+              <li>صورت کامل و روبه‌روی دوربین</li>
+              <li>نور روشن و یکنواخت، بدون فیلتر</li>
+              <li>بدون عینک، ماسک یا موی روی صورت</li>
+            </ul>
           ) : null}
           <p className="tryon__privacy"><Icon name="privacy" size={16} /> عکس شما از گوشی خارج نمی‌شود؛ همه‌چیز روی خود دستگاه و بدون اینترنت انجام می‌شود.</p>
         </section>

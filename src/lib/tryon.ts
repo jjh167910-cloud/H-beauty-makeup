@@ -129,11 +129,11 @@ async function hdWanted(): Promise<boolean> {
 }
 
 /**
- * About how many MB the first download is for one look, as it travels (measured on the live site: Cloudflare compresses
- * the WebAssembly; the sharpener comes only when a photo needs it). HD is never a prerequisite.
+ * About how many MB the first download is for one look, as it travels (Cloudflare compresses the WebAssembly, the
+ * other models come gzipped; the sharpener comes only when a photo needs it). HD is never a prerequisite.
  */
-export const downloadMB = () => (engine() === "gpu" ? 16 : 20);
-export const HD_DOWNLOAD_MB = 93;
+export const downloadMB = () => (engine() === "gpu" ? 14 : 18);
+export const HD_DOWNLOAD_MB = 84;
 export const hdDownloadAvailable = () => hdWanted();
 
 /* ---------------------------------------------------------------- files */
@@ -178,6 +178,8 @@ const pieceUrl = (url: string, i: number) => {
 };
 const pieceUrls = (url: string) => Array.from({ length: PIECES[url].count }, (_, i) => pieceUrl(url, i));
 const pieceBytes = (url: string, i: number) => Math.min(PIECE, PIECES[url].bytes - i * PIECE);
+/** The models Cloudflare doesn't compress come gzipped too; the phone unpacks them (else the plain pieces). */
+const unzips = typeof DecompressionStream === "function";
 const typeOf = (url: string) => (url.endsWith(".wasm") ? "application/wasm" : "application/octet-stream");
 
 /** The HD files as phones kept them before the pieces (a few large parts): joined on the phone, not downloaded again. */
@@ -253,9 +255,13 @@ async function fetchInto(cache: Cache, urls: string[], onProgress: (done: number
       bump(job.bytes);
       return;
     }
-    const response = await fetch(pieceUrl(job.url, job.piece), { cache: "no-cache", signal });
+    const gz = unzips && PIECES[job.url].gz;
+    const response = await fetch(`${pieceUrl(job.url, job.piece)}${gz ? ".gz" : ""}`, { cache: "no-cache", signal });
     if (!response.ok || !response.body) throw "no-model" satisfies TryOnError;
-    const reader = response.body.getReader(), chunks: Uint8Array[] = [];
+    // (a server that sends the .gz with Content-Encoding has had it unpacked by the browser already)
+    const packed = gz && !/gzip/i.test(response.headers.get("content-encoding") ?? "");
+    const body = packed ? response.body.pipeThrough(new DecompressionStream("gzip") as unknown as ReadableWritablePair<Uint8Array, Uint8Array>) : response.body;
+    const reader = body.getReader(), chunks: Uint8Array[] = [];
     let got = 0;
     try {
       for (;;) {
@@ -277,8 +283,8 @@ async function fetchInto(cache: Cache, urls: string[], onProgress: (done: number
 }
 
 /**
- * The try-on's files for these looks (the first one: about 16 MB with the graphics-chip engine, 20 MB with the tiny
- * networks, as they travel), reporting 0..1. The HD face (about 93 MB) only with `includeHD`. Kept for offline use;
+ * The try-on's files for these looks (the first one: about 14 MB with the graphics-chip engine, 18 MB with the tiny
+ * networks, as they travel), reporting 0..1. The HD face (about 84 MB) only with `includeHD`. Kept for offline use;
  * a stopped or dropped download goes on from the pieces already kept.
  */
 export async function downloadModels(lookIds: string[], onProgress: (done: number) => void, thumbs: string[] = [], includeHD = false, signal?: AbortSignal): Promise<void> {
@@ -316,7 +322,7 @@ async function cached(url: string): Promise<Response> {
     }
     // (no offline cache in this browser: the pieces straight into memory)
     const blobs = await Promise.all(pieceUrls(url).map(async (piece) => {
-      const r = await fetch(piece).catch(() => null);
+      const r = await fetch(piece).catch(() => null);   // (the plain pieces)
       if (!r?.ok) throw "no-model" satisfies TryOnError;
       return r.blob();
     }));
@@ -337,7 +343,7 @@ async function hdInCache(cache: Cache): Promise<boolean> {
   return true;
 }
 
-/** HD face restoration is a separate, optional package (about 93 MB). */
+/** HD face restoration is a separate, optional package (about 84 MB). */
 export async function hdModelsReady(): Promise<boolean> {
   if (!(await hdWanted())) return false;
   try { return await hdInCache(await caches.open(AI_CACHE)); } catch { return false; }

@@ -11,9 +11,12 @@
  *   - serves the pieces from those files on the dev server,
  *   - writes the pieces into dist/ and leaves the whole files out of it (what Cloudflare deploys).
  * Piece names carry the file's hash (`segment.<hash>.3-of-8.tflite`), so pieces of two versions never mix. A piece
- * keeps its file's extension: Cloudflare compresses WebAssembly pieces on the way like the whole file.
+ * keeps its file's extension: Cloudflare compresses WebAssembly pieces on the way like the whole file. The models it
+ * doesn't compress (.tflite, .task, .bin) also come gzipped (`<piece>.gz`, 8–12 % smaller), which the phone unpacks
+ * itself (DecompressionStream); a browser without it takes the plain pieces.
  */
 import { createHash } from "node:crypto";
+import { gzipSync } from "node:zlib";
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, readSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import type { Plugin } from "vite";
@@ -31,7 +34,11 @@ const FILES: Array<{ url: string; from?: string[] }> = [
   { url: "/tryon/ort/ort-wasm-simd-threaded.asyncify.wasm", from: [0, 1].map((i) => `/tryon/ort/ort-wasm-simd-threaded.asyncify.${i}-of-2.bin`) },
 ];
 
-export type Pieces = Record<string, { bytes: number; count: number; hash: string }>;
+export type Pieces = Record<string, { bytes: number; count: number; hash: string; gz: boolean }>;
+
+/** Cloudflare compresses WebAssembly on the way; the other models come gzipped. */
+const gzipped = (url: string) => !url.endsWith(".wasm");
+const gzip = (data: Buffer) => gzipSync(data, { level: 9 });
 
 /** `/tryon/segment.tflite` piece 3 → `/tryon/segment.<hash>.3-of-8.tflite`. */
 export function pieceName(url: string, hash: string, i: number, count: number) {
@@ -68,7 +75,7 @@ export default function aiPieces(): Plugin {
       const hash = createHash("sha256");
       let bytes = 0;
       for (const path of paths) { const data = readFileSync(path); hash.update(data); bytes += data.length; }
-      result[file.url] = { bytes, count: Math.ceil(bytes / PIECE), hash: hash.digest("hex").slice(0, 10) };
+      result[file.url] = { bytes, count: Math.ceil(bytes / PIECE), hash: hash.digest("hex").slice(0, 10), gz: gzipped(file.url) };
     }
     return result;
   }
@@ -85,15 +92,15 @@ export default function aiPieces(): Plugin {
     load: (id) => (id === "\0virtual:ai-pieces" ? `export const PIECE = ${PIECE};\nexport const PIECES = ${JSON.stringify(pieces)};\n` : null),
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        const path = (req.url ?? "").split("?")[0];
+        const asked = (req.url ?? "").split("?")[0], gz = asked.endsWith(".gz"), path = gz ? asked.slice(0, -3) : asked;
         const m = /^(.*)\.([0-9a-f]{10})\.(\d+)-of-(\d+)(\.[a-z0-9]+)$/.exec(path);
         const url = m ? `${m[1]}${m[5]}` : "";
         const file = FILES.find((f) => f.url === url), info = pieces[url];
         if (!m || !file || !info || info.hash !== m[2] || Number(m[4]) !== info.count) return next();
         const i = Number(m[3]);
-        if (i >= info.count) return next();
-        const data = read(sources(file), i * PIECE, Math.min(info.bytes, (i + 1) * PIECE));
-        res.setHeader("Content-Type", url.endsWith(".wasm") ? "application/wasm" : "application/octet-stream");
+        if (i >= info.count || (gz && !info.gz)) return next();
+        const raw = read(sources(file), i * PIECE, Math.min(info.bytes, (i + 1) * PIECE)), data = gz ? gzip(raw) : raw;
+        res.setHeader("Content-Type", gz ? "application/gzip" : url.endsWith(".wasm") ? "application/wasm" : "application/octet-stream");
         res.setHeader("Content-Length", String(data.length));
         res.setHeader("Cache-Control", "no-cache");
         res.end(data);
@@ -106,7 +113,9 @@ export default function aiPieces(): Plugin {
         for (let i = 0; i < info.count; i++) {
           const target = join(outDir, pieceName(file.url, info.hash, i, info.count));
           mkdirSync(dirname(target), { recursive: true });
-          writeFileSync(target, read(paths, i * PIECE, Math.min(info.bytes, (i + 1) * PIECE)));
+          const raw = read(paths, i * PIECE, Math.min(info.bytes, (i + 1) * PIECE));
+          writeFileSync(target, raw);
+          if (info.gz) writeFileSync(`${target}.gz`, gzip(raw));
         }
         for (const url of file.from ?? [file.url]) rmSync(join(outDir, url), { force: true });
       }

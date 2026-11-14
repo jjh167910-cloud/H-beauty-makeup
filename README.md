@@ -45,15 +45,17 @@ Cloudflare Workers Builds deploys the Worker `h-beauty-makeup` from `main` (`wra
 
 ## First-run downloads and offline behavior
 
-- When she starts the try-on, only the chosen look and the shared AI files are downloaded: about 16 MB as they
-  travel with WebGL2 (about 20 MB with the tiny-network fallback). The photo sharpener (2.4 MB) comes only when a
-  soft photo needs it.
-- The big AI files are served in 1 MiB pieces (`scripts/vite-ai-pieces.ts`), each kept on the phone as it arrives:
-  a stopped download, or a dropped connection, goes on from the pieces already there.
+- Nothing downloads until she taps the live mirror, a selfie or a gallery photo: the first download starts with that
+  tap (it runs while she picks her photo, which then gets the look). Only the chosen look and the shared AI files
+  come: about 14 MB as they travel with WebGL2 (about 18 MB with the tiny-network fallback). The photo sharpener
+  (2.4 MB) comes only when a soft photo needs it.
+- The big AI files are served in 1 MiB pieces (`scripts/vite-ai-pieces.ts`), gzipped where Cloudflare doesn't
+  compress them, each kept on the phone as it arrives: a stopped download, or a dropped connection, goes on from
+  the pieces already there.
 - Other looks are downloaded when she picks them and kept for offline use. The look rail shows her face in the
   looks she can see in it, fetching each one's small files (about 150 KB) as it scrolls into view (not with Data
   Saver on).
-- The HD face is a separate **optional** download (about 93 MB) on phones with WebGPU, offered after a result;
+- The HD face is a separate **optional** download (about 84 MB) on phones with WebGPU, offered after a result;
   it can be stopped and continued the same way.
 - Offline, downloaded looks keep working; new looks and HD need the internet for their first download. Browsers
   may evict the cache under storage pressure, so offline use isn't guaranteed forever.

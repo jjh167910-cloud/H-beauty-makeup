@@ -14,13 +14,15 @@ const FIXTURE = (name: string) => `/@fs${join(ROOT, "tests/fixtures", name)}`;
 /** The looks the tests open (the page's `?look=` link, ids from src/data/makeup-styles.ts). */
 const LOOK: Record<string, string> = { "گلم هالیوودی": "hollywood", "گلم نرم": "soft-glam", "خط چشم گربه‌ای": "cat-eye", "فول گلم": "full-glam" };
 
-async function openTryOn(page: Page, title: string, megabytes = "۱۶") {
+async function openTryOn(page: Page, title: string, megabytes = "۱۴") {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/?look=${LOOK[title]}`);
   await expect(page.getByRole("heading", { name: `«${title}» روی چهره خودتان` })).toBeVisible();
   await expect(page.getByText(`حدود ${megabytes} مگابایت`)).toBeVisible();
   await page.getByRole("button", { name: "آماده‌سازی هوش مصنوعی" }).click();
-  await expect(page.getByRole("button", { name: "انتخاب از گالری" })).toBeVisible({ timeout: 120_000 });
+  // (ready: the download's note and bar are gone)
+  await expect(page.locator(".tryon__intro .tryon__get")).toHaveCount(0, { timeout: 120_000 });
+  await expect(page.getByRole("button", { name: "انتخاب از گالری" })).toBeVisible();
 }
 
 test("try-on downloads the AI once and paints the look on the customer's photo on the device", async ({ page }) => {
@@ -480,7 +482,7 @@ test("phones without WebGL2 get the tiny-network engine and still paint on the d
       return kind === "webgl2" ? null : (original as (...args: unknown[]) => RenderingContext | null).call(this, kind, ...rest);
     } as typeof original;
   });
-  await openTryOn(page, "گلم هالیوودی", "۲۰");
+  await openTryOn(page, "گلم هالیوودی", "۱۸");
   await page.locator(".tryon input[type=file]:not([capture])").setInputFiles(CUSTOMER);
   await expect(page.locator(".tryon__img--after")).toBeVisible({ timeout: 240_000 });
   await expect(page.locator(".tryon__stage")).toHaveAttribute("data-engine", "tiny");

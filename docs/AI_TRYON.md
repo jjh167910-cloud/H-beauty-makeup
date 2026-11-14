@@ -9,14 +9,17 @@ leaves the phone.
 
 ## Downloads (mobile data)
 
-On first use only the selected look is downloaded, with the shared face finder (MediaPipe) and the
-segmenter: about **16 MB as it travels** with the graphics-chip engine (Cloudflare compresses the
-WebAssembly: 13.5 MB → 3.7 MB), about 20 MB with the tiny-network fallback (measured on the live site).
-The photo sharpener (2.4 MB) comes when a soft photo first needs it. Every other look is fetched when
-she picks it and kept for offline use; the look rail paints her face in the looks she can see in it,
-fetching each one's own files (about 150 KB) as it comes into view (not with the phone's Data Saver on:
-then its catalog photo stays). The HD face (about 93 MB) is a separate, optional download, offered after
-her first result on phones with WebGPU; it can be stopped («توقف دانلود HD») and continued.
+Nothing is downloaded until she taps: the live mirror, a selfie or a gallery photo start the first
+download with that tap, so it runs while she picks her photo, which is shown while it finishes and then
+gets the look («آماده‌سازی هوش مصنوعی» downloads first without a photo). Only the selected look comes,
+with the shared face finder (MediaPipe) and the segmenter: about **14 MB as it travels** with the
+graphics-chip engine, about 18 MB with the tiny-network fallback (Cloudflare compresses the WebAssembly,
+13.5 MB → 3.7 MB; the other models come gzipped, below). The photo sharpener (2.4 MB) comes when a soft
+photo first needs it. Every other look is fetched when she picks it and kept for offline use; the look
+rail paints her face in the looks she can see in it, fetching each one's own files (about 150 KB) as it
+comes into view (not with the phone's Data Saver on: then its catalog photo stays). The HD face (about
+84 MB) is a separate, optional download, offered after her first result on phones with WebGPU; it can
+be stopped («توقف دانلود HD») and continued.
 
 **Pieces.** The big files (MediaPipe's WebAssembly and models, the segmenter, the sharpener, ONNX
 Runtime, the HD face) are served in 1 MiB pieces (`scripts/vite-ai-pieces.ts`: the repository keeps the
@@ -27,8 +30,18 @@ in, they're joined under the file's own URL (where the engine and the service wo
 go. Piece names carry the file's content hash, so pieces of two versions never mix, and keep its
 extension (WebAssembly pieces are compressed on the way like the whole file; Cloudflare serves no byte
 ranges of static files, which is why the pieces are files of their own). HD files a phone kept in their
-earlier large parts are joined on the phone instead of downloaded again. The progress bar counts only
-what is missing. Browsers can evict Cache Storage under storage pressure; then files are fetched again.
+earlier large parts are joined on the phone instead of downloaded again. The models Cloudflare doesn't
+compress (.tflite, .task, .bin) also come as gzipped pieces (`<piece>.gz`, 8–12 % smaller: the
+segmenter 8.3 → 7.6 MB, the HD network 85.6 → 76.2 MB), which the phone unpacks itself
+(DecompressionStream); a browser without it takes the plain pieces. The progress bar counts only what is
+missing. Browsers can evict Cache Storage under storage pressure; then files are fetched again.
+
+**Smaller models, tested.** The face finder's bundle no longer carries MediaPipe's expression network
+(`face_blendshapes.tflite`, 0.96 MB), which the app never asks for: on 72 faces its 478 points are
+identical (difference 0.0). An int8 segmenter halves it (8.3 → 4.4 MB) but moves its masks 10–17×
+more than the float16 one does (largest difference 0.36 against Google's float32 network vs 0.02 for
+float16; her face's area changes by up to 1.8 % on 98 faces), so it is not used; the int8 mix that
+stays near float16 only saves 0.7 MB.
 
 ## How it works
 
@@ -124,7 +137,7 @@ runs when her face holds less detail than the network draws (her irises' distanc
 softness under 1.25× the network's) and isn't turned far; a crisp, large face is left as it is. It
 is drawn on the sharpened photo (or a copy of the photo as taken), so «وضوح بیشتر» switches it off
 too. On a soft test photo her eyes' fine detail grows ≥ 1.5×, her face's blurred tones move by under
-3 of 255 and nothing away from her face changes. It is an optional download (about 93 MB: the network
+3 of 255 and nothing away from her face changes. It is an optional download (about 84 MB: the network
 and ONNX Runtime's WebGPU build), offered after her first result.
 `scripts/tinybeauty/face_hd.py` builds the weights and is the reference. Licence: GFPGAN is Apache-2.0
 except third-party code it lists (NVIDIA's StyleGAN2 and DFDNet, non-commercial terms); only the
@@ -675,8 +688,8 @@ networks are trained by `scripts/tinybeauty/train.py` (see its README).
 ## Offline and privacy
 
 - «آماده‌سازی هوش مصنوعی» downloads into Cache Storage `hb-ai-models-v2` what the first look needs
-  (see Downloads: about 16 MB with the graphics-chip engine — MediaPipe 3.8 MB as it travels, its face
-  model 3.8 MB, face segmentation 8.3 MB, eye detail and look data 0.3 MB, the look 0.2 MB — about 20 MB
+  (see Downloads: about 14 MB with the graphics-chip engine — MediaPipe 3.8 MB as it travels, its face
+  model 2.5 MB, face segmentation 7.6 MB, eye detail and look data 0.2 MB, the look 0.2 MB — about 18 MB
   with the fallback, which has ONNX Runtime (3.3 MB as it travels) and the look's network instead of the
   look data). Files of the other engine are removed from the cache. When the look data is made again
   (`DATA_V` in `tryon.ts`), phones fetch the new files of the looks they open and drop the old ones.
