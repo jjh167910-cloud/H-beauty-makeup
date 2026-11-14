@@ -21,7 +21,7 @@ import re
 import numpy as np
 from PIL import Image
 
-from extract_paired_transparency import check_srgb
+from extract_paired_transparency import check_srgb, linear_to_srgb, srgb_to_linear
 
 ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{2,95}$")
 HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
@@ -86,20 +86,48 @@ def verify_record(root: Path, entry: dict) -> dict:
         if s.width<256 or s.height<256:
             raise ValueError("Source resolution too small to train")
         mask=np.asarray(m.convert("L"),dtype=np.uint8)>0
-        alpha=np.asarray(a.convert("L"),dtype=np.uint8)>0
+        alpha=np.asarray(a.convert("L"),dtype=np.uint8)
         source=np.asarray(s.convert("RGB"),dtype=np.uint8)
         target=np.asarray(t.convert("RGB"),dtype=np.uint8)
     if int(np.count_nonzero(mask))<50 or np.mean(mask)>.12:
         raise ValueError("Mask coverage is empty or implausibly large")
-    if np.any(alpha&~mask):
+    if np.any((alpha>0)&~mask):
         raise ValueError("Cosmetic opacity labels would alter the protected face/background")
     drift=np.abs(source[~mask].astype(np.int16)-target[~mask].astype(np.int16))
     outside_mae=float(np.mean(drift))
     outside_fraction=float(np.mean(np.any(drift>8,axis=1)))
     if outside_mae>MAX_OUTSIDE_MAE or outside_fraction>MAX_OUTSIDE_DELTA_PIXELS:
         raise ValueError(f"Unregistered pair drift outside cosmetics ({outside_mae:.3f} RGB MAE)")
-    if float(np.mean(alpha[mask]))<.03:
+    if float(np.mean(alpha[mask].astype(np.float32)/255))<.03:
         raise ValueError("Opacity labels have no meaningful pigment supervision")
+    # The extraction report fingerprints the BEFORE/AFTER photos, but may
+    # predate modifications to its mask or opacity PNG. Recompute the actual
+    # painted RGB using the SPECIFIC files supplied for training, in linear
+    # sRGB, and refuse modified/corrupt supervision rather than merely
+    # trusting old report metrics or newly recorded alpha hashes.
+    original=srgb_to_linear(source[mask].astype(np.float32)/255)
+    pigment_rgb=np.array([int(entry["pigment"][i:i+2],16)
+                          for i in (1,3,5)],dtype=np.float32)/255
+    pigment=srgb_to_linear(pigment_rgb)
+    opacity=alpha[mask].astype(np.float32)[:,None]/255
+    reconstructed_linear=original*(1-opacity)+pigment[None,:]*opacity
+    reconstructed=np.clip(
+        np.round(linear_to_srgb(reconstructed_linear)*255),0,255
+    ).astype(np.uint8)
+    diff=np.abs(reconstructed.astype(np.float32)-target[mask].astype(np.float32))
+    actual_mae=float(np.mean(diff))
+    actual_p95=float(np.percentile(diff.max(axis=1),95))
+    if actual_mae>9.0 or actual_p95>24.0:
+        raise ValueError(
+            f"TRAINING-LABEL-RECONSTRUCTION-FAIL: current alpha/mask "
+            f"reconstructs paired target at {actual_mae:.2f} RGB MAE and "
+            f"{actual_p95:.2f} p95; regenerate labels from source"
+        )
+    # Compare with the original extraction's float-opacity measurement,
+    # allowing small 8-bit label quantization differences only.
+    if (abs(actual_mae-float(report["reconstruction_inside_mae_rgb"]))>2.5
+            or abs(actual_p95-float(report["reconstruction_inside_p95_max_rgb"]))>6.0):
+        raise ValueError("Current opacity labels disagree with extraction-time reconstruction quality")
     return {
         "pair_id":entry["pair_id"],"subject_id":entry["subject_id"],
         "session_id":entry["session_id"],"region":entry["region"],
@@ -111,6 +139,8 @@ def verify_record(root: Path, entry: dict) -> dict:
         "size":[source.shape[1],source.shape[0]],
         "outside_mae":round(outside_mae,4),
         "outside_fraction_gt8":round(outside_fraction,6),
+        "recomputed_inside_mae":round(actual_mae,4),
+        "recomputed_inside_p95":round(actual_p95,4),
         "rights_status":"self-attested-private-human-review"
     }
 
