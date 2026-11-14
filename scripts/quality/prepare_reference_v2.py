@@ -27,6 +27,7 @@ import sys
 
 from PIL import Image, ImageChops, ImageStat, UnidentifiedImageError
 from audit_pixel_locked_look import audit as audit_pixel_lock
+from audit_landmark_masks import audit as audit_anatomy
 
 ROOT = Path(__file__).resolve().parents[2]
 STYLES_FILE = ROOT / "src/data/makeup-styles.ts"
@@ -314,7 +315,7 @@ def delta(a: Image.Image, b: Image.Image) -> float:
     return round(sum(ImageStat.Stat(ImageChops.difference(a, b)).mean) / 3.0, 2)
 
 
-def validate(candidate_dir: Path, phase: str, out: Path) -> dict:
+def validate(candidate_dir: Path, phase: str, out: Path, require_anatomy: bool = False) -> dict:
     generate(out / "production-pack")
     styles = parse_styles()
     needed = PILOTS if phase == "pilot" else tuple(s["id"] for s in styles)
@@ -429,6 +430,32 @@ def validate(candidate_dir: Path, phase: str, out: Path) -> dict:
                     )
             except (OSError, ValueError) as exc:
                 detail["issues"].append(f"invalid cosmetic-change mask: {exc}")
+        # Premium candidate preflight: pixel equality is not enough. The
+        # masks must also fit the lips, eyelids and lashline of this SAME
+        # original source photograph, measured with source-hash-locked mesh.
+        if require_anatomy:
+            landmarks_path = candidate_dir / "face-landmarks.json"
+            anatomy_manifest = candidate_dir / "masks" / (style_id + "-anatomy.json")
+            if not landmarks_path.is_file():
+                detail["issues"].append("missing same-photo face-landmarks.json")
+            if not anatomy_manifest.is_file():
+                detail["issues"].append("missing anatomical makeup mask manifest")
+            if landmarks_path.is_file() and anatomy_manifest.is_file() and master is not None:
+                try:
+                    spatial = audit_anatomy(
+                        master_path, landmarks_path, anatomy_manifest,
+                        out / "anatomy" / style_id, premium=True
+                    )
+                    detail["anatomy"] = {
+                        "passed": spatial["passed_anatomical_preflight"],
+                        "misplaced_pixels": spatial["total_pixels_outside_anatomy"],
+                    }
+                    if not spatial["passed_anatomical_preflight"]:
+                        detail["issues"].extend(
+                            "anatomy: " + message for message in spatial["errors"]
+                        )
+                except (OSError, ValueError, json.JSONDecodeError) as exc:
+                    detail["issues"].append(f"invalid source-linked anatomical reference: {exc}")
         if meta.is_file() and master_hash:
             try:
                 provenance = json.loads(meta.read_text("utf8"))
@@ -450,6 +477,7 @@ def validate(candidate_dir: Path, phase: str, out: Path) -> dict:
     warnings.append("MANUAL BLOCKER: verify face identity, natural skin texture, precise cosmetics and genuine bare-photo provenance")
     result = {"version": VERSION, "phase": phase, "candidate_dir": str(candidate_dir),
               "checked": len(checked), "target": len(needed), "approved_for_production": False,
+              "anatomical_release_gate_requested": require_anatomy,
               "passed_structural_check": not errors, "errors": errors, "notes": warnings,
               "styles": checked}
     out.mkdir(parents=True, exist_ok=True)
@@ -468,13 +496,14 @@ def main() -> int:
     val.add_argument("--candidate-dir", type=Path, required=True)
     val.add_argument("--phase", choices=("pilot", "full"), default="pilot")
     val.add_argument("--out", type=Path, default=ROOT / "catalog-v2-validation")
+    val.add_argument("--require-anatomy", action="store_true", help="Mandatory source-locked facial mesh preflight for premium V2 release candidates")
     args = parser.parse_args()
     if args.command == "generate":
         report = generate(args.out)
         print(f"Generated {report['reference_image_count']} production briefs, "
               f"{len(report['pilots'])} pilot styles at {args.out}")
         return 0
-    report = validate(args.candidate_dir, args.phase, args.out)
+    report = validate(args.candidate_dir, args.phase, args.out, require_anatomy=args.require_anatomy)
     print(f"Checked {report['checked']} {args.phase} styles; "
           f"structural pass={report['passed_structural_check']}")
     for issue in report["errors"]:

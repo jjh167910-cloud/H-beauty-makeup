@@ -114,6 +114,60 @@ cosmetic-free base exists):
 This machine gate cannot verify that the face is truly free of cosmetics;
 manual approval remains mandatory.
 
+### New source-specific lip / eyelid / lashline release gate
+
+The real user-supplied makeup-free mirror photo exposed failures not visible
+in the synthetic V4 study: the original manual lipstick mask went beyond the
+person's actual mouth, and blue eye pigment floated above the eyelids. **Zero
+pixel changes outside an arbitrary mask cannot prove anatomical correctness.**
+
+The new `scripts/quality/audit_landmark_masks.py` uses the SAME MediaPipe
+478-point face mesh already used by the H-Beauty try-on renderer. It enforces
+the source photograph SHA-256, dimensions, a single detected face and a
+minimum detection confidence, then checks:
+
+- Lipstick against the source person's outer lip contour and protected inner
+  mouth opening (not a different model's fixed polygon).
+- Eyeshadow inside an upper-eye/brow window, never on the visible eye opening.
+- Eyeliner near the source eyelash line and short anchored outer-eye wing,
+  not a floating stroke halfway up the lid.
+
+The manifest for each candidate is a JSON file at
+`masks/<look-id>-anatomy.json` with e.g.:
+
+```json
+{"masks":[{"kind":"lips","file":"lips.png"},
+          {"kind":"shadow","file":"shadow.png"},
+          {"kind":"liner","file":"liner.png"}]}
+```
+
+Masks must be one-channel grayscale PNG in the same directory. Source
+landmark JSON belongs at `face-landmarks.json` and must include
+`coordinate_space: normalized`, `face_count: 1`, `dimensions`, SHA-256,
+`detection_confidence` and at least 468 ordered `[x,y]` points.
+
+A real premium-candidate check uses BOTH existing pixel locking and the
+new anatomy gate:
+
+```bash
+python scripts/quality/prepare_reference_v2.py validate \
+  --candidate-dir candidates/reference-v2 \
+  --phase pilot --require-anatomy \
+  --out /tmp/hbeauty-v2-premium-review
+```
+
+The standard research-only validation command (without the flag) remains
+available for incomplete synthetic fixtures; **it is not a promotion route**.
+This code does not extract mesh points itself; use the existing local
+MediaPipe detector on the SAME photograph. Never upload personal images,
+facial geometry or customer source hashes to public GitHub CI artifacts.
+
+The gate is deliberately conservative, not a beauty-artist replacement:
+graphic fashion eyeliner, false lashes, brow products, blush placement,
+material reflectance and skin realism still need extra region-specific
+review. Reject unrecognized, low-confidence or partly occluded faces until
+a makeup artist checks their actual mask positions.
+
 ### Expert visual approval (indispensable)
 - Identity and facial geometry unchanged.
 - Natural skin pores; realistic lashes; crisp liner and lip edges.

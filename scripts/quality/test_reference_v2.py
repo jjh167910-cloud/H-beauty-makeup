@@ -140,6 +140,23 @@ class ReferenceV2KitTests(unittest.TestCase):
             by_id = {item["id"]: item for item in report["styles"]}
             self.assertEqual(by_id["hollywood"]["pixel_lock"]["changed_outside_mask_pixels"], 1)
 
+    def test_premium_candidate_must_have_source_linked_anatomy_manifests(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            candidate=root/"candidate"
+            self.make_fixture(candidate)
+            report=validate(candidate,"pilot",root/"output",require_anatomy=True)
+            self.assertFalse(report["passed_structural_check"])
+            self.assertTrue(report["anatomical_release_gate_requested"])
+            self.assertTrue(any(
+                "missing same-photo face-landmarks" in " ".join(style["issues"])
+                for style in report["styles"]
+            ))
+            self.assertTrue(any(
+                "missing anatomical makeup mask manifest" in " ".join(style["issues"])
+                for style in report["styles"]
+            ))
+
     def test_master_source_metadata_cannot_certify_synthetic_demakeup(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
