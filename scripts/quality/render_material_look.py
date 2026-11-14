@@ -167,7 +167,14 @@ def colorize_roi(source: np.ndarray, underlay: np.ndarray, weight: np.ndarray, p
     # Ratio isolates fine pores, lip creases and lighting details, bounded to
     # prevent amplification of low-light sensor noise into garish contrast.
     local_detail = np.clip((source_luma + 0.015) / (blurred + 0.015), 0.65, 1.45)
-    illum = np.clip((source_luma + 0.06) ** 0.16, 0.75, 1.05)
+    # Preserve broad light and shadow *within* each cosmetic region as well
+    # as fine texture. A near-constant illumination multiplier made lipstick
+    # flatten into a uniform painted shape even when the source had realistic
+    # lip relief. Normalize the blurred source luminance to the masked
+    # median, so skin and lip highlights remain spatially anchored.
+    active = weight > 0
+    reference_luma = float(np.median(blurred[active])) if np.any(active) else float(np.median(blurred))
+    illum = np.clip(((blurred + 0.045) / (reference_luma + 0.045)) ** 0.55, 0.66, 1.38)
     pigment_linear = srgb_to_linear(pigment)
     target = pigment_linear.reshape(1, 1, 3) * illum[..., None] * np.power(local_detail[..., None], texture_strength)
 
