@@ -57,7 +57,7 @@ def compare(source: Path, drafts: Path, v5: Path, out: Path) -> dict:
     if result["changed_outside_cosmetic_mask"]:
         raise AssertionError("Photo-guided lipstick changed protected pixels")
     src=Image.open(source).convert("RGB")
-    before=Image.open(folder/"rendered-research-only/material-render.png").convert("RGB")
+    before=Image.open(v5/"legacy/hollywood/material-render.png").convert("RGB")
     v5_image=Image.open(v5/"hollywood/rendered/material-render.png").convert("RGB")
     after=Image.open(out/"photo-guided-render/material-render.png").convert("RGB")
     with Image.open(lip_original) as im:
