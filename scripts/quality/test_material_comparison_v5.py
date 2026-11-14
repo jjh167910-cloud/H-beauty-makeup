@@ -36,6 +36,14 @@ class V5PhotographicMaterialComparisons(unittest.TestCase):
                 with Image.open(out/style/"rendered/material-render.png") as im:
                     self.assertEqual(im.size,(500,650))
                 self.assertTrue((out/style/"rendered/pixel-lock/audit.json").is_file())
+                self.assertTrue((out/"legacy"/style/"material-render.png").is_file())
+                self.assertTrue((out/"legacy"/style/"material-render-report.json").is_file())
+                if style=="rhinestone":
+                    layers=json.loads(
+                        (out/style/"rendered/material-render-report.json").read_text()
+                    )["layers"]
+                    gloss=next(layer for layer in layers if layer["name"]=="rose_gloss")
+                    self.assertEqual(gloss["appearance_model"],"source-relief-v5")
                 self.assertFalse((generated/style/f"{style}-v5.json").exists())
             self.assertTrue((out/"review-report.json").is_file())
 
