@@ -76,6 +76,27 @@ class MaterialLookTests(unittest.TestCase):
             self.assertGreater(np.std(edited[..., 0][inside]), 0.7)
             self.assertGreater(np.std(src[..., 0][inside]), 0.7)
 
+    def test_opaque_pigment_retains_broad_source_luminance_gradient(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            master, config, recipe = self.fixture(root)
+            # Deliberately shade the lip region darker on image-left and
+            # lighter on image-right, as natural studio lighting would.
+            base = np.asarray(Image.open(master), dtype=np.float32).copy()
+            width = base.shape[1]
+            gains = np.linspace(0.63, 1.37, width, dtype=np.float32)
+            base = np.clip(base * gains[None, :, None], 0, 255).astype(np.uint8)
+            Image.fromarray(base, "RGB").save(master)
+            recipe["layers"] = [recipe["layers"][0]]
+            recipe["layers"][0]["opacity"] = 1.0
+            recipe["layers"][0]["feather_px"] = 1.0
+            config.write_text(json.dumps(recipe), encoding="utf8")
+            render(master, config, root / "output")
+            image = np.asarray(Image.open(root / "output" / "material-render.png"))
+            dark = float(np.mean(image[256:268, 115:128, 0]))
+            bright = float(np.mean(image[256:268, 191:204, 0]))
+            self.assertGreater(bright - dark, 8.0, (dark, bright))
+
     def test_overlapping_region_masks_are_rejected(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
