@@ -63,6 +63,32 @@ class OpacityTrainerTests(unittest.TestCase):
             self.assertTrue(np.isfinite(report["heldout_test"]["alpha_mae"]))
             self.assertTrue(np.isfinite(report["heldout_test"]["render_rgb_mae"]))
 
+    def test_training_rejects_forged_subject_disjoint_flag(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)
+            collection,_=collection_fixture(root/"private-data",6)
+            index_file=root/"private-data"/"index.json"
+            dataset=build(collection,index_file)
+            original=next(x for x in dataset["records"] if x["split"]=="train")
+            moved=next(x for x in dataset["records"] if x["split"]=="test")
+            moved["subject_id"]=original["subject_id"]
+            index_file.write_text(json.dumps(dataset),encoding="utf8")
+            with self.assertRaisesRegex(ValueError,"Person leakage"):
+                PairedOpacityDataset(index_file,"train",96)
+
+    def test_training_rejects_same_photo_with_forged_different_subject(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)
+            collection,_=collection_fixture(root/"private-data",6)
+            index_file=root/"private-data"/"index.json"
+            dataset=build(collection,index_file)
+            original=next(x for x in dataset["records"] if x["split"]=="train")
+            moved=next(x for x in dataset["records"] if x["split"]=="test")
+            moved["source_sha256"]=original["source_sha256"]
+            index_file.write_text(json.dumps(dataset),encoding="utf8")
+            with self.assertRaisesRegex(ValueError,"Identical photo leakage"):
+                PairedOpacityDataset(index_file,"train",96)
+
     def test_training_rechecks_tampered_labels(self):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td)
