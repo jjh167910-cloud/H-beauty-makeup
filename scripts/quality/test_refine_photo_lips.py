@@ -40,7 +40,10 @@ class PhotoLipRefinementTests(unittest.TestCase):
             self.assertTrue((root/"out"/"lip-region-edges.png").exists())
             original=np.asarray(Image.open(coarse))>0
             refined=np.asarray(Image.open(root/"out"/"refined-lips.png"))>0
+            alpha=np.asarray(Image.open(root/"out"/"refined-lips-alpha.png"))
             self.assertEqual(int(np.count_nonzero(refined & ~original)),0)
+            self.assertEqual(int(np.count_nonzero((alpha>0) & ~refined)),0)
+            self.assertTrue(np.any((alpha>0)&(alpha<255)), "Lip alpha must include softly antialiased edges")
 
     def test_source_region_is_non_destructive_and_alpha_guarded(self):
         with tempfile.TemporaryDirectory() as td:
@@ -76,6 +79,7 @@ class PhotoLipRefinementTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,"grayscale"):
                 refine(photo,coarse,folder)
             self.assertFalse((folder/"refined-lips.png").exists())
+            self.assertFalse((folder/"refined-lips-alpha.png").exists())
             self.assertFalse((folder/"lip-refinement-report.json").exists())
 
     def test_reject_mask_of_wrong_source_dimensions(self):
