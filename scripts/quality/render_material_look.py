@@ -101,10 +101,14 @@ def validate_recipe(data: object, root: Path) -> list[dict]:
         opacity = parameter(item.get("opacity", 0.85), f"{name}.opacity", 0.05, 1.0)
         feather = parameter(item.get("feather_px", 2.0), f"{name}.feather_px", 0.0, 20.0)
         texture = parameter(item.get("texture_strength", 0.75), f"{name}.texture_strength", 0.0, 1.5)
+        allow_overlap = item.get("allow_overlap", False)
+        if not isinstance(allow_overlap, bool):
+            raise ValueError(f"{name}.allow_overlap must be true or false")
         pigment = hex_rgb(item.get("pigment", ""))
         results.append({"name": name, "path": path, "finish": finish,
                         "opacity": opacity, "feather": feather,
-                        "texture": texture, "pigment": pigment})
+                        "texture": texture, "allow_overlap": allow_overlap,
+                        "pigment": pigment})
     return results
 
 
@@ -122,7 +126,7 @@ def prepare_mask(path: Path, size: tuple[int, int]) -> Image.Image:
     return mask
 
 
-def colorize_roi(source: np.ndarray, weight: np.ndarray, pigment: np.ndarray,
+def colorize_roi(source: np.ndarray, underlay: np.ndarray, weight: np.ndarray, pigment: np.ndarray,
                  texture_strength: float, finish: str, blur_px: float = DEFAULT_TEXTURE_BLUR_PX) -> np.ndarray:
     """Convert existing skin RGB to target cosmetic albedo while keeping texture.
 
@@ -151,7 +155,11 @@ def colorize_roi(source: np.ndarray, weight: np.ndarray, pigment: np.ndarray,
         # requires a learned material/specular map and independent validation.
         target = target * 0.80 + linear_source * 0.20
     target = np.clip(target, 0, 1)
-    new_linear = linear_source * (1.0 - weight[..., None]) + target * weight[..., None]
+    # The physical source supplies texture. The current canvas supplies
+    # previous cosmetic pigment (e.g., liner above eyeshadow). Intentional
+    # overlapping regions are explicitly declared and applied in JSON order.
+    underlay_linear = srgb_to_linear(underlay)
+    new_linear = underlay_linear * (1.0 - weight[..., None]) + target * weight[..., None]
     return np.clip(linear_to_srgb(new_linear), 0.0, 1.0)
 
 
@@ -168,7 +176,6 @@ def render(master_path: Path, recipe_path: Path, out: Path, premium: bool = Fals
     rgb = np.asarray(source, dtype=np.uint8)
     output = rgb.copy()
     occupied = np.zeros((h, w), dtype=np.bool_)
-    combined_mask = Image.new("L", (w, h), 0)
     layer_reports = []
     for spec in layers:
         mask = prepare_mask(spec["path"], source.size)
@@ -178,8 +185,9 @@ def render(master_path: Path, recipe_path: Path, out: Path, premium: bool = Fals
         if x0 < 4 or y0 < 4 or x1 > w - 4 or y1 > h - 4:
             raise ValueError(f"{spec['name']}: mask touches protected picture border")
         coverage = np.asarray(mask, dtype=np.uint8) > 0
-        if (occupied & coverage).any():
-            raise ValueError(f"{spec['name']}: cosmetic regions overlap another layer")
+        overlapping_pixels = int(np.count_nonzero(occupied & coverage))
+        if overlapping_pixels and not spec["allow_overlap"]:
+            raise ValueError(f"{spec['name']}: cosmetic regions overlap another layer; declare intentional overlap explicitly")
         occupied |= coverage
         # Work on a bounded ROI so 2048x2732 images do not require full-frame
         # floating-point copies and are practical on modest-memory hardware.
@@ -196,22 +204,22 @@ def render(master_path: Path, recipe_path: Path, out: Path, premium: bool = Fals
             # Clamp to the approved region. No feather leaks to unapproved pixels.
             m_patch = np.minimum(m_patch, blur)
         alpha = np.minimum(1.0, np.maximum(0.0, m_patch * spec["opacity"]))
+        underlay_patch = output[ay0:ay1, ax0:ax1].astype(np.float32) / 255.0
         result_patch = colorize_roi(
-            src_patch, alpha, spec["pigment"], spec["texture"], spec["finish"]
+            src_patch, underlay_patch, alpha, spec["pigment"], spec["texture"], spec["finish"]
         )
         new_pixels = np.rint(result_patch * 255).astype(np.uint8)
         active = m_patch > 0
         roi = output[ay0:ay1, ax0:ax1]
         roi[active] = new_pixels[active]
-        # Ensure the final QA uses BINARY approved-edit pixels, even if the
-        # actual feather is fractional within that boundary.
-        combined_mask.paste(mask.point(lambda v: 255 if v else 0), (0, 0), mask)
         layer_reports.append({
             "name": spec["name"],
             "finish": spec["finish"],
             "pigment_rgb": [int(x * 255 + .5) for x in spec["pigment"]],
             "opacity": spec["opacity"], "feather_px": spec["feather"],
             "texture_strength": spec["texture"],
+            "allow_overlap": spec["allow_overlap"],
+            "overlap_pixels_with_prior_layers": overlapping_pixels,
             "mask_sha256": sha256(spec["path"].read_bytes()).hexdigest(),
             "mask_coverage_percent": round(100 * coverage.mean(), 4),
         })
