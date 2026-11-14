@@ -138,3 +138,40 @@ flat-looking lipstick but is **not** proof of salon-grade realism.
 
 No previews or synthetic masters are published to the production catalog.
 Rhinestone is still missing separate, realistic reflective gem artwork.
+
+## Micro-faceted rhinestone accessory pilot
+
+The separate renderer `scripts/quality/render_rhinestones.py` creates tiny,
+individually positioned, multi-facet crystal studies. Each has a restrained
+local highlight and short soft contact shadow; it is **not** a physical
+ray tracer or measured diamond reflectance model. It only adds accessories
+to styles whose briefs explicitly permit rhinestones.
+
+An example placement manifest is stored at:
+
+`scripts/quality/material_recipes/rhinestone-accessories-STUDY.json`.
+
+It is bound to the exact 1086x1448 synthetic rhinestone material preview
+by its source SHA-256, not interchangeable with another portrait or with a
+future real 2K photographic master. The manifest limits all stones and shadows
+to a small region beside the outer eye. Placement, gems and lighting still
+require an expert's 100% zoom review; in particular, verify that no stone
+lands on eyelashes, eye whites or hair.
+
+Research usage, only with the exact source photograph:
+
+    python scripts/quality/render_rhinestones.py \
+      --source research/rhinestone/material-preview-research.png \
+      --recipe scripts/quality/material_recipes/rhinestone-accessories-STUDY.json \
+      --out research/rhinestone-accessory-test
+
+The offline script checks the image SHA, image size, gemstone position,
+collision spacing and embedded ICC. It emits an image, binary union mask
+and JSON QA record; all pixels outside tiny gem glint and shadow footprints
+must be **identical** to the input source. Research files are never copied
+into the live makeup catalog. Tiny static facets do not guarantee jewelry
+photorealism in changing light or a moving live-camera view.
+
+Next quality gate: compare gems and liner against photographed cosmetic
+references, repair masks against the real native master, and conduct blind
+side-by-side artist reviews before releasing a single new catalog image.
