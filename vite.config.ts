@@ -2,9 +2,11 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { fileURLToPath, URL } from "node:url";
+import aiPieces from "./scripts/vite-ai-pieces";
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  // aiPieces: the big AI files in 1 MiB pieces (a dropped download costs one piece; scripts/vite-ai-pieces.ts).
+  plugins: [react(), tailwindcss(), aiPieces()],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),

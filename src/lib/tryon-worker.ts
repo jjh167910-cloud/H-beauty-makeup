@@ -20,8 +20,12 @@ function loadRuntime(): Promise<Ort> {
   if (!runtime) {
     runtime = (async () => {
       const ort = (await import("onnxruntime-web/wasm-extern")) as unknown as Ort;
-      // Absolute URL: keeps the dev server from rewriting ORT's dynamic import.
-      ort.env.wasm.wasmPaths = new URL("/tryon/ort/", scope.location.origin).href;
+      // Its WebAssembly from the offline cache (served in pieces, joined there by the download); its glue script by an
+      // absolute URL (keeps the dev server from rewriting ORT's dynamic import).
+      const wasm = await (await caches.open(AI_CACHE)).match("/tryon/ort/ort-wasm-simd-threaded.wasm");
+      if (!wasm) throw new Error("runtime missing");
+      ort.env.wasm.wasmPaths = { mjs: new URL("/tryon/ort/ort-wasm-simd-threaded.mjs", scope.location.origin).href };
+      ort.env.wasm.wasmBinary = new Uint8Array(await wasm.arrayBuffer());
       ort.env.wasm.numThreads = scope.crossOriginIsolated ? Math.min(4, navigator.hardwareConcurrency || 2) : 1;
       return ort;
     })();

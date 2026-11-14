@@ -1,11 +1,11 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties } from "react";
 import { persian } from "@/lib/persian";
 import { lookPhoto } from "@/data/makeup-photos";
 import { FINISHES, LIPSTICKS, lipstickById } from "@/data/lipsticks";
 import { styleById, variedLooks, type MakeupStyle } from "@/data/makeup-styles";
 import { loadDraft, minePicks, saveDraft, type MyMakeup } from "@/data/my-makeup";
 import {
-  downloadMB, downloadModels, downloadHdModels, hdDownloadAvailable, hdModelsReady, HD_DOWNLOAD_MB, engine, errorText, faceShot, modelsReady, paintLook, paintThumb, preparePhoto, relight, studio, warmUp, withPoints,
+  downloadMB, downloadModels, downloadHdModels, fetchLook, hdDownloadAvailable, hdModelsReady, HD_DOWNLOAD_MB, engine, errorText, faceShot, modelsReady, paintLook, paintThumb, preparePhoto, relight, studio, warmUp, withPoints,
   type Finish, type Level, type LipChoice, type Prepared, type ProductPicks, type Pt, type Shot, type StepKey,
 } from "@/lib/tryon";
 import { LiveMirror, type LiveStats } from "@/lib/live-tryon";
@@ -450,13 +450,33 @@ export default function TryOnView({ style, onBook }: {
   const canLight = phase === "live" ? kind === "gpu" && !!studio() : !!prep?.studio;
   const outlineOn = !own && !editing && phase === "done" && !!result;
 
-  // The look rail: her face in each look, one at a time while the phone is free (graphics-chip engine; the rail's order,
-  // so the looks she sees first come first). A look's files are let go once its picture is made.
+  /** The rail's looks on screen or about two ahead (as she scrolls it): only theirs are fetched and painted. */
+  const [near, setNear] = useState<ReadonlySet<string>>(() => new Set());
+  const railWatch = useRef<IntersectionObserver | null>(null);
+  const railRef = useCallback((rail: HTMLDivElement | null) => {
+    railWatch.current?.disconnect();
+    railWatch.current = null;
+    if (!rail || typeof IntersectionObserver === "undefined") return;
+    const watch = new IntersectionObserver((entries) => setNear((was) => {
+      const now = new Set(was);
+      for (const entry of entries) {
+        const id = (entry.target as HTMLElement).dataset.look;
+        if (id) { if (entry.isIntersecting) now.add(id); else now.delete(id); }
+      }
+      return now;
+    }), { root: rail, rootMargin: "0px 170px" });
+    rail.querySelectorAll<HTMLElement>("[data-look]").forEach((item) => watch.observe(item));
+    railWatch.current = watch;
+  }, []);
+
+  // The look rail: her face in each look, one at a time while the phone is free (graphics-chip engine), for the looks she
+  // can see in the rail, in its order. A look not downloaded yet gets its own files first (about 150 KB; not with the
+  // phone's Data Saver on: then its catalog photo stays). A look's files are let go once its picture is made.
   useEffect(() => {
     const prep = prepared.current;
     if (kind !== "gpu" || phase !== "done" || own || !prep || thumbBusy.current) return;
     const [shot, w] = shotFor(prep, clear);
-    const next = others.find((item) => thumbs[`${item.id}:${level}:${w}`] === undefined);
+    const next = others.find((item) => near.has(item.id) && thumbs[`${item.id}:${level}:${w}`] === undefined);
     if (!next) return;
     const key = `${next.id}:${level}:${w}`, ticket = photoJob.current, shotKey = `${ticket}:${outlineVer}:${w}`;
     let started = false;
@@ -464,10 +484,9 @@ export default function TryOnView({ style, onBook }: {
       started = true;
       thumbBusy.current = true;
       try {
-        // Preview generation must never trigger an all-look background download.
         if (!(await modelsReady([next.id]))) {
-          if (ticket === photoJob.current) setThumbs((map) => ({ ...map, [key]: "" }));
-          return;
+          if ((navigator as { connection?: { saveData?: boolean } }).connection?.saveData) throw "save-data";
+          await fetchLook(next.id);
         }
         if (thumbShot.current?.key !== shotKey) thumbShot.current = { key: shotKey, shot: faceShot(shot) };
         const made = await paintThumb(thumbShot.current.shot, next.id, level, next.id === look);
@@ -481,7 +500,7 @@ export default function TryOnView({ style, onBook }: {
       }
     }, 150);
     return () => { if (!started) window.clearTimeout(timer); };
-  }, [phase, thumbs, level, clear, lit, mode, outlineVer, thumbTry]);
+  }, [phase, thumbs, level, clear, lit, mode, outlineVer, thumbTry, near]);
 
   function showMode(next: "result" | "mine") {
     if (next === mode) return;
@@ -704,9 +723,9 @@ export default function TryOnView({ style, onBook }: {
           {own ? null : <div className="tryon__looks-head">
             <span>{kind === "gpu" && prep && phase !== "live" ? "سبک‌ها روی چهره شما" : "سبک‌های دیگر"}</span>
           </div>}
-          {own ? null : <div className="tryon__looks" role="group" aria-label="امتحان سبک‌های دیگر">
+          {own ? null : <div ref={railRef} className="tryon__looks" role="group" aria-label="امتحان سبک‌های دیگر">
             {others.map((item) => (
-              <button key={item.id} type="button" aria-pressed={!liveMine && item.id === look} disabled={phase === "live" ? false : !prepared.current || busy}
+              <button key={item.id} type="button" data-look={item.id} aria-pressed={!liveMine && item.id === look} disabled={phase === "live" ? false : !prepared.current || busy}
                 onClick={() => {
                   haptic();
                   if (liveMine) { setLiveMine(null); mirror.current?.setMine(null); setMode("result"); }

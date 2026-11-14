@@ -97,14 +97,6 @@ export function hdNeeded(P: Pt[], blur: number): boolean {
 /** Where ONNX Runtime's WebGPU build is: a folder, or its glue script's URL and its WebAssembly's bytes. */
 export type HdRuntime = string | { mjs: string; wasm: () => Promise<Uint8Array> };
 
-/** One buffer from parts. */
-export function joinParts(parts: ArrayBuffer[]): Uint8Array {
-  const out = new Uint8Array(parts.reduce((n, b) => n + b.byteLength, 0));
-  let at = 0;
-  for (const b of parts) { out.set(new Uint8Array(b), at); at += b.byteLength; }
-  return out;
-}
-
 /** The network (its bytes, already downloaded), on the graphics chip (or the processor). */
 export function hdSession(model: () => Promise<Uint8Array>, runtime: HdRuntime, backend: Backend): Promise<InferenceSession> {
   session ??= (async () => {

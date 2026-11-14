@@ -20,7 +20,7 @@ How the try-on works (face model, makeup engine, HD face, studio light, live mir
 | `src/lib/` | The engine: face finding, makeup on the graphics chip (`makeup-gl.ts`), HD face, studio light, live mirror |
 | `src/data/` | The looks, lipsticks, products and her own makeup's steps |
 | `src/styles/` | Tokens (the salon's rose palette, light and dark), base, shared pieces, the try-on |
-| `public/tryon/` | The AI files and the looks' makeup layers (downloaded once, kept for offline) |
+| `public/tryon/` | The AI files and the looks' makeup layers (served in 1 MiB pieces, kept on the phone for offline) |
 | `public/makeup/looks/` | The catalog photos (AI-generated model); `sm/` are the look rail's thumbnails |
 | `scripts/tinybeauty/` | The engine's Python reference and the tools that make `public/tryon/` from the catalog photos |
 | `scripts/gpu/` | Experiments with a larger AI as a teacher for the phone model (nothing here goes into the app) |
@@ -45,11 +45,18 @@ Cloudflare Workers Builds deploys the Worker `h-beauty-makeup` from `main` (`wra
 
 ## First-run downloads and offline behavior
 
-- The app's offline shell is installed separately from its AI files. When someone starts try-on, only the selected look plus the face landmark, segmentation and enhancement files are required (~28 MiB with WebGL2; ~40 MiB with the tiny-network fallback).
-- The other 41 looks are downloaded individually as selected, then retained in Cache Storage for later offline use. Merely displaying the catalog rail does not predownload them.
-- High-resolution face restoration is a separate ~108 MiB **optional** download on supported devices after a photo is rendered. The HD download can be stopped and restarted; fully cached files are reused, but the currently interrupted file starts again. Ordinary try-on never requires HD.
-- Large model responses stream directly into the browser's offline cache rather than being assembled into a second, large in-memory Blob. On retry, the progress bar counts only missing files, not already-downloaded assets.
-- If the device is offline, downloaded styles continue working. New styles and HD require connectivity for their first download. Browsers may evict caches under device storage pressure, so offline availability is not unconditional.
+- When she starts the try-on, only the chosen look and the shared AI files are downloaded: about 16 MB as they
+  travel with WebGL2 (about 20 MB with the tiny-network fallback). The photo sharpener (2.4 MB) comes only when a
+  soft photo needs it.
+- The big AI files are served in 1 MiB pieces (`scripts/vite-ai-pieces.ts`), each kept on the phone as it arrives:
+  a stopped download, or a dropped connection, goes on from the pieces already there.
+- Other looks are downloaded when she picks them and kept for offline use. The look rail shows her face in the
+  looks she can see in it, fetching each one's small files (about 150 KB) as it scrolls into view (not with Data
+  Saver on).
+- The HD face is a separate **optional** download (about 93 MB) on phones with WebGPU, offered after a result;
+  it can be stopped and continued the same way.
+- Offline, downloaded looks keep working; new looks and HD need the internet for their first download. Browsers
+  may evict the cache under storage pressure, so offline use isn't guaranteed forever.
 
 ## Notes
 

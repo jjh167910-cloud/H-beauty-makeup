@@ -23,7 +23,8 @@
  */
 import type { FaceLandmarker, ImageSegmenter } from "@mediapipe/tasks-vision";
 import { Enhancer } from "./enhance-gl";
-import { hdBackend, hdFace, hdNeeded, hdRunning, hdSession, joinParts } from "./face-hd";
+import { PIECE, PIECES } from "virtual:ai-pieces";
+import { hdBackend, hdFace, hdNeeded, hdRunning, hdSession } from "./face-hd";
 import { STUDIO_CRISP, Studio, studioParams } from "./studio-gl";
 import { styleById } from "@/data/makeup-styles";
 import {
@@ -79,14 +80,13 @@ const DATA_V = "?v=6";
 const LOOKS_META = `${BASE}looks.json${DATA_V}`;
 const ENHANCE = `${BASE}enhance-x4.bin`;
 /**
- * HD face (face-hd.ts): the network in four parts, and ONNX Runtime's WebGPU build (its glue script, its WebAssembly in two
- * parts). Cloudflare Workers serve no file over 25 MiB: the network is 82 MiB, the WebAssembly 25.5.
+ * HD face (face-hd.ts): the network and ONNX Runtime's WebGPU build (its glue script and its WebAssembly), the big ones
+ * served in pieces like the other big files (Cloudflare Workers serve no file over 25 MiB: the network is 82 MiB).
  */
-const HD_PARTS = [0, 1, 2, 3].map((i) => `${BASE}face-hd/gfpgan-1.4-q8.${i}-of-4.bin`);
+const HD_MODEL = `${BASE}face-hd/gfpgan-1.4-q8.bin`;
 const ORT_GPU_GLUE = `${ORT_DIR}ort-wasm-simd-threaded.asyncify.mjs`;
-const ORT_GPU_WASM = [0, 1].map((i) => `${ORT_DIR}ort-wasm-simd-threaded.asyncify.${i}-of-2.bin`);
-const ORT_GPU = [ORT_GPU_GLUE, ...ORT_GPU_WASM];
-const HD_FILES = [...HD_PARTS, ...ORT_GPU];
+const ORT_GPU_WASM = `${ORT_DIR}ort-wasm-simd-threaded.asyncify.wasm`;
+const HD_FILES = [HD_MODEL, ORT_GPU_GLUE, ORT_GPU_WASM];
 export const lookModel = (id: string) => `${BASE}tiny/${id}.onnx`;
 const lookLayer = (id: string) => `${BASE}layers/${id}.webp${DATA_V}`;
 const lookEyes = (id: string) => `${BASE}eyes/${id}.png${EYES_V}`;
@@ -95,8 +95,8 @@ const lookCov = (id: string) => `${BASE}cov/${id}.webp${DATA_V}`;
 const OLD_DATA = (ids: string[]) => [
   ...["", "?v=2", "?v=3", "?v=4", "?v=5"].flatMap((v) => [`${BASE}looks.json${v}`, ...ids.flatMap((id) => [`${BASE}layers/${id}.webp${v}`, `${BASE}cov/${id}.webp${v}`])]),
   ...["", "?v=2"].flatMap((v) => [`${BASE}eyes.json${v}`, ...ids.map((id) => `${BASE}eyes/${id}.png${v}`)]),
-  // (the HD face's files as they were, whole or in two parts)
-  `${BASE}face-hd/gfpgan-1.4-q8.0.bin`, `${BASE}face-hd/gfpgan-1.4-q8.1.bin`, `${ORT_DIR}ort-wasm-simd-threaded.asyncify.wasm`,
+  // (the HD face's network as it was, in two parts)
+  `${BASE}face-hd/gfpgan-1.4-q8.0.bin`, `${BASE}face-hd/gfpgan-1.4-q8.1.bin`,
 ];
 const SIZE = 256;
 const MAX_SIDE = 1600;
@@ -128,9 +128,12 @@ async function hdWanted(): Promise<boolean> {
   return hdOn;
 }
 
-/** Approximate initial AI data for ONE selected look. HD is never a prerequisite. */
-export const downloadMB = () => (engine() === "gpu" ? 28 : 40);
-export const HD_DOWNLOAD_MB = 108;
+/**
+ * About how many MB the first download is for one look, as it travels (measured on the live site: Cloudflare compresses
+ * the WebAssembly; the sharpener comes only when a photo needs it). HD is never a prerequisite.
+ */
+export const downloadMB = () => (engine() === "gpu" ? 16 : 20);
+export const HD_DOWNLOAD_MB = 93;
 export const hdDownloadAvailable = () => hdWanted();
 
 /* ---------------------------------------------------------------- files */
@@ -140,7 +143,7 @@ async function files(lookIds: string[], includeHD = false) {
   const shared = [...FACE_FILES, SEGMENT, EYES_META, ...lookIds.map(lookEyes)];
   const hd = includeHD && await hdWanted();
   return engine() === "gpu"
-    ? { need: [...shared, LOOKS_META, ENHANCE, ...(hd ? HD_FILES : []), ...lookIds.map(lookLayer), ...lookIds.map(lookCov)], drop: [ORT_WASM, ORT_GLUE, ...lookIds.map(lookModel), ...OLD_DATA(lookIds)] }
+    ? { need: [...shared, LOOKS_META, ...(hd ? HD_FILES : []), ...lookIds.map(lookLayer), ...lookIds.map(lookCov)], drop: [ORT_WASM, ORT_GLUE, ...lookIds.map(lookModel), ...OLD_DATA(lookIds)] }
     : { need: [...shared, ORT_WASM, ORT_GLUE, ...lookIds.map(lookModel)], drop: [ENHANCE, ...OLD_DATA(lookIds)] };
 }
 
@@ -161,82 +164,164 @@ async function dropOldCaches() {
   }
 }
 
+/** Byte estimates (for the progress bar) of the small files; the big ones come in pieces of known size. */
+const WEIGHTS = new Map<string, number>([[LOOKS_META, 345_000], [EYES_META, 167_000], [FACE_FILES[0], 334_000], [ORT_GLUE, 24_000], [ORT_GPU_GLUE, 53_000]]);
+const weightOf = (url: string) => WEIGHTS.get(url) ?? (url.includes("/tiny/") ? 230_000 : url.includes("/layers/") ? 120_000 : 30_000);
+
+/* The big files (the face finder's WebAssembly and models, the segmenter, the sharpener, the HD face) are served in
+ * 1 MiB pieces (scripts/vite-ai-pieces.ts). Each piece is kept in the cache as it arrives, so a dropped connection costs
+ * one piece, not the file; when all are in, they're joined under the file's own URL (where the rest of the app finds it)
+ * and the pieces are let go. */
+const pieceUrl = (url: string, i: number) => {
+  const p = PIECES[url], dot = url.lastIndexOf(".");
+  return `${url.slice(0, dot)}.${p.hash}.${i}-of-${p.count}${url.slice(dot)}`;
+};
+const pieceUrls = (url: string) => Array.from({ length: PIECES[url].count }, (_, i) => pieceUrl(url, i));
+const pieceBytes = (url: string, i: number) => Math.min(PIECE, PIECES[url].bytes - i * PIECE);
+const typeOf = (url: string) => (url.endsWith(".wasm") ? "application/wasm" : "application/octet-stream");
+
+/** The HD files as phones kept them before the pieces (a few large parts): joined on the phone, not downloaded again. */
+const LEGACY: Record<string, string[]> = {
+  [HD_MODEL]: [0, 1, 2, 3].map((i) => `${BASE}face-hd/gfpgan-1.4-q8.${i}-of-4.bin`),
+  [ORT_GPU_WASM]: [0, 1].map((i) => `${ORT_DIR}ort-wasm-simd-threaded.asyncify.${i}-of-2.bin`),
+};
+
+async function fromLegacy(cache: Cache, url: string): Promise<boolean> {
+  const old = LEGACY[url];
+  if (!old) return false;
+  const parts = await Promise.all(old.map((part) => cache.match(part)));
+  if (parts.some((r) => !r)) return false;
+  const whole = new Blob(await Promise.all(parts.map((r) => r!.blob())), { type: typeOf(url) });
+  if (whole.size !== PIECES[url].bytes) return false;
+  await cache.put(url, new Response(whole, { headers: { "content-type": typeOf(url) } }));
+  await Promise.all(old.map((part) => cache.delete(part)));
+  return true;
+}
+
+/** A big file's pieces, all kept: one file under its own URL. */
+async function join(cache: Cache, url: string) {
+  const pieces = pieceUrls(url);
+  const blobs = await Promise.all(pieces.map(async (piece) => {
+    const r = await cache.match(piece);
+    if (!r) throw "no-model" satisfies TryOnError;
+    return r.blob();
+  }));
+  const whole = new Blob(blobs, { type: typeOf(url) });
+  if (whole.size !== PIECES[url].bytes) {
+    await Promise.all(pieces.map((piece) => cache.delete(piece)));
+    throw "no-model" satisfies TryOnError;
+  }
+  await cache.put(url, new Response(whole, { headers: { "content-type": typeOf(url) } }));
+  await Promise.all(pieces.map((piece) => cache.delete(piece)));
+}
+
+/** `work` on each item, `size` at a time; the first failure stops the rest from starting. */
+async function pool<T>(items: T[], size: number, work: (item: T) => Promise<void>) {
+  let next = 0, failed = false;
+  await Promise.all(Array.from({ length: Math.min(size, items.length) }, async () => {
+    while (!failed && next < items.length) {
+      try { await work(items[next++]); } catch (error) { failed = true; throw error; }
+    }
+  }));
+}
+
 /**
- * Download ONLY the supplied looks plus common model data (~28 MB GPU or ~40 MB tiny for
- * the first selected look), reporting 0..1 progress. The ~108 MB HD model is included
- * only with explicit includeHD=true. Previously completed files stay cached across retries.
- * The caller can cache explicitly selected look thumbnails for offline reuse too.
+ * Every file in `urls` into the cache: what's there already is skipped, and of a big file only its pieces not kept yet
+ * are fetched (four at a time). `onProgress` 0..1 counts only what was missing.
+ */
+async function fetchInto(cache: Cache, urls: string[], onProgress: (done: number) => void, signal?: AbortSignal) {
+  const cancelled = () => { if (signal?.aborted) throw new DOMException("Download cancelled", "AbortError"); };
+  const jobs: Array<{ url: string; piece?: number; bytes: number }> = [], joins: string[] = [];
+  for (const url of new Set(urls)) {
+    cancelled();
+    if (await cache.match(url)) continue;
+    if (!PIECES[url]) { jobs.push({ url, bytes: weightOf(url) }); continue; }
+    if (await fromLegacy(cache, url)) continue;
+    joins.push(url);
+    for (let i = 0; i < PIECES[url].count; i++) if (!(await cache.match(pieceUrl(url, i)))) jobs.push({ url, piece: i, bytes: pieceBytes(url, i) });
+  }
+  const total = jobs.reduce((sum, job) => sum + job.bytes, 0);
+  let done = 0;
+  const bump = (n: number) => { done += n; onProgress(total ? Math.min(0.99, Math.max(0, done / total)) : 1); };
+  onProgress(total ? 0 : 1);
+  await pool(jobs, 4, async (job) => {
+    cancelled();
+    if (job.piece === undefined) {
+      const response = await fetch(job.url, { cache: "no-cache", signal });
+      if (!response.ok) throw "no-model" satisfies TryOnError;
+      await cache.put(job.url, response);
+      bump(job.bytes);
+      return;
+    }
+    const response = await fetch(pieceUrl(job.url, job.piece), { cache: "no-cache", signal });
+    if (!response.ok || !response.body) throw "no-model" satisfies TryOnError;
+    const reader = response.body.getReader(), chunks: Uint8Array[] = [];
+    let got = 0;
+    try {
+      for (;;) {
+        const { done: end, value } = await reader.read();
+        if (end) break;
+        chunks.push(value);
+        got += value.byteLength;
+        bump(value.byteLength);
+      }
+      if (got !== job.bytes) throw "no-model" satisfies TryOnError;
+    } catch (error) {
+      bump(-got);   // (this piece starts again next time)
+      throw error;
+    }
+    await cache.put(pieceUrl(job.url, job.piece), new Response(new Blob(chunks as BlobPart[]), { headers: { "content-type": "application/octet-stream" } }));
+  });
+  cancelled();
+  for (const url of joins) await join(cache, url);
+}
+
+/**
+ * The try-on's files for these looks (the first one: about 16 MB with the graphics-chip engine, 20 MB with the tiny
+ * networks, as they travel), reporting 0..1. The HD face (about 93 MB) only with `includeHD`. Kept for offline use;
+ * a stopped or dropped download goes on from the pieces already kept.
  */
 export async function downloadModels(lookIds: string[], onProgress: (done: number) => void, thumbs: string[] = [], includeHD = false, signal?: AbortSignal): Promise<void> {
-  const cancelled = () => {
-    if (signal?.aborted) throw new DOMException("Download cancelled", "AbortError");
-  };
-  cancelled();
+  if (signal?.aborted) throw new DOMException("Download cancelled", "AbortError");
   // Free the disk space of obsolete engines BEFORE attempting large downloads.
   await dropOldCaches();
   const cache = await caches.open(AI_CACHE);
   const { need, drop } = await files(lookIds, includeHD);
-  const big = need.filter((url) => url === ORT_WASM || url === ENHANCE || url === SEGMENT || FACE_FILES.includes(url) || HD_FILES.includes(url));
-  const small = [...need.filter((url) => !big.includes(url)), ...thumbs];
-  // Weighted progress represents only bytes that are missing, so retrying a
-  // partial HD package starts from zero and counts its remaining complete parts.
-  const weights = new Map<string, number>([[ORT_WASM, 14_300_000], [FACE_FILES[1], 13_600_000], [FACE_FILES[2], 3_800_000], [SEGMENT, 8_300_000], [LOOKS_META, 330_000], [ENHANCE, 2_430_000],
-    ...HD_PARTS.map((url): [string, number] => [url, 21_400_000]), [ORT_GPU_GLUE, 53_000], ...ORT_GPU_WASM.map((url): [string, number] => [url, 13_400_000])]);
-  for (const id of lookIds) { weights.set(lookModel(id), 230_000); weights.set(lookLayer(id), 130_000); weights.set(lookCov(id), 25_000); }
-  const pending = new Set<string>();
-  for (const url of [...big, ...small]) {
-    cancelled();
-    if (!(await cache.match(url))) pending.add(url);
-  }
-  const total = [...pending].reduce((sum, url) => sum + (weights.get(url) ?? 30_000), 0);
-  let done = 0;
-  const bump = (n: number) => {
-    done += n;
-    onProgress(total ? Math.min(0.99, done / total) : 1);
-  };
-  onProgress(total ? 0 : 1);
-
-  for (const url of big) {
-    cancelled();
-    if (!pending.has(url)) continue;
-    const expected = weights.get(url) ?? 30_000;
-    const response = await fetch(url, { cache: "no-cache", signal });
-    if (!response.ok || !response.body) throw "no-model" satisfies TryOnError;
-    const length = Number(response.headers.get("content-length")) || expected;
-    const type = response.headers.get("content-type") ?? "application/octet-stream";
-    // Stream straight into CacheStorage: do not retain a 14-21 MB model in a
-    // JS array/Blob while writing a second copy to the browser's offline cache.
-    // Cache.put commits a complete response; a failed/aborted stream is retried.
-    const body = response.body.pipeThrough(new TransformStream<Uint8Array, Uint8Array>({
-      transform(chunk, controller) {
-        bump((chunk.byteLength / length) * expected);
-        controller.enqueue(chunk);
-      },
-    }));
-    await cache.put(url, new Response(body, { headers: { "content-type": type } }));
-  }
-  const missingSmall = small.filter((url) => pending.has(url));
-  for (let i = 0; i < missingSmall.length; i += 8) {
-    cancelled();
-    await Promise.all(missingSmall.slice(i, i + 8).map(async (url) => {
-      const response = await fetch(url, { cache: "no-cache", signal });
-      if (!response.ok) throw "no-model" satisfies TryOnError;
-      await cache.put(url, response);
-      bump(weights.get(url) ?? 30_000);
-    }));
-  }
-  cancelled();
+  await fetchInto(cache, [...need, ...thumbs], onProgress, signal);
   // Remove obsolete files of the other rendering engine only once new data is safe.
   await Promise.all(drop.map((url) => cache.delete(url).catch(() => false)));
   await navigator.storage?.persist?.().catch(() => false);
   onProgress(1);
 }
 
-/** A look not included in the starter package is fetched only when selected, then kept offline. */
+/** One look's own files (about 150 KB: the look rail's pictures of her face), when the shared files are in. */
+export async function fetchLook(id: string, signal?: AbortSignal): Promise<void> {
+  const cache = await caches.open(AI_CACHE);
+  const own = engine() === "gpu" ? [lookEyes(id), lookLayer(id), lookCov(id)] : [lookEyes(id), lookModel(id)];
+  await fetchInto(cache, own, () => undefined, signal);
+}
+
+/** A file from the offline cache, or fetched (and kept) when it isn't there: a look's, the sharpener when a photo first
+ * needs it, the HD face. */
 async function cached(url: string): Promise<Response> {
   const cache = await caches.open(AI_CACHE).catch(() => null);
   const hit = await cache?.match(url);
   if (hit) return hit;
+  if (PIECES[url]) {
+    if (cache) {
+      await fetchInto(cache, [url], () => undefined);
+      const joined = await cache.match(url);
+      if (joined) return joined;
+      throw "no-model" satisfies TryOnError;
+    }
+    // (no offline cache in this browser: the pieces straight into memory)
+    const blobs = await Promise.all(pieceUrls(url).map(async (piece) => {
+      const r = await fetch(piece).catch(() => null);
+      if (!r?.ok) throw "no-model" satisfies TryOnError;
+      return r.blob();
+    }));
+    return new Response(new Blob(blobs, { type: typeOf(url) }), { headers: { "content-type": typeOf(url) } });
+  }
   const response = await fetch(url).catch(() => null);
   if (!response?.ok) throw "no-model" satisfies TryOnError;
   if (cache) {
@@ -246,19 +331,29 @@ async function cached(url: string): Promise<Response> {
   return response;
 }
 
-/** HD face restoration is a separate, optional 108 MiB package. */
+/** The HD face's files are on the phone (those kept from before the pieces are joined first). */
+async function hdInCache(cache: Cache): Promise<boolean> {
+  for (const url of HD_FILES) if (!(await cache.match(url)) && !(await fromLegacy(cache, url))) return false;
+  return true;
+}
+
+/** HD face restoration is a separate, optional package (about 93 MB). */
 export async function hdModelsReady(): Promise<boolean> {
   if (!(await hdWanted())) return false;
-  try {
-    const cache = await caches.open(AI_CACHE);
-    for (const url of HD_FILES) if (!(await cache.match(url))) return false;
-    return true;
-  } catch { return false; }
+  try { return await hdInCache(await caches.open(AI_CACHE)); } catch { return false; }
 }
 
 export async function downloadHdModels(onProgress: (done: number) => void, signal?: AbortSignal): Promise<void> {
   if (!(await hdWanted())) throw "no-model" satisfies TryOnError;
   await downloadModels([], onProgress, [], true, signal);
+}
+
+/** MediaPipe's WebAssembly, from the offline cache (it is served in pieces, so not at its own address). */
+let visionWasm: Promise<string> | null = null;
+function visionWasmUrl(): Promise<string> {
+  visionWasm ??= cached(FACE_FILES[1]).then((r) => r.blob()).then((b) => URL.createObjectURL(new Blob([b], { type: "application/wasm" })));
+  visionWasm.catch(() => { visionWasm = null; });
+  return visionWasm;
 }
 
 /* --------------------------------------------------------------- models */
@@ -292,7 +387,7 @@ export function loadFaceModel(mode: "IMAGE" | "VIDEO" = "IMAGE"): Promise<FaceLa
       const { FaceLandmarker } = await import("@mediapipe/tasks-vision");
       const task = new Uint8Array(await (await cached(FACE_FILES[2])).arrayBuffer());
       return FaceLandmarker.createFromOptions(
-        { wasmLoaderPath: FACE_FILES[0], wasmBinaryPath: FACE_FILES[1] },
+        { wasmLoaderPath: FACE_FILES[0], wasmBinaryPath: await visionWasmUrl() },
         { baseOptions: { modelAssetBuffer: task, delegate: "CPU" }, runningMode: mode, numFaces: 1 },
       );
     })();
@@ -313,7 +408,7 @@ export function loadSegmenter(mode: "IMAGE" | "VIDEO" = "IMAGE"): Promise<ImageS
       const { ImageSegmenter } = await import("@mediapipe/tasks-vision");
       const task = new Uint8Array(await (await cached(SEGMENT)).arrayBuffer());
       return ImageSegmenter.createFromOptions(
-        { wasmLoaderPath: FACE_FILES[0], wasmBinaryPath: FACE_FILES[1] },
+        { wasmLoaderPath: FACE_FILES[0], wasmBinaryPath: await visionWasmUrl() },
         { baseOptions: { modelAssetBuffer: task, delegate: "CPU" }, runningMode: mode, outputConfidenceMasks: true, outputCategoryMask: false },
       );
     })();
@@ -1082,7 +1177,7 @@ async function faceHd(prepared: Prepared, onStep?: (step: "sharp" | "hd", done: 
   const plain = prepared.plain;
   if (!backend || !hdNeeded(plain.points, prepared.blur)) return;
   const cache = await caches.open(AI_CACHE).catch(() => null);
-  for (const url of HD_FILES) if (!(await cache?.match(url))) return;
+  if (!cache || !(await hdInCache(cache))) return;
   onStep?.("hd", 0);
   const started = performance.now();
   const timer = setInterval(() => onStep?.("hd", Math.min(0.95, 1 - Math.exp(-2.2 * (performance.now() - started) / lastHdMs))), 250);
@@ -1090,8 +1185,8 @@ async function faceHd(prepared: Prepared, onStep?: (step: "sharp" | "hd", done: 
   hdRunning(true);
   try {
     const run = (async () => {
-      const join = async (urls: string[]) => joinParts(await Promise.all(urls.map((url) => cached(url).then((r) => r.arrayBuffer()))));
-      const s = await hdSession(() => join(HD_PARTS), { mjs: new URL(ORT_GPU_GLUE, location.href).href, wasm: () => join(ORT_GPU_WASM) }, backend);
+      const bytes = async (url: string) => new Uint8Array(await (await cached(url)).arrayBuffer());
+      const s = await hdSession(() => bytes(HD_MODEL), { mjs: new URL(ORT_GPU_GLUE, location.href).href, wasm: () => bytes(ORT_GPU_WASM) }, backend);
       if (plain.vis === undefined) plain.vis = await visibility(plain.photo, plain.points);
       const target = prepared.sharp ?? plain;
       const photo = await hdFace(s, plain.photo, plain.points, target.photo, target.points, plain.vis ?? null);
