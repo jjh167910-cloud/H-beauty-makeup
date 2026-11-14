@@ -40,7 +40,10 @@ def linear(v: torch.Tensor) -> torch.Tensor:
 
 
 def to_srgb(v: torch.Tensor) -> torch.Tensor:
-    return torch.where(v<=.0031308,v*12.92,1.055*v.clamp_min(0).pow(1/2.4)-.055)
+    # torch.where evaluates both branches; pow(0, 1/2.4) has an infinite
+    # derivative even when its value is not selected. A tiny positive clamp
+    # keeps the inactive branch differentiable on black padded/skin pixels.
+    return torch.where(v<=.0031308,v*12.92,1.055*v.clamp_min(1e-7).pow(1/2.4)-.055)
 
 
 def masked_composite(source: torch.Tensor, pigment: torch.Tensor,
