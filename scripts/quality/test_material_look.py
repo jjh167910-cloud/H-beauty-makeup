@@ -85,6 +85,25 @@ class MaterialLookTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "overlap"):
                 render(master, config, root / "result")
 
+    def test_declared_liner_over_shadow_layers_are_ordered_and_source_locked(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            master, config, recipe = self.fixture(root)
+            # The second transparent cosmetic pass overlaps the first, as
+            # precise eyeliner must physically sit on top of the eyeshadow.
+            recipe["layers"][1]["mask"] = "lips.png"
+            recipe["layers"][1]["name"] = "second_pigment"
+            recipe["layers"][1]["opacity"] = 0.35
+            recipe["layers"][1]["allow_overlap"] = True
+            config.write_text(json.dumps(recipe))
+            report = render(master, config, root / "render")
+            self.assertEqual(report["changed_outside_cosmetic_mask"], 0)
+            self.assertGreater(report["layers"][1]["overlap_pixels_with_prior_layers"], 0)
+            self.assertFalse(report["approved_for_catalog"])
+            edited = np.asarray(Image.open(root / "render" / "material-render.png"))
+            original = np.asarray(Image.open(master))
+            self.assertTrue(np.array_equal(edited[20:60, 20:60], original[20:60, 20:60]))
+
     def test_non_opaque_source_is_rejected(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
