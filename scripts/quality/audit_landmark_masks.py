@@ -82,6 +82,7 @@ def checked_mesh(data: dict, master_path: Path, size: tuple[int, int]):
     elif isinstance(policy, dict):
         if (policy.get("framework") != "mediapipe.tasks.vision.FaceLandmarker"
                 or policy.get("running_mode") != "IMAGE"
+                or policy.get("max_faces_checked", 0) < 2
                 or policy.get("reported_per_face_confidence_available") is not False):
             raise ValueError("Unsupported or misrepresented face-landmark detection policy")
         for name in ("min_face_detection_confidence", "min_face_presence_confidence"):
