@@ -10,6 +10,8 @@ on:
       - "scripts/quality/test_pixel_locked_look.py"
       - "scripts/quality/compose_source_locked.py"
       - "scripts/quality/test_source_locked_compositor.py"
+      - "scripts/quality/render_material_look.py"
+      - "scripts/quality/test_material_look.py"
       - "src/data/makeup-styles.ts"
       - ".github/workflows/reference-v2-kit.yml"
   workflow_dispatch:
@@ -67,6 +69,8 @@ jobs:
         run: python scripts/quality/test_pixel_locked_look.py
       - name: Verify source-locked cosmetic compositing and reject seams
         run: python scripts/quality/test_source_locked_compositor.py
+      - name: Verify source-locked cosmetic material rendering and original texture preservation
+        run: python scripts/quality/test_material_look.py
       - name: Generate seven existing-catalog visual comparison sheets
         run: python scripts/quality/make_catalog_review_sheets.py --out catalog-review-sheets
       - name: Publish existing-catalog visual comparison sheets
