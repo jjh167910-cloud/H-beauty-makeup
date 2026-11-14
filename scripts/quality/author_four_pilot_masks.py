@@ -21,24 +21,34 @@ from PIL import Image, ImageDraw, ImageFilter
 
 DIMENSIONS = (1086, 1448)
 PILOTS = ("no-makeup", "hollywood", "electric-blue", "rhinestone")
-LIPS = [(355,619),(364,611),(380,604),(401,596),(422,591),(443,593),
-        (465,600),(475,601),(491,597),(515,590),(537,594),(553,603),
-        (562,614),(552,623),(543,634),(526,648),(503,660),(481,665),
-        (454,668),(427,667),(406,662),(390,654),(376,644),(361,635)]
-EYE_LEFT = [(258,404),(265,386),(279,375),(300,369),(327,371),(347,378),
-            (369,390),(385,404),(374,399),(356,393),(336,390),
-            (317,389),(295,393),(275,402)]
-EYE_RIGHT = [(470,383),(482,367),(500,353),(525,345),(556,345),
-             (583,350),(610,362),(637,378),(621,375),(599,370),
-             (579,366),(555,364),(535,364),(514,369),(490,380)]
-CREASE_LEFT = [(254,404),(268,387),(294,381),(321,382),(352,390),
-               (380,405),(372,399),(347,394),(320,391),(286,397),(264,411)]
-CREASE_RIGHT = [(473,383),(490,372),(522,362),(554,360),
-                (589,364),(636,381),(623,373),(594,369),
-                (567,365),(535,367),(500,380)]
-LINE_LEFT = [(259,410),(278,403),(298,396),(319,394),(341,395),(363,402),(383,412)]
-LINE_RIGHT = [(477,393),(499,380),(528,370),(554,366),(580,369),(604,378),(626,388)]
-
+# Source-specific V4 anatomical geometry. Visually inspected against the
+# 1086x1448 original at 100-200% zoom. The previous single polygon started
+# above the natural vermilion and flattened the mouth opening.
+LIP_UP = [(368,637),(373,628),(385,618),(402,610),(420,606),
+          (440,607),(460,608),(475,604),(489,603),(504,601),(519,605),
+          (532,610),(543,616),(552,620),(554,623),(543,626),(520,630),
+          (498,632),(473,636),(450,639),(425,639),(399,641),(380,640)]
+LIP_LOW = [(369,643),(382,647),(400,648),(425,648),(448,647),(472,642),
+           (496,638),(519,635),(540,629),(552,625),(545,637),
+           (532,650),(515,662),(495,674),(476,680),(453,681),
+           (432,680),(413,675),(393,666),(379,653)]
+EYE_LEFT = [(260,402),(270,392),(287,385),(310,381),(333,379),
+            (354,383),(370,393),(381,407),(367,400),(348,396),
+            (325,393),(300,397),(282,404),(263,412)]
+EYE_RIGHT = [(475,383),(489,371),(510,361),(533,355),(559,356),
+             (584,362),(608,373),(632,386),(621,385),(596,377),
+             (575,371),(551,370),(531,374),(509,380),(487,392)]
+# Tighter outer-corner crease maps, never an eyebrow-to-lash rectangle.
+CREASE_LEFT = [(262,402),(275,391),(291,386),(307,387),
+               (324,394),(299,398),(277,408)]
+CREASE_RIGHT = [(555,357),(580,360),(605,371),(630,384),
+                (615,382),(587,375),(565,370)]
+# The source already has visible lashes. Long secondary eyeliner strokes
+# looked detached; paint only short tapered, canthus-connected flicks.
+WING_LEFT = [(276,420),(260,416),(252,410),(247,406)]
+WING_RIGHT = [(611,390),(625,395),(635,390),(640,385)]
+BLUE_WING_LEFT = [(276,420),(262,417),(252,413),(246,408)]
+BLUE_WING_RIGHT = [(611,390),(625,395),(638,391),(644,388)]
 
 def spline(points, resolution=8):
     q = [points[0]] + points + [points[-1]]
@@ -82,28 +92,26 @@ def lines(strokes):
 
 
 def build_masks():
-    lids=joined(shape(EYE_LEFT,1.2),shape(EYE_RIGHT,1.2))
-    crease=joined(shape(CREASE_LEFT,1),shape(CREASE_RIGHT,1))
-    # Stay strictly within the cheeks and clear of hair along the facial
-    # silhouette; large blurred cheek ellipses reached hair in earlier drafts.
-    blush=joined(cheek((269,478,365,584),11),
-                 cheek((545,447,676,553),14))
-    lips=shape(LIPS,.45)
-    blue_inner=joined(
-        shape([(333,373),(351,379),(375,391),(384,404),
-               (373,400),(353,394),(328,390),(316,390)],1),
-        shape([(473,384),(481,366),(497,355),(522,348),
-               (533,365),(511,370),(490,383)],1))
-    blue_outer=joined(
-        shape([(259,403),(267,385),(283,374),(304,371),(330,374),
-               (315,391),(290,397),(266,410)],1),
-        shape([(524,348),(556,343),(591,350),(618,363),(638,378),
-               (618,374),(585,366),(556,365),(534,366)],1))
-    wing=lines([(LINE_LEFT,3.8),(LINE_RIGHT,4.0),
-                ([(262,409),(250,396)],2.4), ([(623,386),(643,377)],2.5)])
-    graphic=lines([(LINE_LEFT,4.2),(LINE_RIGHT,4.1),
-                   ([(261,406),(241,388)],4.2),([(625,387),(649,374)],4.6)])
-    fine=lines([(LINE_LEFT,2.2),(LINE_RIGHT,2.3)])
+    # Tight, source-locked cosmetic geometry; NEVER reuse on another model.
+    lids_left = np.asarray(shape(EYE_LEFT, 1.7), dtype=np.float32)
+    lids_right = np.asarray(shape(EYE_RIGHT, 1.7), dtype=np.float32)
+    lids = Image.fromarray(np.maximum(lids_left,lids_right).astype("uint8"),"L")
+    crease = joined(shape(CREASE_LEFT, 2),shape(CREASE_RIGHT, 2))
+    blush = joined(cheek((269,478,365,584),11),
+                   cheek((545,447,676,553),14))
+    # Two anatomically aligned polygons preserve the untouched mouth seam.
+    lips = joined(shape(LIP_UP,.55),shape(LIP_LOW,.55))
+    yy,xx = np.mgrid[:DIMENSIONS[1],:DIMENSIONS[0]]
+    # Soft two-tone blue gradient, not separate opaque polygon blocks.
+    mix_left = np.clip((343-xx)/100.0,0,1)
+    mix_right = np.clip((xx-500)/135.0,0,1)
+    outer = np.clip(lids_left*mix_left + lids_right*mix_right,0,255)
+    inner = np.clip(lids_left*(1-mix_left) + lids_right*(1-mix_right),0,255)
+    blue_inner = Image.fromarray(inner.astype("uint8"),"L")
+    blue_outer = Image.fromarray(outer.astype("uint8"),"L")
+    wing = lines([(WING_LEFT,1.75),(WING_RIGHT,1.80)])
+    graphic = lines([(BLUE_WING_LEFT,1.90),(BLUE_WING_RIGHT,1.85)])
+    fine = lines([(WING_LEFT,1.20),(WING_RIGHT,1.25)])
     return {
         "no-makeup": {
             "no-makeup-lid-wash.png":lids,
