@@ -38,7 +38,7 @@ const MEASURE_EVERY = 8;
  */
 const SEGMENT_MS = 150;
 
-export type LiveStats = { fps: number; netMs: number; face: boolean; engine: Engine };
+export type LiveStats = { fps: number; netMs: number; face: boolean; engine: Engine; drawnFrames: number };
 
 export class LiveMirror {
   private stream: MediaStream | null = null;
@@ -54,6 +54,8 @@ export class LiveMirror {
   private last = 0;
   private frames = 0;
   private fpsAt = 0;
+  private drawnFrames = 0;
+  private lastDrawAt = 0;
   private count = 0;
   private files: LookFiles | null = null;
   private tris: number[] | null = null;
@@ -94,7 +96,7 @@ export class LiveMirror {
     this.picks = picks;
     this.look = look;
     this.level = level;
-    this.stats = { fps: 0, netMs: 0, face: false, engine: engine() };
+    this.stats = { fps: 0, netMs: 0, face: false, engine: engine(), drawnFrames: 0 };
     this.video.muted = true;
     this.video.playsInline = true;
   }
@@ -115,6 +117,13 @@ export class LiveMirror {
     }
     else warmUp(this.look);
     this.running = true;
+    // Never calculate the first FPS sample from performance.timeOrigin:
+    // expensive model initialization could make the first actual frame
+    // report 0 FPS even though it was successfully drawn.
+    this.fpsAt = 0;
+    this.frames = 0;
+    this.drawnFrames = 0;
+    this.lastDrawAt = 0;
     let frameFailures = 0;
     const tick = () => {
       if (!this.running) return;
@@ -247,11 +256,24 @@ export class LiveMirror {
     this.pace(performance.now() - begun, sides);
 
     this.frames++;
+    this.drawnFrames++;
+    this.stats.drawnFrames = this.drawnFrames;
     const now = performance.now();
-    if (now - this.fpsAt > 1000) {
+    this.lastDrawAt = now;
+    if (this.fpsAt === 0) {
+      // Report the first REAL rendered frame immediately. A first-frame
+      // event is a stronger observable than a rounded FPS value on a cold
+      // phone/GPU, and does not invent an unmeasured frame rate.
+      this.fpsAt = now;
+      this.onStats?.({ ...this.stats });
+    } else if (now - this.fpsAt >= 1000) {
       this.stats.fps = Math.round((this.frames * 1000) / (now - this.fpsAt));
       this.frames = 0;
       this.fpsAt = now;
+      this.onStats?.({ ...this.stats });
+    } else if (this.drawnFrames === 2) {
+      // Confirm the camera is producing NEW frames without waiting for a
+      // one-second rate window; keep fps at zero until actually measured.
       this.onStats?.({ ...this.stats });
     }
   }
