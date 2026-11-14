@@ -181,24 +181,37 @@ def parse_styles() -> list[dict]:
 
 
 def prompt(item: dict) -> str:
+    pilot_notes = {
+        "no-makeup": "Make a subtle FINISHED makeup look: translucent base, almost imperceptible lid wash, natural mascara and tinted lip gloss. It is NOT the true neutral master.",
+        "hollywood": "Classic old-Hollywood definition: a symmetric, crisp tapered wing, elegant neutral lid, separated dark lashes, strong matte red lips with clean lip lines.",
+        "electric-blue": "Saturated cobalt-blue eyelids and blue graphic wing must be visually distinctive without painting on the sclera, brows or cheek.",
+        "rhinestone": "As in the current catalog style, add only a few small pale reflective rhinestones near the outer corner of the eye on the RIGHT of the image (model's left eye), not all over the face. Use realistic tiny shadows and reflections.",
+    }
     details = [
         f"STYLE: {item['id']} / {item['title_fa']}",
-        "The SINGLE visual reference is the approved truly bare-face master.",
+        "PRIMARY IMAGE TO EDIT: the verified bare-reference.png only. If the old catalog "
+        "photo is provided as a second visual STYLE GUIDE, use it for cosmetic placement "
+        "only; never copy its face geometry, lighting, hair or background.",
         "Make these exact cosmetic changes ONLY:",
         f"SKIN: {SKIN[item['skin']]}.",
-        f"EYELIDS: {SHADOW[item['shadow']]}, using inner/lid {item['lid_colors'][0]} "
-        f"and outer/crease {item['lid_colors'][1]}.",
-        f"EYELINER: {LINER[item['liner']]}. "
-        + (f"Pigment {item['liner_color']}." if item["liner_color"] else "Natural dark liner if the style specifies eyeliner."),
+        ("EYELIDS: no added eyeshadow." if item["shadow"] == "none" else
+         f"EYELIDS: {SHADOW[item['shadow']]}, using inner/lid {item['lid_colors'][0]} "
+         f"and outer/crease {item['lid_colors'][1]}."),
+        ("EYELINER: no eyeliner." if item["liner"] == "none" else
+         f"EYELINER: {LINER[item['liner']]}. " +
+         (f"Pigment {item['liner_color']}." if item["liner_color"] else "Use realistic soft black/brown pigment.")),
         f"LASHES: {LASHES[item['lashes']]}.",
         f"BROWS: {BROWS[item['brow']]}.",
-        f"CHEEKS: {BLUSH[item['blush']]}. Blush color {item['blush_color']}.",
+        ("CHEEKS: no added blush." if item["blush"] == "none" else
+         f"CHEEKS: {BLUSH[item['blush']]}. Blush color {item['blush_color']}."),
         f"LIPS: {LIPS[item['lip_finish']]}. Lip color {item['lip_color']}.",
         ("ADDITIONAL COSMETIC ACCENTS: " + "; ".join(ACCENTS[x] for x in item["accents"]))
         if item["accents"] else "NO additional cosmetic accents or jewelry.",
         "Both eyes must have equivalent finished makeup appropriate to the unchanged three-quarter perspective.",
         "Edges of liners and lip products must be sharp at natural photo resolution.",
         "Keep skin pores, pores' directional shadows, lip creases and individual lashes visible.",
+        "The listed hex colors define the intended product pigments, but must be rendered under the ORIGINAL camera lighting, not as flat RGB overlays.",
+        *(["PILOT-SPECIFIC PRECISION: " + pilot_notes[item["id"]]] if item["id"] in pilot_notes else []),
         "Do not apply an extra accessory that is not explicitly mentioned in the style recipe.",
         MASTER_RULES,
     ]
