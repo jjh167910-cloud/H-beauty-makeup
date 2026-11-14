@@ -41,7 +41,7 @@ jobs:
       - name: Install MediaPipe native CPU runtime dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq libegl1 libgl1 libglib2.0-0
+          sudo apt-get install -y -qq libegl1 libgles2 libgl1 libgbm1 libglib2.0-0
       - name: Install local landmark runtime and image dependencies
         run: python -m pip install --disable-pip-version-check mediapipe pillow numpy
       - name: Detect public example face locally and author its pilot masks
