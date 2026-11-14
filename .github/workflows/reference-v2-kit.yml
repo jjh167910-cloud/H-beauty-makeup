@@ -5,6 +5,7 @@ on:
     paths:
       - "scripts/quality/prepare_reference_v2.py"
       - "scripts/quality/make_catalog_review_sheets.py"
+      - "scripts/quality/test_reference_v2.py"
       - "src/data/makeup-styles.ts"
       - ".github/workflows/reference-v2-kit.yml"
   workflow_dispatch:
@@ -56,6 +57,8 @@ jobs:
           assert 'MISSING MASTER' in ' '.join(report['errors'])
           print('Missing genuine bare face is correctly rejected.')
           PY
+      - name: Run V2 reference source-provenance and asset safety tests
+        run: python scripts/quality/test_reference_v2.py
       - name: Generate seven existing-catalog visual comparison sheets
         run: python scripts/quality/make_catalog_review_sheets.py --out catalog-review-sheets
       - name: Publish existing-catalog visual comparison sheets
