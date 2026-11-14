@@ -22,7 +22,7 @@ public/tryon/eyes, and their current on-device runtime untouched.
 - One exact camera, lens/framing, crop, perspective, exposure, white balance,
   shadows, and background throughout the 43-image series.
 - Export all master images at matching native resolution and aspect ratio;
-  prefer 3:4 and at least 1536×2048 if true native resolution is supported.
+  require genuine native ≥2048×2732 resolution at 3:4 for the premium V2 source; do not fabricate detail or upscale smaller photographs.
   **Never upscale to meet a nominal pixel target.**
 - Cosmetic changes ONLY: foundation, brows, eye shadow, liner, eyelashes,
   blush, contour, glow, lips and explicitly listed accessories.
@@ -69,6 +69,27 @@ public/tryon/eyes, and their current on-device runtime untouched.
   lash, and accessory geometry; use these as visual regression cases.
 - Other looks are NOT rejected. All require photographic pair consistency
   and visual review before approval.
+
+## Ground-truth provenance for the premium release
+
+Supply both the actual original makeup-free master photo and a companion
+bare-reference.json review record, using the example template from the
+production-pack generator. It must record the original native dimensions,
+the exact image SHA-256, whether the source is an authentic cosmetic-free
+capture, usage-rights review, and a traceable human review record ID.
+
+A de-makeup image created from the existing makeup-wearing photo can still
+be used experimentally to explore the renderer, but it **cannot** be
+promoted as independently verified photographic bare-face ground truth.
+A synthetic image cannot recover the real obscured lip or lash pixels.
+
+Once a real source exists, retain it as a lossless master and derive the
+42 looks from this same source; keep editable makeup-region masks and
+material maps as lossless assets. Avoid repeated JPEG/WebP compression
+during editing and keep all photos in one explicit sRGB color space.
+The final mobile assets may be optimized only after comparison with
+the lossless masters. Visual experts must approve before enabling
+any V2 release switch.
 
 ## Acceptance checks
 

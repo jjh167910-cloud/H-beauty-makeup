@@ -32,7 +32,12 @@ STYLES_FILE = ROOT / "src/data/makeup-styles.ts"
 PILOTS = ("no-makeup", "hollywood", "electric-blue", "rhinestone")
 EXAMPLE_SOURCE = "public/makeup/looks/no-makeup.webp"
 STYLE_RE = re.compile(r'style\(\s*"([a-z0-9-]+)"\s*,\s*"([^"]+)"\s*,\s*\{([^{}]+)\}\s*\)', re.S)
-VERSION = "reference-v2.0-draft"
+VERSION = "reference-v2.1-premium"
+# A quality target, NOT permission to upscale a smaller photo into invented detail.
+MIN_NATIVE_WIDTH, MIN_NATIVE_HEIGHT = 2048, 2732
+ASPECT_RATIO = 3 / 4
+ASPECT_TOLERANCE = 0.005
+ALLOWED_MASTER_SOURCE = "original_cosmetic_free_photograph"
 
 SKIN = {
     "sheer": "a very light, translucent, natural skin finish; preserve visible real pores and natural complexion",
@@ -233,9 +238,14 @@ def generate(out: Path) -> dict:
         "mode": "staged-and-not-live",
         "cosmetic_free_master": {
             "path": "bare-reference.png",
-            "status": "missing-until-user-supplies-licensed-original",
+            "provenance_path": "bare-reference.json",
+            "status": "missing-until-original-unretouched-cosmetic-free-photo-is-reviewed",
             "must_be_distinct_from": EXAMPLE_SOURCE,
             "ground_truth_required": True,
+            "min_native_resolution": [MIN_NATIVE_WIDTH, MIN_NATIVE_HEIGHT],
+            "aspect_ratio": "3:4",
+            "source_kind_required": ALLOWED_MASTER_SOURCE,
+            "synthetic_demakeup_is_ground_truth": False,
         },
         "style_count": len(styles),
         "reference_image_count": len(styles) + 1,
@@ -247,10 +257,25 @@ def generate(out: Path) -> dict:
     (out / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf8"
     )
+    (out / "bare-reference-provenance-TEMPLATE.json").write_text(
+        json.dumps({
+            "source_kind": "UNVERIFIED",
+            "no_makeup_review": "pending",
+            "usage_rights_review": "pending",
+            "review_record_id": "",
+            "native_width": 0,
+            "native_height": 0,
+            "master_sha256": "REPLACE_WITH_SHA256_OF_APPROVED_BARE_REFERENCE_PNG"
+        }, ensure_ascii=False, indent=2) + "\n", encoding="utf8"
+    )
     lines = [
         "# H-Beauty — Reference V2 pilot production pack", "",
         "The current catalog is **not modified** by this pack.",
         "43 photographic references are needed: one *truly bare* master + 42 finished styles.",
+        "For highest-quality V2 promotion, master must be an authentic, approved", 
+        "cosmetic-free photograph at native minimum 2048x2732 (3:4) or higher; no upscaling.",
+        "Supply bare-reference.json using bare-reference-provenance-TEMPLATE.json.",
+        "Synthetic de-makeup remains a research candidate, never certified photo ground truth.",
         "The existing no-makeup.webp is a makeup style and **cannot** be used as the neutral master.",
         "A synthetic de-makeup image cannot be certified as a true photographic bare-face source.",
         "",
@@ -294,6 +319,28 @@ def validate(candidate_dir: Path, phase: str, out: Path) -> dict:
     needed = PILOTS if phase == "pilot" else tuple(s["id"] for s in styles)
     master_path = candidate_dir / "bare-reference.png"
     errors, warnings, checked = [], [], []
+    master_metadata = candidate_dir / "bare-reference.json"
+    if not master_metadata.is_file():
+        errors.append("MISSING PROVENANCE: bare-reference.json with independently reviewed original capture details")
+        master_info = None
+    else:
+        try:
+            master_info = json.loads(master_metadata.read_text("utf8"))
+            if not isinstance(master_info, dict):
+                raise ValueError("metadata must be an object")
+            if master_info.get("source_kind") != ALLOWED_MASTER_SOURCE:
+                errors.append("Neutral source is not a verified original cosmetic-free photograph; de-makeup edits are exploratory only")
+            if master_info.get("no_makeup_review") != "approved":
+                errors.append("Original bare-face photo has not passed human no-cosmetics review")
+            if master_info.get("usage_rights_review") != "approved":
+                errors.append("Original bare-face photo usage rights have not been reviewed")
+            if not master_info.get("review_record_id"):
+                errors.append("Missing human review record identifier for the authentic bare master")
+            if not isinstance(master_info.get("native_width"), int) or not isinstance(master_info.get("native_height"), int):
+                errors.append("Bare photo native width/height provenance missing")
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            errors.append(f"Invalid bare-reference.json: {exc}")
+            master_info = None
     if not master_path.is_file():
         errors.append("MISSING MASTER: bare-reference.png not supplied in staging folder")
         master = None
@@ -302,10 +349,14 @@ def validate(candidate_dir: Path, phase: str, out: Path) -> dict:
         try:
             master = read_rgb(master_path)
             master_hash = sha256(master_path.read_bytes()).hexdigest()
-            if master.width < 1536 or master.height < 2048:
-                errors.append(f"Master {master.size} is smaller than native 1536x2048 target")
-            if master.width >= master.height:
-                errors.append("Master must be a vertical portrait")
+            if master.width < MIN_NATIVE_WIDTH or master.height < MIN_NATIVE_HEIGHT:
+                errors.append(f"Master {master.size} is smaller than premium native {MIN_NATIVE_WIDTH}x{MIN_NATIVE_HEIGHT} target")
+            if abs(master.width / master.height - ASPECT_RATIO) > ASPECT_TOLERANCE:
+                errors.append(f"Master {master.size} has incorrect 3:4 catalog aspect ratio")
+            if master_info and (master_info.get("native_width"), master_info.get("native_height")) != master.size:
+                errors.append("Bare master PNG dimensions do not match the recorded original native capture (potential resize/upscale)")
+            if master_info and master_info.get("master_sha256") != master_hash:
+                errors.append("Bare master PNG checksum does not match approved source provenance")
             # Spot the mistake where the current 'no-makeup' style is copied
             # directly as the new allegedly bare source.
             current_style = (ROOT / EXAMPLE_SOURCE)
