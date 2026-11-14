@@ -47,7 +47,7 @@ def generate(out: Path, per_sheet: int = 6) -> int:
     styles = parse_styles()
     if not BASE.is_file():
         raise FileNotFoundError(str(BASE))
-    card_w, card_h = 640, 460
+    card_w, card_h = 640, 478
     cols, rows = 2, ceil(per_sheet / 2)
     title_h, bottom = 104, 48
     for offset in range(0, len(styles), per_sheet):
