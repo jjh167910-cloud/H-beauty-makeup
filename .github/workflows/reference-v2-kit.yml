@@ -16,6 +16,9 @@ on:
       - "scripts/quality/test_author_four_pilot_masks.py"
       - "scripts/quality/audit_landmark_masks.py"
       - "scripts/quality/test_landmark_masks.py"
+      - "scripts/quality/detect_source_face.py"
+      - "scripts/quality/author_mesh_pilot_masks.py"
+      - "scripts/quality/test_source_mesh_pipeline.py"
       - "scripts/quality/render_rhinestones.py"
       - "scripts/quality/test_rhinestones.py"
       - "scripts/quality/material_recipes/rhinestone-accessories-STUDY.json"
@@ -84,6 +87,8 @@ jobs:
         run: python scripts/quality/test_landmark_masks.py
       - name: Verify research rhinestone facets, micro-shadows, and exact pixel locking
         run: python scripts/quality/test_rhinestones.py
+      - name: Verify offline source-face mesh provenance and four anatomy-derived pilot masks
+        run: python scripts/quality/test_source_mesh_pipeline.py
       - name: Generate seven existing-catalog visual comparison sheets
         run: python scripts/quality/make_catalog_review_sheets.py --out catalog-review-sheets
       - name: Publish existing-catalog visual comparison sheets
