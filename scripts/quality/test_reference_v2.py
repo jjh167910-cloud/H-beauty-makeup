@@ -97,7 +97,7 @@ class ReferenceV2KitTests(unittest.TestCase):
             with Image.open(candidate / "styles" / "hollywood.png") as photo:
                 altered = photo.copy()
             draw = ImageDraw.Draw(altered)
-            draw.rectangle((1340, 1320, 1480, 1640), fill=(242, 235, 230))
+            draw.rectangle((1780, 1600, 1960, 2080), fill=(242, 235, 230))
             altered.save(candidate / "styles" / "hollywood.png")
             with Image.open(candidate / "bare-reference.png") as photo:
                 untouched = photo.copy()
