@@ -85,6 +85,14 @@ To run the catalog audit:
     python -m pip install pillow
     python scripts/quality/audit_catalog.py --out catalog-audit-output
 
+For a V2 release candidate (fails unless an independent, distinct, same-size
+cosmetic-free base exists):
+
+    python scripts/quality/audit_catalog.py --require-v2 --out catalog-audit-output
+
+This machine gate cannot verify that the face is truly free of cosmetics;
+manual approval remains mandatory.
+
 ### Expert visual approval (indispensable)
 - Identity and facial geometry unchanged.
 - Natural skin pores; realistic lashes; crisp liner and lip edges.
