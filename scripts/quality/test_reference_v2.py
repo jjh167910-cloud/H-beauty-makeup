@@ -53,9 +53,19 @@ class ReferenceV2KitTests(unittest.TestCase):
 
     def make_fixture(self, directory: Path):
         directory.mkdir(parents=True, exist_ok=True)
-        face = Image.new("RGB", (1536, 2048), (132, 106, 88))
+        face = Image.new("RGB", (2048, 2732), (132, 106, 88))
         face.save(directory / "bare-reference.png")
         master_hash = sha256((directory / "bare-reference.png").read_bytes()).hexdigest()
+        (directory / "bare-reference.json").write_text(
+            json.dumps({
+                "source_kind": "original_cosmetic_free_photograph",
+                "no_makeup_review": "approved",
+                "usage_rights_review": "approved",
+                "review_record_id": "SYNTHETIC-UNIT-TEST-NOT-REAL-PROVENANCE",
+                "native_width": 2048, "native_height": 2732,
+                "master_sha256": master_hash,
+            }), encoding="utf8"
+        )
         (directory / "styles").mkdir(exist_ok=True)
         for style_id in PILOTS:
             edited = face.copy()
@@ -97,6 +107,46 @@ class ReferenceV2KitTests(unittest.TestCase):
             by_id = {item["id"]: item for item in report["styles"]}
             self.assertIn("hair changed", " ".join(by_id["hollywood"]["issues"]))
             self.assertIn("pixel-identical", " ".join(by_id["rhinestone"]["issues"]))
+
+    def test_master_source_metadata_cannot_certify_synthetic_demakeup(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            candidate = root / "candidate"
+            self.make_fixture(candidate)
+            path = candidate / "bare-reference.json"
+            info = json.loads(path.read_text("utf8"))
+            info["source_kind"] = "synthetic_demakeup"
+            path.write_text(json.dumps(info), encoding="utf8")
+            report = validate(candidate, "pilot", root / "result")
+            self.assertFalse(report["passed_structural_check"])
+            self.assertFalse(report["approved_for_production"])
+            self.assertIn("exploratory only", " ".join(report["errors"]))
+
+    def test_provenance_checksum_must_equal_bare_master(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            candidate = root / "candidate"
+            self.make_fixture(candidate)
+            path = candidate / "bare-reference.json"
+            info = json.loads(path.read_text("utf8"))
+            info["master_sha256"] = "f" * 64
+            path.write_text(json.dumps(info), encoding="utf8")
+            report = validate(candidate, "pilot", root / "result")
+            self.assertFalse(report["passed_structural_check"])
+            self.assertIn("checksum", " ".join(report["errors"]))
+
+    def test_native_resolution_record_prevents_unreported_resize(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            candidate = root / "candidate"
+            self.make_fixture(candidate)
+            path = candidate / "bare-reference.json"
+            info = json.loads(path.read_text("utf8"))
+            info["native_width"], info["native_height"] = 900, 1200
+            path.write_text(json.dumps(info), encoding="utf8")
+            report = validate(candidate, "pilot", root / "result")
+            self.assertFalse(report["passed_structural_check"])
+            self.assertIn("upscale", " ".join(report["errors"]))
 
     def test_wrong_source_checksum_fails(self):
         with tempfile.TemporaryDirectory() as tmp:
