@@ -1,12 +1,12 @@
 {
   "style_id": "rhinestone",
-  "status": "staged-pilot-not-approved",
+  "status": "v4-source-specific-research-not-approved",
   "layers": [
     {
       "name": "lavender_lid_wash",
       "mask": "masks/rhinestone-lid-wash.png",
       "pigment": "#dfc0e6",
-      "opacity": 0.4,
+      "opacity": 0.3,
       "feather_px": 3,
       "texture_strength": 0.7,
       "finish": "satin"
@@ -15,7 +15,7 @@
       "name": "outer_lavender",
       "mask": "masks/rhinestone-outer-lid.png",
       "pigment": "#b48bc4",
-      "opacity": 0.48,
+      "opacity": 0.2,
       "feather_px": 3,
       "texture_strength": 0.7,
       "finish": "satin",
@@ -25,7 +25,7 @@
       "name": "fine_liner",
       "mask": "masks/rhinestone-liner.png",
       "pigment": "#251c22",
-      "opacity": 0.88,
+      "opacity": 0.8,
       "feather_px": 0,
       "texture_strength": 0.1,
       "finish": "matte",
@@ -35,7 +35,7 @@
       "name": "high_rose_blush",
       "mask": "masks/rhinestone-cheek.png",
       "pigment": "#e59ab0",
-      "opacity": 0.35,
+      "opacity": 0.16,
       "feather_px": 6,
       "texture_strength": 0.85,
       "finish": "satin"
@@ -44,7 +44,7 @@
       "name": "rose_lip_gloss",
       "mask": "masks/rhinestone-lips.png",
       "pigment": "#c97a96",
-      "opacity": 0.62,
+      "opacity": 0.27,
       "feather_px": 1.2,
       "texture_strength": 1,
       "finish": "gloss"
