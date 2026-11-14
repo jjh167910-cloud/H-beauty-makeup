@@ -103,6 +103,10 @@ def validate_recipe(data: object, root: Path) -> list[dict]:
         opacity = parameter(item.get("opacity", 0.85), f"{name}.opacity", 0.05, 1.0)
         feather = parameter(item.get("feather_px", 2.0), f"{name}.feather_px", 0.0, 20.0)
         texture = parameter(item.get("texture_strength", 0.75), f"{name}.texture_strength", 0.0, 1.5)
+        appearance = item.get("appearance_model", "legacy")
+        if appearance not in ("legacy", "source-relief-v5"):
+            raise ValueError(f"{name}.appearance_model must be legacy or source-relief-v5")
+        tone = parameter(item.get("tone", 1.0), f"{name}.tone", 0.5, 1.5)
         allow_overlap = item.get("allow_overlap", False)
         if not isinstance(allow_overlap, bool):
             raise ValueError(f"{name}.allow_overlap must be true or false")
@@ -110,6 +114,7 @@ def validate_recipe(data: object, root: Path) -> list[dict]:
         results.append({"name": name, "path": path, "finish": finish,
                         "opacity": opacity, "feather": feather,
                         "texture": texture, "allow_overlap": allow_overlap,
+                        "appearance": appearance, "tone": tone,
                         "pigment": pigment})
     return results
 
@@ -154,7 +159,8 @@ def prepare_mask(path: Path, size: tuple[int, int]) -> Image.Image:
 
 
 def colorize_roi(source: np.ndarray, underlay: np.ndarray, weight: np.ndarray, pigment: np.ndarray,
-                 texture_strength: float, finish: str, blur_px: float = DEFAULT_TEXTURE_BLUR_PX) -> np.ndarray:
+                 texture_strength: float, finish: str, blur_px: float = DEFAULT_TEXTURE_BLUR_PX,
+                 appearance: str = "legacy", tone: float = 1.0) -> np.ndarray:
     """Convert existing skin RGB to target cosmetic albedo while keeping texture.
 
     Input float image is in [0,1] *sRGB*. Mask is a float [0,1] coverage
@@ -176,7 +182,29 @@ def colorize_roi(source: np.ndarray, underlay: np.ndarray, weight: np.ndarray, p
     reference_luma = float(np.median(blurred[active])) if np.any(active) else float(np.median(blurred))
     illum = np.clip(((blurred + 0.045) / (reference_luma + 0.045)) ** 0.55, 0.66, 1.38)
     pigment_linear = srgb_to_linear(pigment)
-    target = pigment_linear.reshape(1, 1, 3) * illum[..., None] * np.power(local_detail[..., None], texture_strength)
+    if appearance == "source-relief-v5":
+        # Photographed source relief drives both broad (form/lighting) and
+        # narrow (pores/creases) structure. The pigment supplies CHROMA,
+        # not a spatially flat new lightness image. This avoids flattening
+        # the original lip topography into one uniform lipstick rectangle.
+        #
+        # This is a controlled optical approximation, NOT measured spectral
+        # pigment or physically correct BRDF. An unchanged source with no
+        # glints cannot magically acquire photographed glassy lip reflections.
+        pigment_luma = float(np.dot(pigment_linear, [.2126, .7152, .0722]))
+        chroma = pigment_linear / max(0.015, pigment_luma)
+        form = np.clip((blurred + .015) / (reference_luma + .015), .57, 1.55)
+        detail = np.power(local_detail, texture_strength)
+        desired_luma = np.clip(
+            reference_luma * tone * np.power(form, .88) * detail, 0, .95
+        )
+        target = desired_luma[..., None] * chroma.reshape(1, 1, 3)
+        positive_source_glints = np.maximum(0, source_luma - blurred * 1.035)
+        glint_scale = {"matte": .03, "satin": .23, "gloss": .70, "metallic": .35}[finish]
+        target += positive_source_glints[..., None] * glint_scale
+        target = np.clip(target, 0, 1)
+    else:
+        target = pigment_linear.reshape(1, 1, 3) * illum[..., None] * np.power(local_detail[..., None], texture_strength)
 
     if finish == "satin":
         # Do not create artificial highlights; retain a small share of source
@@ -253,7 +281,8 @@ def render(master_path: Path, recipe_path: Path, out: Path, premium: bool = Fals
         alpha = np.minimum(1.0, np.maximum(0.0, m_patch * spec["opacity"]))
         underlay_patch = output[ay0:ay1, ax0:ax1].astype(np.float32) / 255.0
         result_patch = colorize_roi(
-            src_patch, underlay_patch, alpha, spec["pigment"], spec["texture"], spec["finish"]
+            src_patch, underlay_patch, alpha, spec["pigment"], spec["texture"], spec["finish"],
+            appearance=spec["appearance"], tone=spec["tone"]
         )
         new_pixels = np.rint(result_patch * 255).astype(np.uint8)
         active = m_patch > 0
@@ -265,6 +294,8 @@ def render(master_path: Path, recipe_path: Path, out: Path, premium: bool = Fals
             "pigment_rgb": [int(x * 255 + .5) for x in spec["pigment"]],
             "opacity": spec["opacity"], "feather_px": spec["feather"],
             "texture_strength": spec["texture"],
+            "appearance_model": spec["appearance"],
+            "tone": spec["tone"],
             "allow_overlap": spec["allow_overlap"],
             "overlap_pixels_with_prior_layers": overlapping_pixels,
             "mask_sha256": sha256(spec["path"].read_bytes()).hexdigest(),
