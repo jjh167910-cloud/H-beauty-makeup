@@ -195,8 +195,15 @@ def colorize_roi(source: np.ndarray, underlay: np.ndarray, weight: np.ndarray, p
         chroma = pigment_linear / max(0.015, pigment_luma)
         form = np.clip((blurred + .015) / (reference_luma + .015), .57, 1.55)
         detail = np.power(local_detail, texture_strength)
+        # Geometric blending of pigment and source lightness avoids
+        # making a dark red lipstick as bright as naked skin (which would
+        # clip the red channel and look neon). Retain source form *relative*
+        # to this exposure, never blindly copy the source's mean luminance.
+        target_mean_luma = math.sqrt(
+            max(reference_luma, .015) * max(pigment_luma, .015)
+        )
         desired_luma = np.clip(
-            reference_luma * tone * np.power(form, .88) * detail, 0, .95
+            target_mean_luma * tone * np.power(form, .88) * detail, 0, .95
         )
         target = desired_luma[..., None] * chroma.reshape(1, 1, 3)
         positive_source_glints = np.maximum(0, source_luma - blurred * 1.035)
