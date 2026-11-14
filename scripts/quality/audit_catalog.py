@@ -60,7 +60,7 @@ def find_looks() -> list[tuple[str, str]]:
     return items
 
 
-def audit() -> tuple[list[dict], list[str], list[str]]:
+def audit(require_v2: bool = False) -> tuple[list[dict], list[str], list[str]]:
     items = find_looks()
     errors, warnings, rows = [], [], []
     if len(items) != 42:
@@ -71,6 +71,23 @@ def audit() -> tuple[list[dict], list[str], list[str]]:
     with Image.open(BASELINE) as b:
         base = b.convert("RGB")
     size = base.size
+    if require_v2:
+        # A v2 asset release must not silently reuse the made-up natural style
+        # as the cosmetic-free extraction source. Human cosmetic-free approval
+        # is still necessary even when the new file passes this machine gate.
+        neutral = PHOTOS / "bare-reference.webp"
+        if not neutral.is_file():
+            errors.append("V2 reference missing: public/makeup/looks/bare-reference.webp")
+        else:
+            try:
+                with Image.open(neutral) as opened:
+                    neutral_image = opened.convert("RGB")
+                if neutral_image.size != size:
+                    errors.append(f"V2 neutral photo {neutral_image.size} differs from catalog {size}")
+                if neutral_image.tobytes() == base.tobytes():
+                    errors.append("V2 neutral photo is pixel-identical to the made-up no-makeup style")
+            except (UnidentifiedImageError, OSError, ValueError) as exc:
+                errors.append(f"Unreadable V2 neutral reference: {exc}")
     hashes: dict[str, list[str]] = defaultdict(list)
     required = {
         "photo": (PHOTOS, ".webp"),
@@ -163,8 +180,9 @@ def write_report(out: Path, rows: list[dict], errors: list[str], warnings: list[
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", type=Path, default=ROOT / "catalog-audit-output")
+    parser.add_argument("--require-v2", action="store_true", help="Require a distinct, correctly sized neutral bare reference")
     args = parser.parse_args()
-    rows, errors, warnings = audit()
+    rows, errors, warnings = audit(require_v2=args.require_v2)
     write_report(args.out, rows, errors, warnings)
     print(f"Audited {len(rows)} styles; {len(errors)} structural errors; "
           f"{sum(len(r['warnings']) for r in rows)} review flags")
