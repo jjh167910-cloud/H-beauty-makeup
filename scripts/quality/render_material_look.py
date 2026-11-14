@@ -193,7 +193,13 @@ def colorize_roi(source: np.ndarray, underlay: np.ndarray, weight: np.ndarray, p
 def render(master_path: Path, recipe_path: Path, out: Path, premium: bool = False) -> dict:
     # Never return a stale passed artifact from a previous attempt.
     out.mkdir(parents=True, exist_ok=True)
-    for stale in ("material-render.png", "material-render-report.json"):
+    # Failed reruns must not leave a prior approved-looking image, union mask
+    # or green pixel-lock report that can be mistaken for this candidate.
+    for stale in (
+        "material-render.png", "material-render-report.json", "approved-region-union.png",
+        "pixel-lock/audit.json", "pixel-lock/allowed-region-mask.png",
+        "pixel-lock/protected-differences.png",
+    ):
         (out / stale).unlink(missing_ok=True)
     source = load_rgb(master_path)
     source_icc = validated_srgb_profile(master_path)
