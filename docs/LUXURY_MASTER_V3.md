@@ -144,3 +144,49 @@ result with visible boundary artifacts regardless of structural status.
 **Do not upscale the 1086×1448 experimental generated images.**
 They may serve as art-direction studies only; premium release requires
 genuine native-size image masters and independently verified source provenance.
+
+## F. Source-locked compositor and seam preflight
+
+A full independently re-generated portrait is never a safe input to a makeup
+paste operation. The new offline utility rejects such candidates BEFORE writing
+a cosmetic composite. For each look provide three same-size lossless PNG files:
+
+- master.png: the frozen presentation portrait (not altered between styles)
+- candidate.png: the **same frozen image**, with only approved makeup pixels changed
+- allowed-cosmetics.png: a one-channel mask with a safe margin surrounding the
+  intended cosmetics and all non-cosmetic hair/skin/background protected
+
+Run:
+
+    python scripts/quality/compose_source_locked.py \
+      --master master.png --candidate candidate.png \
+      --mask allowed-cosmetics.png --out review/hollywood \
+      --feather 7 --premium
+
+It requires zero difference outside the mask in the INPUT candidate. That means
+it will correctly reject the earlier independently generated Hollywood photo
+even though a pasted composite could have had unchanged outer pixels.
+
+The tool measures differences on the mask edge to catch awkward border
+placement or face misalignment. A high mismatch rejects the candidate.
+Its conservative feather affects only pixels inside the mask, using smoothstep
+weights from the boundary towards the fully opaque inner core. The compositor
+then invokes the strict pixel-lock auditor again on its saved output.
+
+**Critical:** the mask should include a narrow, unchanged source-skin margin
+beyond the actual pigment. Tight masks that end directly on red lipstick or
+graphic eyeliner edges are rejected instead of attempting to blur away a
+precise cosmetic boundary. For very thin detailed liner/lashes, use a separate
+well-defined region mask and a smaller feather radius. Never reduce tests just
+to force a failed sample to pass.
+
+The report includes:
+- changed source pixels outside the mask (must be zero)
+- mean and 95th percentile source/candidate difference along the mask edge
+- amount of usable mask interior after feathering
+- exact outside-mask post-composite preservation
+- red heatmap of prohibited changes and a saved composite for expert review
+
+This method improves *consistency safeguards* and edge handling; it does NOT
+synthesize real skin pores, repair independently regenerated facial geometry,
+certify native photo detail, or replace professional beauty-artist evaluation.
