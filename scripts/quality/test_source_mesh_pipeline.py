@@ -58,9 +58,23 @@ class MeshDerivedPilots(unittest.TestCase):
                 checked_mesh(bad,p,(500,650))
             bad=dict(mesh)
             bad["detection_policy"]=dict(mesh["detection_policy"])
+            bad["detection_policy"]["max_faces_checked"]=1
+            with self.assertRaisesRegex(ValueError,"Unsupported"):
+                checked_mesh(bad,p,(500,650))
+            bad=dict(mesh)
+            bad["detection_policy"]=dict(mesh["detection_policy"])
             bad["detection_policy"]["reported_per_face_confidence_available"]=True
             with self.assertRaisesRegex(ValueError,"Unsupported"):
                 checked_mesh(bad,p,(500,650))
+
+    def test_multi_face_detection_is_rejected_before_export(self):
+        with tempfile.TemporaryDirectory() as temp:
+            p, _, mesh = self.fixture(Path(temp))
+            with self.assertRaisesRegex(ValueError, "precisely ONE face"):
+                build_payload(p.read_bytes(), 500,650,synthetic_face(),
+                              face_count=2,
+                              min_face_detection_confidence=.85,
+                              min_face_presence_confidence=.85)
 
     def test_source_mismatch_is_rejected_before_masks_are_generated(self):
         with tempfile.TemporaryDirectory() as temp:
