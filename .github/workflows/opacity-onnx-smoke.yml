@@ -1,0 +1,35 @@
+name: Research opacity ONNX export parity
+
+on:
+  pull_request:
+    paths:
+      - "scripts/quality/export_opacity_onnx.py"
+      - "scripts/quality/test_export_opacity_onnx.py"
+      - "scripts/quality/train_opacity_carrier.py"
+      - "docs/OPACITY_CARRIER_ONNX_RESEARCH.md"
+      - ".github/workflows/opacity-onnx-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-onnx-smoke:
+    name: Source-locked PyTorch to ONNX numerical parity (NO real faces)
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install NumPy and Pillow
+        run: python -m pip install --disable-pip-version-check numpy pillow
+      - name: Install CPU-only PyTorch
+        run: python -m pip install --disable-pip-version-check torch --index-url https://download.pytorch.org/whl/cpu
+      - name: Install ONNX and ONNX Runtime CPU
+        run: python -m pip install --disable-pip-version-check onnx onnxruntime
+      - name: Test private synthetic model export and exact source-mask protection
+        run: python scripts/quality/test_export_opacity_onnx.py
+      # Research model files are intentionally NOT uploaded as artifacts
+      # and never deployed as frontend downloadable model weights.
