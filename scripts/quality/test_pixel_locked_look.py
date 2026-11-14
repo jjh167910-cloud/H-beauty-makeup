@@ -49,6 +49,18 @@ class PixelLockedLookTests(unittest.TestCase):
             self.assertFalse(result["passed"])
             self.assertEqual(result["changed_outside_mask_pixels"], 1)
 
+    def test_rgba_transparency_cannot_hide_protected_changes(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            x, y, z = self.pair(root)
+            with Image.open(y) as photo:
+                altered = photo.convert("RGBA")
+            altered.putpixel((5, 5), (190, 150, 125, 0))
+            altered.save(y)
+            result = audit(x, y, z, root / "out")
+            self.assertFalse(result["passed"])
+            self.assertIn("Non-opaque transparency", " ".join(result["errors"]))
+
     def test_incorrect_framing_is_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
