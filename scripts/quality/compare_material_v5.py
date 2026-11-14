@@ -122,14 +122,16 @@ def compare(photo: Path, drafts: Path, out: Path) -> dict:
         recipe=json.loads(config.read_text(encoding="utf8"))
         if recipe.get("source_sha256") != original_sha:
             raise ValueError(f"{sid}: source hash mismatch")
-        legacy_path=folder/"rendered-research-only/material-render.png"
-        if not legacy_path.is_file():
-            render(photo,config,folder/"rendered-research-only")
-        legacy=read_rgb(legacy_path)
+        # Always render the legacy baseline from the SAME current recipe,
+        # exact source and same masks. A cached old PNG can silently compare
+        # different pigment strengths/geometry instead of two material modes.
+        legacy_dir=out/"legacy"/sid
+        render(photo,config,legacy_dir)
+        legacy=read_rgb(legacy_dir/"material-render.png")
         enhanced=json.loads(json.dumps(recipe))
         for layer in enhanced["layers"]:
             kind=layer["name"].lower()
-            if "lip" in kind:
+            if "lip" in kind or "gloss" in kind:
                 layer["appearance_model"]="source-relief-v5"
                 layer["tone"]=.92
             elif "lid" in kind or "blue" in kind:
