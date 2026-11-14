@@ -56,6 +56,18 @@ def preflight(master_path: Path, candidate_path: Path, mask_path: Path,
     if not 1 <= feather <= 24:
         raise ValueError("Feather distance must be between 1 and 24 pixels")
     out.mkdir(parents=True, exist_ok=True)
+    # Invalidate any previously approved-looking artifacts BEFORE checking
+    # the current candidate. A failed rerun must never leave an old green
+    # pixel audit or a stale composite available for release by mistake.
+    for old in (
+        out / "source-locked-composite.png",
+        out / "preflight.json",
+        out / "forbidden-changes.png",
+        out / "pixel-lock" / "audit.json",
+        out / "pixel-lock" / "allowed-region-mask.png",
+        out / "pixel-lock" / "protected-differences.png",
+    ):
+        old.unlink(missing_ok=True)
     errors = []
     try:
         master = load_rgb(master_path)
@@ -116,6 +128,7 @@ def preflight(master_path: Path, candidate_path: Path, mask_path: Path,
     )
     result = {
         "passed": not errors,
+        "composite_status": "preflight-only" if not errors else "rejected",
         "candidate_source_locked": unauthorized_count == 0,
         "requires_visual_approval": True,
         "master_sha256": sha(master_path),
@@ -167,8 +180,10 @@ def compose(master_path: Path, candidate_path: Path, mask_path: Path,
     if not safety["passed"]:
         file_path.unlink(missing_ok=True)
         check["passed"] = False
+        check["composite_status"] = "rejected"
         check["errors"].extend("post-composite: " + msg for msg in safety["errors"])
     else:
+        check["composite_status"] = "verified"
         check["composite_path"] = str(file_path)
         check["composite_sha256"] = sha(file_path)
         check["composite_changed_outside_mask_pixels"] = safety["changed_outside_mask_pixels"]
