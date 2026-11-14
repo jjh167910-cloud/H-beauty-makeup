@@ -97,6 +97,78 @@ class MaterialLookTests(unittest.TestCase):
             bright = float(np.mean(image[256:268, 191:204, 0]))
             self.assertGreater(bright - dark, 8.0, (dark, bright))
 
+    def test_opt_in_v5_preserves_original_lip_relief_and_protected_pixels(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)
+            master,config,recipe=self.fixture(root)
+            recipe["layers"][0]["appearance_model"]="source-relief-v5"
+            recipe["layers"][0]["tone"]=0.86
+            config.write_text(json.dumps(recipe))
+            report=render(master,config,root/"v5")
+            self.assertEqual(report["changed_outside_cosmetic_mask"],0)
+            self.assertEqual(report["layers"][0]["appearance_model"],"source-relief-v5")
+            self.assertEqual(report["layers"][0]["tone"],0.86)
+            original=np.asarray(Image.open(master))
+            painted=np.asarray(Image.open(root/"v5"/"material-render.png"))
+            allowed=np.asarray(Image.open(root/"v5"/"approved-region-union.png"))>0
+            np.testing.assert_array_equal(original[~allowed],painted[~allowed])
+            self.assertGreater(float(np.std(painted[256:266,120:195,0])),0.4)
+
+    def test_v5_source_form_survives_even_at_full_pigment_opacity(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)
+            master,config,recipe=self.fixture(root)
+            source=np.asarray(Image.open(master),dtype=np.float32).copy()
+            ramp=np.linspace(0.68,1.32,source.shape[1],dtype=np.float32)
+            source=np.clip(source*ramp[None,:,None],0,255).astype(np.uint8)
+            Image.fromarray(source,"RGB").save(master)
+            recipe["layers"]=[recipe["layers"][0]]
+            recipe["layers"][0].update(appearance_model="source-relief-v5",
+                                       opacity=1.0,feather_px=1.0,tone=.8)
+            config.write_text(json.dumps(recipe))
+            render(master,config,root/"v5")
+            rgb=np.asarray(Image.open(root/"v5"/"material-render.png"))
+            dark=float(np.mean(rgb[256:266,118:130,0]))
+            light=float(np.mean(rgb[256:266,191:202,0]))
+            self.assertGreater(light-dark,10.0,(dark,light))
+
+    def test_v5_finishes_use_only_source_attested_highlights(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)
+            master,config,recipe=self.fixture(root)
+            original=np.asarray(Image.open(master),dtype=np.uint8).copy()
+            # Bright source detail on the lip; no invented source specular
+            # location is supplied by a new portrait.
+            original[260,160:171,:]=np.clip(original[260,160:171,:].astype(int)+60,0,255).astype("uint8")
+            Image.fromarray(original,"RGB").save(master)
+            recipe["layers"]=[recipe["layers"][0]]
+            recipe["layers"][0].update(appearance_model="source-relief-v5",
+                                       opacity=1.0,tone=.88,feather_px=1.0)
+            recipe["layers"][0]["finish"]="matte"
+            config.write_text(json.dumps(recipe))
+            render(master,config,root/"matte")
+            recipe["layers"][0]["finish"]="gloss"
+            config.write_text(json.dumps(recipe))
+            render(master,config,root/"gloss")
+            matte=np.asarray(Image.open(root/"matte"/"material-render.png"))
+            gloss=np.asarray(Image.open(root/"gloss"/"material-render.png"))
+            self.assertFalse(np.array_equal(matte,gloss))
+            np.testing.assert_array_equal(
+                original[20:70,20:70],gloss[20:70,20:70]
+            )
+
+    def test_v5_rejects_unknown_model_and_nonfinite_tone(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)
+            _,config,recipe=self.fixture(root)
+            recipe["layers"][0]["appearance_model"]="unproven-neural-model"
+            with self.assertRaisesRegex(ValueError,"appearance_model"):
+                validate_recipe(recipe,root)
+            recipe["layers"][0]["appearance_model"]="source-relief-v5"
+            recipe["layers"][0]["tone"]=float("nan")
+            with self.assertRaisesRegex(ValueError,"tone"):
+                validate_recipe(recipe,root)
+
     def test_overlapping_region_masks_are_rejected(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

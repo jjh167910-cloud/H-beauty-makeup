@@ -19,6 +19,11 @@ on:
       - "scripts/quality/detect_source_face.py"
       - "scripts/quality/author_mesh_pilot_masks.py"
       - "scripts/quality/test_source_mesh_pipeline.py"
+      - "scripts/quality/compare_material_v5.py"
+      - "scripts/quality/test_material_comparison_v5.py"
+      - "scripts/quality/refine_photo_lips.py"
+      - "scripts/quality/test_refine_photo_lips.py"
+      - "scripts/quality/compare_lip_edge_v5.py"
       - "scripts/quality/render_rhinestones.py"
       - "scripts/quality/test_rhinestones.py"
       - "scripts/quality/material_recipes/rhinestone-accessories-STUDY.json"
@@ -69,6 +74,42 @@ jobs:
           print("Bundled MediaPipe model and face-specific mask author passed integration smoke test.")
           print("The public catalog photo is already made up; this is NOT V2 photorealism approval.")
           PY
+      - name: Create four legacy-vs-V5 public-sample A/B image reviews
+        run: |
+          python scripts/quality/compare_material_v5.py \
+            --photo public/makeup/looks/no-makeup.webp \
+            --drafts /tmp/public-example-four-pilot-masks \
+            --out /tmp/public-v5-material-comparisons
+      - name: Refine Hollywood lip border using PUBLIC source photo edge evidence
+        run: |
+          python scripts/quality/compare_lip_edge_v5.py \
+            --source public/makeup/looks/no-makeup.webp \
+            --drafts /tmp/public-example-four-pilot-masks \
+            --v5 /tmp/public-v5-material-comparisons \
+            --out /tmp/public-hollywood-photo-lip-refinement
+      - name: Publish Hollywood photo-edge lip comparison (RESEARCH-ONLY)
+        uses: actions/upload-artifact@v4
+        with:
+          name: PUBLIC-hollywood-photo-guided-lips-RESEARCH-ONLY
+          path: |
+            /tmp/public-hollywood-photo-lip-refinement/hollywood-four-way-lips.jpg
+            /tmp/public-hollywood-photo-lip-refinement/hollywood-photo-refinement-review.json
+            /tmp/public-hollywood-photo-lip-refinement/mask-refinement/lip-region-edges.png
+            /tmp/public-hollywood-photo-lip-refinement/mask-refinement/refined-lips.png
+            /tmp/public-hollywood-photo-lip-refinement/mask-refinement/refined-lips-alpha.png
+            /tmp/public-hollywood-photo-lip-refinement/photo-guided-render/material-render.png
+          retention-days: 7
+      - name: Publish side-by-side PUBLIC V5 material experiment (NOT approved)
+        uses: actions/upload-artifact@v4
+        with:
+          name: PUBLIC-v5-material-A-B-review-NOT-APPROVED
+          path: |
+            /tmp/public-v5-material-comparisons/before-after-v5-contact-sheet.jpg
+            /tmp/public-v5-material-comparisons/*-eyes-lips-review.jpg
+            /tmp/public-v5-material-comparisons/review-report.json
+            /tmp/public-v5-material-comparisons/*/rendered/material-render.png
+            /tmp/public-v5-material-comparisons/*/rendered/material-render-report.json
+          retention-days: 7
       # Public existing catalog example is permitted as a reference,
       # but NEVER upload any private user's face or landmarks to Actions.
       - name: Publish PUBLIC catalog-derived research previews, never customer data
@@ -88,7 +129,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install image verification dependencies
-        run: python -m pip install --disable-pip-version-check pillow numpy
+        run: python -m pip install --disable-pip-version-check pillow numpy opencv-python-headless
       - name: Generate 43 individual production briefs
         run: python scripts/quality/prepare_reference_v2.py generate --out catalog-v2-production-pack
       - name: Verify manifest, source and 4-pilot specifications
@@ -131,6 +172,10 @@ jobs:
         run: python scripts/quality/test_source_locked_compositor.py
       - name: Verify source-locked cosmetic material rendering and original texture preservation
         run: python scripts/quality/test_material_look.py
+      - name: Verify V5 side-by-side source-original appearance study
+        run: python scripts/quality/test_material_comparison_v5.py
+      - name: Reject lipstick color-bleed using conservative photo-guided segmentation tests
+        run: python scripts/quality/test_refine_photo_lips.py
       - name: Verify manual four-look mask geometry and exact source identity gates
         run: python scripts/quality/test_author_four_pilot_masks.py
       - name: Reject lip, eye and liner masks that violate source-specific face geometry
