@@ -31,6 +31,7 @@ from production until genuine paired images and review prove better quality.
 from __future__ import annotations
 
 import argparse
+from io import BytesIO
 from hashlib import sha256
 import json
 import math
@@ -38,9 +39,10 @@ from pathlib import Path
 import re
 
 import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image, ImageCms, ImageFilter
 
 from audit_pixel_locked_look import audit as audit_pixel_lock, load_rgb
+from compose_source_locked import mask_depth
 
 HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
 FINISHES = {"matte", "satin", "gloss", "metallic"}
@@ -112,6 +114,31 @@ def validate_recipe(data: object, root: Path) -> list[dict]:
     return results
 
 
+def validated_srgb_profile(path: Path) -> bytes | None:
+    """Reject wide-gamut or malformed ICC data before sRGB pigment math.
+
+    The same pixel RGB values have different colors under AdobeRGB/Display P3.
+    Preserving the original embedded sRGB profile prevents color-management
+    regressions in otherwise unchanged face, background and clothing regions.
+    Untagged input is assumed to be sRGB and remains untagged.
+    """
+    with Image.open(path) as im:
+        raw = im.info.get("icc_profile")
+    if not raw:
+        return None
+    try:
+        profile = ImageCms.ImageCmsProfile(BytesIO(raw))
+        name = ImageCms.getProfileName(profile).lower()
+    except (OSError, ValueError, TypeError) as exc:
+        raise ValueError(f"Invalid embedded ICC profile: {exc}") from exc
+    if "srgb" not in name:
+        raise ValueError(
+            f"Source ICC profile must be sRGB, not {name.strip()!r}; "
+            "convert source to sRGB using a color-managed conversion before rendering"
+        )
+    return raw
+
+
 def prepare_mask(path: Path, size: tuple[int, int]) -> Image.Image:
     with Image.open(path) as f:
         f.verify()
@@ -169,6 +196,7 @@ def render(master_path: Path, recipe_path: Path, out: Path, premium: bool = Fals
     for stale in ("material-render.png", "material-render-report.json"):
         (out / stale).unlink(missing_ok=True)
     source = load_rgb(master_path)
+    source_icc = validated_srgb_profile(master_path)
     layers = validate_recipe(json.loads(recipe_path.read_text(encoding="utf-8")), recipe_path.parent)
     w, h = source.size
     if premium and (w < 2048 or h < 2732 or abs(w / h - 0.75) > 0.005):
@@ -197,12 +225,18 @@ def render(master_path: Path, recipe_path: Path, out: Path, premium: bool = Fals
         src_patch = rgb[ay0:ay1, ax0:ax1].astype(np.float32) / 255.0
         m_patch = np.asarray(mask.crop((ax0, ay0, ax1, ay1)), dtype=np.float32) / 255.0
         if spec["feather"] > 0:
-            blur = np.asarray(
-                mask.crop((ax0, ay0, ax1, ay1)).filter(ImageFilter.GaussianBlur(spec["feather"])),
-                dtype=np.float32
-            ) / 255.0
-            # Clamp to the approved region. No feather leaks to unapproved pixels.
-            m_patch = np.minimum(m_patch, blur)
+            # GaussianBlur leaves ~50% coverage on a binary-mask boundary.
+            # Clipping it to the mask creates a sharp 50% -> 0% step.
+            # Erode inward to compute a true, zero-coverage boundary instead;
+            # use smoothstep over the first N interior pixels.
+            mask_patch = mask.crop((ax0, ay0, ax1, ay1))
+            depth = mask_depth(
+                mask_patch.point(lambda v: 255 if v > 0 else 0),
+                math.ceil(spec["feather"])
+            ).astype(np.float32)
+            t = np.clip(depth / max(spec["feather"], 1.0), 0.0, 1.0)
+            inward = 3.0 * t * t - 2.0 * t * t * t
+            m_patch *= inward
         alpha = np.minimum(1.0, np.maximum(0.0, m_patch * spec["opacity"]))
         underlay_patch = output[ay0:ay1, ax0:ax1].astype(np.float32) / 255.0
         result_patch = colorize_roi(
@@ -232,7 +266,8 @@ def render(master_path: Path, recipe_path: Path, out: Path, premium: bool = Fals
     if not np.any(output[occupied] != rgb[occupied]):
         raise ValueError("No effective cosmetic pigment change produced")
     composite_path = out / "material-render.png"
-    Image.fromarray(output, "RGB").save(composite_path)
+    save_kwargs = {"icc_profile": source_icc} if source_icc else {}
+    Image.fromarray(output, "RGB").save(composite_path, **save_kwargs)
     union_mask = out / "approved-region-union.png"
     Image.fromarray(occupied.astype(np.uint8) * 255, "L").save(union_mask)
     safety = audit_pixel_lock(master_path, composite_path, union_mask, out / "pixel-lock", premium=premium)
@@ -246,6 +281,8 @@ def render(master_path: Path, recipe_path: Path, out: Path, premium: bool = Fals
         "original_camera_ground_truth": False,
         "source_master_sha256": sha256(master_path.read_bytes()).hexdigest(),
         "source_width": w, "source_height": h,
+        "source_color_space": "sRGB" if source_icc else "sRGB-assumed-untagged",
+        "embedded_srgb_profile_preserved": bool(source_icc),
         "composite_sha256": sha256(composite_path.read_bytes()).hexdigest(),
         "cosmetic_regions_percent": round(100 * occupied_count / (w * h), 4),
         "changed_outside_cosmetic_mask": outside_changed,
