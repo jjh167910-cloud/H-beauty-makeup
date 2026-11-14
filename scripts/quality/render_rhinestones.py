@@ -22,7 +22,7 @@ import math
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageCms, ImageDraw, ImageFilter
+from PIL import Image, ImageChops, ImageCms, ImageDraw, ImageFilter
 
 from audit_pixel_locked_look import load_rgb
 
@@ -163,7 +163,12 @@ def render(source_path: Path, recipe_path: Path, out: Path) -> dict:
         # must be verified visually, not presumed from numeric coordinates.
         alpha=sprite.getchannel("A")
         canvas.alpha_composite(sprite,(left,top))
-        changed.paste(alpha.point(lambda a:255 if a>0 else 0),(left,top))
+        layer_mask = Image.new("L", source.size, 0)
+        layer_mask.paste(alpha.point(lambda a: 255 if a > 0 else 0), (left,top))
+        # Union rather than paste: the bounding boxes of two glints/shadows
+        # can overlap even when stone centers cannot. Pasting transparent
+        # corners would incorrectly erase the previous stone's mask.
+        changed = ImageChops.lighter(changed, layer_mask)
         placements.append({"center":[x,y],"radius_px":r,"angle_deg":g["angle"]})
     result=canvas.convert("RGB")
     output=np.asarray(result,dtype=np.uint8)
