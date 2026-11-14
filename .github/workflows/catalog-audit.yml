@@ -1,0 +1,35 @@
+name: Makeup catalog reference QA
+
+on:
+  pull_request:
+    paths:
+      - "src/data/makeup-styles.ts"
+      - "public/makeup/looks/**"
+      - "public/tryon/layers/**"
+      - "public/tryon/eyes/**"
+      - "scripts/quality/audit_catalog.py"
+      - ".github/workflows/catalog-audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install image QA dependency
+        run: python -m pip install --disable-pip-version-check pillow
+      - name: Audit all 42 style reference images
+        run: python scripts/quality/audit_catalog.py --out catalog-audit-output
+      - name: Publish the per-look report even when review flags exist
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: makeup-catalog-qa
+          path: catalog-audit-output
+          retention-days: 14
