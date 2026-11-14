@@ -130,6 +130,14 @@ export class LiveMirror {
       try {
         this.draw(landmarker);
         frameFailures = 0;
+        // If the camera freezes, a previously measured FPS must not remain
+        // displayed as though frames are still arriving.
+        if (this.lastDrawAt > 0 && performance.now() - this.lastDrawAt > 2500 && this.stats.fps > 0) {
+          this.stats.fps = 0;
+          this.frames = 0;
+          this.fpsAt = 0;
+          this.onStats?.({ ...this.stats });
+        }
       } catch (error) {
         // A transient decoder/graphics error must not permanently halt the
         // camera loop. Subsequent frames can recover without restarting video.
