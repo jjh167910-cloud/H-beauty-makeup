@@ -80,9 +80,11 @@ def checked_mesh(data: dict, master_path: Path, size: tuple[int, int]):
                 or not math.isfinite(conf) or conf < MIN_FACE_DETECTION_CONFIDENCE):
             raise ValueError("Measured face detection confidence is insufficient for anatomy QA")
     elif isinstance(policy, dict):
+        max_faces = policy.get("max_faces_checked")
         if (policy.get("framework") != "mediapipe.tasks.vision.FaceLandmarker"
                 or policy.get("running_mode") != "IMAGE"
-                or policy.get("max_faces_checked", 0) < 2
+                or isinstance(max_faces, bool)
+                or not isinstance(max_faces, int) or max_faces < 2
                 or policy.get("reported_per_face_confidence_available") is not False):
             raise ValueError("Unsupported or misrepresented face-landmark detection policy")
         for name in ("min_face_detection_confidence", "min_face_presence_confidence"):
