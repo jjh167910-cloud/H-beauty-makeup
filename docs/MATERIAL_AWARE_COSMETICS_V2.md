@@ -108,3 +108,33 @@ generated-photo claims of ground truth. No automatic copying of the material
 results into `public/makeup/looks` or `public/tryon`. A successful cosmetic
 source-lock check cannot prove the image is luxury photorealistic. The
 production app is unchanged by this research branch.
+
+## Source-specific four-look mask geometry (research only)
+
+The Python tool `scripts/quality/author_four_pilot_masks.py` authors 17
+grayscale cosmetic masks for four pilot looks using manually reviewed
+coordinates on one particular 1086x1448 synthetic editorial portrait.
+It **cannot** be reused without re-authoring on another face, pose, crop,
+or genuine native-resolution master. The input dimensions AND the exact
+source SHA-256 must match the selected local research image.
+
+To run, compute the source digest and invoke:
+
+    sha256sum /path/to/frozen-master.png
+    python scripts/quality/author_four_pilot_masks.py \
+      --master /path/to/frozen-master.png \
+      --expected-sha256 EXACT_SOURCE_DIGEST \
+      --out /tmp/hbeauty-four-pilot-masks
+
+Place each resulting look's `masks/` beside its existing recipe JSON.
+Mask geography must be visually corrected, especially eyelashline and
+lip borders, before attempting a high-fidelity photorealism evaluation.
+The studied synthetic master already has visible cosmetic products and
+does not qualify as genuine bare-face photographic ground truth.
+
+The experimental shader also now preserves broad photographed source
+lighting across pigmented lips/cheeks, not just fine texture. This reduces
+flat-looking lipstick but is **not** proof of salon-grade realism.
+
+No previews or synthetic masters are published to the production catalog.
+Rhinestone is still missing separate, realistic reflective gem artwork.
