@@ -320,6 +320,8 @@ def validate(candidate_dir: Path, phase: str, out: Path) -> dict:
                 edited = read_rgb(photo)
                 if edited.size != master.size:
                     detail["issues"].append(f"mismatched image size {edited.size} vs {master.size}")
+                elif edited.tobytes() == master.tobytes():
+                    detail["issues"].append("style is pixel-identical to bare master; no cosmetic appearance added")
                 else:
                     # Photometric heuristics: these zones MAY contain flyaway hair,
                     # light variations etc. Flags require expert review; they do
