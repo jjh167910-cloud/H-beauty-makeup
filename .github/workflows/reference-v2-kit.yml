@@ -14,6 +14,8 @@ on:
       - "scripts/quality/test_material_look.py"
       - "scripts/quality/author_four_pilot_masks.py"
       - "scripts/quality/test_author_four_pilot_masks.py"
+      - "scripts/quality/audit_landmark_masks.py"
+      - "scripts/quality/test_landmark_masks.py"
       - "scripts/quality/render_rhinestones.py"
       - "scripts/quality/test_rhinestones.py"
       - "scripts/quality/material_recipes/rhinestone-accessories-STUDY.json"
@@ -78,6 +80,8 @@ jobs:
         run: python scripts/quality/test_material_look.py
       - name: Verify manual four-look mask geometry and exact source identity gates
         run: python scripts/quality/test_author_four_pilot_masks.py
+      - name: Reject lip, eye and liner masks that violate source-specific face geometry
+        run: python scripts/quality/test_landmark_masks.py
       - name: Verify research rhinestone facets, micro-shadows, and exact pixel locking
         run: python scripts/quality/test_rhinestones.py
       - name: Generate seven existing-catalog visual comparison sheets
