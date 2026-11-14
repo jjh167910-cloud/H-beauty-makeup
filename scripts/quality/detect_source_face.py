@@ -26,7 +26,7 @@ import numpy as np
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_TASK = ROOT / "public/face_landmarker.task"
+DEFAULT_TASK = ROOT / "public/tryon/face_landmarker.task"
 THRESHOLD = 0.80
 
 
