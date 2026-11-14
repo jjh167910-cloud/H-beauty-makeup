@@ -1,0 +1,37 @@
+name: Live mirror camera frame regression
+
+on:
+  pull_request:
+    paths:
+      - "src/lib/live-tryon.ts"
+      - "src/components/tryon.tsx"
+      - "tests/tryon.spec.ts"
+      - ".github/workflows/live-mirror-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-camera-smoke:
+    name: Verify two distinct source-camera frames and applied makeup
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Typecheck camera statistics
+        run: npm run typecheck
+      - name: Verify one end-to-end live camera makeup and photo capture flow
+        run: npm run test:ui -- tests/tryon.spec.ts --grep "live mirror paints the look"
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-camera-smoke-error
+          path: test-results/
+          retention-days: 7
