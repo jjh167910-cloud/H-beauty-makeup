@@ -125,8 +125,10 @@ def build(collection_path: Path, out: Path, seed: int=20261114) -> dict:
         raise ValueError("No paired data records")
     verified=[]
     seen_pair=set()
-    source_owner={}
-    target_owner={}
+    # A previously applied target could be reused as a subsequent step's
+    # source for the SAME person. Treat both photo roles as one fingerprint
+    # space, so a forged person ID cannot leak that image into a holdout.
+    image_owner={}
     for candidate in records:
         if not isinstance(candidate,dict):
             raise ValueError("Each pair must be a JSON object")
@@ -134,12 +136,12 @@ def build(collection_path: Path, out: Path, seed: int=20261114) -> dict:
         if entry["pair_id"] in seen_pair:
             raise ValueError("Repeated pair identifier")
         seen_pair.add(entry["pair_id"])
-        for key,owners in (("source_sha256",source_owner),("target_sha256",target_owner)):
+        for key in ("source_sha256","target_sha256"):
             signature=entry[key]
-            previous=owners.get(signature)
+            previous=image_owner.get(signature)
             if previous is not None and previous!=entry["subject_id"]:
-                raise ValueError(f"Duplicate {key} assigned to two different subjects")
-            owners[signature]=entry["subject_id"]
+                raise ValueError(f"Duplicate photo fingerprint ({key}) assigned to two different subjects")
+            image_owner[signature]=entry["subject_id"]
         verified.append(entry)
     subjects=sorted({e["subject_id"] for e in verified})
     if len(subjects)<MIN_SUBJECTS:
