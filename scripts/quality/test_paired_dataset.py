@@ -147,6 +147,19 @@ class PairedDatasetTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,"Repeated pair"):
                 build(c,root/"index.json")
 
+    def test_substituted_opacity_label_fails_real_reconstruction_check(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)
+            _,records=collection_fixture(root,6)
+            row=records[0]
+            alpha_path=root/row["alpha"]
+            mask=np.asarray(Image.open(root/row["mask"]))>0
+            altered=np.zeros(mask.shape,dtype=np.uint8)
+            altered[mask]=255
+            Image.fromarray(altered,"L").save(alpha_path)
+            with self.assertRaisesRegex(ValueError,"TRAINING-LABEL-RECONSTRUCTION-FAIL"):
+                verify_record(root,row)
+
     def test_unreviewed_extraction_cannot_be_training_label(self):
         with tempfile.TemporaryDirectory() as td:
             root=Path(td);c,records=collection_fixture(root,6)
