@@ -61,6 +61,26 @@ class SourceLockedCompositorTests(unittest.TestCase):
             self.assertIn("OUTSIDE", " ".join(result["errors"]))
             self.assertFalse((root / "out" / "source-locked-composite.png").exists())
 
+    def test_rejected_rerun_clears_previous_success_in_same_output_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            x, y, z = self.fixture(root)
+            out = root / "out"
+            first = compose(x, y, z, out, feather=5)
+            self.assertTrue(first["passed"], first["errors"])
+            self.assertTrue((out / "source-locked-composite.png").exists())
+            self.assertTrue((out / "pixel-lock" / "audit.json").exists())
+            with Image.open(y) as im:
+                altered = im.copy()
+            altered.putpixel((12, 12), (0, 0, 0))
+            altered.save(y)
+            second = compose(x, y, z, out, feather=5)
+            self.assertFalse(second["passed"])
+            self.assertEqual(second["changed_outside_mask_pixels"], 1)
+            self.assertFalse((out / "source-locked-composite.png").exists())
+            self.assertFalse((out / "pixel-lock" / "audit.json").exists())
+            self.assertEqual(json.loads((out / "preflight.json").read_text())["composite_status"], "rejected")
+
     def test_mask_edge_that_cuts_lip_pigment_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
