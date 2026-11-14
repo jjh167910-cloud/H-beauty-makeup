@@ -36,6 +36,10 @@ def load_rgb(path: Path) -> Image.Image:
     with Image.open(path) as im:
         if im.mode not in ("RGB", "RGBA"):
             raise ValueError(f"Unexpected {path.name} color mode: {im.mode}")
+        if im.mode == "RGBA":
+            alpha = im.getchannel("A")
+            if alpha.getextrema() != (255, 255):
+                raise ValueError(f"Non-opaque transparency in {path.name}; catalog photo must be fully opaque")
         return im.convert("RGB")
 
 
@@ -68,9 +72,14 @@ def audit(master_path: Path, look_path: Path, mask_path: Path,
         (out / "audit.json").write_text(json.dumps(result, indent=2) + "\n")
         return result
 
-    master = load_rgb(master_path)
-    edited = load_rgb(look_path)
-    allowed = load_mask(mask_path)
+    try:
+        master = load_rgb(master_path)
+        edited = load_rgb(look_path)
+        allowed = load_mask(mask_path)
+    except (OSError, ValueError) as exc:
+        result = {"passed": False, "errors": [str(exc)], "requires_artist_review": True}
+        (out / "audit.json").write_text(json.dumps(result, indent=2) + "\n")
+        return result
 
     if master.size != edited.size or allowed.size != master.size:
         errors.append(f"Dimensions differ: master {master.size}, look {edited.size}, mask {allowed.size}")
