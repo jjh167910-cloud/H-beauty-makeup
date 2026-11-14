@@ -96,6 +96,7 @@ jobs:
             /tmp/public-hollywood-photo-lip-refinement/hollywood-photo-refinement-review.json
             /tmp/public-hollywood-photo-lip-refinement/mask-refinement/lip-region-edges.png
             /tmp/public-hollywood-photo-lip-refinement/mask-refinement/refined-lips.png
+            /tmp/public-hollywood-photo-lip-refinement/mask-refinement/refined-lips-alpha.png
             /tmp/public-hollywood-photo-lip-refinement/photo-guided-render/material-render.png
           retention-days: 7
       - name: Publish side-by-side PUBLIC V5 material experiment (NOT approved)
