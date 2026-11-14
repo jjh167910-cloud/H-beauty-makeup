@@ -84,8 +84,10 @@ def lines(strokes):
 def build_masks():
     lids=joined(shape(EYE_LEFT,1.2),shape(EYE_RIGHT,1.2))
     crease=joined(shape(CREASE_LEFT,1),shape(CREASE_RIGHT,1))
-    blush=joined(cheek((245,464,370,600),16),
-                 cheek((530,430,700,582),19))
+    # Stay strictly within the cheeks and clear of hair along the facial
+    # silhouette; large blurred cheek ellipses reached hair in earlier drafts.
+    blush=joined(cheek((269,478,365,584),11),
+                 cheek((545,447,676,553),14))
     lips=shape(LIPS,.45)
     blue_inner=joined(
         shape([(333,373),(351,379),(375,391),(384,404),
