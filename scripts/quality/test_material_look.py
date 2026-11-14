@@ -8,7 +8,7 @@ import tempfile
 import unittest
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageCms, ImageDraw
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from render_material_look import render, validate_recipe
@@ -126,6 +126,43 @@ class MaterialLookTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "border"):
                 render(master, config, root / "result")
 
+    def test_binary_mask_fades_to_zero_at_inside_boundary(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            master, config, recipe = self.fixture(root)
+            recipe["layers"] = [recipe["layers"][0]]
+            recipe["layers"][0]["feather_px"] = 5
+            config.write_text(json.dumps(recipe))
+            render(master, config, root / "result")
+            source = np.asarray(Image.open(master))
+            done = np.asarray(Image.open(root / "result" / "material-render.png"))
+            # The ellipse's topmost pixel is immediately adjacent to the
+            # protected area: it must match source, not a 50%-opacity halo.
+            self.assertTrue(np.array_equal(source[248, 160], done[248, 160]))
+            self.assertFalse(np.array_equal(source[262, 160], done[262, 160]))
+
+    def test_embedded_srgb_icc_is_preserved(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            master, config, _ = self.fixture(root)
+            profile = ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes()
+            with Image.open(master) as im:
+                im.save(master, icc_profile=profile)
+            result = render(master, config, root / "render")
+            with Image.open(root / "render" / "material-render.png") as im:
+                self.assertEqual(im.info.get("icc_profile"), profile)
+            self.assertTrue(result["embedded_srgb_profile_preserved"])
+
+    def test_wide_gamut_or_unexpected_icc_is_blocked(self):
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            master, config, _ = self.fixture(root)
+            profile = ImageCms.ImageCmsProfile(ImageCms.createProfile("LAB")).tobytes()
+            with Image.open(master) as im:
+                im.save(master, icc_profile=profile)
+            with self.assertRaisesRegex(ValueError, "must be sRGB"):
+                render(master, config, root / "result")
+
     def test_premium_rejects_small_or_upsampled_proxy(self):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -159,6 +196,8 @@ class MaterialLookTests(unittest.TestCase):
                 render(master, config, out)
             self.assertFalse((out / "material-render.png").exists())
             self.assertFalse((out / "material-render-report.json").exists())
+            self.assertFalse((out / "approved-region-union.png").exists())
+            self.assertFalse((out / "pixel-lock" / "audit.json").exists())
 
     def test_mask_path_escape_is_rejected(self):
         with tempfile.TemporaryDirectory() as td:
