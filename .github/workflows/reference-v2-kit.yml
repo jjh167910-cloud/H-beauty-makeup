@@ -1,0 +1,75 @@
+name: V2 makeup-reference production kit
+
+on:
+  pull_request:
+    paths:
+      - "scripts/quality/prepare_reference_v2.py"
+      - "scripts/quality/make_catalog_review_sheets.py"
+      - "scripts/quality/test_reference_v2.py"
+      - "src/data/makeup-styles.ts"
+      - ".github/workflows/reference-v2-kit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-kit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install image verification dependencies
+        run: python -m pip install --disable-pip-version-check pillow
+      - name: Generate 43 individual production briefs
+        run: python scripts/quality/prepare_reference_v2.py generate --out catalog-v2-production-pack
+      - name: Verify manifest, source and 4-pilot specifications
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path('catalog-v2-production-pack')
+          data = json.loads((p/'manifest.json').read_text(encoding='utf8'))
+          assert len(data['styles']) == 42
+          assert data['style_count'] == 42
+          assert data['reference_image_count'] == 43
+          assert set(data['pilots']) == {'no-makeup','hollywood','electric-blue','rhinestone'}
+          assert len(list((p/'prompts').glob('*.txt'))) == 43
+          assert not data['release_approved']
+          assert data['cosmetic_free_master']['ground_truth_required']
+          print('43 briefs produced: neutral master + 42 distinct style recipes.')
+          PY
+      - name: Verify missing authentic bare master blocks any candidate acceptance
+        run: |
+          if python scripts/quality/prepare_reference_v2.py validate \
+             --candidate-dir /tmp/nonexistent-hbeauty-v2 \
+             --phase pilot --out /tmp/v2-negative-test; then
+            echo "::error::V2 candidate gate incorrectly accepted absent bare source" && exit 1
+          fi
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report=json.loads(Path('/tmp/v2-negative-test/validation.json').read_text())
+          assert not report['passed_structural_check']
+          assert not report['approved_for_production']
+          assert 'MISSING MASTER' in ' '.join(report['errors'])
+          print('Missing genuine bare face is correctly rejected.')
+          PY
+      - name: Run V2 reference source-provenance and asset safety tests
+        run: python scripts/quality/test_reference_v2.py
+      - name: Generate seven existing-catalog visual comparison sheets
+        run: python scripts/quality/make_catalog_review_sheets.py --out catalog-review-sheets
+      - name: Publish existing-catalog visual comparison sheets
+        uses: actions/upload-artifact@v4
+        with:
+          name: hbeauty-42-look-review-sheets
+          path: catalog-review-sheets
+          retention-days: 30
+      - name: Publish 43-image production brief pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: hbeauty-v2-43-reference-briefs
+          path: catalog-v2-production-pack
+          retention-days: 30
