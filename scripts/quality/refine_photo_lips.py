@@ -62,7 +62,14 @@ def refine(photo: Path, coarse: Path, out: Path, erode: int = 3,
         raise ValueError("Lip mask touches photo border")
     mask_roi=safe[y0:y1,x0:x1].astype(np.uint8)
     ker=np.ones((3,3),np.uint8)
-    core=cv2.erode(mask_roi,ker,iterations=erode)>0
+    # Distance-based foreground seeds are restricted to the inner lip
+    # interior. A fixed 3-px erosion of an oversized landmark polygon can
+    # leave surrounding cheek skin as "sure foreground", preventing GrabCut
+    # from correcting an obviously incorrect lip border.
+    distance=cv2.distanceTransform(mask_roi,cv2.DIST_L2,5)
+    positive=distance[mask_roi>0]
+    foreground_depth=max(float(erode),float(np.percentile(positive,75)))
+    core=(distance>=foreground_depth)&(mask_roi>0)
     expanded=cv2.dilate(mask_roi,ker,iterations=dilation)>0
     if int(core.sum())<20:
         raise ValueError("Lips are too small to supply secure foreground seeds")
