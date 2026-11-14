@@ -38,8 +38,8 @@ MAX_SAFE_CROP = 30
 def refine(photo: Path, coarse: Path, out: Path, erode: int = 3,
            dilation: int = 7, iterations: int = 5) -> dict:
     out.mkdir(parents=True,exist_ok=True)
-    for stale in ("refined-lips.png", "lip-refinement-report.json",
-                  "lip-region-edges.png"):
+    for stale in ("refined-lips.png", "refined-lips-alpha.png",
+                  "lip-refinement-report.json", "lip-region-edges.png"):
         (out/stale).unlink(missing_ok=True)
     if not (1 <= erode <= 9 and 3 <= dilation <= 20
             and 2 <= iterations <= 10):
@@ -103,6 +103,13 @@ def refine(photo: Path, coarse: Path, out: Path, erode: int = 3,
         raise AssertionError("Image-guided segmentation escaped approved lip region")
     target=out/"refined-lips.png"
     Image.fromarray(refined,"L").save(target)
+    # The binary image is the authoritative edit-permission region. A separate
+    # subpixel alpha mask lets the material compositor soften its INSIDE edge.
+    # Values outside the binary mask stay zero, preventing halo spill onto
+    # protected face pixels. The renderer additionally feathers inward.
+    alpha=cv2.GaussianBlur(refined,(0,0),sigmaX=.85)
+    alpha[refined==0]=0
+    Image.fromarray(alpha,"L").save(out/"refined-lips-alpha.png")
     # Review image: green outlines = coarse, magenta = retained/photo guided.
     color=np.array(src,dtype=np.uint8).copy()
     old_edge=(safe ^ (cv2.erode(safe.astype("uint8"),ker,iterations=1)>0))
@@ -116,6 +123,7 @@ def refine(photo: Path, coarse: Path, out: Path, erode: int = 3,
         "source_sha256":sha256(photo.read_bytes()).hexdigest(),
         "coarse_mask_sha256":sha256(coarse.read_bytes()).hexdigest(),
         "refined_mask_sha256":sha256(target.read_bytes()).hexdigest(),
+        "soft_alpha_mask_sha256":sha256((out/"refined-lips-alpha.png").read_bytes()).hexdigest(),
         "source_dimensions":[w,h],"coarse_pixels":pixels,
         "refined_pixels":int(found.sum()),
         "retention_percent":round(frac*100,3),
