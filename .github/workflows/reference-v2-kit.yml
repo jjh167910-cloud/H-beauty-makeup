@@ -16,6 +16,9 @@ on:
       - "scripts/quality/test_author_four_pilot_masks.py"
       - "scripts/quality/audit_landmark_masks.py"
       - "scripts/quality/test_landmark_masks.py"
+      - "scripts/quality/detect_source_face.py"
+      - "scripts/quality/author_mesh_pilot_masks.py"
+      - "scripts/quality/test_source_mesh_pipeline.py"
       - "scripts/quality/render_rhinestones.py"
       - "scripts/quality/test_rhinestones.py"
       - "scripts/quality/material_recipes/rhinestone-accessories-STUDY.json"
@@ -27,6 +30,56 @@ permissions:
   contents: read
 
 jobs:
+  source-mesh-integration:
+    name: Actual bundled MediaPipe face-mesh smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install MediaPipe native CPU runtime dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libegl1 libgles2 libgl1 libgbm1 libglib2.0-0
+      - name: Install local landmark runtime and image dependencies
+        run: python -m pip install --disable-pip-version-check mediapipe pillow numpy
+      - name: Detect public example face locally and author its pilot masks
+        run: |
+          python scripts/quality/detect_source_face.py \
+            --photo public/makeup/looks/no-makeup.webp \
+            --out /tmp/public-example-face-landmarks.json
+          python scripts/quality/author_mesh_pilot_masks.py \
+            --photo public/makeup/looks/no-makeup.webp \
+            --landmarks /tmp/public-example-face-landmarks.json \
+            --out /tmp/public-example-four-pilot-masks --render-drafts
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path("/tmp/public-example-four-pilot-masks")
+          manifest=json.loads((root/"draft-manifest.json").read_text())
+          assert len(manifest["styles"]) == 4
+          assert all(x["anatomical_gate_passed"] for x in manifest["styles"].values())
+          assert not manifest["artist_approved"]
+          assert len(list(root.glob("*/rendered-research-only/material-render.png"))) == 4
+          assert all(
+              not json.loads(p.read_text())["approved_for_catalog"]
+              for p in root.glob("*/rendered-research-only/material-render-report.json")
+          )
+          print("Bundled MediaPipe model and face-specific mask author passed integration smoke test.")
+          print("The public catalog photo is already made up; this is NOT V2 photorealism approval.")
+          PY
+      # Public existing catalog example is permitted as a reference,
+      # but NEVER upload any private user's face or landmarks to Actions.
+      - name: Publish PUBLIC catalog-derived research previews, never customer data
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-sample-four-anatomy-pilots-RESEARCH-ONLY
+          path: |
+            /tmp/public-example-four-pilot-masks/*/rendered-research-only/material-render.png
+            /tmp/public-example-four-pilot-masks/*/rendered-research-only/material-render-report.json
+          retention-days: 7
+      # Deliberately do not upload facial geometry or customer photographs.
   build-kit:
     runs-on: ubuntu-latest
     steps:
@@ -84,6 +137,8 @@ jobs:
         run: python scripts/quality/test_landmark_masks.py
       - name: Verify research rhinestone facets, micro-shadows, and exact pixel locking
         run: python scripts/quality/test_rhinestones.py
+      - name: Verify offline source-face mesh provenance and four anatomy-derived pilot masks
+        run: python scripts/quality/test_source_mesh_pipeline.py
       - name: Generate seven existing-catalog visual comparison sheets
         run: python scripts/quality/make_catalog_review_sheets.py --out catalog-review-sheets
       - name: Publish existing-catalog visual comparison sheets

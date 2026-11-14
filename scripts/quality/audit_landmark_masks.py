@@ -68,9 +68,32 @@ def checked_mesh(data: dict, master_path: Path, size: tuple[int, int]):
         raise ValueError("Expected normalized x,y landmark coordinates")
     if data.get("face_count") != 1:
         raise ValueError("Exactly one detected face is required")
+    # Some landmarkers provide a measured per-face confidence value. The
+    # MediaPipe Tasks FaceLandmarker API does NOT expose that score in
+    # FaceLandmarkerResult. It instead applies configured min-detection and
+    # min-presence thresholds during inference. Validate which evidence we
+    # genuinely have, without fabricating a numeric "measured" confidence.
     conf = data.get("detection_confidence")
-    if isinstance(conf, bool) or not isinstance(conf, (int,float)) or not math.isfinite(conf) or conf < MIN_FACE_DETECTION_CONFIDENCE:
-        raise ValueError("Face detection confidence is insufficient for anatomy QA")
+    policy = data.get("detection_policy")
+    if conf is not None:
+        if (isinstance(conf, bool) or not isinstance(conf, (int, float))
+                or not math.isfinite(conf) or conf < MIN_FACE_DETECTION_CONFIDENCE):
+            raise ValueError("Measured face detection confidence is insufficient for anatomy QA")
+    elif isinstance(policy, dict):
+        max_faces = policy.get("max_faces_checked")
+        if (policy.get("framework") != "mediapipe.tasks.vision.FaceLandmarker"
+                or policy.get("running_mode") != "IMAGE"
+                or isinstance(max_faces, bool)
+                or not isinstance(max_faces, int) or max_faces < 2
+                or policy.get("reported_per_face_confidence_available") is not False):
+            raise ValueError("Unsupported or misrepresented face-landmark detection policy")
+        for name in ("min_face_detection_confidence", "min_face_presence_confidence"):
+            value = policy.get(name)
+            if (isinstance(value, bool) or not isinstance(value, (int, float))
+                    or not math.isfinite(value) or value < MIN_FACE_DETECTION_CONFIDENCE):
+                raise ValueError(f"Face-landmark {name} threshold is insufficient")
+    else:
+        raise ValueError("No measured face confidence or auditable threshold configuration supplied")
     points = data.get("points")
     if not isinstance(points, list) or len(points) < 468:
         raise ValueError("Face mesh requires at least 468 ordered MediaPipe landmarks")
