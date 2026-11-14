@@ -189,6 +189,9 @@ def generate(photo: Path, landmarks: Path, out: Path) -> dict:
                 "pigment":color,"opacity":alpha,
                 "texture_strength":.90 if kind=="lips" else .55,
                 "feather_px":feather,"finish":finish,
+                # Eyeliner is a second painted product on top of shadow:
+                # declare overlap explicitly (never silently bypass guards).
+                "allow_overlap": True if kind=="liner" else False,
             })
         # Audit's manifest-relative paths have no nested mask directories.
         (masks / "anatomy.json").write_text(
@@ -219,8 +222,16 @@ def main():
     p.add_argument("--photo",type=Path,required=True)
     p.add_argument("--landmarks",type=Path,required=True)
     p.add_argument("--out",type=Path,required=True)
+    p.add_argument("--render-drafts", action="store_true",
+                   help="Render local preliminary portraits from anatomy masks (never approved artwork)")
     args=p.parse_args()
     result=generate(args.photo,args.landmarks,args.out)
+    if args.render_drafts:
+        from render_material_look import render
+        for sid in PILOTS:
+            render(args.photo, args.out/sid/(sid+".json"),
+                   args.out/sid/"rendered-research-only", premium=False)
+        print("Four anatomy-linked research previews rendered locally; manual makeup review REQUIRED.")
     print(f"Generated {len(result['styles'])} unapproved pilot mask sets; original image not copied or uploaded.")
     return 0
 
