@@ -222,8 +222,8 @@ goes on, and her foundation lifts the shaded side of the face).
     ombre and glitter 0.9, gloss 0.7 (was 0.82–0.9, gloss 0.45). A lipstick that changes the model's lips by
     less than 3 % (fully from 15 %) changes hers the same way, her lips times its change, with the finish's
     shine (`ratio`, `pigment` in looks.json): a clear gloss stays her lips, not the model's lip colour.
-- The tiny fallback networks (phones without WebGL2) were trained on the earlier teacher and still show
-  the softer looks until they are trained again (`train.py`).
+- The tiny fallback networks (phones without WebGL2) are trained on this teacher (`train.py`; see
+  Engine 2).
 
 ### The true bare face, and deeper skin
 
@@ -685,7 +685,12 @@ the modes above.
 One tiny network per look, following TinyBeauty (Jin et al., *Toward Tiny and High-quality Facial
 Makeup with Data Amplify Learning*, ECCV 2024): ~87K parameters, ~230 KB, in ONNX Runtime Web
 (WebAssembly) in a worker (`src/lib/tryon-worker.ts`), on the face aligned to 256×256; only its
-change is mapped back onto her photo, plus the eye detail. Soft shows it at 60 %.
+change is mapped back onto her photo, plus the eye detail. Soft shows it at 60 %. All 42 are trained
+on the current teacher (true bare face, real lipstick, the deep-skin gloss and highlighter rules): in the
+makeup regions of held-out faces they come within 33.7–36.2 dB of it, 34.9 on average (an unchanged face:
+27.3–32.5 dB). Against the graphics-chip engine on four synthetic faces (6 looks, at full resolution) they
+come 1.3–4.3 dB closer than the networks they replaced; they are still softer than it, the highlighter most.
+Their URLs carry `TINY_V` (`src/lib/tiny-model.ts`), bumped when they are trained again so phones fetch them.
 
 **Live mirror** (`src/lib/live-tryon.ts`): every camera frame is tracked by MediaPipe and painted
 by the graphics-chip engine; her light references (eye whites, skin, lips) are re-measured every

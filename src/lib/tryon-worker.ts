@@ -4,6 +4,7 @@
  * thread. Each look's network is loaded once from the offline AI cache and kept.
  */
 import type { InferenceSession } from "onnxruntime-web";
+import { tinyModel as model } from "./tiny-model";
 
 type Ort = typeof import("onnxruntime-web");
 type Request =
@@ -12,7 +13,6 @@ type Request =
 
 const scope = self as unknown as DedicatedWorkerGlobalScope;
 const AI_CACHE = "hb-ai-models-v2";
-const model = (look: string) => `/tryon/tiny/${look}.onnx`;
 let runtime: Promise<Ort> | null = null;
 const sessions = new Map<string, Promise<InferenceSession>>();
 

@@ -71,8 +71,11 @@ faces, and a tiny U-Net learns that before → after change. Our implementation 
 pip install -r scripts/tinybeauty/requirements.txt
 python scripts/tinybeauty/faces.py fetch 8000 && python scripts/tinybeauty/faces.py align && python scripts/tinybeauty/faces.py filter
 python scripts/tinybeauty/teacher.py eyes        # after adding/changing catalog photos
-python scripts/tinybeauty/train.py all           # ~10 min per look on 2 CPU cores; resumable
+python scripts/tinybeauty/train.py all           # ~11 min per look on 2 CPU cores; resumable
 ```
+
+After training again, bump `TINY_V` in `src/lib/tiny-model.ts`, so phones fetch the new networks instead of
+using the cached ones.
 
 Work files go to `.tinybeauty/` (git-ignored; set `TINYBEAUTY_WORK` to move them).
 
@@ -83,7 +86,8 @@ Work files go to `.tinybeauty/` (git-ignored; set `TINYBEAUTY_WORK` to move them
 
 The catalog model's head is turned, so her far eye (the left in a straight-on photo) is seen at an angle;
 `teacher.symmetric()` / `eye_triangles()` paint that half with the mirror image of the near half (the same
-in makeup-gl.ts). The fallback networks predate this too.
+in makeup-gl.ts).
 
-The current fallback networks were trained on the teacher before real lipstick was added (the
-lips then were a sheer tint); retrain them with `train.py all` to give the fallback the new lips.
+The current fallback networks are trained on this teacher: the true bare face, real lipstick, the mirrored
+far eye, and the gloss and highlighter rules for deeper skin. In the makeup regions of held-out faces they
+come within 33.7–36.2 dB of the teacher, 34.9 on average (an unchanged face: 27.3–32.5 dB).

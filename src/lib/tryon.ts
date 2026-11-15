@@ -23,6 +23,7 @@
  */
 import type { FaceLandmarker, ImageSegmenter } from "@mediapipe/tasks-vision";
 import { Enhancer } from "./enhance-gl";
+import { oldTinyModels, tinyModel } from "./tiny-model";
 import { PIECE, PIECES } from "virtual:ai-pieces";
 import { hdBackend, hdFace, hdNeeded, hdRunning, hdSession } from "./face-hd";
 import { STUDIO_CRISP, Studio, studioParams } from "./studio-gl";
@@ -87,7 +88,7 @@ const HD_MODEL = `${BASE}face-hd/gfpgan-1.4-q8.bin`;
 const ORT_GPU_GLUE = `${ORT_DIR}ort-wasm-simd-threaded.asyncify.mjs`;
 const ORT_GPU_WASM = `${ORT_DIR}ort-wasm-simd-threaded.asyncify.wasm`;
 const HD_FILES = [HD_MODEL, ORT_GPU_GLUE, ORT_GPU_WASM];
-export const lookModel = (id: string) => `${BASE}tiny/${id}.onnx`;
+export const lookModel = tinyModel;
 const lookLayer = (id: string) => `${BASE}layers/${id}.webp${DATA_V}`;
 const lookEyes = (id: string) => `${BASE}eyes/${id}.png${EYES_V}`;
 const lookCov = (id: string) => `${BASE}cov/${id}.webp${DATA_V}`;
@@ -95,6 +96,7 @@ const lookCov = (id: string) => `${BASE}cov/${id}.webp${DATA_V}`;
 const OLD_DATA = (ids: string[]) => [
   ...["", "?v=2", "?v=3", "?v=4", "?v=5", "?v=6"].flatMap((v) => [`${BASE}looks.json${v}`, ...ids.flatMap((id) => [`${BASE}layers/${id}.webp${v}`, `${BASE}cov/${id}.webp${v}`])]),
   ...["", "?v=2"].flatMap((v) => [`${BASE}eyes.json${v}`, ...ids.map((id) => `${BASE}eyes/${id}.png${v}`)]),
+  ...ids.flatMap(oldTinyModels),
   // (the HD face's network as it was, in two parts)
   `${BASE}face-hd/gfpgan-1.4-q8.0.bin`, `${BASE}face-hd/gfpgan-1.4-q8.1.bin`,
 ];
