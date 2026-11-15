@@ -19,9 +19,10 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       # This repository's own Cloudflare account and Worker (h-beauty-makeup), never H-Beauty's.
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      # When Cloudflare Workers Builds is connected, GitHub Actions should run CI only.
-      # The default mode intentionally fails if the GitHub API token is absent.
-      HBEAUTY_DEPLOY_MODE: ${{ vars.HBEAUTY_DEPLOY_MODE || 'github-actions' }}
+      # Cloudflare Workers Builds publishes this Worker from main, so by default GitHub Actions runs CI only.
+      # To publish from GitHub Actions instead, set the repository variable HBEAUTY_DEPLOY_MODE=github-actions
+      # and the CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID secrets (that mode fails without the token).
+      HBEAUTY_DEPLOY_MODE: ${{ vars.HBEAUTY_DEPLOY_MODE || 'cloudflare-builds' }}
     steps:
       - name: Verify automatic deployment configuration
         shell: bash
