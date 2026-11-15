@@ -9,6 +9,10 @@ python scripts/tinybeauty/teacher.py eyes     # public/tryon/eyes/*.png + eyes.j
 python scripts/tinybeauty/teacher.py lipsticks  # the lipstick picker's calibration + glitter coordinates in looks.json
 ```
 
+Every look is measured against the catalog model without makeup: `bare.py` makes her from `no-makeup.webp`
+(that photo shows a little blush and a tinted gloss; they are taken out, every other pixel and her points stay), and
+the teacher uses it as it needs it (`python scripts/tinybeauty/bare.py out.png` writes it, to look at).
+
 `teacher.paint(look, face, points, level, shade='#b3122e', finish='glitter')` renders her own lipstick pick
 on top of a look, as the app's picker does.
 

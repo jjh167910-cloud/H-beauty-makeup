@@ -76,7 +76,7 @@ const EYES_META = `${BASE}eyes.json${EYES_V}`;
  * The look data's version: bumped when the layers, coverage maps and looks.json are made again, so phones that
  * downloaded the earlier files fetch these (a few MB) instead of using the cached ones; the old ones are dropped.
  */
-const DATA_V = "?v=6";
+const DATA_V = "?v=7";
 const LOOKS_META = `${BASE}looks.json${DATA_V}`;
 const ENHANCE = `${BASE}enhance-x4.bin`;
 /**
@@ -93,7 +93,7 @@ const lookEyes = (id: string) => `${BASE}eyes/${id}.png${EYES_V}`;
 const lookCov = (id: string) => `${BASE}cov/${id}.webp${DATA_V}`;
 /** The same files as downloaded before this DATA_V (dropped from the cache). */
 const OLD_DATA = (ids: string[]) => [
-  ...["", "?v=2", "?v=3", "?v=4", "?v=5"].flatMap((v) => [`${BASE}looks.json${v}`, ...ids.flatMap((id) => [`${BASE}layers/${id}.webp${v}`, `${BASE}cov/${id}.webp${v}`])]),
+  ...["", "?v=2", "?v=3", "?v=4", "?v=5", "?v=6"].flatMap((v) => [`${BASE}looks.json${v}`, ...ids.flatMap((id) => [`${BASE}layers/${id}.webp${v}`, `${BASE}cov/${id}.webp${v}`])]),
   ...["", "?v=2"].flatMap((v) => [`${BASE}eyes.json${v}`, ...ids.map((id) => `${BASE}eyes/${id}.png${v}`)]),
   // (the HD face's network as it was, in two parts)
   `${BASE}face-hd/gfpgan-1.4-q8.0.bin`, `${BASE}face-hd/gfpgan-1.4-q8.1.bin`,

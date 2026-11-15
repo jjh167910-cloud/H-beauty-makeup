@@ -71,6 +71,14 @@ const MINE_POWDER = 0.6;
 const MINE_CONTOUR_POWDER = 1.6;
 /** Her highlight: at most this much brighter than her skin under it (0.6: 1.6 times as bright). */
 const MINE_GLOW_MAX = 0.6;
+/**
+ * A highlighter is her own skin glowing instead of its pale or gold light on her where a full layer of it would change
+ * her skin's colour this much (hueShift: from-to): deep, rich skin, where it would be a grey, ashen or khaki patch.
+ * Then: how much of its light in flat light (all of it where she is lit or her face catches the light; less as her
+ * shade deepens), the gold it turns at its brightest (a factor on her colour, of luminance 1), and how much softer her
+ * colour is there (its log-ratios scaled down: a lit sheen, not a deeper orange).
+ */
+const GLOW_SHIFT = [0.1, 0.3], GLOW_SHADE = 0.8, GLOW_GOLD = "vec3(1.06, 1.0, 0.85)", GLOW_SOFT = 0.15;
 /** Her crease shade: always blended out, so at most this much of its powder stays where she laid it. */
 const MINE_CREASE = 1;
 /** Her own eyeshadow by her lash line: how far her lash line reaches from her eye's opening (eye widths), how much of it stays. */
@@ -129,6 +137,11 @@ const SHOWN_LO = 0.35, SHOWN_HI = 0.6;
  * shade the lipstick keeps; the lip refinement's grid, window (eye widths) and regularisation.
  */
 const BALL_SCALE = [0.95, 0.8], BALL_SOFT = 0.015, FEATHER = 0.35, DETAIL_SHARP = 0.75, LIP_VOLUME = 0.6;
+/**
+ * Her lips' own light and shade go into the lipstick only inside her lip line (her lips' share of the 0.02-eye-width
+ * neighbourhood, from-to); a shine follows her lips' shape smoothly, and her lips' fine lines only this much.
+ */
+const LIP_INSIDE = [0.55, 0.9], LIP_KNEE = 1.25, LIP_KNEE_SLOPE = 0.1, LIP_GLOSS_OWN = 0.5, GLOSS_FLAT = 0.3;
 /**
  * The look's layer carries no lip colour: its mesh points on and inside the catalog lips (and closer than LIP_FILL[0]
  * eye widths past them, all from LIP_FILL[1]) weigh nothing, so there the layer is filled from the skin-level colour
@@ -981,6 +994,7 @@ export function measureFace(source: CanvasImageSource, P: Pt[]): FaceStats {
   return { sclera, skin: skinLum, lipRef };
 }
 
+
 /** At most this much more (or less) of one colour in her light than the mean (her eye whites over the catalog's). */
 const LIGHT_CAST = 1.08;
 /**
@@ -988,7 +1002,7 @@ const LIGHT_CAST = 1.08;
  * lipstick in her light (her eye whites over the catalog's); nude shades also follow her skin's own depth (her skin over
  * the catalog model's, her light taken out: a nude chosen for the model becomes the same nude for her), deep ones not.
  */
-export function lipTarget(lip: LipInfo, face: FaceStats): { colour: number[]; light: number } {
+export function lipTarget(lip: LipInfo, face: FaceStats): { colour: number[]; light: number; rgb: number[] } {
   let colour = lip.colour.slice();
   let light = [1, 1, 1], g = 1;
   if (face.sclera && lip.sclera) {
@@ -1007,7 +1021,8 @@ export function lipTarget(lip: LipInfo, face: FaceStats): { colour: number[]; li
     const w = lip.nude * t * t * (3 - 2 * t);
     colour = colour.map((c) => c * (1 - w + w * depth));
   }
-  return { colour: colour.map((c, i) => c * light[i]), light: (light[0] + light[1] + light[2]) / 3 };
+  const mean = (light[0] + light[1] + light[2]) / 3;
+  return { colour: colour.map((c, i) => c * light[i]), light: mean, rgb: light.map((v) => v / mean) };
 }
 
 /* ---------------------------------------------------------------- shaders */
@@ -1229,7 +1244,7 @@ uniform vec3 uK;            // layer, lipstick, eye detail (intensity)
 uniform float uLipTint;     // 1: the layer still has the look's lip colour (no extension: no fill over the lips)
 uniform vec3 uTarget;       // lipstick colour for her light (linear)
 uniform vec3 uOmbre;        // centre-over-edge colour for gradient lips
-uniform float uAlpha, uGamma, uShine, uSpecK, uRef, uLipPig; uniform vec3 uLipRatio;
+uniform float uAlpha, uGamma, uShine, uRef, uLipPig; uniform vec3 uLipRatio, uLightC;
 uniform int uFinish;        // 0 plain, 1 lined, 2 ombre, 3 metallic, 4 glitter
 uniform float uMetK, uLight, uEw, uCanonEw, uMatte;
 // the gloss highlights by her lips' shape: lower and upper lip (centre, size along and across her mouth, pixels), her
@@ -1377,6 +1392,12 @@ float spot(vec2 px, vec4 c, vec2 ax) {
   vec2 d = px - c.xy, q = vec2(dot(d, ax), dot(d, vec2(-ax.y, ax.x))) / max(c.zw, vec2(1e-3));
   return exp(-0.5 * dot(q, q));
 }
+// How far colour b is from colour a's hue and colourfulness, whatever their brightness (log ratios of the channels,
+// weighted as the eye sees them).
+float hueShift(vec3 a, vec3 b) {
+  vec3 d = log(max(b, vec3(1e-5)) / max(luma(b), 1e-5)) - log(max(a, vec3(1e-5)) / max(luma(a), 1e-5));
+  return sqrt(dot(d * d, vec3(0.35, 0.55, 0.1)));
+}
 // Kubelka-Munk: reflectance of a pigment layer (reflectance at infinite thickness Rinf, optical thickness x)
 // over a substrate of reflectance Rg (km in products.py).
 vec3 km(vec3 Rg, vec3 Rinf, float x) {
@@ -1483,14 +1504,8 @@ vec3 pigments(vec3 base, vec3 lu, float cov[6]) {
       // the sheen where her face catches the light stays)
       if (fin == 4) {
         vec3 add = tint * L * (0.06 * clamp(luma(Rg) / 0.25, 0.2, 1.0) + shine) * uPigSheen[i] * a;
-        if (uMine == 1) {
-          // (her highlight is a sheen, not a lamp: at most this much brighter than her skin under it; on deeper skin its
-          // light takes on her skin's own warmth, as the golden highlighters made for it do, never a grey veil)
-          float deepSkin = 1.0 - smoothstep(0.05, 0.28, luma(Rg));
-          vec3 hue = clamp(pow(Rg / max(luma(Rg), 1e-3), vec3(0.5)), 0.5, 1.6);
-          add *= mix(vec3(1.0), hue, 0.6 * deepSkin);
-          add *= min(1.0, ${MINE_GLOW_MAX.toFixed(3)} * luma(res) / max(luma(add), 1e-5));
-        }
+        // (her highlight is a sheen, not a lamp: at most this much brighter than her skin under it)
+        if (uMine == 1) add *= min(1.0, ${MINE_GLOW_MAX.toFixed(3)} * luma(res) / max(luma(add), 1e-5));
         res += add;
       }
       else {
@@ -1506,6 +1521,26 @@ vec3 pigments(vec3 base, vec3 lu, float cov[6]) {
         res += tint * L * (litI - lit) * ${LID_GLOW.toFixed(3)} * uPigSheen[i] * a;
       }
       if (k.w > 0.0) res += L * (k.w * (i == 0 || i == 4 ? sparkLid : spark) * glint * a * uPigSheen[i]) * (0.6 + 0.4 * tint);
+    }
+    if (i == 3) {
+      // A highlight brightens her skin without changing its colour much: where a pale or gold one would (deep, rich
+      // skin: a grey, ashen or khaki patch), it is her own skin glowing instead, as the highlighters made for deep skin
+      // make it: her warmth turning a little golden, at most 1.6 times her skin where she is lit or her face catches
+      // the light (less in her shade). Judged by what a full layer of it would do to her colour here (smooth over her
+      // face: not by its coverage, or its edge would be a ring of the pale one).
+      vec4 kf = FREFL[4];
+      vec3 tf = col / max(max(col.r, max(col.g, col.b)), 1e-4) * (0.5 + 0.5 * max(col.r, max(col.g, col.b)));
+      vec3 full = base + (km(Rg, Rinf, X * FKEEP[4]) - Rg) * E
+        + tf * L * (0.06 * clamp(luma(Rg) / 0.25, 0.2, 1.0) + kf.x * lit + kf.y * hl) * clamp(uPigSheen[i], 0.3, 1.0);
+      float deep = smoothstep(${GLOW_SHIFT[0].toFixed(2)}, ${GLOW_SHIFT[1].toFixed(2)}, hueShift(base, full));
+      if (deep > 0.0) {
+        float lift = clamp(${GLOW_SHADE.toFixed(2)} + 1.5 * lit + 1.5 * hl, 0.0, 1.0) * clamp(broad, 0.3, 1.0);
+        float g = ${MINE_GLOW_MAX.toFixed(3)} * lift * smoothstep(0.0, 0.6, alpha) * clamp(uPigSheen[i], 0.3, 1.0), t = g / ${MINE_GLOW_MAX.toFixed(3)};
+        // (her colour where the light catches it a little softer, in its own hue: a lit sheen, not a deeper orange)
+        float yb = max(luma(base), 1e-5);
+        vec3 hueLit = pow(max(base / yb, vec3(1e-4)), vec3(1.0 - ${GLOW_SOFT.toFixed(2)} * t)) * pow(${GLOW_GOLD}, vec3(t));
+        res = mix(res, yb * (1.0 + g) * hueLit / max(luma(hueLit), 1e-5), deep);
+      }
     }
     base = res;
   }
@@ -1628,23 +1663,33 @@ void main() {
   }
   float Y = luma(lu);
   float broad = Q.x / max(Q.y, 1e-3), fine = Y / max(broad, 1e-4);
-  float f0 = clamp(fine, 0.0, 2.5);
-  if (uMatte > 0.5) f0 = f0 > 1.0 ? 1.0 + (f0 - 1.0) * ${MATTE_SHINE} : f0;   // matte covers her lips' own shine
-  float S = pow(f0, uGamma) * pow(clamp(broad / uRef, 0.2, 3.0), ${LIP_VOLUME});
-  // its colour, or (a lipstick that hardly changes the lips: look_lips in teacher.py) her own lips with its change
-  vec3 cover = mix(base * pow(uLipRatio, vec3(1.0 / max(uAlpha, 0.05))), uTarget * S, uLipPig);
   float lm = Q.z / max(Q.w, 1e-3), local = Y / max(lm, 1e-4);
-  if (uShine > 0.0) cover += uShine * clamp(local - 1.04, 0.0, 0.5) * uSpecK;
-  if (uGlossDir.z > 0.0 && lipF > 0.0) {      // the gloss by her lips' shape, broken up by her lips' own lines
+  vec4 R0 = texture(uGrey, v);
+  float ysm = R0.z / max(R0.w, 1e-3);          // her lips' light without their finest lines
+  // (her lip line's shadow stays in the lipstick; her skin's light just past it doesn't brighten it)
+  float inside = smoothstep(${LIP_INSIDE[0].toFixed(2)}, ${LIP_INSIDE[1].toFixed(2)}, Q.w);
+  float f0 = clamp(fine, 0.0, 2.5);
+  if (f0 > 1.0) f0 = mix(1.0, f0, inside);
+  // her lips' highlights are the light's reflection, not their colour: past LIP_KNEE times their light around, the
+  // lipstick's colour stops brightening and the rest is shine, kept as light: less under a matte, under a gloss
+  // smoothed (it fills her lips' fine lines) and more
+  float fd = f0 > ${LIP_KNEE.toFixed(2)} ? ${LIP_KNEE.toFixed(2)} + (f0 - ${LIP_KNEE.toFixed(2)}) * ${LIP_KNEE_SLOPE.toFixed(2)} : f0;
+  float S = pow(fd, uGamma) * pow(clamp(broad / uRef, 0.2, 3.0), ${LIP_VOLUME});
+  float raw = (f0 - fd) * broad, even = max(0.0, min(ysm / max(broad, 1e-4), 2.5) - ${LIP_KNEE.toFixed(2)}) * broad * inside;
+  float spec = mix(raw, even, uShine) * (uMatte > 0.5 ? ${MATTE_SHINE} : 1.0 + ${LIP_GLOSS_OWN.toFixed(2)} * uShine);
+  vec3 white = mix(vec3(1.0), uTarget / max(luma(uTarget), 1e-3), 0.15);
+  // its colour, or (a lipstick that hardly changes the lips: look_lips in teacher.py) her own lips with its change
+  vec3 cover = mix(base * pow(uLipRatio, vec3(1.0 / max(uAlpha, 0.05))), uTarget * S + spec * uLightC * white, uLipPig);
+  if (uGlossDir.z > 0.0 && lipF > 0.0) {      // the gloss by her lips' shape, broken up a little by her lips' own lines
     vec2 px = v * vec2(uSize);
     float g = spot(px, uGlossLo, uGlossDir.xy) + 0.45 * spot(px, uGlossUp, uGlossDir.xy);
-    cover += uGlossDir.z * g * pow(clamp(f0, 0.75, 1.35), 2.0) * uLight * mix(vec3(1.0), uTarget / max(luma(uTarget), 1e-3), 0.15);
+    float form = mix(${GLOSS_FLAT.toFixed(2)}, 1.0, smoothstep(0.95, 1.35, ysm / max(broad, 1e-4)));
+    cover += uGlossDir.z * g * g * form * uLight * inside * uLightC * white;
   }
   if (uFinish >= 3 && lipF > 0.0) {
     vec3 tint = uTarget / max(max(uTarget.r, uTarget.g), max(uTarget.b, 1e-4));
     vec2 canon = canonAt(); float on = canon.x > 0.5 ? 1.0 : 0.0;
     if (uFinish == 3) {          // metallic: a soft sheen, her highlights, a fine pearl
-      vec4 R0 = texture(uGrey, v);
       float hl = clamp(R0.z / max(R0.w, 1e-3) / max(lm, 1e-4) - 1.0, 0.0, 0.6);
       float sheen = pow(clamp((broad / uRef - 0.95) / 0.5, 0.0, 1.0), 1.5);
       float pearl = on * grains(canon, uEw * ${GLITTER_CELL} * ${PEARL}, ${PEARL}, ${PEARL_DENSITY});
@@ -2396,7 +2441,7 @@ export class MakeupGL {
     this.bindTex(p, "uLip", this.targets.lipB.tex[0], 3);
     this.bindTex(p, "uGrey", this.targets.greyB.tex[0], 4);
     this.bindTex(p, "uCanon", this.targets.canon.tex[0], 5);
-    const { colour, light } = lipTarget(lip, face);
+    const { colour, light, rgb } = lipTarget(lip, face);
     const mean = (lip.colour[0] + lip.colour[1] + lip.colour[2]) / 3;
     gl.uniform3f(this.uni(p, "uK"), kLayer, kLip, look.eyes ? kEye : 0);
     gl.uniform1f(this.uni(p, "uLipTint"), extendOn ? 0 : 1);
@@ -2407,7 +2452,7 @@ export class MakeupGL {
     gl.uniform3f(this.uni(p, "uLipRatio"), ...((lip.ratio ?? [1, 1, 1]) as [number, number, number]));
     gl.uniform1f(this.uni(p, "uGamma"), lip.gamma);
     gl.uniform1f(this.uni(p, "uShine"), lip.shine);
-    gl.uniform1f(this.uni(p, "uSpecK"), (mean + 0.25) * light);
+    gl.uniform3f(this.uni(p, "uLightC"), rgb[0], rgb[1], rgb[2]);   // her light's colour (her lips' own highlights keep it)
     gl.uniform1f(this.uni(p, "uMetK"), (mean + 0.3) * light);
     gl.uniform1f(this.uni(p, "uLight"), light);
     gl.uniform1f(this.uni(p, "uMatte"), lip.finish === "matte" ? 1 : 0);

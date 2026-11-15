@@ -156,8 +156,8 @@ eyes, fuzzy lashes — so it was removed.)
 
 | Step | What |
 | --- | --- |
-| Catalog layer | Each look photo is an edit of the bare-face portrait `no-makeup.webp`, so look ÷ bare (aligned along the face mesh, linear light, as a log-ratio) is exactly the look's makeup: eyeshadow, liner, blush, contour. Pre-computed per look (`public/tryon/layers/<look>.webp`, ~130 KB), warped onto her face along MediaPipe's 852-triangle mesh (nearer triangles in front) and multiplied onto her photo. The edit's own grading of the whole photo is taken out (measured on the backdrop), and the look's complexion goes on her foundation instead (see *Each look at its full strength*); contour, bronzer, blush and highlights stay at full strength. |
-| Lipstick | Matte, satin, lined and ombre lips put down **opaque colour** — the lipstick's own colour, worked out from the look photo (what, at the finish's opacity over the bare photo's lips, gives the colour seen there) — over her own lip texture and shading (fine texture kept, broad two-tone pigment of her lips not). Gloss is a tinted gloss (70 %) plus her own sharp highlights; a lipstick that hardly changes the model's lips (a nude like her own, a clear gloss) changes hers the same way instead, with the finish's shine, and a gloss that catches the light by her lips' shape even in a selfie's flat light: a soft highlight on the fullest part of her lower lip and a smaller one on her upper lip, broken up by her lips' own lines (strongest for gloss; a little for satin, ombre, lined, metallic and glitter; none for matte). Lined lips get a slightly deeper edge; ombre lips the look photo's centre-to-edge change. |
+| Catalog layer | Each look photo is an edit of the bare-face portrait `no-makeup.webp` (with the little blush and tinted gloss it shows taken out: `bare.py`, below), so look ÷ bare (aligned along the face mesh, linear light, as a log-ratio) is exactly the look's makeup: eyeshadow, liner, blush, contour. Pre-computed per look (`public/tryon/layers/<look>.webp`, ~130 KB), warped onto her face along MediaPipe's 852-triangle mesh (nearer triangles in front) and multiplied onto her photo. The edit's own grading of the whole photo is taken out (measured on the backdrop), and the look's complexion goes on her foundation instead (see *Each look at its full strength*); contour, bronzer, blush and highlights stay at full strength. |
+| Lipstick | Matte, satin, lined and ombre lips put down **opaque colour** — the lipstick's own colour, worked out from the look photo (what, at the finish's opacity over the bare photo's lips, gives the colour seen there) — over her own lip texture and shading (fine texture kept, broad two-tone pigment of her lips not). Gloss is a tinted gloss (70 %) over her own shine, smoothed (it fills her lips' fine lines); a lipstick that hardly changes the model's lips (a nude like her own, a clear gloss) changes hers the same way instead, with the finish's shine, and a gloss that catches the light by her lips' shape even in a selfie's flat light: a soft highlight on the fullest part of her lower lip and a smaller one on her upper lip, where her lips are lit (strongest for gloss; a little for satin, ombre, lined, metallic and glitter; none for matte). Her lips' highlights are the light's reflection, not their colour: past 1.25 times their light around, the lipstick's colour stops brightening and the rest stays as light (less under a matte). Her lips' own light and shade go into it only inside her lip line. Lined lips get a slightly deeper edge; ombre lips the look photo's centre-to-edge change. |
 | Matched to her photo | The colour is matched to her photo's light through the **whites of her eyes** (brightness and colour cast; the catalog's are the bare photo's, her own as in her photo before the studio retouch), and **nude shades follow her skin depth** (her skin over the catalog model's, her light taken out): a nude chosen for the catalog model becomes the same nude for her, instead of a pale lip on deeper skin. Bold colours (red, berry, coral) and deep shades (a brown, a plum) stay exact: they are pigments. |
 | Eyes | The look's crisp liner and lash detail from the full-size catalog photo (`public/tryon/eyes/`), minus what her own lashes already give. |
 | Her own lipstick | «رژ لب»: 17 shades (`src/data/lipsticks.ts`) and five finishes — مات / ساتن / براق / متالیک / اکلیلی — on top of any look (or the look's colour in another finish). A swatch colour becomes lipstick as the catalog photos show it: `colour = k · swatch · eye-white`, with `k` fitted on the 42 looks (their designed lip colour vs the lipstick measured in the photo), then matched to her light like the look's own. Matte covers her lips' own shine; metallic adds a soft sheen where her lips catch the light, her highlights and a fine pearl; glitter adds grains that sparkle where her lips are lit. Grains live on the bare catalog face's coordinates, warped along the mesh, so they stay on her lips in the live mirror. |
@@ -224,6 +224,38 @@ goes on, and her foundation lifts the shaded side of the face).
     shine (`ratio`, `pigment` in looks.json): a clear gloss stays her lips, not the model's lip colour.
 - The tiny fallback networks (phones without WebGL2) were trained on the earlier teacher and still show
   the softer looks until they are trained again (`train.py`).
+
+### The true bare face, and deeper skin
+
+- **The bare face is bare.** The catalog's no-makeup photo isn't: the model wears a little blush and a
+  tinted gloss. Every look is measured against it, so every look lost that much blush and lip colour (on her
+  cheeks the complexion step even took away her own redness), and the no-makeup look was no change at all.
+  `bare.py` takes them out of it, pixel-locked (only her cheeks' blush and her lips' tint and gloss change,
+  5 % of the photo; her points stay the photo's): the cheeks' redness above her skin's own around them (15 %
+  of it stays, a natural flush), the lips' colour to 80 % in the same hue and the gloss's bright spots down to
+  a sheen. The teacher builds every look's files against it (`teacher.py layers`, `teacher.py eyes`,
+  `products.py cov`, `strength.py sig`). On a synthetic face the looks' cheeks gained about 4.5 a* (no-makeup
+  16.1 → 20.8, soft glam 14.6 → 19.1, hollywood 14.8 → 19.0), and the no-makeup and clean-girl lips are now
+  their own sheer colour (before: her lips times a change of under 3 %).
+- **Gloss and nude lips on deeper skin.** A gloss added light wherever her lips were brighter than their
+  surroundings at a fine scale: every line of her lips turned into a white streak (lips looked cracked and
+  ashy on deep skin, and glittery on light skin), and at the soft edge of her lip line her skin's light
+  counted as her lips' (a pale halo round the lips, which made the lip line look like a dark ring). Now her
+  lips' highlights past 1.25 times their light around are taken as light (her own shine, smoothed under a
+  gloss, half as much again), the lipstick's colour stops brightening there, nothing of her skin's light past
+  her lip line brightens the lipstick, and the gloss's highlight by her lips' shape is narrower and follows
+  where her lips are lit (it was a wide pale veil over the lower lip).
+- **A highlight brightens her skin without changing its colour much.** A look's highlighter (its recipe:
+  champagne, gold or pearl) added a pale veil and light of its own colour: on deep, rich skin a chalky grey patch
+  (her blue up to 11 times, her red under 2), or with a gold one a khaki patch. Where a full layer of it would
+  change her skin's colour that much (a hue shift, measured on the channels' log ratios, of 0.1 to 0.3), it is her
+  own skin glowing instead, as the highlighters made for deep skin make it: her warmth turning a little golden and
+  a little softer (a lit sheen, not a deeper orange), at most 1.6 times her skin where she is lit or her face
+  catches the light, less as her shade deepens. The
+  choice is made per pixel from her skin and light there, not from the highlighter's coverage (that left a ring of
+  the pale one round a warm patch), and not from her skin's darkness (a dim photo of light skin is dark too). Light
+  skin, where a champagne highlight hardly changes her colour, is unchanged. Her own highlight («میکاپ من») follows
+  the same rule.
 
 ### Each look's recipe: what its photo can't carry
 

@@ -361,7 +361,13 @@ def reflectance(base, E):
     s = np.maximum(1.0, r.max(-1, keepdims=True) / 0.9)
     return np.clip(r / s, 0.005, 0.98), E * s
 
-def apply_pigment(base, E, alpha, pick, thick, finish_terms, sheen=1.0):
+# A highlighter is her own skin glowing instead where a full layer of it would change her skin's colour this much
+# (hue_shift: from-to); then: how much of its light in flat light, at most this much brighter, the gold it turns at its
+# brightest (a factor on her colour, of luminance 1) and how much softer her colour is there (a lit sheen).
+GLOW_SHIFT, GLOW_SHADE, GLOW_MAX = (0.1, 0.3), 0.8, 0.6
+GLOW_GOLD, GLOW_SOFT = np.array([1.06, 1.0, 0.85], np.float32), 0.15
+
+def apply_pigment(base, E, alpha, pick, thick, finish_terms, sheen=1.0, kind=None):
     """One product: Kubelka-Munk layer over her (base, linear) lit by E, thickness from the coverage;
     shimmer / metallic finishes also turn part of it into a reflective, tinted surface (mica, foil) that
     follows her face's light; glitter adds grains that catch it. pick['own']: no layer of its own, only its finish (its
@@ -391,7 +397,32 @@ def apply_pigment(base, E, alpha, pick, thick, finish_terms, sheen=1.0):
             m = (mix * sheen * smoothstep(0.05, 0.6, alpha))[..., None]
             out = out * (1 - m) + refl * m
         if k_spark: out = out + L * (k_spark * spark * glint * sheen * np.clip(alpha, 0, 1))[..., None] * (0.6 + 0.4 * tint)
+    if kind == 'glow':
+        # A highlight brightens her skin without changing its colour much: where a pale or gold one would (deep, rich
+        # skin: a grey, ashen or khaki patch), it is her own skin glowing instead, as the highlighters made for deep skin
+        # make it: her warmth turning a little golden, at most GLOW_MAX more where she is lit or her face catches the
+        # light (less in her shade). Judged by what a full layer of it would do to her colour there (smooth over her
+        # face, not by its coverage: its edge would be a ring of the pale one). As makeup-gl.ts.
+        glint, hl, lit, spark, pearl, white, broad, form = finish_terms
+        tint = col / max(float(col.max()), 1e-4) * (0.5 + 0.5 * float(col.max()))
+        L = white[None, None] * np.clip(broad, 0.3, 1.5)[..., None]
+        sh = float(np.clip(sheen, 0.3, 1.0))
+        full = base + (km(Rg, Rinf, np.full(Rg.shape[:2], thick * FINISHES['glow'][0], np.float32)[..., None]) - Rg) * E \
+            + tint[None, None] * L * ((0.06 * np.clip(T.luma(Rg) / 0.25, 0.2, 1) + 0.5 * lit + 0.6 * hl) * sh)[..., None]
+        deep = smoothstep(*GLOW_SHIFT, hue_shift(base, full))
+        lift = np.clip(GLOW_SHADE + 1.5 * lit + 1.5 * hl, 0, 1) * np.clip(broad, 0.3, 1.0)
+        gl = GLOW_MAX * lift * smoothstep(0.0, 0.6, alpha) * sh; t = (gl / GLOW_MAX)[..., None]
+        yb = np.maximum(T.luma(base), 1e-5)[..., None]
+        hue_lit = np.maximum(base / yb, 1e-4) ** (1 - GLOW_SOFT * t) * GLOW_GOLD[None, None] ** t
+        warm = yb * (1 + gl)[..., None] * hue_lit / np.maximum(T.luma(hue_lit), 1e-5)[..., None]
+        out = out * (1 - deep[..., None]) + warm * deep[..., None]
     return out
+
+def hue_shift(a, b):
+    """How far colour b is from colour a's hue and colourfulness, whatever their brightness (as in makeup-gl.ts)."""
+    la, lb = np.maximum(T.luma(a), 1e-5)[..., None], np.maximum(T.luma(b), 1e-5)[..., None]
+    d = np.log(np.maximum(b, 1e-5) / lb) - np.log(np.maximum(a, 1e-5) / la)
+    return np.sqrt((d * d) @ np.float32([0.35, 0.55, 0.1]))
 
 def paint_custom(look, face, p, level='natural', custom=None, shade=None, finish=None, edge=None, vis=None, seg=None):
     """The look on `face` (RGB uint8, MediaPipe points p) with her own products swapped in and each
@@ -439,7 +470,7 @@ def paint_custom(look, face, p, level='natural', custom=None, shade=None, finish
             # (the look's own eyeshadow's finish where it is a light shade, not over its smoky dark: OWN_LIGHT)
             if pick.get('own'): alpha = alpha * smoothstep(*OWN_LIGHT, T.luma(base) / np.maximum(T.luma(user), 1e-4))
             t = terms if kind != 'shadow' else (glint, hl, lit, spark_lid, pearl, white, broad, form)
-            base = apply_pigment(base, E, alpha, pick, THICK[kind], t, SHEEN[kind])
+            base = apply_pigment(base, E, alpha, pick, THICK[kind], t, SHEEN[kind], kind)
     # 3. lipstick at its intensity
     L = T.lip_choice(look, shade, finish) if (shade or finish) else None
     band = np.clip(g(T.lip_hard((H, W), p), ew * 0.05) * 4, 0, 1)[..., None]

@@ -397,8 +397,16 @@ def soften(x, sigma):
 
 # ------------------------------------------------------------- makeup layer
 @lru_cache(None)
+@lru_cache(None)
+def _bare_made():
+    import bare
+    b = rgb(LOOKS / 'no-makeup.webp'); p = landmarks3(b)
+    return bare.true_bare(b, p), p
+
 def _bare():
-    b = rgb(LOOKS / 'no-makeup.webp'); return b, landmarks3(b)
+    """The catalog model without makeup and her points: the no-makeup photo with the little blush and the tinted gloss
+    it shows taken out (bare.py), pixel-locked (its points are the photo's)."""
+    b, p = _bare_made(); return b.copy(), p.copy()
 
 PLAIN_BROAD = 0.25   # over plain skin, the catalog's lightening broader than this (eye widths) is partly left out
 BROAD_KEEP = 0.5     # ...this much of it stays (a highlight on her cheekbones; the rest evened the bare face's own patches)
@@ -957,6 +965,9 @@ NUDE_DEEP = (0.25, 0.45)   # a nude shade's brightness over the skin's (in the c
 LEVELS = {'soft': (0.6, 0.55, 0.5), 'natural': (1.0, 1.0, 0.9), 'bold': (1.35, 1.12, 1.0)}
 luma = lambda f: f @ np.float32([0.2126, 0.7152, 0.0722])
 
+def smoothstep(a, b, x):
+    t = np.clip((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t)
+
 @lru_cache(None)
 def styles():
     import re
@@ -1041,7 +1052,7 @@ def nude_deep(colour, skin):
     t = float(np.clip((luma(np.asarray(colour, np.float32)) / max(skin, 1e-4) - NUDE_DEEP[0]) / (NUDE_DEEP[1] - NUDE_DEEP[0]), 0, 1))
     return t * t * (3 - 2 * t)
 
-def lip_target(L, u_sclera, u_skin):
+def lip_target(L, u_sclera, u_skin, rgb=False):
     """The lipstick colour for her photo: the look's lipstick in her light (her eye whites over the catalog's); nude
     shades also follow her skin's own depth (her skin over the catalog model's, her light taken out: a nude chosen for
     the model becomes the same nude for her), deep ones (nude_deep) not: those are pigments. As lipTarget()."""
@@ -1060,6 +1071,7 @@ def lip_target(L, u_sclera, u_skin):
         depth = float(np.clip(u_skin / L['skin'] / g, 0.15, 2.5)) ** 0.6
         w = L['nude'] * nude_deep(colour, L['skin'])
         colour = colour * (1 - w + w * depth)
+    if rgb: return (colour * light).astype(np.float32), float(light.mean()), (light / light.mean()).astype(np.float32)
     return (colour * light).astype(np.float32), float(light.mean())
 
 # ------------------------------------------------- her own lipstick (picker)
@@ -1131,6 +1143,14 @@ def canon_coords(p, shape):
     return w, cover
 
 LIP_VOLUME = 0.6   # how much of her lips' own light and shade (upper lip darker, lower lip lit) the lipstick keeps
+# Her lips' own light and shade go into the lipstick only inside her lip line (her lips' share of the 0.02-eye-width
+# neighbourhood, from-to); past LIP_KNEE times their light around, her lips' highlights are shine (the light's
+# reflection), not colour (the colour brightens only LIP_KNEE_SLOPE as much); a gloss keeps this much more of it.
+LIP_INSIDE, LIP_KNEE, LIP_KNEE_SLOPE, LIP_GLOSS_OWN = (0.55, 0.9), 1.25, 0.1, 0.5
+# A lipstick's gloss catches the light by her lips' shape, even in a selfie's flat light: a soft highlight on the
+# fullest part of her lower lip and a smaller one on her upper lip, where her lips are lit (GLOSS_FLAT elsewhere).
+LIP_GLOSS = {'gloss': 0.55, 'satin': 0.14, 'ombre': 0.1, 'lined': 0.08, 'metallic': 0.1, 'glitter': 0.08}
+GLOSS_FLAT = 0.3
 LIP_GRID = 192     # the lip refinement's grid, over a square crop around her lips
 LIP_CROP = 1.6     # the crop: this many times the lips' larger side
 LIP_BAND = 0.14    # her lips' colour decides within this far outside the detected lip outline (eye widths)
@@ -1196,25 +1216,46 @@ def lip_mask(img, p, pr=None, box=None):
 def apply_lips(base_lin, user_lin, p, look, k_lip, L=None):
     """Lipstick over `base_lin` (her photo with the catalog layer, linear). Mirrors makeup-gl.ts."""
     H, W = user_lin.shape[:2]; ew = eye_width(p[:, :2]); L = L or look_lips(look)
-    target, light = lip_target(L, sclera(user_lin, p), skin_lum(user_lin, p))
+    target, light, light_c = lip_target(L, sclera(user_lin, p), skin_lum(user_lin, p), rgb=True)
     hard = lip_hard((H, W), p)
     g = lambda x, s: cv2.GaussianBlur(x, (0, 0), s)
     f = lip_mask(srgb(user_lin), p)                  # her own lip line
     if f is None: f = g(hard, max(0.8, ew * 0.012))
     base = base_lin      # (the layer has no lip colour: filled from the skin around, feather_weights)
     Y = luma(user_lin); ref = lip_ref(user_lin, p) or float(np.median(Y))
-    broad = g(Y * hard, ew * 0.06) / np.maximum(g(hard, ew * 0.06), 1e-3)
-    fine = Y / np.maximum(broad, 1e-4)
-    fs = np.clip(fine, 0, 2.5)
-    if L['finish'] == 'matte': fs = np.where(fs > 1, 1 + (fs - 1) * MATTE_SHINE, fs)   # matte covers her lips' own shine
-    S = fs ** L["gamma"] * np.clip(broad / max(ref, 1e-4), 0.2, 3) ** LIP_VOLUME
+    near = lambda s: g(Y * hard, ew * s) / np.maximum(g(hard, ew * s), 1e-3)   # her lips' light around (lips only)
+    broad = near(0.06); fine = Y / np.maximum(broad, 1e-4)
+    lm = near(0.02); local = Y / np.maximum(lm, 1e-4)
+    ysm = near(0.012)                                # her lips' light without their finest lines
+    # (her lip line's shadow stays in the lipstick; her skin's light just past it doesn't brighten it)
+    inside = smoothstep(*LIP_INSIDE, g(hard, ew * 0.02))
+    fs = np.clip(fine, 0, 2.5); fs = np.where(fs > 1, 1 + (fs - 1) * inside, fs)
+    # her lips' highlights are the light's reflection, not their colour: past LIP_KNEE times their light around, the
+    # lipstick's colour stops brightening and the rest is shine, kept as light: less under a matte, under a gloss
+    # smoothed (it fills her lips' fine lines) and more
+    fd = np.where(fs > LIP_KNEE, LIP_KNEE + (fs - LIP_KNEE) * LIP_KNEE_SLOPE, fs)
+    S = fd ** L["gamma"] * np.clip(broad / max(ref, 1e-4), 0.2, 3) ** LIP_VOLUME
+    raw = (fs - fd) * broad
+    even = np.maximum(0, np.minimum(ysm / np.maximum(broad, 1e-4), 2.5) - LIP_KNEE) * broad * inside
+    sh = float(L['shine'])
+    spec = (raw * (1 - sh) + even * sh) * (MATTE_SHINE if L['finish'] == 'matte' else 1 + LIP_GLOSS_OWN * sh)
+    white = 0.85 + 0.15 * np.asarray(target, np.float32) / max(float(luma(np.asarray(target, np.float32))), 1e-3)
     # its colour, or (a lipstick that hardly changes the lips: look_lips) her own lips with its change
     k = float(L.get('pigment', 1.0)); own = base * np.asarray(L.get('ratio', np.ones(3)), np.float32) ** (1 / max(L['alpha'], 0.05))
-    cover = own * (1 - k) + target[None, None] * S[..., None] * k
-    local = Y / np.maximum(g(Y * hard, ew * 0.02) / np.maximum(g(hard, ew * 0.02), 1e-3), 1e-4)
-    if L['shine']:
-        spec = np.clip(local - 1.04, 0, 0.5)
-        cover = cover + (L['shine'] * spec * (float(np.mean(L['colour'])) + 0.25) * light)[..., None]
+    cover = own * (1 - k) + (target[None, None] * S[..., None] + spec[..., None] * (light_c * white)[None, None]) * k
+    if LIP_GLOSS.get(L['finish'], 0):   # the gloss by her lips' shape, broken up a little by her lips' own lines
+        P2 = p[:, :2]
+        along = P2[291] - P2[61]; mw = float(np.linalg.norm(along)); along = along / max(mw, 1e-6)
+        yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+        def spot(c, sa, sc):
+            dx, dy = xx - c[0], yy - c[1]
+            u, v = (dx * along[0] + dy * along[1]) / max(sa, 1e-3), (-dx * along[1] + dy * along[0]) / max(sc, 1e-3)
+            return np.exp(-0.5 * (u * u + v * v))
+        lo, up = P2[14] + (P2[17] - P2[14]) * 0.42, P2[0] + (P2[13] - P2[0]) * 0.55
+        gl = spot(lo, 0.2 * mw, 0.2 * float(np.linalg.norm(P2[17] - P2[14]))) \
+            + 0.45 * spot(up, 0.14 * mw, 0.22 * float(np.linalg.norm(P2[13] - P2[0])))
+        form = GLOSS_FLAT + (1 - GLOSS_FLAT) * smoothstep(0.95, 1.35, ysm / np.maximum(broad, 1e-4))
+        cover = cover + (LIP_GLOSS[L['finish']] * gl * gl * form * light * inside)[..., None] * (light_c * white)[None, None]
     col = np.asarray(target, np.float32); tint = col / max(float(col.max()), 1e-4)
     if L['finish'] == 'metallic':   # a soft sheen where her lips catch the light, her highlights, and a fine pearl
         ysm = g(Y * hard, ew * 0.012) / np.maximum(g(hard, ew * 0.012), 1e-3)
