@@ -257,6 +257,35 @@ goes on, and her foundation lifts the shaded side of the face).
   skin, where a champagne highlight hardly changes her colour, is unchanged. Her own highlight («میکاپ من») follows
   the same rule.
 
+### Every look finished: as strong as its photo, concealer, brows
+
+On a real selfie the looks read weaker than their catalog photos, and three things a makeup artist always does were
+missing. All three are now in every catalog look (graphics-chip engine; `resolveProducts` in tryon.ts, the main pass
+in makeup-gl.ts):
+
+- **As strong as the catalog photo.** Painted back onto the catalog model's own bare face, the engine reproduced about
+  60% of the photo's change on her lids, 42% past her eyes' outer corners and 79% on her cheeks (`strength.py renders`;
+  the teacher: 81%, 43%, 75%): the layer fades in from her face's outline, past the outer corners and around her eyes.
+  Each look's step zones now carry gains (`LOOK_GAIN`: lids ×2, eye detail along the liner ×1.4, the rest of the eye
+  detail ×1.15, blush and highlight ×1.3, the layer's skin level ×1.15, contour ×0.75), which bring it to about 92% on
+  her lids, 95% on her cheeks and 100–110% under her cheekbones; her picks' intensities multiply them. Of a gain over 1
+  only `LIGHTEN_GAIN` (35%) goes to what lightens: a pale shimmer made twice as light turned chalky grey on a deeper lid.
+- **Concealer that covers.** The look's concealer lifted a darker under-eye towards her skin's median by at most 1.2×
+  (and the studio retouch by 1.35×): deep dark circles stayed. Now each under-eye is lifted towards her cheek just below
+  it (`measureFace`: the 60th percentile of a disc 0.85 eye widths down; `CONCEAL_LOOK` 0.85 of the way in log light, at
+  most 2.2×), over a zone 1.1× wider and 1.45× taller than before that only lifts what is darker than that cheek (a
+  smaller one left a dark arc where it stopped); her lashes and the fine lines near her lash line stay dark (further down
+  every dark speck lifts with the skin around), and the grey, brown or violet cast moves 60% towards her skin's colour.
+  Lighter on no-makeup (0.5) and clean-girl (0.7).
+- **Brows done.** The gaps between her brow hairs are filled towards her own hairs' colour (the darkest 30% of her brows,
+  `measureFace`; 0.85 as light, as a ratio to her skin so a brow in shade gets a deeper fill), 55% of the way, and her
+  hairs stay as they are: no colour is painted over them (a brow pomade over full dark brows turned them a flat
+  reddish brown). A clean line of concealer just under each brow (+12% light, never on her hairs) gives the brow its
+  lower edge (`BROW_CARVE`). Lighter on no-makeup.
+
+The tiny fallback networks don't have these yet (the teacher mirrors the engine as it was; `train.py` after
+`teacher.py` follows).
+
 ### Each look's recipe: what its photo can't carry
 
 A catalog photo carries a look as a change of colour; some of what makes a look its own doesn't come

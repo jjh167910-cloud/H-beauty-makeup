@@ -738,6 +738,21 @@ function metalTone(hex: string) {
   return h >= 20 && h <= 55;
 }
 
+/**
+ * A look's brows: the gaps between her hairs filled towards her own hairs' colour (measureFace), this much deeper, this
+ * share of the way; per look, how much.
+ */
+const BROW_LOOK_DEEP = 0.85, BROW_LOOK_FILL = 0.55;
+const BROW_LOOK: Record<string, number> = { "no-makeup": 0.6 };
+/**
+ * Each region of a catalog look made as strong as in its catalog photo: the engine lost part of it on the way (the layer
+ * fades in from her face's outline, past her eyes' outer corners and around her eyes), so on the catalog face itself the
+ * lids came out at about 60% of the photo's change, the wings past the outer corners 42%, the cheeks 79%
+ * (strength.py renders). These gains (per step zone: the layer's skin level outside the zones, lids, eye detail along
+ * the liner, blush, highlight) bring it up to about the photo's.
+ */
+const LOOK_GAIN: Partial<Record<StepKey, number>> = { base: 1.15, contour: 0.75, shadow: 2, liner: 1.4, lashes: 1.15, blush: 1.3, glow: 1.3 };
+
 type Recipe = { finish: number; glow?: [string, number]; shadow?: { hex: string; finish: string; style: string }; liner?: string };
 function lookRecipe(look: string): Recipe | null {
   const fl = styleById.get(look)?.look;
@@ -766,10 +781,14 @@ function shadowSource(look: string, style: string | undefined, lookStyle: string
  */
 async function resolveProducts(look: string, picks: ProductPicks | null | undefined, face: FaceStats, all: LooksMeta): Promise<Products | undefined> {
   const rec = lookRecipe(look);
-  const has = picks && (picks.shadow || picks.liner || picks.blush || picks.glow || picks.contour);
-  const gains = Object.values(picks?.gain ?? {}).some((g) => g !== undefined && g !== 1);
-  if (!rec && !has && !gains) return undefined;
-  const out: Products = { white: productLight(face, all.swatch), gain: picks?.gain, finish: rec?.finish };
+  const brow = face.brow && face.skin && (BROW_LOOK[look] ?? 1) > 0 ? face.brow : null;
+  // each region as strong as in the catalog photo (strength.py on the catalog face), times her own picks' intensity
+  const gain: Partial<Record<StepKey, number>> = { ...LOOK_GAIN };
+  for (const [k, g] of Object.entries(picks?.gain ?? {})) if (g !== undefined) gain[k as StepKey] = (gain[k as StepKey] ?? 1) * g;
+  const out: Products = { white: productLight(face, all.swatch), gain, finish: rec?.finish };
+  if (brow && face.skin) {   // every look's brows filled in and defined, in her own hairs' colour a little deeper
+    out.browDefine = { ratio: brow.map((c) => (c / face.skin!) * BROW_LOOK_DEEP), amount: BROW_LOOK_FILL * (BROW_LOOK[look] ?? 1) };
+  }
   if (picks?.shadow) {
     const { style, src } = shadowSource(look, picks.shadow.style, picks.shadow.lookStyle, all);
     const [image, files] = await Promise.all([loadCov(src), loadLook(src)]);

@@ -152,6 +152,35 @@ const LIP_INSIDE = [0.55, 0.9], LIP_KNEE = 1.25, LIP_KNEE_SLOPE = 0.1, LIP_GLOSS
 const LIP_FILL = [0.05, 0.15];
 /** Concealer (conceal_gain in teacher.py): how far a darker under-eye is lifted towards her skin's typical brightness, and at most how much. */
 const CONCEAL = 0.6, CONCEAL_MAX = 1.35;
+/**
+ * A look's concealer (every catalog look): her under-eye lifted towards the brightness of her cheek just below it (her own
+ * light there, so it never turns into a pale patch), this share of the way in log light and at most CONCEAL_LOOK_MAX
+ * times; her lashes and the fine lines of her lids, darker than the skin around, stay as they are (by CONCEAL_HAIR); and
+ * its grey, brown or violet cast moved this share towards her skin's own colour, as a peach-toned concealer does.
+ * Where it is measured: her cheek under each eye (CONCEAL_REF: eye widths down, out; its radius), the upper-middle of
+ * its brightness (a quantile: not the shadow of a crease, nor shine).
+ */
+const CONCEAL_LOOK = 0.85, CONCEAL_LOOK_MAX = 2.2, CONCEAL_HAIR = 0.8, CONCEAL_TONE = 0.6;
+const CONCEAL_REF = [0.85, 0.1, 0.18], CONCEAL_Q = 0.6;
+/**
+ * Its zone: the concealer ellipse (uConC, uConAx) this much wider and taller, full to CONCEAL_ZONE[2] of its radius and
+ * gone by [3] (it only lifts what is darker than her cheek, so it can reach past the whole shadow: a smaller zone left a
+ * dark arc where it stopped); her lashes are kept only near her lash line (from CONCEAL_LASH[0] to [1] eye widths below
+ * her eye's middle), further down every dark speck is lifted like the skin around it.
+ */
+const CONCEAL_ZONE = [1.1, 1.45, 0.55, 1.3], CONCEAL_LASH = [0.2, 0.32];
+/** A region of a look made stronger (its step gain over 1): of the extra, this share goes to what lightens. */
+const LIGHTEN_GAIN = 0.35;
+/** Her brow hairs are the darkest BROW_HAIR_Q of her brows' outline (measureFace). */
+const BROW_HAIR_Q = 0.3;
+/**
+ * A look's brows are carved: just under each brow (the brow zone, BROW_CARVE[0] eye widths further up her face, less
+ * the zone itself) her skin is brought up this much (log light, BROW_CARVE[1]) by a concealer under the brow, which
+ * gives the brow a clean lower edge; never her hairs.
+ */
+const BROW_CARVE = [0.07, 0.12];
+/** A look's concealer per look: lighter on the barest looks. */
+const CONCEAL_LIGHT: Record<string, number> = { "no-makeup": 0.5, "clean-girl": 0.7 };
 /* Her foundation (foundation() in teacher.py): her skin's colour evened out everywhere inside her face's outline, right up
  * to it. How much of her uneven colour it covers; her skin's colour softened over FOUND_NEAR eye widths brought towards it
  * softened over FOUND_WIDE; the shape (up her forehead, down onto her neck, past her outline, its edge's softness, eye
@@ -288,7 +317,15 @@ export type EyeFiles = { ids: number[]; pts: number[]; tris: number[]; w: number
 export type LookFiles = { id: string; uv: number[]; lip: LipInfo; layer: ImageBitmap; eyes: EyeFiles | null; tint?: number[] };
 /** Light and colour references measured on her photo (see measureFace). */
 /** Her light references, and how soft her photo is around the eyes (`blur`: Gaussian sigma in pixels, photoBlur in tryon.ts). */
-export type FaceStats = { sclera: number[] | null; skin: number | null; lipRef: number | null; blur?: number | null };
+export type FaceStats = {
+  sclera: number[] | null; skin: number | null; lipRef: number | null; blur?: number | null;
+  /** Her cheek's brightness just under each eye (image-left eye, the other; linear), for the concealer. */
+  under?: [number, number] | null;
+  /** Her skin's colour (linear, over its luminance), for the concealer's tone. */
+  tone?: number[] | null;
+  /** Her brow hairs' colour (linear): the darker part of her brows, for a look's brow product. */
+  brow?: number[] | null;
+};
 
 export const LIPS_OUT = [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291, 375, 321, 405, 314, 17, 84, 181, 91, 146];
 export const LIPS_IN = [78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308, 324, 318, 402, 317, 14, 87, 178, 88, 95];
@@ -395,6 +432,11 @@ export type Products = {
   gain?: Partial<Record<StepKey, number>>;
   /** Brow fill (her own makeup only; a dark pigment, so its thickness is a few hundredths: it fills in, it doesn't paint over). */
   brows?: Pigment;
+  /**
+   * A look's brows: the gaps between her brow hairs filled towards her hairs' own colour (`ratio`: their colour over her
+   * skin's brightness, so a brow in shade gets a deeper fill), this share of the way (`amount`).
+   */
+  browDefine?: { ratio: number[]; amount: number };
   /** Her own makeup's second eyeshadow (her crease and outer corner; the first is on her lid) and her inner-corner light. */
   shadow2?: Pigment;
   inner?: Pigment;
@@ -991,7 +1033,42 @@ export function measureFace(source: CanvasImageSource, P: Pt[]): FaceStats {
     lipRef = n ? sum / n : quantile(ys, 0.5);
   }
   const skinLum = skinY.length > 50 ? quantile(Float32Array.from(skinY).sort(), 0.5) : null;
-  return { sclera, skin: skinLum, lipRef };
+  // her cheek just under each eye (the concealer's reference) and her skin's colour there
+  const ew = eyeWidth(P), ax0 = [P[263][0] - P[33][0], P[263][1] - P[33][1]], an = Math.hypot(ax0[0], ax0[1]) || 1;
+  const ax = [ax0[0] / an, ax0[1] / an];
+  let dn = [-ax[1], ax[0]];
+  if (dn[0] * (P[152][0] - P[10][0]) + dn[1] * (P[152][1] - P[10][1]) < 0) dn = [-dn[0], -dn[1]];
+  const tones: number[][] = [];
+  const under = [[EYE_R, -1], [EYE_L, 1]].map(([ids, out]) => {
+    const e = ids as number[], o = out as number;
+    const m = e.reduce((acc, i) => [acc[0] + P[i][0] / e.length, acc[1] + P[i][1] / e.length], [0, 0]);
+    const c = at([m[0] + dn[0] * ew * CONCEAL_REF[0] + ax[0] * o * ew * CONCEAL_REF[1], m[1] + dn[1] * ew * CONCEAL_REF[0] + ax[1] * o * ew * CONCEAL_REF[1]]);
+    const r = ew * CONCEAL_REF[2] * s, ys: number[] = [];
+    for (let y = Math.max(0, Math.floor(c[1] - r)); y <= Math.min(h - 1, Math.ceil(c[1] + r)); y++) {
+      for (let x = Math.max(0, Math.floor(c[0] - r)); x <= Math.min(w - 1, Math.ceil(c[0] + r)); x++) {
+        if ((x - c[0]) ** 2 + (y - c[1]) ** 2 > r * r) continue;
+        const k = (y * w + x) * 4, rr = LIN[px[k]], gg = LIN[px[k + 1]], bb = LIN[px[k + 2]], Y = 0.2126 * rr + 0.7152 * gg + 0.0722 * bb;
+        ys.push(Y);
+        if (Y > 1e-4) tones.push([rr / Y, gg / Y, bb / Y]);
+      }
+    }
+    return ys.length >= 8 ? quantile(Float32Array.from(ys).sort(), CONCEAL_Q) : 0;
+  });
+  const tone = tones.length >= 16 ? [0, 1, 2].map((k) => quantile(Float32Array.from(tones.map((t) => t[k])).sort(), 0.5)) : null;
+  // her brow hairs: the darker part (BROW_HAIR_Q) of what lies inside her brows' outline, its middle colour
+  const browsM = make(); fill(browsM, ring(P, BROW_R)); fill(browsM, ring(P, BROW_L));
+  const mbw = read(browsM), bw: number[][] = [];
+  for (let i = 0; i < w * h; i++) {
+    const o = i * 4;
+    if (mbw[o + 3] > 127) { const r = LIN[px[o]], g = LIN[px[o + 1]], b = LIN[px[o + 2]]; bw.push([r, g, b, 0.2126 * r + 0.7152 * g + 0.0722 * b]); }
+  }
+  let brow: number[] | null = null;
+  if (bw.length >= 20) {
+    const cut = quantile(Float32Array.from(bw.map((v) => v[3])).sort(), BROW_HAIR_Q);
+    const dark = bw.filter((v) => v[3] <= cut);
+    brow = [0, 1, 2].map((c) => quantile(Float32Array.from(dark.map((v) => v[c])).sort(), 0.5));
+  }
+  return { sclera, skin: skinLum, lipRef, under: under[0] > 0 && under[1] > 0 ? [under[0], under[1]] : null, tone, brow };
 }
 
 
@@ -1285,6 +1362,7 @@ uniform int uMine;
 uniform vec4 uMineK;
 uniform vec3 uConTint, uBrow, uBrowShape;
 uniform float uBrowX, uMineLow;
+uniform vec4 uBrowDef;      // a look's brows: her hairs' colour over her skin's brightness (rgb), how far the gaps fill (a)
 // coloured lenses: each iris (centre in uv, radius in uv x and y), the lens colour (linear, in her light), its amount
 // and whether it covers her iris (1) or tints it (0)
 uniform vec4 uIris[2];
@@ -1301,6 +1379,8 @@ uniform float uSkinY;       // her skin's median brightness (linear): the concea
 uniform vec4 uConC;         // the concealer ellipses' centres (one under each eye), their axis across the face (uConAx),
 uniform vec4 uConAx;        // radii (uConAx.zw) and how much of each the turned head shows (uConK) (conceal_zone in teacher.py)
 uniform vec2 uConK;
+uniform vec3 uConRef;       // a look's concealer: her cheek's brightness under each eye (x, y; 0: none) and how much (z)
+uniform vec3 uConTone;      // her skin's colour over its luminance (the concealer's tone)
 uniform int uOpenOn;
 uniform vec2 uOpen;
 uniform sampler2D uSide;
@@ -1577,6 +1657,16 @@ vec3 browFill(vec3 base, vec3 lu, float a) {
   vec3 Rg = clamp(r / s, 0.005, 0.98);
   return min(base, base + (km(Rg, uBrow, a * uBrowX) - Rg) * E0 * s);
 }
+// A look's brows (browDefine in tryon.ts): the gaps between her hairs (her softened brightness up near her skin's around:
+// uShadeB) filled towards her hairs' colour in the light there; her hairs (as dark as that colour) stay as they are.
+vec3 browDefine(vec3 base, vec3 lu, float a) {
+  vec4 Bd = texture(uShadeB, v); float fB = max(0.0, 0.5 - Bd.y);
+  float broad = (Bd.x + luma(lu) * fB) / (Bd.y + fB);
+  vec3 hairC = uBrowDef.rgb * broad;
+  float yh = luma(hairC), y = luma(base);
+  float gap = clamp((y - yh) / max(broad - yh, 1e-4), 0.0, 1.0);
+  return mix(base, hairC, a * uBrowDef.w * gap);
+}
 void main() {
   vec3 src = texture(uSrc, v).rgb;
   vec2 px = v * vec2(uSize);
@@ -1616,12 +1706,33 @@ void main() {
       float target = uSkinY * uMineK.x;
       float gain = pow(clamp(target / max(pow(g0, 2.2), 1e-4), 1.0, ${CONCEAL_MAX} * uMineK.x), ${CONCEAL});
       lu *= 1.0 + (gain * uConTint - 1.0) * min(max(ZA.r, 0.0) * rv(1, sw), 1.5) * (1.0 - M.r);
+    } else if (uConRef.x > 0.0) {   // a look's concealer: up towards her cheek under the eye, her lashes kept, her skin's tone
+      float zR = 0.0, zL = 0.0;
+      for (int e = 0; e < 2; e++) {
+        vec2 d = px - (e == 0 ? uConC.xy : uConC.zw);
+        float r = length(vec2(dot(d, ax) / (uConAx.z * ${CONCEAL_ZONE[0]}), dot(d, dn) / (uConAx.w * ${CONCEAL_ZONE[1]})));
+        float z = 1.0 - smoothstep(${CONCEAL_ZONE[2]}, ${CONCEAL_ZONE[3]}, r);
+        if (e == 0) zR = z * uConK.x; else zL = z * uConK.y;
+      }
+      vec2 eyeC = (zR >= zL ? uConC.xy : uConC.zw) - dn * uEw * 0.42;
+      float ref = zR >= zL ? uConRef.x : uConRef.y;
+      float k = max(zR, zL) * uConRef.z * (uZonesOn == 1 ? rv(1, sw) : 1.0) * (1.0 - M.r);
+      float ys = pow(g0, 2.2), y = luma(lu);
+      float gain = pow(clamp(ref / max(ys, 1e-4), 1.0, ${CONCEAL_LOOK_MAX}), ${CONCEAL_LOOK});
+      float nearLash = 1.0 - smoothstep(${CONCEAL_LASH[0]}, ${CONCEAL_LASH[1]}, dot(px - eyeC, dn) / uEw);
+      float hair = clamp((ys - y) / max(0.25 * ys, 1e-4), 0.0, 1.0) * nearLash;
+      lu *= 1.0 + (gain - 1.0) * k * (1.0 - ${CONCEAL_HAIR} * hair);
+      vec3 c = lu / max(luma(lu), 1e-5);
+      lu *= pow(uConTone / max(c, vec3(1e-4)), vec3(${CONCEAL_TONE} * k * (1.0 - hair)));
     } else {
       float gain = pow(clamp(uSkinY / max(pow(g0, 2.2), 1e-4), 1.0, ${CONCEAL_MAX}), ${CONCEAL});
       lu *= 1.0 + (gain - 1.0) * zone * (uZonesOn == 1 ? rv(1, sw) : 1.0);
     }
   }
-  vec3 base = lu * exp(lr * (1.0 - M.r) * (1.0 - M.g) * uK.x * RL);
+  // (a region made stronger than the layer, RL > 1: its shading and colour by all of that, its lightening by LIGHTEN_GAIN
+  // of it: a pale shimmer made twice as light turned chalky grey on a deeper lid)
+  vec3 RLc = RL > 1.0 ? mix(vec3(1.0 + (RL - 1.0) * ${LIGHTEN_GAIN}), vec3(RL), step(lr, vec3(0.0))) : vec3(RL);
+  vec3 base = lu * exp(lr * (1.0 - M.r) * (1.0 - M.g) * uK.x * RLc);
   float pigX = 0.0;
   for (int k = 0; k < 6; k++) pigX += uPigX[k];
   if (uZonesOn == 1 && pigX > 0.0) {
@@ -1654,6 +1765,19 @@ void main() {
     }
   }
   if (uMine == 1 && uBrowX > 0.0) base = browFill(base, lu, max(ZB.b, 0.0) * rv(2, sw) * (1.0 - M.r));
+  else if (uBrowDef.w > 0.0 && uZonesOn == 1) {
+    float kb = rv(2, sw) * uK.x * (1.0 - M.r);
+    base = browDefine(base, lu, max(ZB.a, 0.0) * kb);
+    if (uSkinY > 0.0) {           // carved: a clean line of concealer just under her brow
+      vec2 up = vec2(uConAx.y, -uConAx.x) * uEw * ${BROW_CARVE[0]};
+      if (dot(up, vec2(-uConAx.y, uConAx.x)) > 0.0) up = -up;
+      float above = texture(uZoneB, v + up / vec2(uSize)).a;
+      float band = clamp(above - max(ZB.a, 0.0) * 1.5, 0.0, 1.0);
+      vec4 G = texture(uGrey, v);
+      float hairs = clamp(-(dot(src, vec3(0.299, 0.587, 0.114)) - G.x) / max(G.y, 20.0 / 255.0), 0.0, 1.0);
+      base *= exp(${BROW_CARVE[1]} * band * kb * (1.0 - hairs));
+    }
+  }
   base = mix(base, lu, clamp(M.a * 4.0, 0.0, 1.0) * uLipTint);  // lipstick replaces the layer's lip tint (none when filled)
   vec4 Q = texture(uLip, v);
   float lipF = M.b;
@@ -2320,6 +2444,7 @@ export class MakeupGL {
         if (geo) { zone("zoneA", 0, geo.conceal); zone("zoneA", 1, geo.contour); zone("zoneA", 2, geo.blush); zone("zoneA", 3, geo.glow); }
         zone("zoneB", 0, lidGeo.shadow); zone("zoneB", 1, lidGeo.liner);
         if (prod?.blush) zone("zoneB", 2, stepGeometry(P, prod.blush.style).blush);
+        if (prod?.browDefine) zone("zoneB", 3, lidGeo.brows);
       }
       gl.colorMask(true, true, true, true);
     }
@@ -2346,9 +2471,9 @@ export class MakeupGL {
       this.blur(T.zoneB.tex[0], T.zoneBB, sB, scissor);
     } else {
       if (geo) this.blur(this.targets.zoneA.tex[0], this.targets.zoneAB, [ew * 0.1, ew * 0.1, ew * 0.12, ew * 0.12], scissor);
-      if (lidGeo) this.blur(this.targets.zoneB.tex[0], this.targets.zoneBB, [ew * 0.04, Math.max(0.8, ew * 0.012), prod?.blush ? ew * BLUSH_SOFT : 1, 1], scissor);
+      if (lidGeo) this.blur(this.targets.zoneB.tex[0], this.targets.zoneBB, [ew * 0.04, Math.max(0.8, ew * 0.012), prod?.blush ? ew * BLUSH_SOFT : 1, prod?.browDefine ? Math.max(0.8, ew * 0.02, 0.9 * (face.blur ?? 0)) : 1], scissor);
     }
-    const pigmentsOn = Boolean(prod && (pigs.some(Boolean) || prod.liner || prod.brows));
+    const pigmentsOn = Boolean(prod && (pigs.some(Boolean) || prod.liner || prod.brows || prod.browDefine));
     if (pigmentsOn) {     // her shading: form and broad light (shading() in products.py), her local highlights
       this.blur(this.targets.prep.tex[2], this.targets.shadeF, [ew * SHADE_SIGMA[0], ew * SHADE_SIGMA[0], ew * 0.012, ew * 0.03], scissor);
       this.blur(this.targets.prep.tex[2], this.targets.shadeB, [ew * SHADE_SIGMA[1], ew * SHADE_SIGMA[1], 1, 1], scissor);
@@ -2507,6 +2632,11 @@ export class MakeupGL {
       gl.uniform4f(this.uni(p, "uConAx"), a[0], a[1], ew * 0.55, ew * 0.24);
       gl.uniform2f(this.uni(p, "uConK"), shown[0], shown[1]);
     }
+    // a look's concealer (not her own makeup's, which has its own): her cheek under each eye, its amount, her skin's tone
+    const conLook = concealOn && !mine && face.under && face.tone ? CONCEAL_LIGHT[look.id ?? ""] ?? 1 : 0;
+    gl.uniform3f(this.uni(p, "uConRef"), conLook ? face.under![0] : 0, conLook ? face.under![1] : 0, conLook * kLayer);
+    const tone = face.tone ?? [1, 1, 1];
+    gl.uniform3f(this.uni(p, "uConTone"), tone[0], tone[1], tone[2]);
     gl.uniform2f(this.uni(p, "uOpen"), keep[0], keep[1]);
     gl.uniform1i(this.uni(p, "uVisMode"), visMode);
     gl.uniform3f(this.uni(p, "uVisBox"), ...(vis?.box ?? [0, 0, 1]));
@@ -2531,6 +2661,8 @@ export class MakeupGL {
     gl.uniform3f(this.uni(p, "uConTint"), conTint[0], conTint[1], conTint[2]);
     gl.uniform3f(this.uni(p, "uBrow"), brow[0], brow[1], brow[2]);
     gl.uniform1f(this.uni(p, "uBrowX"), mine && prod?.brows ? prod.brows.thick : 0);
+    const bd = !mine && lidGeo ? prod?.browDefine : undefined;
+    gl.uniform4f(this.uni(p, "uBrowDef"), ...((bd ? [...bd.ratio, bd.amount] : [0, 0, 0, 0]) as [number, number, number, number]));
     gl.uniform1f(this.uni(p, "uMineLow"), mine?.shadow?.low ?? 0);
     const lens = prod?.lenses, irises = P.length >= 478 ? [468, 473] : null;
     gl.uniform2f(this.uni(p, "uLensK"), lens && irises ? 1 : 0, lens?.opaque ? 1 : 0);
