@@ -56,6 +56,9 @@ function lipFor(pick: LipPick): LipChoice | null {
   return { shade: shade?.hex ?? null, finish: pick.finish ?? shade?.finish ?? null };
 }
 
+/** While the connection is down: the download waits and goes on from where it was. */
+const OFFLINE_WAIT = "اینترنت قطع است؛ با وصل شدن، دانلود از همان‌جا ادامه پیدا می‌کند.";
+
 export default function TryOnView({ style, onBook }: {
   style: MakeupStyle;
   /** Book the look she's trying, or her own makeup (`mine`: its name and recipe). */
@@ -66,6 +69,8 @@ export default function TryOnView({ style, onBook }: {
    * first download, which starts with that tap: picking a photo hides part of it. */
   const [aiReady, setAiReady] = useState(false);
   const [waiting, setWaiting] = useState<"photo" | "live" | null>(null);
+  /** The connection dropped: the download waits for it and goes on by itself. */
+  const [netWait, setNetWait] = useState(false);
   /** Her chosen photo, shown while it waits for the download. */
   const [waitingPhoto, setWaitingPhoto] = useState<string | null>(null);
   useEffect(() => () => { if (waitingPhoto) URL.revokeObjectURL(waitingPhoto); }, [waitingPhoto]);
@@ -152,7 +157,7 @@ export default function TryOnView({ style, onBook }: {
       setPhase("download");
       setProgress(0);
       try {
-        await downloadModels([style.id], setProgress, [lookPhoto(style.id, "sm")]);
+        await downloadModels([style.id], setProgress, [lookPhoto(style.id, "sm")], false, undefined, setNetWait);
         warmUp(style.id);
         setAiReady(true);
         haptic();
@@ -170,6 +175,7 @@ export default function TryOnView({ style, onBook }: {
         return false;
       } finally {
         pending.current = null;
+        setNetWait(false);
       }
     })();
     return pending.current;
@@ -213,7 +219,7 @@ export default function TryOnView({ style, onBook }: {
     setHdProgress(0);
     setHdError("");
     try {
-      await downloadHdModels(setHdProgress, controller.signal);
+      await downloadHdModels(setHdProgress, controller.signal, setNetWait);
       if (controller.signal.aborted) {
         // A late Stop (during cache cleanup or storage.persist) still restores the retry button.
         setHdStatus("available");
@@ -226,6 +232,7 @@ export default function TryOnView({ style, onBook }: {
       setHdError(controller.signal.aborted ? "" : navigator.onLine === false ? "برای دریافت HD به اینترنت نیاز است." : errorText(reason));
     } finally {
       if (hdAbort.current === controller) hdAbort.current = null;
+      setNetWait(false);
     }
   }
 
@@ -586,6 +593,7 @@ export default function TryOnView({ style, onBook }: {
             <div className="tryon__get" role="status">
               <div className="tryon__bar"><span style={{ width: `${Math.round(progress * 100)}%` }} /></div>
               <small>در حال دانلود هوش مصنوعی… {persian(Math.round(progress * 100))}٪</small>
+              {netWait ? <strong>{OFFLINE_WAIT}</strong> : null}
               {waiting ? <small>{waiting === "live" ? "پس از دانلود، آینه زنده باز می‌شود." : "عکس شما انتخاب شد؛ پس از دانلود، میکاپ روی آن اجرا می‌شود."}</small> : null}
             </div>
           ) : null}
@@ -752,6 +760,7 @@ export default function TryOnView({ style, onBook }: {
                 <div role="status" style={{ width: "100%" }}>
                   <div className="tryon__bar"><span style={{ width: `${Math.round(hdProgress * 100)}%` }} /></div>
                   <small>دریافت اختیاری HD… {persian(Math.round(hdProgress * 100))}٪</small>
+                  {netWait ? <strong>{OFFLINE_WAIT}</strong> : null}
                   <Button variant="secondary" icon="close" onClick={() => hdAbort.current?.abort()}>توقف دانلود HD</Button>
                   <small>بخش‌های کامل ذخیره می‌شوند؛ بعداً می‌توانید ادامه دهید.</small>
                 </div>

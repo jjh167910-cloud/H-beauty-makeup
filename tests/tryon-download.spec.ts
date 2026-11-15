@@ -2,10 +2,10 @@ import { expect, test } from "playwright/test";
 
 /**
  * The first download on a weak connection: the big files come in 1 MiB pieces, each kept as it arrives, so a stopped
- * download, or a connection dropped in the middle of a piece, goes on from the pieces already kept. Joined, each file is
- * the file itself (its content hash), and the pieces are let go.
+ * download goes on from the pieces already kept; a connection dropped in the middle of a piece, or lost for a while,
+ * doesn't stop it. Joined, each file is the file itself (its content hash), and the pieces are let go.
  */
-test("a stopped or dropped first download goes on from the pieces it kept, and the joined files are exact", async ({ page }) => {
+test("a stopped first download goes on from the pieces it kept, a dropped piece is asked for again, and the joined files are exact", async ({ page }) => {
   test.setTimeout(180_000);
   await page.goto("/");
   const state = await page.evaluate(async () => {
@@ -45,13 +45,9 @@ test("a stopped or dropped first download goes on from the pieces it kept, and t
     const stop = new AbortController();
     const first = await run((_, n) => { if (n >= 6) stop.abort(); return "ok"; }, stop.signal);
     const kept = (await cache.keys()).map((r) => new URL(r.url).pathname).filter(isPiece);
-    // 2. Again: the connection drops in the middle of a piece.
-    let dropped = false;
-    // (on the 8th piece: four at a time, so at least four of this run's pieces are kept by then)
-    const second = await run((_, n) => (n >= 8 && !dropped ? (dropped = true, "drop") : "ok"));
-    const keptAfterDrop = (await cache.keys()).map((r) => new URL(r.url).pathname).filter(isPiece);
-    // 3. Again, to the end.
-    const third = await run(() => "ok");
+    // 2. Again, and the connection drops in the middle of a piece: that piece is asked for again, and it goes on.
+    let dropped = "";
+    const second = await run((url, n) => (n >= 8 && !dropped ? (dropped = url, "drop") : "ok"));
     const left = (await cache.keys()).map((r) => new URL(r.url).pathname).filter(isPiece);
 
     // Each joined file is exact: its size and its content hash.
@@ -65,30 +61,28 @@ test("a stopped or dropped first download goes on from the pieces it kept, and t
     return {
       first: { error: first.error, pieces: first.asked.filter(isPiece) },
       kept,
-      second: { error: second.error, pieces: second.asked.filter(isPiece) },
-      keptAfterDrop,
-      third: { error: third.error, pieces: third.asked.filter(isPiece), progress: third.progress },
-      gzipped: first.gzipped + second.gzipped + third.gzipped,
+      second: { error: second.error, pieces: second.asked.filter(isPiece), progress: second.progress },
+      dropped: plain(dropped),
+      gzipped: first.gzipped + second.gzipped,
       left,
       files,
-      sharpener: [...first.asked, ...second.asked, ...third.asked].some((url) => url.includes("enhance-x4")),
+      sharpener: [...first.asked, ...second.asked].some((url) => url.includes("enhance-x4")),
     };
   });
   // Stopped: what had arrived is kept, and not asked for again.
   expect(state.first.error).toBe("AbortError");
   expect(state.kept.length).toBeGreaterThanOrEqual(1);
   for (const piece of state.kept) expect(state.second.pieces).not.toContain(piece);
-  // Dropped mid-piece: that piece only starts again; the others it had already kept stay kept.
-  expect(state.second.error).not.toBe("");
-  expect(state.keptAfterDrop.length).toBeGreaterThan(state.kept.length);
-  for (const piece of state.keptAfterDrop) expect(state.third.pieces).not.toContain(piece);
+  // Dropped mid-piece: the same download asks for that piece again (only that one, once more) and finishes.
+  expect(state.second.error).toBe("");
+  expect(state.second.pieces.filter((piece) => piece === state.dropped)).toHaveLength(2);
+  expect(new Set(state.second.pieces).size).toBe(state.second.pieces.length - 1);
   // To the end: the files are whole and exact, the pieces let go, the bar from 0 to 1 and never back.
-  expect(state.third.error).toBe("");
   expect(state.files).toEqual({ "/tryon/wasm/vision_wasm_internal.wasm": true, "/tryon/face_landmarker.task": true, "/tryon/segment.tflite": true });
   expect(state.left).toEqual([]);
-  expect(state.third.progress[0]).toBe(0);
-  expect(state.third.progress.at(-1)).toBe(1);
-  expect(state.third.progress.every((v, i, all) => v >= 0 && v <= 1 && (i === 0 || v >= all[i - 1]))).toBe(true);
+  expect(state.second.progress[0]).toBe(0);
+  expect(state.second.progress.at(-1)).toBe(1);
+  expect(state.second.progress.every((v, i, all) => v >= 0 && v <= 1 && (i === 0 || v >= all[i - 1]))).toBe(true);
   // The models Cloudflare doesn't compress came gzipped and were unpacked on the phone (the files are exact, above).
   expect(state.gzipped).toBeGreaterThan(0);
   // The sharpener is not part of the first download (it comes when a soft photo needs it).
@@ -131,4 +125,23 @@ test("the HD face a phone kept in its earlier large parts is joined on the phone
   expect(state.asked).toEqual([]);
   expect(state.size).toBe(state.expected);
   expect(state.oldParts).toBe(0);
+});
+
+test("when the phone loses its connection the first download waits, says so, and goes on by itself", async ({ page, context }) => {
+  test.setTimeout(180_000);
+  await page.setViewportSize({ width: 390, height: 844 });
+  const finished = new Map<string, number>();
+  page.on("requestfinished", (r) => { const path = new URL(r.url()).pathname.replace(/\.gz$/, ""); if (/-of-\d+\./.test(path)) finished.set(path, (finished.get(path) ?? 0) + 1); });
+  await page.goto("/");
+  await page.getByRole("button", { name: "آماده‌سازی هوش مصنوعی" }).click();
+  await expect.poll(() => finished.size, { timeout: 60_000 }).toBeGreaterThanOrEqual(6);
+  await context.setOffline(true);
+  await expect(page.getByText("اینترنت قطع است؛ با وصل شدن، دانلود از همان‌جا ادامه پیدا می‌کند.")).toBeVisible({ timeout: 30_000 });
+  await page.waitForTimeout(3000);
+  await expect(page.getByRole("alert")).toHaveCount(0);   // (waiting, not an error)
+  await context.setOffline(false);
+  await expect(page.locator(".tryon__intro .tryon__get")).toHaveCount(0, { timeout: 120_000 });
+  await expect(page.getByRole("button", { name: "انتخاب از گالری" })).toBeVisible();
+  // Nothing that had arrived before the connection went was fetched again.
+  expect([...finished.values()].every((n) => n === 1)).toBe(true);
 });

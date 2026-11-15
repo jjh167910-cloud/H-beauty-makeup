@@ -50,8 +50,9 @@ Cloudflare Workers Builds deploys the Worker `h-beauty-makeup` from `main` (`wra
   come: about 14 MB as they travel with WebGL2 (about 18 MB with the tiny-network fallback). The photo sharpener
   (2.4 MB) comes only when a soft photo needs it.
 - The big AI files are served in 1 MiB pieces (`scripts/vite-ai-pieces.ts`), gzipped where Cloudflare doesn't
-  compress them, each kept on the phone as it arrives: a stopped download, or a dropped connection, goes on from
-  the pieces already there.
+  compress them, each kept on the phone as it arrives: a stopped download goes on from the pieces already there.
+  A dropped connection doesn't stop it: a cut piece is asked for again, and while the phone is offline the download
+  says so, waits, and goes on by itself when the connection is back. A phone without room says that instead.
 - Other looks are downloaded when she picks them and kept for offline use. The look rail shows her face in the
   looks she can see in it, fetching each one's small files (about 150 KB) as it scrolls into view (not with Data
   Saver on).

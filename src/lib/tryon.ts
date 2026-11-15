@@ -59,7 +59,7 @@ export type Prepared = {
   /** The same photos retouched in studio light (studio-gl.ts); null where the phone can't. */
   studio: { plain: Shot; sharp: Shot | null } | null;
 };
-export type TryOnError = "no-face" | "no-model" | "no-camera" | "failed";
+export type TryOnError = "no-face" | "no-model" | "no-camera" | "no-space" | "failed";
 
 const BASE = "/tryon/";
 export const AI_CACHE = "hb-ai-models-v2";
@@ -227,59 +227,97 @@ async function pool<T>(items: T[], size: number, work: (item: T) => Promise<void
   }));
 }
 
+/** Waits `ms`, or until the phone is back online; a stop ends it. */
+function pause(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const done = () => { off(); resolve(); };
+    const stop = () => { off(); reject(new DOMException("Download cancelled", "AbortError")); };
+    const timer = navigator.onLine === false ? 0 : setTimeout(done, ms);   // (offline: until the connection is back)
+    const off = () => { clearTimeout(timer); removeEventListener("online", done); signal?.removeEventListener("abort", stop); };
+    addEventListener("online", done);
+    signal?.addEventListener("abort", stop);
+    if (signal?.aborted) stop();
+  });
+}
+
+/** A full cache (the phone's storage): said as such, not as a broken download. */
+const full = (error: unknown) => error instanceof DOMException && error.name === "QuotaExceededError";
+
 /**
  * Every file in `urls` into the cache: what's there already is skipped, and of a big file only its pieces not kept yet
- * are fetched (four at a time). `onProgress` 0..1 counts only what was missing.
+ * are fetched (four at a time). `onProgress` 0..1 counts only what was missing. A dropped connection doesn't stop it:
+ * the piece is asked for again (after 1, 2, 4… s, about 1.5 minutes in all), and while the phone is offline it waits
+ * for the connection to come back; `onWait` says when it is waiting.
  */
-async function fetchInto(cache: Cache, urls: string[], onProgress: (done: number) => void, signal?: AbortSignal) {
+async function fetchInto(cache: Cache, urls: string[], onProgress: (done: number) => void, signal?: AbortSignal, onWait?: (waiting: boolean) => void) {
   const cancelled = () => { if (signal?.aborted) throw new DOMException("Download cancelled", "AbortError"); };
-  const jobs: Array<{ url: string; piece?: number; bytes: number }> = [], joins: string[] = [];
+  // (`shown`: how much of a piece the bar has counted, so a piece asked for again doesn't move it back)
+  const jobs: Array<{ url: string; piece?: number; bytes: number; shown: number }> = [], joins: string[] = [];
   for (const url of new Set(urls)) {
     cancelled();
     if (await cache.match(url)) continue;
-    if (!PIECES[url]) { jobs.push({ url, bytes: weightOf(url) }); continue; }
+    if (!PIECES[url]) { jobs.push({ url, bytes: weightOf(url), shown: 0 }); continue; }
     if (await fromLegacy(cache, url)) continue;
     joins.push(url);
-    for (let i = 0; i < PIECES[url].count; i++) if (!(await cache.match(pieceUrl(url, i)))) jobs.push({ url, piece: i, bytes: pieceBytes(url, i) });
+    for (let i = 0; i < PIECES[url].count; i++) if (!(await cache.match(pieceUrl(url, i)))) jobs.push({ url, piece: i, bytes: pieceBytes(url, i), shown: 0 });
   }
   const total = jobs.reduce((sum, job) => sum + job.bytes, 0);
-  let done = 0;
+  // (pieces and the joined file are both kept for a moment: twice the size)
+  const room = await navigator.storage?.estimate?.().catch(() => null);
+  if (room?.quota && room.quota - (room.usage ?? 0) < total * 2) throw "no-space" satisfies TryOnError;
+  let done = 0, waiting = 0;
   const bump = (n: number) => { done += n; onProgress(total ? Math.min(0.99, Math.max(0, done / total)) : 1); };
+  const wait = (on: boolean) => { waiting += on ? 1 : -1; onWait?.(waiting > 0); };
   onProgress(total ? 0 : 1);
-  await pool(jobs, 4, async (job) => {
-    cancelled();
+
+  async function get(job: (typeof jobs)[number]) {
     if (job.piece === undefined) {
       const response = await fetch(job.url, { cache: "no-cache", signal });
-      if (!response.ok) throw "no-model" satisfies TryOnError;
+      if (!response.ok) throw response.status >= 500 ? "server" : ("no-model" satisfies TryOnError);
       await cache.put(job.url, response);
-      bump(job.bytes);
+      bump(job.bytes - job.shown);
+      job.shown = job.bytes;
       return;
     }
     const gz = unzips && PIECES[job.url].gz;
     const response = await fetch(`${pieceUrl(job.url, job.piece)}${gz ? ".gz" : ""}`, { cache: "no-cache", signal });
-    if (!response.ok || !response.body) throw "no-model" satisfies TryOnError;
+    if (!response.ok || !response.body) throw response.status >= 500 ? "server" : ("no-model" satisfies TryOnError);
     // (a server that sends the .gz with Content-Encoding has had it unpacked by the browser already)
     const packed = gz && !/gzip/i.test(response.headers.get("content-encoding") ?? "");
     const body = packed ? response.body.pipeThrough(new DecompressionStream("gzip") as unknown as ReadableWritablePair<Uint8Array, Uint8Array>) : response.body;
     const reader = body.getReader(), chunks: Uint8Array[] = [];
     let got = 0;
-    try {
-      for (;;) {
-        const { done: end, value } = await reader.read();
-        if (end) break;
-        chunks.push(value);
-        got += value.byteLength;
-        bump(value.byteLength);
-      }
-      if (got !== job.bytes) throw "no-model" satisfies TryOnError;
-    } catch (error) {
-      bump(-got);   // (this piece starts again next time)
-      throw error;
+    for (;;) {
+      const { done: end, value } = await reader.read();
+      if (end) break;
+      chunks.push(value);
+      got += value.byteLength;
+      if (got > job.shown) { bump(got - job.shown); job.shown = got; }
     }
+    if (got !== job.bytes) throw "network";   // (cut short)
     await cache.put(pieceUrl(job.url, job.piece), new Response(new Blob(chunks as BlobPart[]), { headers: { "content-type": "application/octet-stream" } }));
+  }
+
+  const DELAYS = [1, 2, 4, 8, 15, 30, 30];   // seconds between tries while the phone says it is online
+  await pool(jobs, 4, async (job) => {
+    for (let tries = 0; ; tries++) {
+      cancelled();
+      try { await get(job); return; }
+      catch (error) {
+        if (signal?.aborted || (error instanceof DOMException && error.name === "AbortError")) throw new DOMException("Download cancelled", "AbortError");
+        if (full(error)) throw "no-space" satisfies TryOnError;
+        const offline = navigator.onLine === false;
+        const network = offline || error instanceof TypeError || error === "network" || error === "server";
+        if (!network || (!offline && tries >= DELAYS.length)) throw error === "server" || error === "network" || error instanceof TypeError ? ("no-model" satisfies TryOnError) : error;
+        if (offline || tries >= 1) wait(true);
+        try { await pause((DELAYS[tries] ?? 30) * 1000, signal); } finally { if (offline || tries >= 1) wait(false); }
+        if (offline) tries = -1;   // (back online: a fresh round of tries)
+      }
+    }
   });
   cancelled();
-  for (const url of joins) await join(cache, url);
+  try { for (const url of joins) await join(cache, url); }
+  catch (error) { throw full(error) ? ("no-space" satisfies TryOnError) : error; }
 }
 
 /**
@@ -287,13 +325,13 @@ async function fetchInto(cache: Cache, urls: string[], onProgress: (done: number
  * networks, as they travel), reporting 0..1. The HD face (about 84 MB) only with `includeHD`. Kept for offline use;
  * a stopped or dropped download goes on from the pieces already kept.
  */
-export async function downloadModels(lookIds: string[], onProgress: (done: number) => void, thumbs: string[] = [], includeHD = false, signal?: AbortSignal): Promise<void> {
+export async function downloadModels(lookIds: string[], onProgress: (done: number) => void, thumbs: string[] = [], includeHD = false, signal?: AbortSignal, onWait?: (waiting: boolean) => void): Promise<void> {
   if (signal?.aborted) throw new DOMException("Download cancelled", "AbortError");
   // Free the disk space of obsolete engines BEFORE attempting large downloads.
   await dropOldCaches();
   const cache = await caches.open(AI_CACHE);
   const { need, drop } = await files(lookIds, includeHD);
-  await fetchInto(cache, [...need, ...thumbs], onProgress, signal);
+  await fetchInto(cache, [...need, ...thumbs], onProgress, signal, onWait);
   // Remove obsolete files of the other rendering engine only once new data is safe.
   await Promise.all(drop.map((url) => cache.delete(url).catch(() => false)));
   await navigator.storage?.persist?.().catch(() => false);
@@ -349,9 +387,9 @@ export async function hdModelsReady(): Promise<boolean> {
   try { return await hdInCache(await caches.open(AI_CACHE)); } catch { return false; }
 }
 
-export async function downloadHdModels(onProgress: (done: number) => void, signal?: AbortSignal): Promise<void> {
+export async function downloadHdModels(onProgress: (done: number) => void, signal?: AbortSignal, onWait?: (waiting: boolean) => void): Promise<void> {
   if (!(await hdWanted())) throw "no-model" satisfies TryOnError;
-  await downloadModels([], onProgress, [], true, signal);
+  await downloadModels([], onProgress, [], true, signal, onWait);
 }
 
 /** MediaPipe's WebAssembly, from the offline cache (it is served in pieces, so not at its own address). */
@@ -1665,6 +1703,7 @@ export function errorText(error: unknown): string {
     case "no-face": return "چهره‌ای پیدا نشد. یک عکس روبه‌رو، واضح و با نور کافی انتخاب کنید.";
     case "no-model": return "فایل‌های هوش مصنوعی کامل دانلود نشده‌اند. یک بار با اینترنت دوباره امتحان کنید.";
     case "no-camera": return "دوربین در دسترس نیست. اجازه دسترسی به دوربین را بدهید یا از عکس استفاده کنید.";
+    case "no-space": return "فضای خالی گوشی برای فایل‌های هوش مصنوعی کافی نیست. کمی فضا آزاد کنید و دوباره امتحان کنید.";
     default: return "ساخت تصویر انجام نشد. دوباره امتحان کنید.";
   }
 }

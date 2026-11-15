@@ -25,7 +25,11 @@ be stopped («توقف دانلود HD») and continued.
 Runtime, the HD face) are served in 1 MiB pieces (`scripts/vite-ai-pieces.ts`: the repository keeps the
 files as they are; the build writes the pieces into `dist/` and leaves the whole files out). The phone
 keeps each piece in Cache Storage as it arrives, so a stopped download, or a connection dropped in the
-middle, goes on from the pieces it has: a drop costs at most one piece. When all of a file's pieces are
+middle, goes on from the pieces it has: a drop costs at most one piece. Nor does a dropped connection
+stop it: a piece cut short or refused is asked for again (after 1, 2, 4… seconds, about 1.5 minutes
+in all), and while the phone is offline the download says so («اینترنت قطع است…») and waits, going on
+by itself when the connection is back; the bar never moves back. A phone without room for the files
+(the pieces and the joined file are both kept for a moment) is told so instead of a failed download. When all of a file's pieces are
 in, they're joined under the file's own URL (where the engine and the service worker find it) and let
 go. Piece names carry the file's content hash, so pieces of two versions never mix, and keep its
 extension (WebAssembly pieces are compressed on the way like the whole file; Cloudflare serves no byte
