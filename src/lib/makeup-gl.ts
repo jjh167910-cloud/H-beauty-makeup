@@ -132,11 +132,25 @@ const EXTEND = 0.6, EXTEND_IN = 0.12, EXTEND_T = 0.15, EXTEND_SCALE = 4;
 const SHOWN_LO = 0.35, SHOWN_HI = 0.6;
 /**
  * As in teacher.py: the eyeball as a share of the eye opening (no layer or eye detail inside it) and its edge's
- * softness (eye widths); how far inside her face's outline the look's layer fades in (bare-face eye widths); her
- * photo's blur (px) up to which the eye detail stays as crisp as in the catalog; how much of her lips' own light and
- * shade the lipstick keeps; the lip refinement's grid, window (eye widths) and regularisation.
+ * softness (eye widths); how far inside her face's outline the look's layer fades in (bare-face eye widths); how much
+ * of her lips' own light and shade the lipstick keeps; the lip refinement's grid, window (eye widths) and regularisation.
  */
-const BALL_SCALE = [0.95, 0.8], BALL_SOFT = 0.015, FEATHER = 0.35, DETAIL_SHARP = 0.75, LIP_VOLUME = 0.6;
+const BALL_SCALE = [0.95, 0.8], BALL_SOFT = 0.015, FEATHER = 0.35, LIP_VOLUME = 0.6;
+/**
+ * Her camera's lens. Makeup is on her face before the photo is taken, so on a soft photo it is as soft as everything else
+ * (painting the soft photo = the lens over the painting of a sharp one): the look's layer, eye detail and liner go through
+ * the part of her photo's blur they don't already have. The catalog photos' own softness around the eyes is CATALOG_BLUR
+ * px at their eye width (photo_blur in teacher.py: 0.58-0.73), larger or smaller as the look is warped onto her eyes, at
+ * least LENS_OWN px; Gaussian widths add in squares. Below LENS_MIN px nothing is softened.
+ */
+const CATALOG_BLUR = 0.68, LENS_OWN = 0.5, LENS_MIN = 0.3;
+/** The eye detail darkens her photo at most to this share of its light (the 0.15 of apply_eyes in teacher.py). */
+const EYE_FLOOR = 0.15;
+/** The lens (Gaussian sigma, px) the look still needs on a photo of blur `blur` whose eye width is `ew` (lens_sigma in teacher.py). */
+export function lensSigma(blur: number, ew: number, canonEw?: number): number {
+  const own = Math.max(LENS_OWN, canonEw ? (CATALOG_BLUR * ew) / canonEw : 0.75);
+  return Math.sqrt(Math.max(0, blur * blur - own * own));
+}
 /**
  * Her lips' own light and shade go into the lipstick only inside her lip line (her lips' share of the 0.02-eye-width
  * neighbourhood, from-to); a shine follows her lips' shape smoothly, and her lips' fine lines only this much.
@@ -1274,12 +1288,12 @@ void main() {
 
 // Separable Gaussian blur with a different width for each channel; wide blurs take every uStride-th pixel.
 const BLUR_FS = `#version 300 es
-precision highp float; in vec2 v; uniform sampler2D uTex; uniform vec2 uStep; uniform vec4 uSigma; uniform int uR; uniform float uStride; out vec4 o;
+precision highp float; in vec2 v; uniform sampler2D uTex; uniform vec2 uStep; uniform vec4 uSigma, uCap; uniform int uR; uniform float uStride; out vec4 o;
 void main() {
   vec4 inv = 1.0 / (2.0 * uSigma * uSigma), acc = vec4(0.0), sum = vec4(0.0);
   for (int i = -uR; i <= uR; i++) {
     float x = float(i) * uStride; vec4 w = exp(-x * x * inv);
-    acc += texture(uTex, v + uStep * x) * w; sum += w;
+    acc += min(texture(uTex, v + uStep * x), uCap) * w; sum += w;
   }
   o = acc / sum;
 }`;
@@ -2108,7 +2122,8 @@ export class MakeupGL {
     gl.colorMask(true, true, true, true);
   }
 
-  private blur(from: WebGLTexture, to: Target, sigma: number[], scissor: number[], grid?: string) {
+  /** A separable Gaussian blur (a sigma per channel, px); `cap`: each channel at most this much before it is blurred. */
+  private blur(from: WebGLTexture, to: Target, sigma: number[], scissor: number[], grid?: string, cap = [1e9, 1e9, 1e9, 1e9]) {
     const g = grid ? this.grids[grid] : null;
     const gl = this.gl, [w, h] = g ? [g.n, g.n] : this.size;
     const tmp = g ? g.t.tmp : this.targets.tmp;
@@ -2119,11 +2134,13 @@ export class MakeupGL {
     gl.uniform4f(this.uni(p, "uSigma"), s[0], s[1], s[2], s[3]);
     gl.uniform1i(this.uni(p, "uR"), Math.ceil(reach / stride));
     gl.uniform1f(this.uni(p, "uStride"), stride);
+    gl.uniform4f(this.uni(p, "uCap"), cap[0], cap[1], cap[2], cap[3]);
     gl.bindFramebuffer(gl.FRAMEBUFFER, tmp.fb);
     gl.scissor(scissor[0], scissor[1], scissor[2], scissor[3]);
     this.bindTex(p, "uTex", from, 0);
     gl.uniform2f(this.uni(p, "uStep"), 1 / w, 0);
     this.drawQuad(p);
+    gl.uniform4f(this.uni(p, "uCap"), 1e9, 1e9, 1e9, 1e9);
     gl.bindFramebuffer(gl.FRAMEBUFFER, to.fb);
     this.bindTex(p, "uTex", tmp.tex[0], 0);
     gl.uniform2f(this.uni(p, "uStep"), 0, 1 / h);
@@ -2136,6 +2153,7 @@ export class MakeupGL {
     const reach = Math.ceil(3 * s), stride = Math.max(1, Math.ceil(reach / 24));
     const p = this.use("blur");
     gl.uniform4f(this.uni(p, "uSigma"), s, s, s, s);
+    gl.uniform4f(this.uni(p, "uCap"), 1e9, 1e9, 1e9, 1e9);
     gl.uniform1i(this.uni(p, "uR"), Math.ceil(reach / stride));
     gl.uniform1f(this.uni(p, "uStride"), stride);
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.targets.extT.fb);
@@ -2470,10 +2488,14 @@ export class MakeupGL {
     this.bindTex(p, "uMask", this.targets.mask.tex[0], 1);
     this.drawQuad(p);
     gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
-    this.blur(this.targets.mask.tex[0], this.targets.maskB, [Math.max(1.5, ew * BALL_SOFT), 1.5, Math.max(0.8, ew * 0.012), ew * 0.05], scissor);
-    // the look's eye detail as sharp as her photo (soften() in teacher.py)
-    const detailSigma = Math.max(0, (face.blur ?? 0) - DETAIL_SHARP), soft = detailSigma > 0.3;
-    if (soft) this.blur(this.targets.layer.tex[0], this.targets.detail, [0.5, 0.5, 0.5, detailSigma], scissor);
+    // the look's layer and eye detail through her photo's lens (lens_sigma() in teacher.py), and so the edge where they
+    // give way to her eyeball: her liner's own edge there is as soft as her photo's
+    const camLens = lensSigma(face.blur ?? 0, ew, canon?.ew), soft = camLens > LENS_MIN;
+    this.blur(this.targets.mask.tex[0], this.targets.maskB, [Math.hypot(Math.max(1.5, ew * BALL_SOFT), soft ? camLens : 0), 1.5, Math.max(0.8, ew * 0.012), ew * 0.05], scissor);
+    // (the eye detail darkens at most to EYE_FLOOR: past that it is cut off before the lens, as on her face)
+    const eyeGain = (k: StepKey) => (prod?.gain?.[k] ?? 1) * (mine ? 1 : prod?.layerGain?.[k] ?? 1);
+    const detailCap = (1 - EYE_FLOOR) / Math.max(1e-3, kEye * (geo ? Math.max(eyeGain("liner"), eyeGain("lashes")) : 1));
+    if (soft) this.blur((extendOn ? this.targets.layerX : this.targets.layer).tex[0], this.targets.detail, [camLens, camLens, camLens, camLens], scissor, undefined, [1e9, 1e9, 1e9, detailCap]);
     this.blur(this.targets.prep.tex[0], this.targets.lipB, [ew * 0.06, ew * 0.06, ew * 0.02, ew * 0.02], scissor);
     this.blur(this.targets.prep.tex[1], this.targets.greyB, [Math.max(0.8, ew * 0.028), Math.max(1.2, ew * 0.042), ew * 0.012, ew * 0.012], scissor);
     if (mine) {          // her steps' edges as soft as her tools make them, and never crisper than her photo
@@ -2484,7 +2506,7 @@ export class MakeupGL {
       this.blur(T.zoneB.tex[0], T.zoneBB, sB, scissor);
     } else {
       if (geo) this.blur(this.targets.zoneA.tex[0], this.targets.zoneAB, [ew * 0.1, ew * 0.1, ew * 0.12, ew * 0.12], scissor);
-      if (lidGeo) this.blur(this.targets.zoneB.tex[0], this.targets.zoneBB, [ew * 0.04, Math.max(0.8, ew * 0.012), prod?.blush ? ew * BLUSH_SOFT : 1, prod?.browDefine ? Math.max(0.8, ew * 0.02, 0.9 * (face.blur ?? 0)) : 1], scissor);
+      if (lidGeo) this.blur(this.targets.zoneB.tex[0], this.targets.zoneBB, [ew * 0.04, Math.hypot(Math.max(0.8, ew * 0.012), soft ? camLens : 0), prod?.blush ? ew * BLUSH_SOFT : 1, prod?.browDefine ? Math.max(0.8, ew * 0.02, 0.9 * (face.blur ?? 0)) : 1], scissor);
     }
     const pigmentsOn = Boolean(prod && (pigs.some(Boolean) || prod.liner || prod.brows || prod.browDefine));
     if (pigmentsOn) {     // her shading: form and broad light (shading() in products.py), her local highlights
@@ -2574,7 +2596,7 @@ export class MakeupGL {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     p = this.use("main");
     this.bindTex(p, "uSrc", foundOn ? this.targets.srcF.tex[0] : this.src, 0);
-    this.bindTex(p, "uLayer", (extendOn ? this.targets.layerX : this.targets.layer).tex[0], 1);
+    this.bindTex(p, "uLayer", (soft ? this.targets.detail : extendOn ? this.targets.layerX : this.targets.layer).tex[0], 1);
     this.bindTex(p, "uMask", this.targets.maskB.tex[0], 2);
     this.bindTex(p, "uLip", this.targets.lipB.tex[0], 3);
     this.bindTex(p, "uGrey", this.targets.greyB.tex[0], 4);

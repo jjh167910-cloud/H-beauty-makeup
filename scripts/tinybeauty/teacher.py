@@ -159,12 +159,17 @@ def regions(shape, p):
 BALL_SCALE = [0.95, 0.8]   # the eyeball, as a share of the eye opening: no layer or eye detail inside it
 BALL_SOFT = 0.015          # its edge's softness, in eye widths (at least 1.5 px)
 FEATHER = 0.35             # the look's layer fades in over this far inside her face's outline (bare-face eye widths)
-DETAIL_SHARP = 0.75        # her photo's blur (px) up to which the look's eye detail stays as crisp as in the catalog
+# Her camera's lens: makeup is on her face before the photo is taken, so on a soft photo it is as soft as the rest (painting
+# the soft photo = the lens over the painting of a sharp one). The catalog photos' own softness around the eyes, px at their
+# eye width (photo_blur: 0.58-0.73), at least LENS_OWN px; below LENS_MIN px nothing is softened.
+CATALOG_BLUR, LENS_OWN, LENS_MIN = 0.68, 0.5, 0.3
+EYE_FLOOR = 0.15           # the eye detail darkens her photo at most to this share of its light
 
-def ball_keep(shape, p):
-    """1 outside her eyeballs, 0 inside (softened): layer and eye detail stay on the lids."""
+def ball_keep(shape, p, lens=0.0):
+    """1 outside her eyeballs, 0 inside (softened, and through her photo's lens `lens_sigma`): layer and eye detail stay on
+    the lids."""
     ew = eye_width(np.asarray(p)[:, :2])
-    return 1 - cv2.GaussianBlur(poly_mask(shape, np.asarray(p)[:, :2], [EYE_R, EYE_L], scale=BALL_SCALE), (0, 0), max(1.5, ew * BALL_SOFT))
+    return 1 - cv2.GaussianBlur(poly_mask(shape, np.asarray(p)[:, :2], [EYE_R, EYE_L], scale=BALL_SCALE), (0, 0), float(np.hypot(max(1.5, ew * BALL_SOFT), lens)))
 
 @lru_cache(None)
 def feather_weights():
@@ -225,9 +230,12 @@ def photo_blur(img, p):
     r = np.sqrt(energy(cv2.GaussianBlur(g, (11, 11), 1.5, borderType=cv2.BORDER_REPLICATE)) / max(energy(g), 1e-12))
     return float(min(4, max(0.4, 1.5 * r / np.sqrt(max(1 - r * r, 1e-3)))))
 
-def detail_sigma(blur):
-    """How much to soften the look's eye detail (px) so it is as sharp as her photo."""
-    return max(0.0, blur - DETAIL_SHARP)
+def lens_sigma(blur, ew):
+    """The lens (Gaussian sigma, px) the look's layer, eye detail and liner still need on a photo of blur `blur` with eye
+    width `ew`: the part of her photo's blur they don't already have (widths add in squares). As lensSigma() in makeup-gl.ts."""
+    own = max(LENS_OWN, CATALOG_BLUR * ew / float(json.load(open(TRYON / 'looks.json'))['canon']['ew']))
+    s = float(np.sqrt(max(0.0, blur * blur - own * own)))
+    return s if s > LENS_MIN else 0.0
 
 CONCEAL = 0.6        # concealer: how far a darker under-eye is lifted towards her skin's typical brightness (in log light)
 CONCEAL_MAX = 1.35   # at most this much lighter
@@ -946,9 +954,12 @@ def warp_eyes(look, pu, shape, z=None):
 
 def apply_eyes(base, user, pu, look, strength=0.9):
     z = pu[:, 2]; p2 = pu[:, :2]
-    # as sharp as her photo, off her eyeballs, a closing eye's lashes faded
-    ru = soften(warp_eyes(look, p2, user.shape[:2], z), detail_sigma(photo_blur(user, pu)))
-    ru = ru * lash_scale(pu, user.shape[:2]) * ball_keep(user.shape[:2], pu); ew = eye_width(p2)
+    # through her photo's lens (cut off where it would darken past EYE_FLOOR first, as on her face), off her eyeballs (their
+    # edge as soft as her photo), a closing eye's lashes faded
+    ew = eye_width(p2); lens = lens_sigma(photo_blur(user, pu), ew)
+    cap = (1 - EYE_FLOOR) / max(1e-3, float(np.max(strength)))
+    ru = -soften(np.minimum(-warp_eyes(look, p2, user.shape[:2], z), cap), lens) if lens else warp_eyes(look, p2, user.shape[:2], z)
+    ru = ru * lash_scale(pu, user.shape[:2]) * ball_keep(user.shape[:2], pu, lens)
     lu = cv2.cvtColor(user, cv2.COLOR_RGB2GRAY).astype(np.float32)
     own = np.minimum(0, lu - cv2.GaussianBlur(lu, (0, 0), ew * 0.028)) / np.maximum(cv2.GaussianBlur(lu, (0, 0), ew * 0.042), 20)
     f = np.clip(1 + strength * np.minimum(0, ru - own * 0.6), 0.15, 1)[..., None]

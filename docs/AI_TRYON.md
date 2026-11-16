@@ -437,10 +437,24 @@ her lips, a hand on her cheek, a scarf, a phone.
   (a Hessian ridge measure: strands the segmentation misses, creases), with 0.03 eye widths around them;
   there the look is filled from the plain skin around. Any darker streak on plain skin narrower than 0.3
   eye widths is closed over too (contour and blush are broader; liner and lashes are in the eye zone).
+- **Through her camera's lens.** Makeup is on her face before her photo is taken, so on a soft photo it is as soft as
+  everything else in it: painting the soft photo must give what the camera's lens would give over the painting of a
+  sharp one. Measured that way (`tests/tryon.spec.ts`, and offline on synthetic faces: a sharp face, the same face
+  through a soft lens of 1.5 and 2.5 px, the lens that best explains the makeup painted on the soft one), the eye
+  makeup came out as if through a lens of 0.7 and 1.0 px: liner and lashes about twice as crisp as the photo, the
+  surest sign of makeup pasted on (Sunkavalli et al., *Multi-scale Image Harmonization*, SIGGRAPH 2010: a composite
+  looks fake when its blur, noise and texture don't match the photo's). Only the eye detail was softened, by her
+  blur minus 0.75 px; the look's own layer (its liner, lid edges and lashes as the catalog photo has them), the edge
+  where the makeup gives way to her eyeball and the recipe's liner were not, and a strong liner, cut off at full
+  darkness after the softening, came out crisp again. Now all of them go through the part of her photo's blur they
+  don't already have (`lensSigma`: Gaussian widths add in squares; the catalog's own softness around the eyes is
+  0.68 px at its eye width, scaled as the look is warped onto hers), and the eye detail is cut off at full darkness
+  *before* it. The eye makeup now comes out as if through 1.4 and 2.2 px, 3-4 dB nearer what the lens gives. On a
+  sharp photo nothing changes. The skin keeps all of her camera's grain (the foundation evens only broad colour); on
+  the lips the lipstick keeps 80-90 % of its brightness grain (it replaces her lips' colour, so colour noise goes:
+  a phone's photo has little of it), so nothing was changed there.
 - **Eyes.** Nothing from the layer or the eye detail goes on her eyeballs (95 % x 80 % of the eye
-  opening, a soft edge), so the lower white of the eye keeps its own edge. The catalog's liner and lash
-  detail is softened to her photo's sharpness (her blur around the eye minus 0.75 px), so it doesn't look
-  drawn on a soft selfie. The catalog model's own lid crease is not part of it: carried onto her lid
+  opening, a soft edge, as soft as her photo), so the lower white of the eye keeps its own edge. The catalog model's own lid crease is not part of it: carried onto her lid
   (where her crease isn't), it drew a second line above her lashes. A crease is found as a thin line
   running along the lid (a Hessian valley whose normal is within 25-45° of the lid's) past the lash-line
   band (0.05-0.09 eye widths beyond the eye's opening, up to 0.35-0.45: not her brows); one the bare
@@ -470,7 +484,7 @@ her lips, a hand on her cheek, a scarf, a phone.
 - **Sharpening** shrinks a soft photo only until it is slightly soft (1.15 px) before the network draws
   it 4x larger, so it sharpens what is there instead of inventing it, and adds fine grain so skin doesn't
   look like plastic.
-- Reference: `teacher.py` (`feather_weights`, `ball_keep`, `photo_blur`, `conceal_zone`, `conceal_gain`, `lip_prob`,
+- Reference: `teacher.py` (`feather_weights`, `ball_keep`, `photo_blur`, `lens_sigma`, `conceal_zone`, `conceal_gain`, `lip_prob`,
   `lip_mask`) and `occlusion.py` (`edge_fade`); the graphics chip matches it to 45-48 dB on a soft selfie
   and 38-43 dB on synthetic test faces.
 

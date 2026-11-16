@@ -30,7 +30,7 @@ import { STUDIO_CRISP, Studio, studioParams } from "./studio-gl";
 import { styleById } from "@/data/makeup-styles";
 import lookGains from "@/data/look-gains.json";
 import {
-  LIP_GRID, LIPS_IN, LIPS_OUT, MakeupGL, STEP_KEYS, linHex, VIS_SEG, eyeWidth, linerColour, lipChoice, measureFace, mineLight, pigment, productLight, visCrop,
+  LIP_GRID, LIPS_IN, LIPS_OUT, MakeupGL, STEP_KEYS, linHex, VIS_SEG, eyeWidth, lensSigma, linerColour, lipChoice, measureFace, mineLight, pigment, productLight, visCrop,
   type Canon, type EyeFiles, type FaceStats, type Finish, type Level, type LipChoice, type LipGrid, type LipInfo, type LookFiles,
   type Mine, type MineZone, type Products, type StepKey, type StepState, type Swatch, type Visibility,
 } from "./makeup-gl";
@@ -1631,9 +1631,12 @@ function applyEyes(result: HTMLCanvasElement, photo: HTMLCanvasElement, P: Pt[],
   const x1 = Math.min(result.width, Math.ceil(right) + 3), y1 = Math.min(result.height, Math.ceil(bottom) + 3);
   const width = x1 - x0, height = y1 - y0;
   if (width < 4 || height < 4) return;
-  const dark = warpEyes(detail, P, x0, y0, width, height);
+  let dark = warpEyes(detail, P, x0, y0, width, height);
 
   const eye = (Math.hypot(P[33][0] - P[133][0], P[33][1] - P[133][1]) + Math.hypot(P[263][0] - P[362][0], P[263][1] - P[362][1])) / 2;
+  // through her photo's lens (lensSigma in makeup-gl.ts), cut off where it would darken past 0.15 first, as on her face
+  const lens = lensSigma(photoBlur(photo, P), eye);
+  if (lens > 0.3 && strength > 0) dark = blur(dark.map((x) => Math.min(x, 0.85 / strength)), width, height, lens);
   const own = ctx2d(photo).getImageData(x0, y0, width, height).data;
   const lum = new Float32Array(width * height);
   for (let i = 0; i < lum.length; i++) lum[i] = 0.299 * own[i * 4] + 0.587 * own[i * 4 + 1] + 0.114 * own[i * 4 + 2];

@@ -479,8 +479,11 @@ def paint_custom(look, face, p, level='natural', custom=None, shade=None, finish
     out = b2 + (lips - b2) * G('lips')
     # 4. eye detail: liner (upper lid band) and lashes, each at its intensity; the liner in her colour
     res = T.srgb(out).astype(np.float32)
-    ru = T.soften(T.warp_eyes(look, p2, (H, W), p[:, 2]), T.detail_sigma(T.photo_blur(face, p)))
-    ru = ru * T.lash_scale(p, (H, W), band=B[..., 1]) * T.ball_keep((H, W), p)
+    lens = T.lens_sigma(T.photo_blur(face, p), ew)   # her photo's lens (cut off past T.EYE_FLOOR first, as on her face)
+    cap = (1 - T.EYE_FLOOR) / max(1e-3, k_eye * max(G('liner'), G('lashes')))
+    ru = T.warp_eyes(look, p2, (H, W), p[:, 2])
+    if lens: ru = -T.soften(np.minimum(-ru, cap), lens)
+    ru = ru * T.lash_scale(p, (H, W), band=B[..., 1]) * T.ball_keep((H, W), p, lens)
     lu = cv2.cvtColor(face, cv2.COLOR_RGB2GRAY).astype(np.float32)
     own_d = np.minimum(0, lu - g(lu, ew * 0.028)) / np.maximum(g(lu, ew * 0.042), 20)
     d = np.minimum(0, ru - own_d * 0.6)

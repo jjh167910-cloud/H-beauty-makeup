@@ -898,6 +898,54 @@ test("both eyes get the look (and her own eyeshadow) equally: a mirrored photo g
 });
 
 /**
+ * Makeup is on her face before her photo is taken, so on a soft photo it is as soft as the photo: painting the photo
+ * through a soft lens comes out as the lens over the painting of the sharp photo (liner and lashes not drawn crisper).
+ */
+test("on a soft photo the makeup is as soft as the photo: painting it equals the camera's lens over the painting", async ({ page }) => {
+  test.setTimeout(300_000);
+  await openTryOn(page, "خط چشم گربه‌ای");
+  const r = await page.evaluate(async () => {
+    const m = await import("/src/lib/tryon.ts");
+    const { measureFace } = await import("/src/lib/makeup-gl.ts");
+    const blob = await (await fetch("/makeup/looks/no-makeup.webp")).blob();
+    const a = (await m.preparePhoto(blob)).plain, P = a.points, W = a.photo.width, H = a.photo.height;
+    const copy = (c: CanvasImageSource, blur = 0) => {
+      const t = m.canvas(W, H), g = m.ctx2d(t);
+      if (blur) g.filter = `blur(${blur}px)`;
+      g.drawImage(c, 0, 0); return t;
+    };
+    const px = (c: HTMLCanvasElement) => m.ctx2d(c).getImageData(0, 0, W, H).data;
+    const ew = (Math.hypot(P[33][0] - P[133][0], P[33][1] - P[133][1]) + Math.hypot(P[263][0] - P[362][0], P[263][1] - P[362][1])) / 2;
+    const out: Record<string, number[]> = {};
+    for (const look of ["cat-eye", "hollywood"]) {
+      const soft = copy(a.photo, 2.5);
+      const lensed = px(copy(copy(await m.paintGpu(a.photo, P, look, "natural", a.face)), 2.5));
+      const face = measureFace(soft, P);
+      const painted = px(copy(await m.paintGpu(soft, P, look, "natural", { ...face })));
+      const crisp = px(copy(await m.paintGpu(soft, P, look, "natural", { ...face, blur: 0 })));   // as if her photo were sharp
+      const bare = px(soft);
+      let off = 0, offCrisp = 0, makeup = 0;
+      for (const [i, j] of [[33, 133], [263, 362]]) {
+        const cx = (P[i][0] + P[j][0]) / 2, cy = (P[i][1] + P[j][1]) / 2;
+        for (let y = Math.round(cy - ew * 0.6); y < cy + ew * 0.4; y++) for (let x = Math.round(cx - ew); x < cx + ew; x++) {
+          const k = (y * W + x) * 4;
+          for (let ch = 0; ch < 3; ch++) {
+            off += (painted[k + ch] - lensed[k + ch]) ** 2; offCrisp += (crisp[k + ch] - lensed[k + ch]) ** 2; makeup += (lensed[k + ch] - bare[k + ch]) ** 2;
+          }
+        }
+      }
+      out[look] = [Math.sqrt(off / makeup), Math.sqrt(offCrisp / makeup)];
+    }
+    return out;
+  });
+  // (the eye makeup off the lens over it, over the eye makeup: ~0.12 through her photo's lens, ~0.23 drawn crisp)
+  for (const [off, offCrisp] of Object.values(r)) {
+    expect(off).toBeLessThan(0.16);
+    expect(off).toBeLessThan(offCrisp * 0.65);
+  }
+});
+
+/**
  * Makeup only where her face can be seen: nothing is painted over hair falling across her eye,
  * sunglasses, or a hand in front of her mouth (the segmenter marks her face skin, a guided filter
  * moves its edges onto the photo's own).
