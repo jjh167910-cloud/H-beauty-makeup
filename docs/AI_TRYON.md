@@ -272,7 +272,12 @@ in makeup-gl.ts):
   skin level ×1.15, contour ×0.75) times each look's own (`src/data/look-gains.json`, made by
   `scripts/tinybeauty/calibrate.py` from the same measurement, five rounds: each moves a look's gain for a region by
   (1 / strength)^0.8, at most ×1.5 a round, between ×0.5 and ×2; lips only ever down, and only for the look's own
-  lipstick, not one she picks). Where a strengthened layer lightens, only `LIGHTEN_GAIN` (35%) of the extra goes to its
+  lipstick, not one she picks; the liner at most ×1.3: the wing measures weak because a turned face's far eye is the
+  near one's mirror image, and pushing the liner for it made heavy black lines). A region it can't measure keeps a gain
+  set by hand: cut-crease's lids (its light cut and dark crease in one region measure as almost nothing; the general
+  eyeshadow strength made its crease black and its lid silver) are ×0.55 by eye. The live mirror has the same
+  strengths and brows, worked out from her face as measured each few frames (`lookFinish` in tryon.ts), and keeps her
+  concealer's references from one measurement to the next (they had been dropped after the first). Where a strengthened layer lightens, only `LIGHTEN_GAIN` (35%) of the extra goes to its
   lightening and `CHROMA_GAIN` (50%) to its change of hue (a pale shimmer made twice as light turned chalky grey, a cream
   lid's slight cooling doubled turned it mint); where it darkens (a smoky shadow, a contour, a blush) all of it.
   On the catalog face, the share of looks within ±10% of their photo: lids 57% → 88%, lips 49% → 85%, cheeks 54% (the
@@ -296,8 +301,17 @@ in makeup-gl.ts):
   reddish brown). A clean line of concealer just under each brow (+12% light, never on her hairs) gives the brow its
   lower edge (`BROW_CARVE`). Lighter on no-makeup.
 
-The tiny fallback networks don't have these yet (they were trained on the layers before this rebuild, and the
-concealer, brows and gains are the engine's; `train.py` after `teacher.py` follows).
+The tiny fallback networks learn the look as the engine finishes it: `scripts/tinybeauty/finish.py` paints the
+foundation, this concealer, the layer with each look's strengths, the brows, lipstick and eye detail in the engine's
+order (not the recipe's sheen, which the networks never had); on a synthetic face it is 2.6–3.4 dB closer to the
+engine than `teacher.paint` (33.6 / 32.2 dB against 30.2 / 29.5 on soft-glam and persian-bride).
+
+What was measured and left as it is (fitting her face's light, an ambient term plus one distant light with attached
+shadows, robustly, over the face mesh's normals: it explains 57–68% of the log brightness of a synthetic face's skin,
+32% of a softly lit selfie's): the engine keeps 99–101% of the shading that light explains on a side-lit face (its
+foundation and concealer don't flatten her face), and the catalog layers' highlights follow the catalog's light only
+weakly (correlation 0.05–0.29 with n·l, about 0 with a specular lobe: an artist's placement, not the studio light's),
+so painting her face's light into them would change little.
 
 ### Each look's recipe: what its photo can't carry
 

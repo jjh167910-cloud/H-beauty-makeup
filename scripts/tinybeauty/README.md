@@ -73,7 +73,8 @@ faces, and a tiny U-Net learns that before → after change. Our implementation 
 pip install -r scripts/tinybeauty/requirements.txt
 python scripts/tinybeauty/faces.py fetch 8000 && python scripts/tinybeauty/faces.py align && python scripts/tinybeauty/faces.py filter
 python scripts/tinybeauty/teacher.py eyes        # after adding/changing catalog photos
-python scripts/tinybeauty/train.py all           # ~11 min per look on 2 CPU cores; resumable
+python scripts/tinybeauty/train.py all           # ~17 min per look on 2 CPU cores; resumable
+python scripts/tinybeauty/finish.py soft-glam face.png out.png   # what the networks learn: the look as the engine finishes it
 ```
 
 After training again, bump `TINY_V` in `src/lib/tiny-model.ts`, so phones fetch the new networks instead of

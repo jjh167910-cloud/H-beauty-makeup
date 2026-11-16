@@ -23,7 +23,7 @@ import { Steady } from "./steady";
 import { studioParams, type StudioParams } from "./studio-gl";
 import {
   addDelta, alignedBox, alignedInput, alignment, canvas, changeOf, ctx2d, engine, gpu, lipstickData, loadFaceModel, loadLook,
-  lipProb, loadSegmenter, meshTriangles, photoBlur, productsFor, resolveMine, runLook, studio, toPoints, visibility, warmUp, type Affine, type Engine,
+  lipProb, loadSegmenter, lookFinish, meshTriangles, photoBlur, productsFor, resolveMine, runLook, studio, toPoints, visibility, warmUp, type Affine, type Engine,
   type MinePicks, type MineReady, type ProductPicks, type TryOnError,
 } from "./tryon";
 
@@ -313,11 +313,18 @@ export class LiveMirror {
       this.face = !old ? now : {
         sclera: old.sclera && now.sclera ? old.sclera.map((v, i) => v * 0.5 + now.sclera![i] * 0.5) : now.sclera ?? old.sclera,
         skin: mix(old.skin, now.skin), lipRef: mix(old.lipRef, now.lipRef), blur: mix(old.blur, now.blur),
+        // (the concealer's references under her eyes and her skin's tone, her brows' colour: kept, not dropped)
+        under: old.under && now.under ? [mix(old.under[0], now.under[0])!, mix(old.under[1], now.under[1])!] : now.under ?? old.under,
+        tone: old.tone && now.tone ? old.tone.map((v, i) => v * 0.5 + now.tone![i] * 0.5) : now.tone ?? old.tone,
+        brow: old.brow && now.brow ? old.brow.map((v, i) => v * 0.5 + now.brow![i] * 0.5) : now.brow ?? old.brow,
       };
     }
     const lip = this.lipstick ? lipChoice(files.lip, own ? own.ready.lip : this.lip, this.lipstick.swatch) : files.lip;
     const base = own ? own.ready.products : this.products;
-    const products = base && this.lipstick ? { ...base, white: (own ? mineLight : productLight)(this.face, this.lipstick.swatch) } : undefined;
+    // (a catalog look, with or without her picks: its calibrated strength and her brows, from her face as measured now;
+    // its recipe's finishes, highlight and liner colour come only with her picks: passes a camera frame can't afford)
+    const products = own ? (base && this.lipstick ? { ...base, white: mineLight(this.face, this.lipstick.swatch) } : undefined)
+      : this.lipstick ? { ...base, white: productLight(this.face, this.lipstick.swatch), ...lookFinish(this.look, this.face, !this.lip) } : undefined;
     if (own && !products) return false;                      // (her own makeup is all products: never the lash template's look)
     const t0 = performance.now();
     if (this.segOn && t0 - this.segAt >= Math.max(SEGMENT_MS, this.segMs * 4)) {

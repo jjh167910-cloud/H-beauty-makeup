@@ -1,6 +1,7 @@
 """Train one tiny makeup network per catalog look and export it for the app.
 
-Per look: the teacher paints the look on the clean synthetic training faces (faces.py), the
+Per look: the teacher paints the look as the engine finishes it (finish.py: with each look's concealer, brows and
+calibrated strength) on the clean synthetic training faces (faces.py), the
 network learns before -> after, and the result is exported to public/tryon/tiny/<look>.onnx
 (fp16 weights, ~230 KB). The base look is trained from scratch; the others start from it, so
 each takes ~10 minutes on a 2-core CPU. Resumable: finished looks are skipped.
@@ -14,7 +15,7 @@ import cv2, numpy as np, onnx, torch, torch.nn.functional as F
 from onnx import TensorProto, helper, numpy_helper
 
 sys.path.insert(0, str(Path(__file__).parent))
-import teacher
+import teacher, finish
 from model import TinyMakeup, coords
 
 WORK = Path(os.environ.get('TINYBEAUTY_WORK', teacher.REPO / '.tinybeauty'))
@@ -29,7 +30,7 @@ def _init(look): _st['look'] = look; teacher.make_layer(look)
 def _pair(name):
     face = teacher.rgb(FACES / f'{name}.png'); p = teacher.landmarks3(face)
     if p is None: return None
-    out = teacher.paint(_st['look'], face, p)
+    out = finish.paint_finished(_st['look'], face, p)
     cv2.imwrite(str(PAIRS / _st['look'] / f'{name}.png'), cv2.cvtColor(out, cv2.COLOR_RGB2BGR)); return name
 
 def make_pairs(look, names):

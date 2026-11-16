@@ -755,6 +755,22 @@ const BROW_LOOK: Record<string, number> = { "no-makeup": 0.6 };
  */
 const LOOK_GAIN: Partial<Record<StepKey, number>> = { base: 1.15, contour: 0.75, shadow: 2, liner: 1.4, lashes: 1.15, blush: 1.3, glow: 1.3 };
 
+/**
+ * What every catalog look adds to its layer, from her face as measured (cheap: the live mirror works it out each frame):
+ * its own layer, eye detail and lipstick each as strong as in its catalog photo (strength.py on the catalog face; the
+ * lips' only for its own lipstick, not one she picked), and her brows filled in and defined in her own hairs' colour.
+ */
+export function lookFinish(look: string, face: FaceStats, ownLip = true): Pick<Products, "layerGain" | "browDefine"> {
+  const layerGain: Partial<Record<StepKey, number>> = { ...LOOK_GAIN };
+  for (const [k, g] of Object.entries((lookGains as Record<string, Partial<Record<StepKey, number>>>)[look] ?? {})) {
+    if (k === "lips" && !ownLip) continue;
+    layerGain[k as StepKey] = (layerGain[k as StepKey] ?? 1) * (g ?? 1);
+  }
+  const brow = face.brow && face.skin && (BROW_LOOK[look] ?? 1) > 0 ? face.brow : null;
+  const browDefine = brow ? { ratio: brow.map((c) => (c / face.skin!) * BROW_LOOK_DEEP), amount: BROW_LOOK_FILL * (BROW_LOOK[look] ?? 1) } : undefined;
+  return { layerGain, browDefine };
+}
+
 type Recipe = { finish: number; glow?: [string, number]; shadow?: { hex: string; finish: string; style: string }; liner?: string };
 function lookRecipe(look: string): Recipe | null {
   const fl = styleById.get(look)?.look;
@@ -784,17 +800,7 @@ function shadowSource(look: string, style: string | undefined, lookStyle: string
 async function resolveProducts(look: string, picks: ProductPicks | null | undefined, face: FaceStats, all: LooksMeta,
   ownLip = true): Promise<Products | undefined> {
   const rec = lookRecipe(look);
-  const brow = face.brow && face.skin && (BROW_LOOK[look] ?? 1) > 0 ? face.brow : null;
-  // the look's own layer, eye detail and lipstick each as strong as in its catalog photo (strength.py on the catalog face)
-  const layerGain: Partial<Record<StepKey, number>> = { ...LOOK_GAIN };
-  for (const [k, g] of Object.entries((lookGains as Record<string, Partial<Record<StepKey, number>>>)[look] ?? {})) {
-    if (k === "lips" && !ownLip) continue;      // (calibrated for the look's own lipstick, not one she picked)
-    layerGain[k as StepKey] = (layerGain[k as StepKey] ?? 1) * (g ?? 1);
-  }
-  const out: Products = { white: productLight(face, all.swatch), gain: picks?.gain, layerGain, finish: rec?.finish };
-  if (brow && face.skin) {   // every look's brows filled in and defined, in her own hairs' colour a little deeper
-    out.browDefine = { ratio: brow.map((c) => (c / face.skin!) * BROW_LOOK_DEEP), amount: BROW_LOOK_FILL * (BROW_LOOK[look] ?? 1) };
-  }
+  const out: Products = { white: productLight(face, all.swatch), gain: picks?.gain, finish: rec?.finish, ...lookFinish(look, face, ownLip) };
   if (picks?.shadow) {
     const { style, src } = shadowSource(look, picks.shadow.style, picks.shadow.lookStyle, all);
     const [image, files] = await Promise.all([loadCov(src), loadLook(src)]);

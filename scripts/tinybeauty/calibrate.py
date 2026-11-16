@@ -9,8 +9,9 @@ that look's gain for the region's step towards making it 100%: by (1 / strength)
 run, its total between LIMITS. Run, render again, measure again: two or three runs settle.
 
 A region whose catalog change is small (under strength.FLOOR) has nothing to match; one that comes out under MIN_K (the
-engine's change goes another way) isn't a matter of strength, and is left. Lips are only ever taken down (a lipstick's
-blend past full is an extrapolation).
+engine's change goes another way) isn't a matter of strength, and is left: a gain set by hand there stays (cut-crease's
+lids: its light cut and dark crease in one region measure as almost nothing, and the general eyeshadow strength made its
+crease black; 0.55 by eye). Lips are only ever taken down, the liner at most 1.3 (HIGH).
 """
 from __future__ import annotations
 import json, sys
@@ -24,6 +25,10 @@ GAINS = Path(__file__).resolve().parents[2] / 'src/data/look-gains.json'
 # region (strength.py) -> the engine's step zone whose gain carries it
 STEP = {'lid': 'shadow', 'wing': 'liner', 'cheek': 'blush', 'contour': 'contour', 'lips': 'lips'}
 RATE, STEP_MAX, LIMITS, MIN_K, TOL = 0.8, 1.5, (0.5, 2.0), 0.25, 0.08
+# Highest per step: lips never up (a lipstick's blend past full is an extrapolation); the liner's eye detail at most 1.3
+# (the wing past the outer corners measures weak mostly because a turned face's far eye is the near one's mirror image,
+# and pushing the liner for it made heavy black lines)
+HIGH = {'lips': 1.0, 'liner': 1.3}
 
 
 def main(d: Path):
@@ -39,7 +44,7 @@ def main(d: Path):
             if k is None or k < MIN_K or abs(k - 1) <= TOL:
                 continue
             m = float(np.clip((1 / k) ** RATE, 1 / STEP_MAX, STEP_MAX))
-            hi = 1.0 if step == 'lips' else LIMITS[1]
+            hi = HIGH.get(step, LIMITS[1])
             new = float(np.clip(mine.get(step, 1.0) * m, LIMITS[0], hi))
             if abs(new - mine.get(step, 1.0)) > 0.01:
                 changed.append(f'{look} {step}: {mine.get(step, 1.0):.2f} -> {new:.2f} ({region} {k * 100:.0f}%)')
