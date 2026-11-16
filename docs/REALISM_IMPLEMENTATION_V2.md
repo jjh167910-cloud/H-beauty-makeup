@@ -19,8 +19,9 @@ plan would overstate confidence unless revised:
    FLUX 3 Image Klein limits uses of outputs to improve similar AI models. A commercial salon
    needs rights verified for the specific intended use. A paper citation is not a license.
 2. **A 70% blind preference on correlated ratings is not 70% independent evidence.**
-   One independently evaluated face/look pair is one trial. Additional rater clicks on that pair
-   do not multiply the number of independent faces. Report a Wilson 95% interval, skin-tone
+   Face/look pairs are the comparison units, but four looks on the same face are correlated.
+   Do not treat rater clicks or repeated looks as additional independent people. Report a
+   customer-cluster Wilson 95% interval on subject-level success, skin-tone
    strata and per-look scores. Report inconclusive results as inconclusive.
 3. **Do not count clipping already present in the input camera photo as new makeup clipping.**
    Count introduced RGB 0/255 endpoints in previously non-clipped channels. Report near-endpoint
@@ -98,8 +99,10 @@ until pilot exit gates are independently met.
   bytes, warm/cold cache, frame drops, and battery cost; do not cite software rendering as
   physical phone performance.
 - Compare in a registered test design. The 70% blind win-rate is a **point estimate target**;
-  require a Wilson 95% lower bound above 50% to rule out a chance-level result. Report per-look
-  and skin-group results even when overall headline is positive.
+  require a Wilson 95% lower bound above 50% on the **customer-cluster**
+  pass fraction (each customer must win at least 70% of her tested looks). Reject a skin
+  stratum below 50% pairwise preference or a gap over 0.3 in mean artist score. Report per-look
+  and skin-group results even when the overall headline is positive.
 - No CI test or synthetic-photo evaluation may certify "state of the art". Phase promotion is
   blocked until a human artist and legal reviewer sign off.
 
@@ -135,7 +138,8 @@ node scripts/quality/benchmark_v2.mjs /private/path/benchmark.json
 node --test tests-node/benchmark_v2.test.mjs
 ~~~
 
-The CLI reports fail, insufficient-evidence or pass. **Pass is only the quantitative pilot
+The CLI reports fail, insufficient-evidence or pass. Confidence is clustered by
+independent customer rather than incorrectly treating repeated looks as independent. **Pass is only the quantitative pilot
 gate**, not legal permission or proof the outcome is realistic. It always requires artist and
 legal review. Partial/inconclusive data may not silently promote a model.
 
