@@ -28,6 +28,7 @@ import { PIECE, PIECES } from "virtual:ai-pieces";
 import { hdBackend, hdFace, hdNeeded, hdRunning, hdSession } from "./face-hd";
 import { STUDIO_CRISP, Studio, studioParams } from "./studio-gl";
 import { styleById } from "@/data/makeup-styles";
+import { applyMaterialEyeV2, materialEyePilotEnabled } from "./material-eye-v2";
 import lookGains from "@/data/look-gains.json";
 import {
   LIP_GRID, LIPS_IN, LIPS_OUT, MakeupGL, STEP_KEYS, linHex, VIS_SEG, eyeWidth, lensSigma, linerColour, lipChoice, measureFace, mineLight, pigment, productLight, visCrop,
@@ -1676,6 +1677,17 @@ export async function paintLook(prepared: Shot, look: string, level: Level = "na
     prepared.face ??= measureFace(photo, points);
     if (prepared.lips === undefined) prepared.lips = lipProb(photo, points);
     g.drawImage(await paintGpu(photo, points, look, level, prepared.face, lip, undefined, picks, prepared.vis, prepared.lips), 0, 0);
+    // Opt-in research preview, isolated to saved photos. The live mirror, tutorial,
+    // look thumbnails and production default remain on the original engine.
+    // User-customized makeup is never overwritten by a pilot look recipe.
+    if (!picks && materialEyePilotEnabled(look)) {
+      try {
+        applyMaterialEyeV2(result, photo, points, look, level, prepared.vis);
+      } catch (error) {
+        // This is an experiment, not a reason to lose a successfully rendered photo.
+        console.warn("Material-eye pilot skipped", error);
+      }
+    }
     return result;
   }
   // Eye detail is an extra layer: if its file is missing the look still paints.
