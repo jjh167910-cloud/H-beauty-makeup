@@ -104,6 +104,15 @@ const OLD_DATA = (ids: string[]) => [
 ];
 const SIZE = 256;
 const MAX_SIDE = 1600;
+/** HD material-eye research tier. Kept off for normal customers and memory-limited phones.
+ * Large WebGL targets multiply the photo's RAM cost across many rendering passes.
+ * The live mirror and first-install model download are unchanged.
+ */
+export function photoMaxSide(params = new URLSearchParams(location.search)): number {
+  if (params.get("eyePilot") !== "v2" || engine() !== "gpu") return MAX_SIDE;
+  const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 0;
+  return memory >= 8 ? 2048 : MAX_SIDE;
+}
 /** How much of the full-resolution catalog lash/liner detail to add on top of the tiny network. */
 const EYE_DETAIL = 0.6;
 
@@ -1206,7 +1215,7 @@ export function alignedBox(m: Affine, width: number, height: number) {
  */
 export async function preparePhoto(file: Blob, onStep?: (step: "sharp" | "hd", done: number) => void): Promise<Prepared> {
   const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-  const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+  const scale = Math.min(1, photoMaxSide() / Math.max(bitmap.width, bitmap.height));
   const photo = canvas(bitmap.width * scale, bitmap.height * scale);
   const c = ctx2d(photo);
   c.imageSmoothingQuality = "high";
@@ -1490,7 +1499,7 @@ async function sharpen(photo: HTMLCanvasElement, plan: { w: number; h: number },
     if (error !== "slow") { sharpener = null; e.dispose(); }
     throw error;
   }
-  const fit = Math.min(1, MAX_SIDE / Math.max(big.width, big.height));
+  const fit = Math.min(1, photoMaxSide() / Math.max(big.width, big.height));
   const out = canvas(big.width * fit, big.height * fit);
   const o = ctx2d(out);
   o.imageSmoothingQuality = "high";
