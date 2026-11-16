@@ -131,6 +131,50 @@ export function strokeRegion(eye: Eye, x: number, y: number): number {
   return t >= -0.36 && t <= 1.04 && v >= -0.09 && v <= 0.88 ? 1 : 0;
 }
 
+/** Individually face-anchored rhinestones with a tiny contact shadow, glass facet and
+ * a restrained specular point. Their placement depends on this eye, never the catalog model.
+ * This is a deterministic materials pilot, not a claim of physically accurate gemstone BRDF.
+ */
+function paintRhinestones(ctx: CanvasRenderingContext2D, eye: Eye, strength: number) {
+  const positions: ReadonlyArray<XY> = [
+    [0.19, 0.24], [0.36, 0.32], [0.56, 0.29], [0.73, 0.23],
+    [0.29, 0.45], [0.49, 0.47], [0.67, 0.40],
+  ];
+  const alpha = clamp(strength, 0, 1);
+  for (const [t, v] of positions) {
+    const origin = at(eye.upper, t), brow = at(eye.brow, t);
+    const [x, y] = mix(origin, brow, v);
+    const r = Math.max(0.8, eye.span * (0.010 + 0.002 * Math.sin(t * 57)));
+    // Drop shadow on the pigment keeps a foil element from looking like a pasted white dot.
+    ctx.globalAlpha = 0.29 * alpha;
+    ctx.fillStyle = "#302638";
+    ctx.beginPath();
+    ctx.ellipse(x + r * 0.22, y + r * 0.26, r * 1.17, r * 1.12, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Small radial glass body; use the selfie blur downstream for optical consistency.
+    const glass = ctx.createRadialGradient(x - r * 0.25, y - r * 0.33, 0, x, y, r);
+    glass.addColorStop(0, "#ffffff");
+    glass.addColorStop(0.27, "#e8f3fb");
+    glass.addColorStop(0.61, "#b4a3cb");
+    glass.addColorStop(0.86, "#696275");
+    glass.addColorStop(1, "#383241");
+    ctx.globalAlpha = 0.9 * alpha;
+    ctx.fillStyle = glass;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // An offset, high-frequency specular core that reads as a faceted stone.
+    ctx.globalAlpha = 0.95 * alpha;
+    ctx.fillStyle = "#fffcf8";
+    ctx.beginPath();
+    ctx.arc(x - r * 0.29, y - r * 0.36, Math.max(0.34, r * 0.24), 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
 /** Deterministic vector path, not a sampled texture or mirrored eyelashes. */
 function paintStrokes(ctx: CanvasRenderingContext2D, eye: Eye, look: FaceLook, strength: number) {
   const outerDir = norm(sub(eye.outside, eye.inside));
@@ -185,6 +229,7 @@ function paintStrokes(ctx: CanvasRenderingContext2D, eye: Eye, look: FaceLook, s
     ctx.moveTo(...root); ctx.quadraticCurveTo(...elbow, ...tip); ctx.stroke();
   }
   ctx.globalAlpha = 1;
+  if (look.accents?.includes("rhinestones")) paintRhinestones(ctx, eye, strength);
 }
 
 type Region = { x: number; y: number; w: number; h: number };
