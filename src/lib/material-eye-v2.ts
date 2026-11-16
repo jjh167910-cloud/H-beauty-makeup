@@ -10,6 +10,7 @@
  * optional pilot must win blind tests before replacing the original eye engine.
  */
 import type { Pt } from "./tryon";
+import { compositeEyeGPU } from "./material-eye-gpu";
 import { styleById } from "../data/makeup-styles";
 import type { FaceLook } from "../data/makeup-styles";
 import type { Level, Visibility } from "./makeup-gl";
@@ -256,6 +257,28 @@ function eyeRegion(eye: Eye, width: number, height: number): Region | null {
   return x1 > x0 && y1 > y0 ? { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : null;
 }
 
+/**
+ * GPU failure must not erase a photo: reproduce the kernel's quantized
+ * optical-material shading on the CPU when WebGL readback is unavailable.
+ * This only runs for explicitly requested experimental GPU comparisons.
+ */
+function shadeGpuFallback(before: ImageData, changed: ImageData, ink: Uint8ClampedArray,
+  weights: Uint8ClampedArray, a: readonly number[], b: readonly number[], referenceLight: number) {
+  for (let i = 0; i < weights.length; i += 4) {
+    const m = weights[i] / 255, mixT = weights[i + 1] / 255;
+    const replace = weights[i + 2] / 255, stroke = weights[i + 3] / 255;
+    if (replace === 0 && stroke === 0) continue;
+    const base = [0, 1, 2].map(c => srgbToLin(before.data[i + c]));
+    const old = [0, 1, 2].map(c => srgbToLin(changed.data[i + c]));
+    const light = clamp(rgbLuma(base) / Math.max(referenceLight, 0.012), 0.45, 1.28);
+    for (let c = 0; c < 3; c++) {
+      const pigment = lerp(a[c], b[c], mixT) * light;
+      const material = lerp(old[c], lerp(base[c], pigment, Math.min(m, 0.87)), replace);
+      changed.data[i + c] = linToSrgb(lerp(material, srgbToLin(ink[i + c]), stroke));
+    }
+  }
+}
+
 /** Paint on a 2D result only. Called AFTER the GPU renderer, NEVER on the WebGL canvas. */
 export function applyMaterialEyeV2(
   result: HTMLCanvasElement, source: HTMLCanvasElement, P: Pt[], lookId: string, level: Level,
@@ -275,6 +298,7 @@ export function applyMaterialEyeV2(
   const strength = (level === "soft" ? 0.7 : level === "bold" ? 1.12 : 1);
   const amount = lookId === "electric-blue" ? 0.78 : lookId === "rhinestone" ? 0.43 : 0.39;
   let touched = 0, eyes = 0;
+  const gpuPilot = new URLSearchParams(location.search).get("eyeCompute") === "gpu";
   for (const side of ["left", "right"] as const) {
     const eye = eyeGeometry(P, side);
     if (!eye) continue;
@@ -323,6 +347,7 @@ export function applyMaterialEyeV2(
         ink = bg.getImageData(0, 0, roi.w, roi.h).data;
       }
     }
+    const weights = gpuPilot ? new Uint8ClampedArray(roi.w * roi.h * 4) : null;
     let eyeTouched = 0;
     for (let iy = 0; iy < roi.h; iy++) {
       for (let ix = 0; ix < roi.w; ix++) {
@@ -334,10 +359,21 @@ export function applyMaterialEyeV2(
         const m = clamp(coverage * amount * strength * visFactor, 0, 0.87);
         const strokeAlpha = clamp(inkA * visFactor);
         if (m < 1 / 255 && strokeAlpha < 1 / 255) continue;
-        const base = [0, 1, 2].map((c) => srgbToLin(before.data[idx + c]));
-        const old = [0, 1, 2].map((c) => srgbToLin(changed.data[idx + c]));
         const { t, v } = lidCoordinates(eye, x + 0.5, y + 0.5);
         const colourT = clamp(0.45 * (1 - t) + 0.55 * smooth(0.12, 0.65, v));
+        if (weights) {
+          // Quantized, face-fitted maps for the isolated WebGL2 ROI kernel.
+          // Touched pixels retain the original background and alpha exactly
+          // if either material or vector mask is zero.
+          weights[idx] = Math.round(m * 255);
+          weights[idx + 1] = Math.round(colourT * 255);
+          weights[idx + 2] = Math.round(smooth(0.005, 0.04, coverage) * visFactor * 255);
+          weights[idx + 3] = Math.round(strokeAlpha * 255);
+          eyeTouched++;
+          continue;
+        }
+        const base = [0, 1, 2].map((c) => srgbToLin(before.data[idx + c]));
+        const old = [0, 1, 2].map((c) => srgbToLin(changed.data[idx + c]));
         // Relative lighting uses her own photograph. Keep natural creases, shading and pore contrast.
         const light = clamp(rgbLuma(base) / referenceLight, 0.45, 1.28);
         for (let c = 0; c < 3; c++) {
@@ -351,7 +387,18 @@ export function applyMaterialEyeV2(
         eyeTouched++;
       }
     }
-    if (eyeTouched) { out.putImageData(changed, roi.x, roi.y); touched += eyeTouched; eyes++; }
+    if (eyeTouched) {
+      if (weights) {
+        const gpuResult = compositeEyeGPU({
+          width: roi.w, height: roi.h, original: before.data, previous: changed.data, ink, weights,
+          pigmentA: linearA, pigmentB: linearB, referenceLight,
+        });
+        if (gpuResult) changed.data.set(gpuResult);
+        else shadeGpuFallback(before, changed, ink, weights, linearA, linearB, referenceLight);
+      }
+      out.putImageData(changed, roi.x, roi.y);
+      touched += eyeTouched; eyes++;
+    }
   }
   return { touched, eyes };
 }
