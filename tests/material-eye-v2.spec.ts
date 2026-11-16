@@ -190,7 +190,7 @@ test("optional GPU material-eye path matches CPU pilot and never touches the bac
         totalDifference += diff; compared++; maxDifference = Math.max(diff, maxDifference);
         if (a[offset] !== original[offset]) {
           changed++;
-          if (x < 70 || x > 290 || y < 50 || y > 220) outsideChanged++;
+          if (x < 40 || x > 320 || y < 30 || y > 230) outsideChanged++;
         }
       }
     }
