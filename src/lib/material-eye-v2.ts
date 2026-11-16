@@ -75,10 +75,17 @@ export function eyeGeometry(P: Pt[], side: "left" | "right"): Eye | null {
   const averageUp = mix(upper[0], upper[upper.length - 1], 0.5);
   const averageBrow: XY = [brow.reduce((a, p) => a + p[0], 0) / brow.length,
                             brow.reduce((a, p) => a + p[1], 0) / brow.length];
-  const upward = norm(sub(averageBrow, averageUp));
+  // MediaPipe sometimes collapses brows onto lashes on small, extreme-pose or
+  // occluded photographs. Never manufacture a plausible-looking lid from a
+  // degenerate landmark set; retain the proven baseline renderer instead.
+  const browVector = sub(averageBrow, averageUp);
+  const gap = Math.hypot(...browVector);
+  if (!Number.isFinite(gap) || gap < span * 0.08 || gap > span * 1.25) return null;
+  const upward = norm(browVector);
   const lowerId = side === "left" ? 145 : 374;
   const upperId = side === "left" ? 159 : 386;
   const opening = Math.abs(dot(sub(point(P, upperId), point(P, lowerId)), upward)) / span;
+  if (!Number.isFinite(opening) || opening > 0.68) return null;
   return { upper, brow, outside, inside, along, upward, span, opening };
 }
 
@@ -130,7 +137,10 @@ export function strokeRegion(eye: Eye, x: number, y: number): number {
   const { t, v } = lidCoordinates(eye, x, y);
   // A 0.27-eye-width allowance keeps wing tips while stopping stray lashes
   // from spilling into the cheek/background on narrow and rotated eyes.
-  return t >= -0.27 && t <= 1.04 && v >= -0.09 && v <= 0.88 ? 1 : 0;
+  // Upper-lid boundary protects the sclera from blurred liner pixels.
+  // Only a 2% brow/lid gap is allowed below the lash-root curve; do not turn
+  // the existing eyeball, iris or contact lenses into cosmetic pigment.
+  return t >= -0.27 && t <= 1.04 && v >= -0.02 && v <= 0.88 ? 1 : 0;
 }
 
 /** Individually face-anchored rhinestones with a tiny contact shadow, glass facet and
