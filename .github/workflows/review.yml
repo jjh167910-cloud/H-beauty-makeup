@@ -34,7 +34,7 @@ jobs:
       - name: Verify runner Chrome
         run: google-chrome --version
       - name: Verify new eye-material pixel and geometry regressions
-        run: npm run test:ui -- tests/material-eye-v2.spec.ts tests/material-eye-gpu.spec.ts
+        run: npm run test:ui -- tests/material-eye-v2.spec.ts tests/material-eye-gpu.spec.ts tests/material-eye-canvas.spec.ts
       - name: Verify streamed download cancellation and retry
         run: npm run test:ui -- tests/tryon-download.spec.ts
       - name: Try-on tests
