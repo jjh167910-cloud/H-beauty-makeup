@@ -108,7 +108,11 @@ class EyeGpu {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
   }
 
-  run(input: MaterialEyeGpuInput): Uint8ClampedArray {
+  /** Output canvas is overwritten on the next GPU call. Consume synchronously.
+   * The GL canvas is vertically flipped compared with typed-array RGBA rows:
+   * when drawing it to 2D, use source row (height - y - 1).
+   */
+  run(input: MaterialEyeGpuInput, directCanvas = false): Uint8ClampedArray | HTMLCanvasElement {
     const gl = this.gl, {width, height} = input;
     if (this.lost || gl.isContextLost()) throw new Error("Eye GPU context lost");
     if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) ||
@@ -159,6 +163,13 @@ class EyeGpu {
       gl.uniform3fv(gl.getUniformLocation(this.program, "uPigmentB"), new Float32Array(input.pigmentB));
       gl.uniform1f(gl.getUniformLocation(this.program, "uRefLight"), input.referenceLight);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      if (directCanvas) {
+        // Avoid the synchronous gl.readPixels() GPU-to-CPU fence entirely.
+        // The caller must blit only pixels explicitly permitted by its
+        // coverage/stroke mask; a full-canvas copy can touch protected pixels.
+        if (gl.getError() !== gl.NO_ERROR) throw new Error("Eye GPU draw error");
+        return canvas;
+      }
       const result = new Uint8Array(width * height * 4);
       gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, result);
       if (gl.getError() !== gl.NO_ERROR) throw new Error("Eye GPU readback error");
@@ -176,9 +187,24 @@ let gpu: EyeGpu | null = null;
 export function compositeEyeGPU(input: MaterialEyeGpuInput): Uint8ClampedArray | null {
   try {
     gpu ??= new EyeGpu();
-    return gpu.run(input);
+    return gpu.run(input, false) as Uint8ClampedArray;
   } catch (error) {
     console.warn("Experimental eye material GPU pass skipped", error);
+    gpu = null; return null;
+  }
+}
+
+
+/** Experimental zero-readback output. Canvas is reused: consume immediately.
+ * A caller MUST enforce its own pixel permission mask when drawing it into
+ * the destination; see applyMaterialEyeV2's row-span blitter.
+ */
+export function compositeEyeGPUCanvas(input: MaterialEyeGpuInput): HTMLCanvasElement | null {
+  try {
+    gpu ??= new EyeGpu();
+    return gpu.run(input, true) as HTMLCanvasElement;
+  } catch (error) {
+    console.warn("Experimental GPU direct canvas skipped", error);
     gpu = null; return null;
   }
 }
