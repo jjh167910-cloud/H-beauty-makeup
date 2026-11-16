@@ -143,6 +143,37 @@ independent customer rather than incorrectly treating repeated looks as independ
 gate**, not legal permission or proof the outcome is realistic. It always requires artist and
 legal review. Partial/inconclusive data may not silently promote a model.
 
+## Implemented experimental material-eye renderer (photo pilot)
+
+The code in `src/lib/material-eye-v2.ts` is a **research implementation**, not an
+externally validated result. It runs **only on saved photos when the URL explicitly
+contains `?eyePilot=v2`**; it is off by default for every user, the live mirror and
+thumbnail rendering. It does not introduce model downloads or remote photo processing.
+
+For the four declared pilot looks, it preserves the normal engine's result as
+the baseline, then uses each photo's real upper-lid and brow landmarks to define
+a face-fitted pigment area. It replaces eye-region catalog photo-ratio pixels with
+an authored cosmetic shade composited in linear light, preserving local lighting
+and skin detail. Liner and lashes are drawn as vector paths / separately tapered
+strands; the camera-face visibility mask suppresses occluded regions. Other face
+pixels are unchanged.
+
+Pilot IDs: `no-makeup` (negative control: intentionally unchanged),
+`hollywood`, `electric-blue` and `rhinestone`.
+The pilot does not yet replace rhinestone placement or provide real intrinsic
+decomposition, neural lashes, temporal video consistency or validated accurate
+placement for every eyelid type; these remain engineering milestones.
+
+Browser checks in `tests/material-eye-v2.spec.ts` confirm the feature flag,
+protected background pixels, two-eye rendering on synthetic landmarks, no new
+0/255 clipping and an unchanged result when face visibility is zero.
+**These tests do not establish photorealism or quality superiority.**
+
+The intended side-by-side evaluation is one customer photo, same look and
+settings, default renderer versus `eyePilot=v2`, with filenames randomized
+for blind professional review. Do not deploy or enable pilot by default before
+it wins on real photographed makeup.
+
 ## Shipping policy
 
 1. Production stays on main during research; use a feature flag and pilot branch.
