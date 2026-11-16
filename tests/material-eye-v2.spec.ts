@@ -1,0 +1,86 @@
+import { test, expect } from "playwright/test";
+
+test("material-eye pilot respects eyelid geometry, original pixels and occlusion", async ({ page }) => {
+  await page.goto("/");
+  const metrics = await page.evaluate(async () => {
+    const mod = await import("/src/lib/material-eye-v2.ts");
+    const W = 640, H = 320;
+    const points = Array.from({ length: 478 }, () => [320, 180, 0]);
+    const assign = (ids: number[], xs: number[], ys: number[]) => ids.forEach((id, i) => {
+      points[id] = [xs[i], ys[i], 0];
+    });
+    assign([33, 246, 161, 160, 159, 158, 157, 173, 133],
+      [130, 146, 160, 177, 195, 215, 232, 245, 260],
+      [180, 171, 167, 164, 163, 165, 170, 175, 180]);
+    assign([70, 63, 105, 66, 107],
+      [137, 168, 195, 225, 253], [118, 112, 106, 110, 121]);
+    points[145] = [195, 194, 0];
+    assign([263, 466, 388, 387, 386, 385, 384, 398, 362],
+      [470, 453, 437, 420, 405, 387, 370, 356, 340],
+      [180, 171, 167, 164, 163, 165, 170, 175, 180]);
+    assign([300, 293, 334, 296, 336],
+      [466, 436, 405, 375, 346], [121, 110, 106, 112, 118]);
+    points[374] = [405, 194, 0];
+
+    const makeCanvas = () => {
+      const c = document.createElement("canvas");
+      c.width = W; c.height = H;
+      const g = c.getContext("2d")!;
+      g.fillStyle = "#513a32";
+      g.fillRect(0, 0, W, H);
+      return c;
+    };
+    const original = makeCanvas(), output = makeCanvas(), hidden = makeCanvas(), natural = makeCanvas();
+    const visible = new Uint8Array(256 * 256 * 2);
+    for (let i = 0; i < visible.length; i += 2) visible[i] = 255;
+    const vis = { probs: visible, box: [0, 0, 640] as [number, number, number] };
+    const result = mod.applyMaterialEyeV2(output, original, points, "electric-blue", "natural", vis);
+    const noChange = mod.applyMaterialEyeV2(natural, original, points, "no-makeup", "natural", vis);
+    const noOcclusion = mod.applyMaterialEyeV2(hidden, original, points, "electric-blue", "natural",
+      { probs: new Uint8Array(256 * 256 * 2), box: [0, 0, 640] });
+    const src = original.getContext("2d")!.getImageData(0, 0, W, H).data;
+    const dst = output.getContext("2d")!.getImageData(0, 0, W, H).data;
+    const invisible = hidden.getContext("2d")!.getImageData(0, 0, W, H).data;
+    const untouched = natural.getContext("2d")!.getImageData(0, 0, W, H).data;
+    let changed = 0, outsideChanges = 0, newlyClipped = 0, hiddenChanged = 0, noMakeupChanged = 0;
+    const region = (x: number, y: number) =>
+      x >= 90 && x <= 510 && y >= 60 && y <= 240;
+    for (let i = 0; i < W * H; i++) {
+      const x = i % W, y = Math.floor(i / W);
+      let delta = false;
+      for (let c = 0; c < 3; c++) {
+        const k = i * 4 + c;
+        if (src[k] !== dst[k]) {
+          delta = true;
+          if (dst[k] === 0 || dst[k] === 255) newlyClipped++;
+        }
+        if (src[k] !== invisible[k]) hiddenChanged++;
+        if (src[k] !== untouched[k]) noMakeupChanged++;
+      }
+      if (delta) {
+        changed++;
+        if (!region(x, y)) outsideChanges++;
+      }
+    }
+    return {
+      touched: result.touched, eyes: result.eyes, changed, outsideChanges, newlyClipped,
+      hiddenChanged, noMakeupChanged, noChange: noChange.skipped, occlusion: noOcclusion.touched,
+      pilotOff: mod.materialEyePilotEnabled("electric-blue", new URLSearchParams()),
+      pilotOn: mod.materialEyePilotEnabled("electric-blue", new URLSearchParams("?eyePilot=v2")),
+      geometry: mod.eyeGeometry(points, "left")?.span,
+      shadow: mod.shadowCoverage(mod.eyeGeometry(points, "left")!, 195, 135, "gradient"),
+    };
+  });
+  expect(metrics.pilotOff).toBe(false);
+  expect(metrics.pilotOn).toBe(true);
+  expect(metrics.eyes).toBe(2);
+  expect(metrics.geometry).toBeGreaterThan(100);
+  expect(metrics.shadow).toBeGreaterThan(0);
+  expect(metrics.changed).toBeGreaterThan(100);
+  expect(metrics.outsideChanges).toBe(0);
+  expect(metrics.newlyClipped).toBe(0);
+  expect(metrics.hiddenChanged).toBe(0);
+  expect(metrics.noMakeupChanged).toBe(0);
+  expect(metrics.noChange).toBe("no-material-pilot-for-look");
+  expect(metrics.occlusion).toBe(0);
+});
