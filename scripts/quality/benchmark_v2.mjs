@@ -82,6 +82,8 @@ export function evaluatePilot(cases, {
   if (!Array.isArray(cases)) throw new TypeError("cases must be an array");
   const issues = [], incomplete = [], pairs = new Set(), subjects = new Set(), looks = new Set();
   const byLook = new Map(), bySkin = new Map(SKIN_GROUPS.map((s) => [s, new Set()]));
+  const bySubjectVotes = new Map();
+  const bySkinVotes = new Map(SKIN_GROUPS.map((s) => [s, { wins: 0, reviewed: 0, artistTotal: 0, artistN: 0 }]));
   let wins = 0, reviewed = 0;
 
   for (const [i, c] of cases.entries()) {
@@ -99,14 +101,27 @@ export function evaluatePilot(cases, {
     if (c.blind_review !== true) incomplete.push("Blind review evidence missing");
     if (typeof c.artist_score !== "number" || !Number.isFinite(c.artist_score) ||
         c.artist_score < 1 || c.artist_score > 5) incomplete.push("Artist score missing or invalid");
-    else if (c.artist_score < 4) issues.push("Artist score below 4/5: " + c.look_id);
+    else {
+      bySkinVotes.get(c.skin_group).artistTotal += c.artist_score;
+      bySkinVotes.get(c.skin_group).artistN++;
+      if (c.artist_score < 4) issues.push("Artist score below 4/5: " + c.look_id);
+    }
     for (const key of ["outside_changed_pixels", "border_mask_pixels", "introduced_clipped_channels"]) {
       if (!validCount(c[key])) incomplete.push("Missing engineering measurement: " + key);
       else if (c[key] > 0) issues.push("Safety/quality violation: " + key + " for " + c.look_id);
     }
-    if (c.paired_preference === "candidate") { wins++; reviewed++; }
-    else if (c.paired_preference === "competitor" || c.paired_preference === "tie") reviewed++;
-    else incomplete.push("Paired blind preference missing");
+    const vote = c.paired_preference;
+    if (vote === "candidate" || vote === "competitor" || vote === "tie") {
+      reviewed++;
+      const sw = bySubjectVotes.get(c.sample_id) || { wins: 0, reviewed: 0 };
+      sw.reviewed++;
+      bySubjectVotes.set(c.sample_id, sw);
+      const subgroup = bySkinVotes.get(c.skin_group);
+      subgroup.reviewed++;
+      if (vote === "candidate") {
+        wins++; sw.wins++; subgroup.wins++;
+      }
+    } else incomplete.push("Paired blind preference missing");
   }
 
   if (subjects.size < minimumSubjects) incomplete.push("Need at least " + minimumSubjects + " independent selfies");
@@ -122,18 +137,35 @@ export function evaluatePilot(cases, {
     incomplete.push("Too few independently rated face/look comparisons");
 
   const preference = reviewed ? wins / reviewed : null;
-  const interval = wilson95(wins, reviewed);
+  // Customer clusters are independent; repeated looks on one face are not.
+  // A subject "wins" if her evaluated looks meet the predeclared 70% target.
+  const subjectWins = [...bySubjectVotes.values()]
+    .filter((v) => v.reviewed >= minimumLooks && v.wins / v.reviewed >= minimumPreference).length;
+  const subjectWinInterval = wilson95(subjectWins, subjects.size);
   if (reviewed && preference < minimumPreference)
     issues.push("Blind preference below target");
-  if (reviewed && interval.lower <= 0.5)
-    incomplete.push("Blind preference does not yet exclude chance at 95% confidence");
+  if (subjects.size && subjectWinInterval.lower <= 0.5)
+    incomplete.push("Customer-cluster confidence does not yet exclude chance at 95%");
+  const subgroupPreference = {};
+  const artistMeans = [];
+  for (const skin of SKIN_GROUPS) {
+    const group = bySkinVotes.get(skin);
+    subgroupPreference[skin] = group.reviewed ? group.wins / group.reviewed : null;
+    if (group.reviewed && subgroupPreference[skin] < 0.5)
+      issues.push("Blind preference below chance in skin group: " + skin);
+    if (group.artistN) artistMeans.push(group.artistTotal / group.artistN);
+  }
+  if (artistMeans.length === SKIN_GROUPS.length &&
+      Math.max(...artistMeans) - Math.min(...artistMeans) > 0.3)
+    issues.push("Skin-group artist rating gap exceeds 0.3");
 
   const dedupe = (a) => [...new Set(a)];
   return {
     status: issues.length ? "fail" : incomplete.length ? "insufficient-evidence" : "pass",
     subjects: subjects.size, looks: looks.size, independentCases: pairs.size,
     skinGroupSubjects: Object.fromEntries([...bySkin].map(([k, s]) => [k, s.size])),
-    wins, reviewed, preference, preferenceWilson95: interval,
+    wins, reviewed, preference, subjectWins, subjectWinWilson95: subjectWinInterval,
+    subgroupPreference,
     issues: dedupe(issues), incomplete: dedupe(incomplete),
     requiresArtistSignoff: true, requiresLicenseReview: true,
     certification: "None: engineering and pilot evidence only; not proof of photorealism",
