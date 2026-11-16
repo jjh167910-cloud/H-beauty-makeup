@@ -128,7 +128,9 @@ export function shadowCoverage(eye: Eye, x: number, y: number, shadow: FaceLook[
 /** Hard mask for vector liner and lash strokes; never allows the overlay across arbitrary parts of the face. */
 export function strokeRegion(eye: Eye, x: number, y: number): number {
   const { t, v } = lidCoordinates(eye, x, y);
-  return t >= -0.36 && t <= 1.04 && v >= -0.09 && v <= 0.88 ? 1 : 0;
+  // A 0.27-eye-width allowance keeps wing tips while stopping stray lashes
+  // from spilling into the cheek/background on narrow and rotated eyes.
+  return t >= -0.27 && t <= 1.04 && v >= -0.09 && v <= 0.88 ? 1 : 0;
 }
 
 /** Individually face-anchored rhinestones with a tiny contact shadow, glass facet and
