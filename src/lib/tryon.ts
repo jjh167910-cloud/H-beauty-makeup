@@ -1691,7 +1691,7 @@ export async function paintLook(prepared: Shot, look: string, level: Level = "na
     // User-customized makeup is never overwritten by a pilot look recipe.
     if (!picks && materialEyePilotEnabled(look)) {
       try {
-        applyMaterialEyeV2(result, photo, points, look, level, prepared.vis);
+        applyMaterialEyeV2(result, photo, points, look, level, prepared.vis, prepared.face?.blur ?? 0.7);
       } catch (error) {
         // This is an experiment, not a reason to lose a successfully rendered photo.
         console.warn("Material-eye pilot skipped", error);
