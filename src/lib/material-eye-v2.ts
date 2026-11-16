@@ -10,7 +10,7 @@
  * optional pilot must win blind tests before replacing the original eye engine.
  */
 import type { Pt } from "./tryon";
-import { compositeEyeGPU } from "./material-eye-gpu";
+import { compositeEyeGPU, compositeEyeGPUCanvas } from "./material-eye-gpu";
 import { styleById } from "../data/makeup-styles";
 import type { FaceLook } from "../data/makeup-styles";
 import type { Level, Visibility } from "./makeup-gl";
@@ -258,6 +258,59 @@ function eyeRegion(eye: Eye, width: number, height: number): Region | null {
 }
 
 /**
+ * GPU drawingBuffer is vertically inverted relative to RGBA typed-array rows.
+ * Blit ONLY spans whose material or stroke weight is nonzero: background,
+ * face identity and any unedited pixel remain exact on the destination
+ * 2D canvas. Draw 1:1 pixels, without stretching or interpolating.
+ *
+ * This consumes a WebGL canvas synchronously, BEFORE the shared GPU engine
+ * reuses it; no synchronous gl.readPixels() call is involved.
+ */
+export function blitEyeGPUCanvas(
+  dst: CanvasRenderingContext2D, gpuCanvas: HTMLCanvasElement,
+  weights: Uint8ClampedArray, roi: { x: number; y: number; w: number; h: number },
+): number {
+  if (gpuCanvas.width !== roi.w || gpuCanvas.height !== roi.h ||
+      weights.length !== roi.w * roi.h * 4) throw new RangeError("Eye canvas size mismatch");
+  // Fail closed if there would be too many cross-context draw calls.
+  // A highly fragmented mask should use the tested pixel-return path.
+  let spans = 0;
+  for (let y = 0; y < roi.h; y++) {
+    let open = false;
+    for (let x = 0; x <= roi.w; x++) {
+      const i = (y * roi.w + x) * 4;
+      const edit = x < roi.w && (weights[i + 2] > 0 || weights[i + 3] > 0);
+      if (edit && !open) { spans++; open = true; }
+      if (!edit) open = false;
+      if (spans > 4096) throw new RangeError("Eye mask too fragmented for direct composition");
+    }
+  }
+  const smoothBefore = dst.imageSmoothingEnabled;
+  dst.imageSmoothingEnabled = false;
+  try {
+    for (let y = 0; y < roi.h; y++) {
+      let start = -1;
+      for (let x = 0; x <= roi.w; x++) {
+        const i = (y * roi.w + x) * 4;
+        const edit = x < roi.w && (weights[i + 2] > 0 || weights[i + 3] > 0);
+        if (edit && start < 0) start = x;
+        if (!edit && start >= 0) {
+          const span = x - start;
+          // GPU texel y=0 is the canvas's bottom row, but row y=0 in
+          // ImageData is top; reverse the source row while blitting.
+          dst.drawImage(gpuCanvas, start, roi.h - 1 - y, span, 1,
+            roi.x + start, roi.y + y, span, 1);
+          start = -1;
+        }
+      }
+    }
+  } finally {
+    dst.imageSmoothingEnabled = smoothBefore;
+  }
+  return spans;
+}
+
+/**
  * GPU failure must not erase a photo: reproduce the kernel's quantized
  * optical-material shading on the CPU when WebGL readback is unavailable.
  * This only runs for explicitly requested experimental GPU comparisons.
@@ -298,7 +351,8 @@ export function applyMaterialEyeV2(
   const strength = (level === "soft" ? 0.7 : level === "bold" ? 1.12 : 1);
   const amount = lookId === "electric-blue" ? 0.78 : lookId === "rhinestone" ? 0.43 : 0.39;
   let touched = 0, eyes = 0;
-  const gpuPilot = new URLSearchParams(location.search).get("eyeCompute") === "gpu";
+  const gpuMode = new URLSearchParams(location.search).get("eyeCompute");
+  const gpuPilot = gpuMode === "gpu" || gpuMode === "canvas";
   for (const side of ["left", "right"] as const) {
     const eye = eyeGeometry(P, side);
     if (!eye) continue;
@@ -388,15 +442,32 @@ export function applyMaterialEyeV2(
       }
     }
     if (eyeTouched) {
+      let directDrawn = false;
       if (weights) {
-        const gpuResult = compositeEyeGPU({
+        const input = {
           width: roi.w, height: roi.h, original: before.data, previous: changed.data, ink, weights,
           pigmentA: linearA, pigmentB: linearB, referenceLight,
-        });
-        if (gpuResult) changed.data.set(gpuResult);
-        else shadeGpuFallback(before, changed, ink, weights, linearA, linearB, referenceLight);
+        };
+        if (gpuMode === "canvas") {
+          const gpuCanvas = compositeEyeGPUCanvas(input);
+          if (gpuCanvas) {
+            try {
+              blitEyeGPUCanvas(out, gpuCanvas, weights, roi);
+              directDrawn = true;
+            } catch (error) {
+              // Pixel-return path below is the safety fallback. Do not
+              // propagate a rendering exception to the customer's photo.
+              console.warn("Direct eye GPU blit skipped", error);
+            }
+          }
+        }
+        if (!directDrawn) {
+          const gpuResult = compositeEyeGPU(input);
+          if (gpuResult) changed.data.set(gpuResult);
+          else shadeGpuFallback(before, changed, ink, weights, linearA, linearB, referenceLight);
+        }
       }
-      out.putImageData(changed, roi.x, roi.y);
+      if (!directDrawn) out.putImageData(changed, roi.x, roi.y);
       touched += eyeTouched; eyes++;
     }
   }
