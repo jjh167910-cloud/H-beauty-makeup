@@ -28,6 +28,7 @@ import { PIECE, PIECES } from "virtual:ai-pieces";
 import { hdBackend, hdFace, hdNeeded, hdRunning, hdSession } from "./face-hd";
 import { STUDIO_CRISP, Studio, studioParams } from "./studio-gl";
 import { styleById } from "@/data/makeup-styles";
+import lookGains from "@/data/look-gains.json";
 import {
   LIP_GRID, LIPS_IN, LIPS_OUT, MakeupGL, STEP_KEYS, linHex, VIS_SEG, eyeWidth, linerColour, lipChoice, measureFace, mineLight, pigment, productLight, visCrop,
   type Canon, type EyeFiles, type FaceStats, type Finish, type Level, type LipChoice, type LipGrid, type LipInfo, type LookFiles,
@@ -77,7 +78,7 @@ const EYES_META = `${BASE}eyes.json${EYES_V}`;
  * The look data's version: bumped when the layers, coverage maps and looks.json are made again, so phones that
  * downloaded the earlier files fetch these (a few MB) instead of using the cached ones; the old ones are dropped.
  */
-const DATA_V = "?v=7";
+const DATA_V = "?v=8";
 const LOOKS_META = `${BASE}looks.json${DATA_V}`;
 const ENHANCE = `${BASE}enhance-x4.bin`;
 /**
@@ -94,7 +95,7 @@ const lookEyes = (id: string) => `${BASE}eyes/${id}.png${EYES_V}`;
 const lookCov = (id: string) => `${BASE}cov/${id}.webp${DATA_V}`;
 /** The same files as downloaded before this DATA_V (dropped from the cache). */
 const OLD_DATA = (ids: string[]) => [
-  ...["", "?v=2", "?v=3", "?v=4", "?v=5", "?v=6"].flatMap((v) => [`${BASE}looks.json${v}`, ...ids.flatMap((id) => [`${BASE}layers/${id}.webp${v}`, `${BASE}cov/${id}.webp${v}`])]),
+  ...["", "?v=2", "?v=3", "?v=4", "?v=5", "?v=6", "?v=7"].flatMap((v) => [`${BASE}looks.json${v}`, ...ids.flatMap((id) => [`${BASE}layers/${id}.webp${v}`, `${BASE}cov/${id}.webp${v}`])]),
   ...["", "?v=2"].flatMap((v) => [`${BASE}eyes.json${v}`, ...ids.map((id) => `${BASE}eyes/${id}.png${v}`)]),
   ...ids.flatMap(oldTinyModels),
   // (the HD face's network as it was, in two parts)
@@ -749,7 +750,8 @@ const BROW_LOOK: Record<string, number> = { "no-makeup": 0.6 };
  * fades in from her face's outline, past her eyes' outer corners and around her eyes), so on the catalog face itself the
  * lids came out at about 60% of the photo's change, the wings past the outer corners 42%, the cheeks 79%
  * (strength.py renders). These gains (per step zone: the layer's skin level outside the zones, lids, eye detail along
- * the liner, blush, highlight) bring it up to about the photo's.
+ * the liner, blush, highlight) bring it up to about the photo's; each look's own (src/data/look-gains.json, made by
+ * scripts/tinybeauty/calibrate.py from the same measurement) multiply them.
  */
 const LOOK_GAIN: Partial<Record<StepKey, number>> = { base: 1.15, contour: 0.75, shadow: 2, liner: 1.4, lashes: 1.15, blush: 1.3, glow: 1.3 };
 
@@ -779,13 +781,17 @@ function shadowSource(look: string, style: string | undefined, lookStyle: string
  * The look's recipe and her picks in the engine's terms: pigments, her light, the eyeshadow's placement map (placement()
  * in products.py). Her picks replace the recipe's products of the same kind.
  */
-async function resolveProducts(look: string, picks: ProductPicks | null | undefined, face: FaceStats, all: LooksMeta): Promise<Products | undefined> {
+async function resolveProducts(look: string, picks: ProductPicks | null | undefined, face: FaceStats, all: LooksMeta,
+  ownLip = true): Promise<Products | undefined> {
   const rec = lookRecipe(look);
   const brow = face.brow && face.skin && (BROW_LOOK[look] ?? 1) > 0 ? face.brow : null;
-  // each region as strong as in the catalog photo (strength.py on the catalog face), times her own picks' intensity
-  const gain: Partial<Record<StepKey, number>> = { ...LOOK_GAIN };
-  for (const [k, g] of Object.entries(picks?.gain ?? {})) if (g !== undefined) gain[k as StepKey] = (gain[k as StepKey] ?? 1) * g;
-  const out: Products = { white: productLight(face, all.swatch), gain, finish: rec?.finish };
+  // the look's own layer, eye detail and lipstick each as strong as in its catalog photo (strength.py on the catalog face)
+  const layerGain: Partial<Record<StepKey, number>> = { ...LOOK_GAIN };
+  for (const [k, g] of Object.entries((lookGains as Record<string, Partial<Record<StepKey, number>>>)[look] ?? {})) {
+    if (k === "lips" && !ownLip) continue;      // (calibrated for the look's own lipstick, not one she picked)
+    layerGain[k as StepKey] = (layerGain[k as StepKey] ?? 1) * (g ?? 1);
+  }
+  const out: Products = { white: productLight(face, all.swatch), gain: picks?.gain, layerGain, finish: rec?.finish };
   if (brow && face.skin) {   // every look's brows filled in and defined, in her own hairs' colour a little deeper
     out.browDefine = { ratio: brow.map((c) => (c / face.skin!) * BROW_LOOK_DEEP), amount: BROW_LOOK_FILL * (BROW_LOOK[look] ?? 1) };
   }
@@ -974,7 +980,7 @@ async function paintGpuNow(source: HTMLCanvasElement, points: Pt[], look: string
   const stats = face ?? measureFace(source, points);
   if (stats.blur == null) stats.blur = photoBlur(source, points);
   const [files, all] = await Promise.all([loadLook(look), meta()]);
-  const products = await resolveProducts(look, picks, stats, all);
+  const products = await resolveProducts(look, picks, stats, all, !lip);
   r.render(source, source.width, source.height, points, files, stats, level, all.tris, lipChoice(files.lip, lip, all.swatch), all.canon, steps, products, vis, lips);
   return r.canvas;
 }

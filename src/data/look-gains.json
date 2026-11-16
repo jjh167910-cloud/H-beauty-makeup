@@ -1,0 +1,221 @@
+{
+ "aqd": {
+  "shadow": 0.77,
+  "liner": 2.0,
+  "contour": 1.82
+ },
+ "arabic-glam": {
+  "liner": 1.3,
+  "blush": 1.58,
+  "contour": 0.5
+ },
+ "boho-bride": {
+  "liner": 1.86,
+  "blush": 1.34,
+  "lips": 0.88
+ },
+ "bold-glam": {
+  "liner": 1.87,
+  "blush": 1.29,
+  "contour": 0.77
+ },
+ "bronzed-goddess": {
+  "liner": 1.97,
+  "blush": 1.32,
+  "contour": 0.74,
+  "lips": 0.92
+ },
+ "brown-smokey": {
+  "shadow": 0.94,
+  "liner": 1.53,
+  "blush": 1.21,
+  "contour": 2.0
+ },
+ "cat-eye": {
+  "liner": 2.0,
+  "blush": 1.17,
+  "contour": 0.65
+ },
+ "classic-bride": {
+  "liner": 2.0,
+  "blush": 1.17,
+  "contour": 1.65
+ },
+ "classic-smokey": {
+  "liner": 1.48
+ },
+ "clean-girl": {
+  "shadow": 2.0,
+  "liner": 0.5,
+  "blush": 1.44,
+  "contour": 0.5
+ },
+ "cold-girl": {
+  "shadow": 0.74,
+  "liner": 2.0,
+  "contour": 2.0
+ },
+ "colour-liner": {
+  "shadow": 1.09,
+  "contour": 1.45
+ },
+ "cut-crease": {
+  "shadow": 2.0,
+  "liner": 1.44,
+  "blush": 1.19,
+  "contour": 0.55
+ },
+ "douyin": {
+  "shadow": 0.5,
+  "blush": 1.36,
+  "contour": 2.0
+ },
+ "electric-blue": {
+  "shadow": 1.81,
+  "liner": 1.47,
+  "blush": 0.75,
+  "lips": 0.91
+ },
+ "emerald-night": {
+  "liner": 1.95,
+  "blush": 1.17,
+  "contour": 1.7
+ },
+ "fox-eye": {
+  "liner": 1.77,
+  "blush": 1.86,
+  "contour": 0.79,
+  "lips": 0.84
+ },
+ "full-glam": {
+  "shadow": 0.93,
+  "liner": 1.32,
+  "blush": 1.7,
+  "contour": 0.5,
+  "lips": 0.91
+ },
+ "glitter-party": {
+  "shadow": 0.78,
+  "liner": 2.0,
+  "lips": 0.91
+ },
+ "golden-hour": {
+  "liner": 2.0,
+  "blush": 1.47
+ },
+ "graphic-liner": {
+  "liner": 2.0,
+  "blush": 2.0,
+  "contour": 2.0,
+  "lips": 0.87
+ },
+ "henna-night": {
+  "liner": 1.99,
+  "blush": 1.46,
+  "contour": 1.8
+ },
+ "hollywood": {
+  "shadow": 1.56,
+  "liner": 2.0,
+  "blush": 1.82,
+  "contour": 1.48,
+  "lips": 0.93
+ },
+ "k-beauty": {
+  "shadow": 0.5,
+  "liner": 0.5,
+  "blush": 1.19,
+  "contour": 2.0
+ },
+ "latte": {
+  "liner": 1.64,
+  "blush": 1.75,
+  "contour": 1.46,
+  "lips": 0.85
+ },
+ "mod-60s": {
+  "shadow": 1.57,
+  "liner": 1.72,
+  "blush": 0.5,
+  "contour": 2.0,
+  "lips": 0.84
+ },
+ "monochrome": {
+  "shadow": 0.93,
+  "liner": 1.54,
+  "contour": 1.44
+ },
+ "navy-smokey": {
+  "liner": 1.28,
+  "blush": 0.91
+ },
+ "nineties": {
+  "liner": 1.64,
+  "blush": 1.43,
+  "contour": 0.78,
+  "lips": 0.92
+ },
+ "pastel": {
+  "shadow": 0.72,
+  "liner": 0.5,
+  "blush": 1.21,
+  "contour": 1.52,
+  "lips": 0.89
+ },
+ "persian-bride": {
+  "liner": 2.0,
+  "blush": 1.64,
+  "contour": 0.83,
+  "lips": 0.74
+ },
+ "pin-up": {
+  "shadow": 1.57,
+  "blush": 1.3,
+  "contour": 0.5,
+  "lips": 0.82,
+  "liner": 2.0
+ },
+ "plum-smokey": {
+  "liner": 1.51,
+  "lips": 0.88
+ },
+ "rhinestone": {
+  "shadow": 0.7,
+  "liner": 2.0
+ },
+ "romantic-bride": {
+  "shadow": 0.68,
+  "liner": 2.0
+ },
+ "siren-eyes": {
+  "shadow": 0.82,
+  "blush": 1.44,
+  "lips": 0.88
+ },
+ "soft-glam": {
+  "liner": 2.0,
+  "lips": 0.94
+ },
+ "strawberry": {
+  "shadow": 1.34,
+  "liner": 2.0,
+  "contour": 1.14
+ },
+ "sun-kissed": {
+  "shadow": 2.0,
+  "liner": 2.0,
+  "blush": 1.42
+ },
+ "sunset": {
+  "shadow": 1.09,
+  "liner": 2.0,
+  "contour": 0.79
+ },
+ "twenties": {
+  "shadow": 0.86,
+  "liner": 0.94,
+  "blush": 1.6,
+  "contour": 2.0,
+  "lips": 0.97
+ }
+}

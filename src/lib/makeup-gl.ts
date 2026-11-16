@@ -169,8 +169,8 @@ const CONCEAL_REF = [0.85, 0.1, 0.18], CONCEAL_Q = 0.6;
  * her eye's middle), further down every dark speck is lifted like the skin around it.
  */
 const CONCEAL_ZONE = [1.1, 1.45, 0.55, 1.3], CONCEAL_LASH = [0.2, 0.32];
-/** A region of a look made stronger (its step gain over 1): of the extra, this share goes to what lightens. */
-const LIGHTEN_GAIN = 0.35;
+/** A region of a look made stronger (its step gain over 1): of the extra, this share goes to what lightens, and this to its change of hue. */
+const LIGHTEN_GAIN = 0.35, CHROMA_GAIN = 0.5;
 /** Her brow hairs are the darkest BROW_HAIR_Q of her brows' outline (measureFace). */
 const BROW_HAIR_Q = 0.3;
 /**
@@ -430,6 +430,11 @@ export type Products = {
   liner?: number[];
   /** Each step's intensity (1 = as the look). */
   gain?: Partial<Record<StepKey, number>>;
+  /**
+   * The catalog look's own layer, eye detail and lipstick made this much stronger per step zone (its calibration to its
+   * catalog photo, see LOOK_GAIN in tryon.ts); unlike `gain`, never the products added to it (a recipe's shimmer).
+   */
+  layerGain?: Partial<Record<StepKey, number>>;
   /** Brow fill (her own makeup only; a dark pigment, so its thickness is a few hundredths: it fills in, it doesn't paint over). */
   brows?: Pigment;
   /**
@@ -1345,6 +1350,7 @@ uniform vec4 uAx0, uAx1, uMid;
 // coverage (uCov.r); her shading (uShadeF: form, uShadeB: broad light; masked sums); her light (uWhite)
 uniform int uZonesOn;
 uniform float uGain[11];
+uniform float uLGain[11];   // the look's own layer, eye detail and lipstick per step zone (its calibration), times uGain
 // (slots 4 and 5, her own makeup only: her second eyeshadow on her crease and outer corner, her inner-corner light)
 uniform vec4 uOwn;
 uniform float uPigX[6], uPigDeep[6], uPigSheen[6];
@@ -1399,6 +1405,7 @@ float rv(int k, float sw) {
   float r = uStepsOn == 1 ? (k == uActive || (uActive == 0 && uFollow[k] > 0.5) ? sw : uReveal[k]) : 1.0;
   return r * uGain[k];
 }
+float rl(int k, float sw) { return rv(k, sw) * uLGain[k]; }
 float luma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
 /*
  * Coloured lenses on her irises, only where her eye is open (her eyeball mask): her pupil, her catchlights, her lashes
@@ -1682,10 +1689,10 @@ void main() {
     if (uStepsOn == 1) sw = clamp((uProgress * 1.3 - sweepT(v * vec2(uSize))) / 0.3, 0.0, 1.0);
     ZA = texture(uZoneA, v); ZB = texture(uZoneB, v);
     float sum = ZA.r + ZA.g + ZA.b + ZA.a + ZB.r, sc = sum > 1.0 ? 1.0 / sum : 1.0;
-    RL = max(0.0, 1.0 - sum * sc) * rv(0, sw) + sc * (ZA.r * rv(1, sw) + ZB.r * rv(3, sw) * uOwn.x + ZA.g * rv(6, sw) * uOwn.y
-      + ZA.b * rv(7, sw) * uOwn.z + ZA.a * rv(8, sw) * uOwn.w);
-    RD = ZB.g * rv(4, sw) + (1.0 - ZB.g) * rv(5, sw);
-    RLips = rv(9, sw);
+    RL = max(0.0, 1.0 - sum * sc) * rl(0, sw) + sc * (ZA.r * rl(1, sw) + ZB.r * rl(3, sw) * uOwn.x + ZA.g * rl(6, sw) * uOwn.y
+      + ZA.b * rl(7, sw) * uOwn.z + ZA.a * rl(8, sw) * uOwn.w);
+    RD = ZB.g * rl(4, sw) + (1.0 - ZB.g) * rl(5, sw);
+    RLips = rl(9, sw);
   }
   if (uVisMode > 0) {             // skin-level layer fades before her visible face's edge (skin_fade in teacher.py)
     vec4 E = texture(uVisEdge, (v * vec2(uSize) - uVisBox.xy) / uVisBox.z);
@@ -1729,10 +1736,16 @@ void main() {
       lu *= 1.0 + (gain - 1.0) * zone * (uZonesOn == 1 ? rv(1, sw) : 1.0);
     }
   }
-  // (a region made stronger than the layer, RL > 1: its shading and colour by all of that, its lightening by LIGHTEN_GAIN
-  // of it: a pale shimmer made twice as light turned chalky grey on a deeper lid)
-  vec3 RLc = RL > 1.0 ? mix(vec3(1.0 + (RL - 1.0) * ${LIGHTEN_GAIN}), vec3(RL), step(lr, vec3(0.0))) : vec3(RL);
-  vec3 base = lu * exp(lr * (1.0 - M.r) * (1.0 - M.g) * uK.x * RLc);
+  // (a region made stronger than the layer, RL > 1: where it darkens, all of it; where it lightens, LIGHTEN_GAIN of it and
+  // its change of hue CHROMA_GAIN of it: a pale shimmer made twice as light turned chalky grey on a deeper lid, and a
+  // cream lid's slight cooling, doubled, turned it mint; a blush, a contour, a smoky shadow get their colour in full)
+  vec3 lrs = lr;
+  if (RL > 1.0) {
+    float ly = dot(lr, vec3(0.2126, 0.7152, 0.0722));
+    float lighter = step(0.0, ly);
+    lrs = ly * mix(RL, 1.0 + (RL - 1.0) * ${LIGHTEN_GAIN}, lighter) + (lr - ly) * mix(RL, 1.0 + (RL - 1.0) * ${CHROMA_GAIN}, lighter);
+  } else lrs = lr * RL;
+  vec3 base = lu * exp(lrs * (1.0 - M.r) * (1.0 - M.g) * uK.x);
   float pigX = 0.0;
   for (int k = 0; k < 6; k++) pigX += uPigX[k];
   if (uZonesOn == 1 && pigX > 0.0) {
@@ -2641,6 +2654,7 @@ export class MakeupGL {
     gl.uniform1i(this.uni(p, "uVisMode"), visMode);
     gl.uniform3f(this.uni(p, "uVisBox"), ...(vis?.box ?? [0, 0, 1]));
     gl.uniform1fv(this.uni(p, "uGain"), new Float32Array(STEP_KEYS.map((k) => prod?.gain?.[k] ?? 1)));
+    gl.uniform1fv(this.uni(p, "uLGain"), new Float32Array(STEP_KEYS.map((k) => (mine ? 1 : prod?.layerGain?.[k] ?? 1))));
     gl.uniform4f(this.uni(p, "uOwn"), ...(pigs.slice(0, 4).map((x) => (x && !x.over ? 0 : 1)).concat([1, 1, 1, 1]).slice(0, 4) as [number, number, number, number]));
     const six = [0, 1, 2, 3, 4, 5], pigOf = (i: number) => pigs[i];
     gl.uniform3fv(this.uni(p, "uPig"), new Float32Array(six.flatMap((i) => pigOf(i)?.color ?? [0, 0, 0])));

@@ -412,7 +412,9 @@ PLAIN_BROAD = 0.25   # over plain skin, the catalog's lightening broader than th
 BROAD_KEEP = 0.5     # ...this much of it stays (a highlight on her cheekbones; the rest evened the bare face's own patches)
 PLAIN_LUM = (-0.5, 0.15)   # over plain skin, the layer darkens or lightens at most this much (log)
 PLAIN_CHROMA = -0.3        # ...and takes away at most this much of green or blue (redness taken away is left out)
-EYE_LIGHT = 0.25           # around the eyes the layer lightens at most this much (a pale or shimmer shadow; not the catalog's eye whites)
+EYE_LIGHT = 0.6            # around the eyes the layer lightens at most this much (a pale or shimmer shadow; not the catalog's eye whites);
+                           # where it would lighten more, its change of colour is cut by the same share: a cream lid over a deeper
+                           # one, lightened less than in the photo but with all of its colour change, turned grey
 TONE_KEEP = (0.8, 0.9)     # how much of the look's complexion (brightness, colour) goes on her foundation
 TONE_MAX = 0.3             # the complexion's change, at most (log, per colour)
 FILL, FILL_OUT = 0.2, 1.08   # the layer's edge filled from inside (eye widths), out to this much of the face's outline
@@ -535,11 +537,12 @@ def layer_parts(look: str, fine_sigma=0.02, soft_sigma=0.07):
     # lightening and the redness taken away are left out. Contour and bronzer (broad, darker), highlights (lighter: the
     # narrow part and BROAD_KEEP of the broad one) and blush (redder) stay.
     lb = cv2.GaussianBlur(lum[..., 0] * sk, (0, 0), ew * PLAIN_BROAD) / np.maximum(cv2.GaussianBlur(sk, (0, 0), ew * PLAIN_BROAD), 1e-3)
+    eye_k = np.where(lum > EYE_LIGHT, EYE_LIGHT / np.maximum(lum, 1e-6), 1.0)
     lum = np.minimum(lum, EYE_LIGHT) * f + np.clip(lum - np.maximum(lb, 0)[..., None] * (1 - BROAD_KEEP), *PLAIN_LUM) * nf
     red = np.float32([2, -1, -1]) / np.sqrt(6)      # (redness taken away: its part along red, where negative)
     plain = chroma - np.minimum(chroma @ red, 0)[..., None] * red
     plain[..., 1:] = np.maximum(plain[..., 1:], PLAIN_CHROMA)
-    chroma = chroma * f + plain * nf
+    chroma = chroma * eye_k * f + plain * nf
     lr = lum + chroma
     # Brows: the catalog edit redraws them slightly differently; keep her own.
     brows = cv2.GaussianBlur(poly_mask((H, W), pl[:, :2], [BROW_R, BROW_L], scale=1.45), (0, 0), ew * 0.08)
@@ -1014,7 +1017,7 @@ def lip_colour(img_lin, p):
     return np.median(px[(l > np.quantile(l, 0.15)) & (l < np.quantile(l, 0.8))], 0)
 
 PIGMENT_MIN = 0.3   # a lipstick's colour is at least this share of the colour seen (else it takes more opacity)
-LIP_CHANGE = (0.03, 0.15)   # a lipstick that changes the model's lips less than this (log, in their most changed colour)
+LIP_CHANGE = (0.03, 0.08)   # a lipstick that changes the model's lips less than this (log, in their most changed colour)
                             # changes hers the same way (her lips times the change); from LIP_CHANGE[1] on, its own colour
 
 @lru_cache(None)

@@ -22,6 +22,8 @@ coverage maps the app uses for placement:
 
 ```bash
 python scripts/tinybeauty/products.py cov     # public/tryon/cov/*.webp + each look's eyeshadow strength in looks.json
+python scripts/tinybeauty/strength.py renders DIR   # how strong the engine's renders of each look (on the bare catalog face) come out
+python scripts/tinybeauty/calibrate.py DIR          # each look's own strength per region from that (src/data/look-gains.json)
 ```
 
 `products.paint_custom(look, face, points, custom={'shadow': {'color': '#24305e', 'finish': 'matte',

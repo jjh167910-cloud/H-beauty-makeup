@@ -220,10 +220,10 @@ goes on, and her foundation lifts the shaded side of the face).
     lips seen in the look photo; on her lips the look's change then shows as in the catalog. A deep shade
     over lighter lips takes more opacity (up to 0.97). Matte covers 0.95, satin, lined and metallic 0.92,
     ombre and glitter 0.9, gloss 0.7 (was 0.82–0.9, gloss 0.45). A lipstick that changes the model's lips by
-    less than 3 % (fully from 15 %) changes hers the same way, her lips times its change, with the finish's
+    less than 3 % (fully from 8 %; it was 15 %, which left arabic-glam's taupe mostly a tint) changes hers the same way, her lips times its change, with the finish's
     shine (`ratio`, `pigment` in looks.json): a clear gloss stays her lips, not the model's lip colour.
 - The tiny fallback networks (phones without WebGL2) are trained on this teacher (`train.py`; see
-  Engine 2).
+  Engine 2), as it was before the pale-lid and lipstick changes below.
 
 ### The true bare face, and deeper skin
 
@@ -266,10 +266,23 @@ in makeup-gl.ts):
 - **As strong as the catalog photo.** Painted back onto the catalog model's own bare face, the engine reproduced about
   60% of the photo's change on her lids, 42% past her eyes' outer corners and 79% on her cheeks (`strength.py renders`;
   the teacher: 81%, 43%, 75%): the layer fades in from her face's outline, past the outer corners and around her eyes.
-  Each look's step zones now carry gains (`LOOK_GAIN`: lids ×2, eye detail along the liner ×1.4, the rest of the eye
-  detail ×1.15, blush and highlight ×1.3, the layer's skin level ×1.15, contour ×0.75), which bring it to about 92% on
-  her lids, 95% on her cheeks and 100–110% under her cheekbones; her picks' intensities multiply them. Of a gain over 1
-  only `LIGHTEN_GAIN` (35%) goes to what lightens: a pale shimmer made twice as light turned chalky grey on a deeper lid.
+  Each look's step zones now carry gains on the look's own layer, eye detail and lipstick (`Products.layerGain`, never
+  on a recipe's added shimmer or highlight: doubling a shimmer's coverage painted grey-green lids): `LOOK_GAIN` for all
+  (lids ×2, eye detail along the liner ×1.4, the rest of the eye detail ×1.15, blush and highlight ×1.3, the layer's
+  skin level ×1.15, contour ×0.75) times each look's own (`src/data/look-gains.json`, made by
+  `scripts/tinybeauty/calibrate.py` from the same measurement, five rounds: each moves a look's gain for a region by
+  (1 / strength)^0.8, at most ×1.5 a round, between ×0.5 and ×2; lips only ever down, and only for the look's own
+  lipstick, not one she picks). Where a strengthened layer lightens, only `LIGHTEN_GAIN` (35%) of the extra goes to its
+  lightening and `CHROMA_GAIN` (50%) to its change of hue (a pale shimmer made twice as light turned chalky grey, a cream
+  lid's slight cooling doubled turned it mint); where it darkens (a smoky shadow, a contour, a blush) all of it.
+  On the catalog face, the share of looks within ±10% of their photo: lids 57% → 88%, lips 49% → 85%, cheeks 54% (the
+  recipe's highlight is no longer strengthened; within ±20%: 88%); the wing past the outer corners stays at about 77%
+  (the turned far eye is painted from the near one's mirror image). What a gain can't fix is a change in another
+  direction: k-beauty's aegyo-sal (an accent the photo can't carry) reads as 2.5× on its lids, and arabic-glam's
+  lipstick, lighter than the model's lips, comes out at about a third of its lightening.
+- **Pale lids in the layer.** Around the eyes the layer lightened at most 1.28× (`EYE_LIGHT` 0.25, so the catalog's eye
+  whites never reach her lid) but kept all of its change of colour: a cream lid over the model's warmer, deeper one
+  came out grey. Now at most 1.8× (0.6), and where it is capped its change of colour is cut by the same share.
 - **Concealer that covers.** The look's concealer lifted a darker under-eye towards her skin's median by at most 1.2×
   (and the studio retouch by 1.35×): deep dark circles stayed. Now each under-eye is lifted towards her cheek just below
   it (`measureFace`: the 60th percentile of a disc 0.85 eye widths down; `CONCEAL_LOOK` 0.85 of the way in log light, at
@@ -283,8 +296,8 @@ in makeup-gl.ts):
   reddish brown). A clean line of concealer just under each brow (+12% light, never on her hairs) gives the brow its
   lower edge (`BROW_CARVE`). Lighter on no-makeup.
 
-The tiny fallback networks don't have these yet (the teacher mirrors the engine as it was; `train.py` after
-`teacher.py` follows).
+The tiny fallback networks don't have these yet (they were trained on the layers before this rebuild, and the
+concealer, brows and gains are the engine's; `train.py` after `teacher.py` follows).
 
 ### Each look's recipe: what its photo can't carry
 
@@ -715,7 +728,8 @@ One tiny network per look, following TinyBeauty (Jin et al., *Toward Tiny and Hi
 Makeup with Data Amplify Learning*, ECCV 2024): ~87K parameters, ~230 KB, in ONNX Runtime Web
 (WebAssembly) in a worker (`src/lib/tryon-worker.ts`), on the face aligned to 256×256; only its
 change is mapped back onto her photo, plus the eye detail. Soft shows it at 60 %. All 42 are trained
-on the current teacher (true bare face, real lipstick, the deep-skin gloss and highlighter rules): in the
+on the teacher with the true bare face, real lipstick and the deep-skin gloss and highlighter rules (not yet the
+pale-lid and lipstick rebuild, nor the engine's concealer, brows and calibration of "Every look finished"): in the
 makeup regions of held-out faces they come within 33.7–36.2 dB of it, 34.9 on average (an unchanged face:
 27.3–32.5 dB). Against the graphics-chip engine on four synthetic faces (6 looks, at full resolution) they
 come 1.3–4.3 dB closer than the networks they replaced; they are still softer than it, the highlighter most.
