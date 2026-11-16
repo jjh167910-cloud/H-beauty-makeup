@@ -62,6 +62,26 @@
 6. **Material + teacher research:** physically grounded skin/pigment light transport, photo-specific intrinsic decomposition, optional highly realistic neural finisher conditioned on identity/geometry. Teacher output must not change face/background. Train offline on GPU, distill for phone; test quality before enabling.
 7. **Product quality and rollout:** still/live alignment, progressive-first-result, mobile UI, share+booking, offline cache and verified live Worker SHA. Remain in feature branch until evidence supports a release.
 
+## Latest engineering continuation — 2026-11-17
+
+The development branch received additional **actual code changes**, not just documentation:
+
+- `src/lib/material-eye-v2.ts`: rejects collapsed brow-to-lid geometry, avoids sclera painting through a tighter stroke mask, hard-caps newly rendered RGB values to 1…254 to avoid hard clipped specular highlights, and has an optional GPU-powered photo path using `?eyePilot=v2&eyeCompute=gpu` (both opt-in).
+- `src/lib/material-eye-gpu.ts`: new **WebGL2 RGBA8 linear-light arithmetic kernel** for cropped eye ROI pigment, cosmetic blend, liner/lash/rhinestone opacity. It branches around protected no-op pixels to avoid gamma round-trip drift. It does **not** eliminate the CPU geometry or the GPU readback yet. On GPU failure, the experiment falls back to local CPU without losing the customer's photo.
+- `tests/material-eye-gpu.spec.ts`: isolated GPU/browser test for protected byte parity, new pixel clipping, opacity, and invalid-size fail-closed handling; skips only if runner has no WebGL2.
+- `tests/material-eye-v2.spec.ts`: added degenerate geometry + sclera tests, rhinestone clipping checks, and saved-photo GPU versus CPU A/B numeric comparison on synthetic fixtures.
+- `scripts/quality/benchmark_v2.mjs` and corresponding Node tests: blind comparisons are now also assessed **per individual look**, not only in aggregate; poor-performing looks fail the pilot gate.
+- `.github/workflows/review.yml`: new material-eye browser tests run ahead of the long legacy suite and outdated PR workflow runs are cancelled when newer commits arrive (concurrency control).
+- **Verified earlier in this session:** Node, TypeScript, build, quick material-eye browser tests and streamed-download/retry tests passed on an earlier feature commit. New GPU integrated branch was subsequently changed: **inspect latest PR checks, do not assume the latest SHA passed**. The full Playwright suite is long-running and may still need fixes.
+
+**Production remains unchanged.** `main` was not merged; Cloudflare Workers was not deployed from this experimental PR.
+
+**Most important next action:**
+1. Retrieve the current head SHA of PR #23 and latest `Try-on review` workflow result (the current branch head before this handoff edit was `158d696ef3bdf8b5e9503f6ed6cdc39cf8bbd3d2`; this document commit makes it stale). If a targeted GPU/eye browser test fails, inspect that run's job logs, fix it first, and rerun.
+2. **Measure** actual on-device CPU/GPU parity on low, mid and high-end Android, not only synthetic Chrome, including source photo exact pixel lock outside editable regions, introduced hard clipping, p95 latency, memory and power.
+3. Move GPU blending into the existing `MakeupGL` target chain to eliminate copy-back into CPU canvas. Add exact per-pixel permissions and retinal/scleral occlusion. Keep a feature flag and preserve the current production renderer.
+4. Continue with photo-grounded four-look authoring and real blinded visual reviews. Never claim this pilot is already more realistic without such evidence.
+
 ## New-chat start procedure (mandatory)
 
 1. Connect/use the GitHub app and fetch PR #23, current head SHA and workflow status; do not assume the latest chat's SHA still applies.
