@@ -91,6 +91,7 @@ The catalog model's head is turned, so her far eye (the left in a straight-on ph
 `teacher.symmetric()` / `eye_triangles()` paint that half with the mirror image of the near half (the same
 in makeup-gl.ts).
 
-The current fallback networks are trained on this teacher: the true bare face, real lipstick, the mirrored
-far eye, and the gloss and highlighter rules for deeper skin. In the makeup regions of held-out faces they
-come within 33.7–36.2 dB of the teacher, 34.9 on average (an unchanged face: 27.3–32.5 dB).
+The current fallback networks (`TINY_V` 3) are trained on the look as the engine finishes it
+(`finish.paint_finished`: this teacher plus the concealer, brows, each look's strengths and the camera's lens).
+In the makeup regions of held-out faces they come within 32.0–35.9 dB of it, 34.3 on average (an unchanged
+face: 25.1–32.0 dB); against the graphics-chip engine they are 1.25 dB closer than the networks before them.

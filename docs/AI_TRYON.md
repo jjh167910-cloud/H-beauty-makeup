@@ -222,8 +222,8 @@ goes on, and her foundation lifts the shaded side of the face).
     ombre and glitter 0.9, gloss 0.7 (was 0.82–0.9, gloss 0.45). A lipstick that changes the model's lips by
     less than 3 % (fully from 8 %; it was 15 %, which left arabic-glam's taupe mostly a tint) changes hers the same way, her lips times its change, with the finish's
     shine (`ratio`, `pigment` in looks.json): a clear gloss stays her lips, not the model's lip colour.
-- The tiny fallback networks (phones without WebGL2) are trained on this teacher (`train.py`; see
-  Engine 2), as it was before the pale-lid and lipstick changes below.
+- The tiny fallback networks (phones without WebGL2) are trained on this teacher as the engine finishes it
+  (`train.py`, `finish.py`; see Engine 2), with the pale-lid and lipstick changes below.
 
 ### The true bare face, and deeper skin
 
@@ -756,11 +756,11 @@ One tiny network per look, following TinyBeauty (Jin et al., *Toward Tiny and Hi
 Makeup with Data Amplify Learning*, ECCV 2024): ~87K parameters, ~230 KB, in ONNX Runtime Web
 (WebAssembly) in a worker (`src/lib/tryon-worker.ts`), on the face aligned to 256×256; only its
 change is mapped back onto her photo, plus the eye detail. Soft shows it at 60 %. All 42 are trained
-on the teacher with the true bare face, real lipstick and the deep-skin gloss and highlighter rules (not yet the
-pale-lid and lipstick rebuild, nor the engine's concealer, brows and calibration of "Every look finished"): in the
-makeup regions of held-out faces they come within 33.7–36.2 dB of it, 34.9 on average (an unchanged face:
-27.3–32.5 dB). Against the graphics-chip engine on four synthetic faces (6 looks, at full resolution) they
-come 1.3–4.3 dB closer than the networks they replaced; they are still softer than it, the highlighter most.
+on the look as the engine finishes it (`finish.py`: the pale-lid and lipstick rebuild, the concealer, brows and
+each look's calibration, through her camera's lens): in the makeup regions of held-out faces they come within
+32.0–35.9 dB of it, 34.3 on average (an unchanged face: 25.1–32.0 dB). Against the graphics-chip engine on four
+synthetic faces (8 looks, at full resolution) they come 0.1–3.2 dB closer than the networks they replaced,
+1.25 dB on average and closer in all 32; they are still softer than it, the highlighter most.
 Their URLs carry `TINY_V` (`src/lib/tiny-model.ts`), bumped when they are trained again so phones fetch them.
 
 **Live mirror** (`src/lib/live-tryon.ts`): every camera frame is tracked by MediaPipe and painted
