@@ -39,7 +39,9 @@ const srgbToLin = (n: number) => {
 };
 const linToSrgb = (v: number) => {
   const c = clamp(v, 0.001, 0.997);
-  return Math.round(255 * (c <= 0.0031308 ? c * 12.92 : 1.055 * c ** (1 / 2.4) - 0.055));
+  // Quantization can round an almost-white linear value back to 255.
+  // Reserve one code value at either end for headroom, including shiny stones.
+  return Math.max(1, Math.min(254, Math.round(255 * (c <= 0.0031308 ? c * 12.92 : 1.055 * c ** (1 / 2.4) - 0.055))));
 };
 const hexLinear = (s: string): [number, number, number] => {
   if (!/^#[0-9a-fA-F]{6}$/.test(s)) throw new Error("Invalid cosmetic shade");
