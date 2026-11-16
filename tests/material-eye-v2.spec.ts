@@ -123,3 +123,29 @@ test("rhinestone pilot has distinct face-anchored specular detail, unlike Hollyw
   expect(stats.eyes).toBe(1);
   expect(stats.stoneBright).toBeGreaterThan(stats.classicBright + 20);
 });
+
+
+test("face-space safety: collapsed brows and sclera must not receive material-eye strokes", async ({ page }) => {
+  await page.goto("/");
+  const audit = await page.evaluate(async () => {
+    const engine = await import("/src/lib/material-eye-v2.ts");
+    const pts = Array.from({ length: 478 }, () => [250, 160, 0]);
+    const set = (id: number, x: number, y: number) => { pts[id] = [x, y, 0]; };
+    [33, 246, 161, 160, 159, 158, 157, 173, 133].forEach((id, i) =>
+      set(id, 80 + i * 20, 155 - 10 * Math.sin(Math.PI * i / 8)));
+    [70, 63, 105, 66, 107].forEach((id, i) => set(id, 85 + 40 * i, 92));
+    set(145, 160, 178);
+    const good = engine.eyeGeometry(pts, "left");
+    const sclera = good ? engine.strokeRegion(good, 160, 172) : -1;
+    const eyeLid = good ? engine.strokeRegion(good, 160, 143) : -1;
+    // Corrupt the landmarks so the brow is effectively the eyelid.
+    [70, 63, 105, 66, 107].forEach((id, i) =>
+      set(id, 85 + 40 * i, 150));
+    const collapsed = engine.eyeGeometry(pts, "left");
+    return { valid: !!good, sclera, eyeLid, rejectedCollapsedBrow: collapsed === null };
+  });
+  expect(audit.valid).toBe(true);
+  expect(audit.sclera).toBe(0);
+  expect(audit.eyeLid).toBe(1);
+  expect(audit.rejectedCollapsedBrow).toBe(true);
+});
