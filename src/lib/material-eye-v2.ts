@@ -336,7 +336,7 @@ function shadeGpuFallback(before: ImageData, changed: ImageData, ink: Uint8Clamp
 export function applyMaterialEyeV2(
   result: HTMLCanvasElement, source: HTMLCanvasElement, P: Pt[], lookId: string, level: Level,
   vis: Visibility | null | undefined, cameraBlurPx = 0.7,
-): { touched: number; eyes: number; skipped?: string } {
+): { touched: number; eyes: number; skipped?: string; compute?: "cpu" | "gpu-readback" | "gpu-canvas" | "mixed"; elapsedMs?: number } {
   if (!vis) return { touched: 0, eyes: 0, skipped: "no-occlusion-mask" };
   if (result.width !== source.width || result.height !== source.height)
     return { touched: 0, eyes: 0, skipped: "size-mismatch" };
@@ -351,6 +351,8 @@ export function applyMaterialEyeV2(
   const strength = (level === "soft" ? 0.7 : level === "bold" ? 1.12 : 1);
   const amount = lookId === "electric-blue" ? 0.78 : lookId === "rhinestone" ? 0.43 : 0.39;
   let touched = 0, eyes = 0;
+  const started = performance.now();
+  const modes = new Set<"cpu" | "gpu-readback" | "gpu-canvas">();
   const gpuMode = new URLSearchParams(location.search).get("eyeCompute");
   const gpuPilot = gpuMode === "gpu" || gpuMode === "canvas";
   for (const side of ["left", "right"] as const) {
@@ -454,6 +456,7 @@ export function applyMaterialEyeV2(
             try {
               blitEyeGPUCanvas(out, gpuCanvas, weights, roi);
               directDrawn = true;
+              modes.add("gpu-canvas");
             } catch (error) {
               // Pixel-return path below is the safety fallback. Do not
               // propagate a rendering exception to the customer's photo.
@@ -463,13 +466,15 @@ export function applyMaterialEyeV2(
         }
         if (!directDrawn) {
           const gpuResult = compositeEyeGPU(input);
-          if (gpuResult) changed.data.set(gpuResult);
-          else shadeGpuFallback(before, changed, ink, weights, linearA, linearB, referenceLight);
+          if (gpuResult) { changed.data.set(gpuResult); modes.add("gpu-readback"); }
+          else { shadeGpuFallback(before, changed, ink, weights, linearA, linearB, referenceLight); modes.add("cpu"); }
         }
       }
       if (!directDrawn) out.putImageData(changed, roi.x, roi.y);
+      if (!weights) modes.add("cpu");
       touched += eyeTouched; eyes++;
     }
   }
-  return { touched, eyes };
+  const compute = modes.size === 0 ? undefined : modes.size > 1 ? "mixed" : [...modes][0];
+  return { touched, eyes, compute, elapsedMs: performance.now() - started };
 }
