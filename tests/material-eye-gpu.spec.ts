@@ -56,3 +56,66 @@ test("isolated WebGL2 eye-material kernel changes only authorized pixels", async
   expect(result.alphaStable).toBe(true);
   expect(result.failedClosed).toBe(true);
 });
+
+
+test("no-readback GPU canvas matches pixel-return mode, with byte-exact protected rows", async ({ page }) => {
+  await page.goto("/");
+  const metrics = await page.evaluate(async () => {
+    const { compositeEyeGPU, compositeEyeGPUCanvas } = await import("/src/lib/material-eye-gpu.ts");
+    const { blitEyeGPUCanvas } = await import("/src/lib/material-eye-v2.ts");
+    const width = 19, height = 9;
+    const original = new Uint8ClampedArray(width * height * 4);
+    const previous = new Uint8ClampedArray(width * height * 4);
+    const ink = new Uint8ClampedArray(width * height * 4);
+    const weights = new Uint8ClampedArray(width * height * 4);
+    for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      original.set([54 + 3 * x, 84 + y * 8, 103 + (x + y) * 2, 255], i);
+      previous.set([68 + x, 99 + y * 3, 120 + x + y, 255], i);
+      ink.set([12, 17, 22, 255], i);
+      if (y >= 2 && y <= 6 && x >= 4 && x <= 14) {
+        weights.set([150, 62 + x * 3, 230, 0], i);
+      }
+      if (y === 4 && x >= 7 && x <= 12) weights[i + 3] = 190;
+    }
+    const input = {width, height, original, previous, ink, weights,
+      pigmentA: [0.18, 0.03, 0.21] as [number, number, number],
+      pigmentB: [0.29, 0.08, 0.49] as [number, number, number], referenceLight: 0.21 };
+    const pixels = compositeEyeGPU(input);
+    const gpuCanvas = compositeEyeGPUCanvas(input);
+    if (!pixels || !gpuCanvas) return { missing: true };
+    const destination = document.createElement("canvas");
+    destination.width = width; destination.height = height;
+    const ctx = destination.getContext("2d")!;
+    ctx.putImageData(new ImageData(previous, width, height), 0, 0);
+    const spans = blitEyeGPUCanvas(ctx, gpuCanvas, weights, { x:0, y:0, w:width, h:height });
+    const result = ctx.getImageData(0, 0, width, height).data;
+    let protectedDiff = 0, maxColourError = 0, sumColourError = 0, n = 0;
+    let upperChanged = 0, lowerChanged = 0;
+    for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      const allowed = weights[i + 2] !== 0 || weights[i + 3] !== 0;
+      for (let c = 0; c < 4; c++) {
+        if (!allowed && result[i + c] !== previous[i + c]) protectedDiff++;
+        if (allowed && c < 3) {
+          const d = Math.abs(result[i + c] - pixels[i + c]);
+          maxColourError = Math.max(maxColourError, d);
+          sumColourError += d; n++;
+        }
+        if (allowed && c === 0 && result[i] !== previous[i]) {
+          if (y <= 3) upperChanged++;
+          if (y >= 5) lowerChanged++;
+        }
+      }
+    }
+    return {missing: false, spans, protectedDiff, maxColourError,
+      meanColourError: sumColourError / Math.max(1,n), upperChanged, lowerChanged};
+  });
+  expect(metrics.missing).toBe(false);
+  expect(metrics.spans).toBeGreaterThan(0);
+  expect(metrics.protectedDiff).toBe(0);
+  expect(metrics.upperChanged).toBeGreaterThan(0);
+  expect(metrics.lowerChanged).toBeGreaterThan(0);
+  expect(metrics.meanColourError).toBeLessThan(1.5);
+  expect(metrics.maxColourError).toBeLessThanOrEqual(4);
+});
