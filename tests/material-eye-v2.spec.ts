@@ -84,3 +84,42 @@ test("material-eye pilot respects eyelid geometry, original pixels and occlusion
   expect(metrics.noChange).toBe("no-material-pilot-for-look");
   expect(metrics.occlusion).toBe(0);
 });
+
+
+test("rhinestone pilot has distinct face-anchored specular detail, unlike Hollywood", async ({ page }) => {
+  await page.goto("/");
+  const stats = await page.evaluate(async () => {
+    const { applyMaterialEyeV2 } = await import("/src/lib/material-eye-v2.ts");
+    const width = 400, height = 280;
+    const pts = Array.from({ length: 478 }, () => [200, 140, 0]);
+    const set = (id: number, x: number, y: number) => pts[id] = [x, y, 0];
+    const top = [33, 246, 161, 160, 159, 158, 157, 173, 133];
+    top.forEach((id, i) => set(id, 70 + i * 16, 149 - 13 * Math.sin(i * Math.PI / 8)));
+    [70, 63, 105, 66, 107].forEach((id, i) => set(id, 75 + i * 32, 82 + Math.abs(i - 2) * 4));
+    set(145, 135, 169);
+    // Other eye intentionally unresolved: the pilot must not mirror the first.
+    const make = () => {
+      const c = document.createElement("canvas");
+      c.width = width; c.height = height;
+      const ctx = c.getContext("2d")!;
+      ctx.fillStyle = "#513a32"; ctx.fillRect(0, 0, width, height);
+      return c;
+    };
+    const input = make(), gemstone = make(), hollywood = make();
+    const probs = new Uint8Array(256 * 256 * 2);
+    for (let i = 0; i < probs.length; i += 2) probs[i] = 255;
+    const vis = { probs, box: [0, 0, 400] as [number, number, number] };
+    const r = applyMaterialEyeV2(gemstone, input, pts, "rhinestone", "natural", vis, 0.5);
+    applyMaterialEyeV2(hollywood, input, pts, "hollywood", "natural", vis, 0.5);
+    const a = gemstone.getContext("2d")!.getImageData(65, 75, 160, 96).data;
+    const b = hollywood.getContext("2d")!.getImageData(65, 75, 160, 96).data;
+    let stoneBright = 0, classicBright = 0;
+    for (let i = 0; i < a.length; i += 4) {
+      stoneBright = Math.max(stoneBright, a[i], a[i + 1], a[i + 2]);
+      classicBright = Math.max(classicBright, b[i], b[i + 1], b[i + 2]);
+    }
+    return { eyes: r.eyes, stoneBright, classicBright };
+  });
+  expect(stats.eyes).toBe(1);
+  expect(stats.stoneBright).toBeGreaterThan(stats.classicBright + 20);
+});
