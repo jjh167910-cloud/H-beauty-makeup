@@ -152,3 +152,57 @@ test("face-space safety: collapsed brows and sclera must not receive material-ey
   expect(audit.eyeLid).toBe(1);
   expect(audit.rejectedCollapsedBrow).toBe(true);
 });
+
+
+test("optional GPU material-eye path matches CPU pilot and never touches the background", async ({ page }) => {
+  await page.goto("/?eyeCompute=gpu");
+  const metrics = await page.evaluate(async () => {
+    const { applyMaterialEyeV2 } = await import("/src/lib/material-eye-v2.ts");
+    const w = 360, h = 260;
+    const pts = Array.from({ length: 478 }, () => [160, 145, 0]);
+    [33, 246, 161, 160, 159, 158, 157, 173, 133].forEach((id, i) => {
+      pts[id] = [100 + 16 * i, 152 - 12 * Math.sin(Math.PI * i / 8), 0];
+    });
+    [70, 63, 105, 66, 107].forEach((id, i) => { pts[id] = [102 + 32 * i, 92, 0]; });
+    pts[145] = [164, 170, 0];
+    const canvas = () => {
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      const ctx = c.getContext("2d")!;
+      ctx.fillStyle = "#594138"; ctx.fillRect(0, 0, w, h);
+      return c;
+    };
+    const src = canvas(), gpu = canvas(), cpu = canvas();
+    const prob = new Uint8Array(256 * 256 * 2);
+    for (let i = 0; i < prob.length; i += 2) prob[i] = 255;
+    const vis = { probs: prob, box: [0, 0, 360] as [number, number, number] };
+    const gpuResult = applyMaterialEyeV2(gpu, src, pts, "electric-blue", "natural", vis, 0.8);
+    history.replaceState({}, "", "/");
+    const cpuResult = applyMaterialEyeV2(cpu, src, pts, "electric-blue", "natural", vis, 0.8);
+    const a = gpu.getContext("2d")!.getImageData(0, 0, w, h).data;
+    const b = cpu.getContext("2d")!.getImageData(0, 0, w, h).data;
+    const original = src.getContext("2d")!.getImageData(0, 0, w, h).data;
+    let changed = 0, totalDifference = 0, maxDifference = 0, compared = 0, outsideChanged = 0;
+    for (let i = 0; i < w * h; i++) {
+      const x = i % w, y = Math.floor(i / w);
+      for (let channel = 0; channel < 3; channel++) {
+        const offset = 4 * i + channel, diff = Math.abs(a[offset] - b[offset]);
+        totalDifference += diff; compared++; maxDifference = Math.max(diff, maxDifference);
+        if (a[offset] !== original[offset]) {
+          changed++;
+          if (x < 70 || x > 290 || y < 50 || y > 220) outsideChanged++;
+        }
+      }
+    }
+    return {
+      eyes: gpuResult.eyes, cpuEyes: cpuResult.eyes, changed,
+      meanDifference: totalDifference / compared, maxDifference, outsideChanged,
+    };
+  });
+  expect(metrics.eyes).toBe(1);
+  expect(metrics.cpuEyes).toBe(1);
+  expect(metrics.changed).toBeGreaterThan(50);
+  expect(metrics.outsideChanged).toBe(0);
+  expect(metrics.meanDifference).toBeLessThan(2);
+  expect(metrics.maxDifference).toBeLessThan(18);
+});
