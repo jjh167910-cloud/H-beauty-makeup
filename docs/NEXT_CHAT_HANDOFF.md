@@ -82,6 +82,31 @@ The development branch received additional **actual code changes**, not just doc
 3. Move GPU blending into the existing `MakeupGL` target chain to eliminate copy-back into CPU canvas. Add exact per-pixel permissions and retinal/scleral occlusion. Keep a feature flag and preserve the current production renderer.
 4. Continue with photo-grounded four-look authoring and real blinded visual reviews. Never claim this pilot is already more realistic without such evidence.
 
+## Latest completed increment: WebGL2 canvas without synchronous eye readback — 2026-11-17
+
+**Repository branch:** `feat/realism-benchmark-v2` in PR #23. **Production `main` stays unchanged.**
+At the time of this handoff update, the implemented code commits include:
+- `a1435d8c839317e1acd08a6c878be2caf1f44c3e`: expose `compositeEyeGPUCanvas` from the existing WebGL2 compositor without `gl.readPixels`.
+- `7077a48e62210f2f1ff5151bbad234deb13e255e`: add masked direct-canvas path in `applyMaterialEyeV2`, including row inversion, span-by-span pixel protection, and readback/CPU fallback.
+- `313acb5ef125e345583f1d4b690a3e4b4c3576be`: isolated masked GPU-canvas parity test.
+- `bdb8e626e81068eb0c0ffca4f4d862df97f0e8a4`: return the **actually used** eye path (`cpu`, `gpu-readback`, `gpu-canvas`, or `mixed`) and local elapsed milliseconds.
+- `639e955e59bfe7449d7ac93c6e27389230fa5b6c`: end-to-end synthetic light/deep textured-skin and occlusion A/B test across all three computation paths.
+- `4ec784630774393780475f9ea4438a90eb73c104`: include all targeted material/GPU/canvas checks early in CI.
+- `docs/REALISM_IMPLEMENTATION_V2.md`: updated with exact experimental modes and limitations.
+
+**Experimental modes:** `?eyePilot=v2` for CPU, `?eyePilot=v2&eyeCompute=gpu` for GPU+readPixels, `?eyePilot=v2&eyeCompute=canvas` for GPU+masked canvas blits without synchronous pixel readback. Only saved-photo pilot; ordinary production output and live video remain untouched.
+
+**Verification confirmed on feature commit `4ec784630774393780475f9ea4438a90eb73c104`:** Node tests, TypeScript, Vite build, targeted eye-material tests including both GPU tests and end-to-end canvas path, all **passed**. The full Playwright suite was still running; do NOT call it passed until its final conclusion is fetched. Later documentation commits have new workflow runs: check the exact newest branch SHA and run status.
+
+**Still incomplete:** This does *not* eliminate CPU ROI `getImageData` for source/legacy render or per-pixel material weight construction; it does *not* integrate the shader into the existing `MakeupGL` framebuffer chain. Direct masked 2D blits may be slower on some phones, so no measured speedup claim. Real user selfie blind comparisons and artist assessments remain unperformed.
+
+**Exact next code work:**
+1. Fetch latest PR #23 head + `Try-on review` run; investigate any full-suite failure, especially newly added `tests/material-eye-canvas.spec.ts`.
+2. Build a shader-native mask/geometry stage directly in `MakeupGL`, avoiding the separate WebGL context and intermediate 2D copies. Do **not** remove CPU reference or alter normal production until exact image parity and quality gates pass.
+3. Capture device-level p50/p95, peak memory, frame time and identity pixel-protection on low/mid/high-end Android. The new `compute` and `elapsedMs` return fields can help instrumentation, but these are currently measured only in synthetic tests.
+4. Use real **consented** photos with true makeup and independent blind review for placement, lashes, deep skin, editorials and occlusions. No image quality claim from synthetic fixtures alone.
+5. Update this handoff and issue #24 with actual results, NOT forecasts.
+
 ## New-chat start procedure (mandatory)
 
 1. Connect/use the GitHub app and fetch PR #23, current head SHA and workflow status; do not assume the latest chat's SHA still applies.
