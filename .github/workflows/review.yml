@@ -8,6 +8,12 @@ on:
 permissions:
   contents: read
 
+# Prevent dozens of simultaneous 15+ minute browser suites as the pilot
+# branch is incrementally repaired. Only the latest commit needs full review.
+concurrency:
+  group: tryon-review-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   review:
     runs-on: ubuntu-latest
@@ -27,6 +33,8 @@ jobs:
         run: npm run build
       - name: Verify runner Chrome
         run: google-chrome --version
+      - name: Verify new eye-material pixel and geometry regressions
+        run: npm run test:ui -- tests/material-eye-v2.spec.ts
       - name: Verify streamed download cancellation and retry
         run: npm run test:ui -- tests/tryon-download.spec.ts
       - name: Try-on tests
