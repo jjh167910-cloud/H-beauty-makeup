@@ -174,6 +174,20 @@ settings, default renderer versus `eyePilot=v2`, with filenames randomized
 for blind professional review. Do not deploy or enable pilot by default before
 it wins on real photographed makeup.
 
+## Experimental WebGL2 direct-canvas milestone — 2026-11-17
+
+The still-photo opt-in pilot now offers **three separate computation modes**:
+
+- `?eyePilot=v2`: baseline experimental CPU material-eye compositor
+- `?eyePilot=v2&eyeCompute=gpu`: isolated WebGL2 linear-light compositor with `gl.readPixels` and 2D canvas `putImageData`
+- `?eyePilot=v2&eyeCompute=canvas`: WebGL2 compositor returns its drawing canvas **without calling `gl.readPixels`**. The caller blits only mask-authorized horizontal segments onto the final 2D photo. It inverts GPU row ordering explicitly, preserves protected background pixels, and falls back to readback/CPU on failure
+
+The direct-canvas mode **removes the synchronous GPU pixel readback from the eye shading stage**. This is an intermediate milestone, not native framebuffer integration: eye-geometry, coverage weights, reference-light estimation and intermediate input ROI acquisition still run on the CPU; separate WebGL and 2D canvas contexts remain. No claim is made that this mode is faster on a real phone until p50/p95 physical device measurements.
+
+Tests: `tests/material-eye-gpu.spec.ts` asserts canvas-vs-readback pixel parity, exact protected pixels, vertical orientation and hard-clipping behavior. `tests/material-eye-canvas.spec.ts` compares the real `applyMaterialEyeV2` call in all three modes on textured synthetic light/deep skin with a simulated occlusion mask. The CI workflow runs both tests before the long application browser suite. An opt-in return value reports the **actual computation mode** and local elapsed milliseconds for device profiling.
+
+**Release gate unchanged:** production remains on original renderer; independent photographed-makeup quality, user-identity protection, device performance and the complete app test suite must be validated before promotion. The next engineering task is to incorporate material shaders and face-space coverage into the existing `MakeupGL` framebuffer chain, eliminating canvas-to-canvas texture copies and CPU ROI readbacks.
+
 ## Shipping policy
 
 1. Production stays on main during research; use a feature flag and pilot branch.
