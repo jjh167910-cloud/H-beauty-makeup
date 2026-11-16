@@ -83,6 +83,7 @@ export function evaluatePilot(cases, {
   const issues = [], incomplete = [], pairs = new Set(), subjects = new Set(), looks = new Set();
   const byLook = new Map(), bySkin = new Map(SKIN_GROUPS.map((s) => [s, new Set()]));
   const bySubjectVotes = new Map();
+  const byLookVotes = new Map();
   const bySkinVotes = new Map(SKIN_GROUPS.map((s) => [s, { wins: 0, reviewed: 0, artistTotal: 0, artistN: 0 }]));
   let wins = 0, reviewed = 0;
 
@@ -118,8 +119,11 @@ export function evaluatePilot(cases, {
       bySubjectVotes.set(c.sample_id, sw);
       const subgroup = bySkinVotes.get(c.skin_group);
       subgroup.reviewed++;
+      const lookGroup = byLookVotes.get(c.look_id) || { wins: 0, reviewed: 0 };
+      lookGroup.reviewed++;
+      byLookVotes.set(c.look_id, lookGroup);
       if (vote === "candidate") {
-        wins++; sw.wins++; subgroup.wins++;
+        wins++; sw.wins++; subgroup.wins++; lookGroup.wins++;
       }
     } else incomplete.push("Paired blind preference missing");
   }
@@ -146,6 +150,18 @@ export function evaluatePilot(cases, {
     issues.push("Blind preference below target");
   if (subjects.size && subjectWinInterval.lower <= 0.5)
     incomplete.push("Customer-cluster confidence does not yet exclude chance at 95%");
+  // An excellent aggregate must not hide one failed editorial/bridal look.
+  // Each look uses distinct people (duplicate face/look pairs are rejected above).
+  const lookPreference = {};
+  const lookWilson95 = {};
+  for (const [look, v] of byLookVotes) {
+    lookPreference[look] = v.reviewed ? v.wins / v.reviewed : null;
+    lookWilson95[look] = wilson95(v.wins, v.reviewed);
+    if (lookPreference[look] !== null && lookPreference[look] < 0.5)
+      issues.push("Blind preference below chance for look: " + look);
+    if (v.reviewed >= minimumSubjects && lookWilson95[look].lower <= 0.5)
+      incomplete.push("Insufficient confidence for look: " + look);
+  }
   const subgroupPreference = {};
   const artistMeans = [];
   for (const skin of SKIN_GROUPS) {
@@ -165,7 +181,7 @@ export function evaluatePilot(cases, {
     subjects: subjects.size, looks: looks.size, independentCases: pairs.size,
     skinGroupSubjects: Object.fromEntries([...bySkin].map(([k, s]) => [k, s.size])),
     wins, reviewed, preference, subjectWins, subjectWinWilson95: subjectWinInterval,
-    subgroupPreference,
+    subgroupPreference, lookPreference, lookWilson95,
     issues: dedupe(issues), incomplete: dedupe(incomplete),
     requiresArtistSignoff: true, requiresLicenseReview: true,
     certification: "None: engineering and pilot evidence only; not proof of photorealism",
