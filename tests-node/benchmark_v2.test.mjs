@@ -106,3 +106,31 @@ test("duplicate independent face/look comparisons are rejected", () => {
   cases.push({ ...cases[0] });
   assert.equal(evaluatePilot(cases).status, "fail");
 });
+
+
+test("confidence is clustered by independent customer, not inflated by repeated looks", () => {
+  const cases = pilotCases();
+  // 20 customers prefer H-Beauty on all looks; 10 on only two looks.
+  // The per-face/look point estimate is 83%, but only 20/30 subjects
+  // individually meet the 70% target. That is not conclusive at 95%.
+  for (let subject = 20; subject < 30; subject++)
+    for (const look of ["no-makeup", "hollywood"])
+      cases.find((c) => c.sample_id === "private-" + subject && c.look_id === look).paired_preference = "competitor";
+  const result = evaluatePilot(cases);
+  assert.ok(result.preference > 0.8);
+  assert.equal(result.subjectWins, 20);
+  assert.ok(result.subjectWinWilson95.lower < 0.5);
+  assert.equal(result.status, "insufficient-evidence");
+});
+
+test("poor performance on deep skin fails despite an excellent aggregate score", () => {
+  const cases = pilotCases();
+  for (let subject = 20; subject < 30; subject++)
+    for (const look of ["no-makeup", "hollywood", "electric-blue"])
+      cases.find((c) => c.sample_id === "private-" + subject && c.look_id === look).paired_preference = "competitor";
+  const result = evaluatePilot(cases);
+  assert.ok(result.preference >= 0.70);
+  assert.equal(result.subgroupPreference.deep, 0.25);
+  assert.equal(result.status, "fail");
+  assert.ok(result.issues.some((issue) => /deep/.test(issue)));
+});
