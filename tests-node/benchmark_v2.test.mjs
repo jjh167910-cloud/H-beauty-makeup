@@ -134,3 +134,30 @@ test("poor performance on deep skin fails despite an excellent aggregate score",
   assert.equal(result.status, "fail");
   assert.ok(result.issues.some((issue) => /deep/.test(issue)));
 });
+
+
+test("one badly performing look cannot hide behind an excellent overall win rate", () => {
+  const cases = pilotCases();
+  for (const c of cases)
+    if (c.look_id === "rhinestone") c.paired_preference = "competitor";
+  const result = evaluatePilot(cases);
+  assert.equal(result.preference, 0.75);
+  assert.equal(result.lookPreference.rhinestone, 0);
+  assert.equal(result.lookPreference.hollywood, 1);
+  assert.equal(result.status, "fail");
+  assert.ok(result.issues.some((s) => s.includes("look: rhinestone")));
+});
+
+test("per-look confidence marks uncertain results even when the headline clears target", () => {
+  const cases = pilotCases();
+  // Each look wins on 22/30 independent people: point estimate exceeds 70%,
+  // but the lower confidence bound must be computed and retained.
+  for (const c of cases) {
+    const person = Number(c.sample_id.split("-")[1]);
+    if (person >= 22) c.paired_preference = "competitor";
+  }
+  const result = evaluatePilot(cases);
+  assert.equal(result.preference, 22 / 30);
+  assert.ok(result.lookWilson95.hollywood.lower > 0.5);
+  assert.equal(result.subjectWins, 22);
+});
