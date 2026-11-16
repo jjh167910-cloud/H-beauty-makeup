@@ -200,7 +200,7 @@ function eyeRegion(eye: Eye, width: number, height: number): Region | null {
 /** Paint on a 2D result only. Called AFTER the GPU renderer, NEVER on the WebGL canvas. */
 export function applyMaterialEyeV2(
   result: HTMLCanvasElement, source: HTMLCanvasElement, P: Pt[], lookId: string, level: Level,
-  vis: Visibility | null | undefined,
+  vis: Visibility | null | undefined, cameraBlurPx = 0.7,
 ): { touched: number; eyes: number; skipped?: string } {
   if (!vis) return { touched: 0, eyes: 0, skipped: "no-occlusion-mask" };
   if (result.width !== source.width || result.height !== source.height)
@@ -250,7 +250,20 @@ export function applyMaterialEyeV2(
     if (!g) continue;
     g.translate(-roi.x, -roi.y);
     paintStrokes(g, eye, look, strength);
-    const ink = g.getImageData(0, 0, roi.w, roi.h).data;
+    // Apply the selfie lens only to the newly drawn vectors. The catalog map's
+    // fixed softness must not decide how sharp a customer's eyelashes look.
+    const extraBlur = Math.min(2.8, Math.sqrt(Math.max(0, cameraBlurPx ** 2 - 0.5 ** 2)));
+    let ink = g.getImageData(0, 0, roi.w, roi.h).data;
+    if (extraBlur >= 0.3) {
+      const blurred = document.createElement("canvas");
+      blurred.width = roi.w; blurred.height = roi.h;
+      const bg = blurred.getContext("2d");
+      if (bg) {
+        bg.filter = `blur(${extraBlur.toFixed(2)}px)`;
+        bg.drawImage(strokeCanvas, 0, 0);
+        ink = bg.getImageData(0, 0, roi.w, roi.h).data;
+      }
+    }
     let eyeTouched = 0;
     for (let iy = 0; iy < roi.h; iy++) {
       for (let ix = 0; ix < roi.w; ix++) {
