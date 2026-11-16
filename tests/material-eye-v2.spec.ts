@@ -113,15 +113,18 @@ test("rhinestone pilot has distinct face-anchored specular detail, unlike Hollyw
     applyMaterialEyeV2(hollywood, input, pts, "hollywood", "natural", vis, 0.5);
     const a = gemstone.getContext("2d")!.getImageData(65, 75, 160, 96).data;
     const b = hollywood.getContext("2d")!.getImageData(65, 75, 160, 96).data;
-    let stoneBright = 0, classicBright = 0;
+    let stoneBright = 0, classicBright = 0, newlyClipped = 0;
     for (let i = 0; i < a.length; i += 4) {
       stoneBright = Math.max(stoneBright, a[i], a[i + 1], a[i + 2]);
       classicBright = Math.max(classicBright, b[i], b[i + 1], b[i + 2]);
+      for (let channel = 0; channel < 3; channel++)
+        if (a[i + channel] === 0 || a[i + channel] === 255) newlyClipped++;
     }
-    return { eyes: r.eyes, stoneBright, classicBright };
+    return { eyes: r.eyes, stoneBright, classicBright, newlyClipped };
   });
   expect(stats.eyes).toBe(1);
   expect(stats.stoneBright).toBeGreaterThan(stats.classicBright + 20);
+  expect(stats.newlyClipped).toBe(0);
 });
 
 
