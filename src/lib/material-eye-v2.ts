@@ -227,6 +227,23 @@ export function applyMaterialEyeV2(
     if (!roi) continue;
     const before = original.getImageData(roi.x, roi.y, roi.w, roi.h);
     const changed = out.getImageData(roi.x, roi.y, roi.w, roi.h);
+    // Estimate this eye's local illumination from the actual eyelid skin,
+    // not a fixed assumed complexion. A fixed light divisor made vivid
+    // pigments glow unnaturally on fair skin and turn dull on deep skin.
+    // The upper quantile avoids natural crease shadows and lash hairs.
+    const referenceSamples: number[] = [];
+    for (let row = 0; row < 4; row++) for (let col = 0; col < 16; col++) {
+      const tt = (col + 0.5) / 16, vv = 0.18 + row * 0.1;
+      const lash = at(eye.upper, tt), brow = at(eye.brow, tt);
+      const px = Math.round(lerp(lash[0], brow[0], vv)) - roi.x;
+      const py = Math.round(lerp(lash[1], brow[1], vv)) - roi.y;
+      if (px < 0 || py < 0 || px >= roi.w || py >= roi.h) continue;
+      const i = (py * roi.w + px) * 4;
+      const val = [0, 1, 2].map((c) => srgbToLin(before.data[i + c]));
+      referenceSamples.push(rgbLuma(val));
+    }
+    referenceSamples.sort((a, b) => a - b);
+    const referenceLight = Math.max(0.012, referenceSamples[Math.floor(referenceSamples.length * 0.65)] ?? 0.25);
     const strokeCanvas = document.createElement("canvas");
     strokeCanvas.width = roi.w; strokeCanvas.height = roi.h;
     const g = strokeCanvas.getContext("2d");
@@ -250,7 +267,7 @@ export function applyMaterialEyeV2(
         const { t, v } = lidCoordinates(eye, x + 0.5, y + 0.5);
         const colourT = clamp(0.45 * (1 - t) + 0.55 * smooth(0.12, 0.65, v));
         // Relative lighting uses her own photograph. Keep natural creases, shading and pore contrast.
-        const light = clamp(rgbLuma(base) / 0.27, 0.30, 1.65);
+        const light = clamp(rgbLuma(base) / referenceLight, 0.45, 1.28);
         for (let c = 0; c < 3; c++) {
           const pigment = lerp(linearA[c], linearB[c], colourT) * light;
           const eyeColour = lerp(base[c], pigment, m);
