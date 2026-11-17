@@ -967,8 +967,8 @@ export async function productsFor(look: string, picks: ProductPicks | null | und
  * is on the engine's canvas.
  */
 export function paintGpu(source: HTMLCanvasElement, points: Pt[], look: string, level: Level, face?: FaceStats, lip?: LipChoice | null,
-  steps?: StepState, picks?: ProductPicks | null, vis?: Visibility | null, lips?: LipGrid | null, nativeEye = false): Promise<HTMLCanvasElement> {
-  return myTurn(() => paintGpuNow(source, points, look, level, face, lip, steps, picks, vis, lips, nativeEye));
+  steps?: StepState, picks?: ProductPicks | null, vis?: Visibility | null, lips?: LipGrid | null, nativeEye = false, nativeFast = false): Promise<HTMLCanvasElement> {
+  return myTurn(() => paintGpuNow(source, points, look, level, face, lip, steps, picks, vis, lips, nativeEye, nativeFast));
 }
 
 /**
@@ -998,7 +998,7 @@ async function paintGpuNow(source: HTMLCanvasElement, points: Pt[], look: string
   const [files, all] = await Promise.all([loadLook(look), meta()]);
   const products = await resolveProducts(look, picks, stats, all, !lip);
   r.render(source, source.width, source.height, points, files, stats, level, all.tris, lipChoice(files.lip, lip, all.swatch), all.canon, steps, products, vis, lips,
-    nativeEye && !picks && !steps ? look : undefined);
+    nativeEye && !picks && !steps ? look : undefined, nativeEye && nativeFast);
   return r.canvas;
 }
 
@@ -1686,9 +1686,11 @@ export async function paintLook(prepared: Shot, look: string, level: Level = "na
   if (engine() === "gpu") {
     prepared.face ??= measureFace(photo, points);
     if (prepared.lips === undefined) prepared.lips = lipProb(photo, points);
+    const nativeCompute = new URLSearchParams(location.search).get("eyeCompute");
     const nativeEye = !picks && materialEyePilotEnabled(look) &&
-      new URLSearchParams(location.search).get("eyeCompute") === "native";
-    g.drawImage(await paintGpu(photo, points, look, level, prepared.face, lip, undefined, picks, prepared.vis, prepared.lips, nativeEye), 0, 0);
+      (nativeCompute === "native" || nativeCompute === "native-fast");
+    const nativeFast = nativeEye && nativeCompute === "native-fast";
+    g.drawImage(await paintGpu(photo, points, look, level, prepared.face, lip, undefined, picks, prepared.vis, prepared.lips, nativeEye, nativeFast), 0, 0);
     // Opt-in research preview, isolated to saved photos. The live mirror, tutorial,
     // look thumbnails and production default remain on the original engine.
     // Native mode has already rendered a shader in the SAME MakeupGL context.
