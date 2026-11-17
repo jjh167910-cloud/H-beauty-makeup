@@ -24,6 +24,7 @@
  */
 import type { Pt } from "./tryon";
 import { NATIVE_EYE_FS, nativeEyeMaterial, nativeEyeScissor } from "./material-eye-native";
+import { NativeEyeGpuTimer, type NativeEyeGpuMeasurement, type NativeEyeGpuMode } from "./native-eye-gpu-timer";
 
 export type Level = "soft" | "natural" | "bold";
 /** (catalog layer, lipstick opacity, eye detail), as LEVELS in teacher.py. */
@@ -1908,6 +1909,7 @@ export class MakeupGL {
   /** Allocated only for the opt-in, saved-photo native material research path. */
   private nativeOutput: Target | null = null;
   private nativeProgramUnavailable = false;
+  private nativeEyeGpuTimer: NativeEyeGpuTimer | null = null;
   private depth: WebGLRenderbuffer | null = null;
   private smallDepth: WebGLRenderbuffer | null = null;
   private small = [1, 1];
@@ -1919,6 +1921,21 @@ export class MakeupGL {
   lastNativeEyeMs = 0;
   /** True iff a same-context baseline blit plus scissored native pass succeeded. */
   lastNativeEyeFast = false;
+  /** GPU timer is optional, supported only by some WebGL2 drivers. */
+  nativeEyeGpuTimingSupported: boolean | null = null;
+  /** Latest completed GPU query, never CPU submission time. */
+  lastNativeEyeGpuMs: number | null = null;
+  lastNativeEyeGpuMode: NativeEyeGpuMode | null = null;
+
+  /** Polling a query never waits for GPU completion or reads image pixels. */
+  pollNativeEyeGpuTiming(): NativeEyeGpuMeasurement | null {
+    const timer = this.nativeEyeGpuTimer;
+    if (!timer) return null;
+    const latest = timer.poll();
+    this.lastNativeEyeGpuMs = latest?.gpuMs ?? null;
+    this.lastNativeEyeGpuMode = latest?.mode ?? null;
+    return latest;
+  }
 
   /** A renderer, or null when the phone has no WebGL2 (the app then uses the tiny networks). */
   static create(): MakeupGL | null {
@@ -1936,7 +1953,14 @@ export class MakeupGL {
     this.canvas = canvas;
     this.gl = gl;
     this.float = Boolean(gl.getExtension("EXT_color_buffer_float") || gl.getExtension("EXT_color_buffer_half_float"));
-    canvas.addEventListener("webglcontextlost", (event) => { event.preventDefault(); this.lost = true; });
+    canvas.addEventListener("webglcontextlost", (event) => {
+      event.preventDefault(); this.lost = true;
+      this.nativeEyeGpuTimer?.dispose();
+      this.nativeEyeGpuTimer = null;
+      this.nativeEyeGpuTimingSupported = null;
+      this.lastNativeEyeGpuMs = null;
+      this.lastNativeEyeGpuMode = null;
+    });
     const make = (vs: string, fs: string) => {
       const p = gl.createProgram()!;
       for (const [type, text] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]] as const) {
@@ -2315,6 +2339,7 @@ export class MakeupGL {
     this.lastNativeEye = false;
     this.lastNativeEyeMs = 0;
     this.lastNativeEyeFast = false;
+    this.pollNativeEyeGpuTiming();
     if (this.canvas.width !== w || this.canvas.height !== h) { this.canvas.width = w; this.canvas.height = h; }
     this.resize(w, h);
     const [kLayer, kLip, kEye] = LEVELS[level];
@@ -2813,6 +2838,17 @@ export class MakeupGL {
     this.drawQuad(p, -1);
     if (nativeOn && nativeData && nativeProgram) {
       const nativeStarted = performance.now();
+      // Query instrumentation is opt-in; normal customers never allocate
+      // timer objects or pay the cost of polling.
+      const timingOn = new URLSearchParams(location.search).get("eyeTiming") === "1";
+      if (timingOn && !this.nativeEyeGpuTimer) {
+        this.nativeEyeGpuTimer = new NativeEyeGpuTimer(gl);
+        this.nativeEyeGpuTimingSupported = this.nativeEyeGpuTimer.supported;
+      }
+      const timer = timingOn && this.nativeEyeGpuTimer?.supported ? this.nativeEyeGpuTimer : null;
+      // Time BOTH the GPU framebuffer blit and the shader in native-fast mode.
+      // Mark a fallback to fullscreen native after the result is known.
+      const queryStarted = timer?.begin(nativeEyeFast ? "native-fast" : "native") ?? false;
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.disable(gl.DEPTH_TEST);
       gl.disable(gl.BLEND);
@@ -2874,6 +2910,7 @@ export class MakeupGL {
         this.drawQuad(p); // FBO texture -> drawingBuffer, same orientation
       } finally {
         gl.disable(gl.SCISSOR_TEST);
+        if (queryStarted) timer?.end(nativeRect ? "native-fast" : "native");
       }
       this.lastNativeEye = true;
       this.lastNativeEyeFast = nativeRect !== null;
@@ -2882,6 +2919,8 @@ export class MakeupGL {
   }
 
   dispose() {
+    this.nativeEyeGpuTimer?.dispose();
+    this.nativeEyeGpuTimer = null;
     this.gl.getExtension("WEBGL_lose_context")?.loseContext();
   }
 }
