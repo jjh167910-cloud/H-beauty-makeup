@@ -133,6 +133,29 @@ This session implemented and committed:
 4. Test true photographed makeup against baseline with consented, blinded expert review, preserving identity, natural pores and eye geometry; do not claim state of the art without this evidence.
 5. Extend four pilot material looks and then the 42-look catalog only after real-photo and performance gates. Update this handoff and issue #24 at every substantial commit.
 
+## Current milestone — GPU-native eyeliner, wings and eyelashes (2026-11-17)
+
+**Work completed in current chat, on PR #23 / `feat/realism-benchmark-v2`:**
+
+- `src/lib/material-eye-native.ts`: the existing **shader-native eyeshadow** now also draws material-coloured eyeliner, shape-specific graphic wings, and subpixel antialiased eyelashes. The roots of individual strands are bound to the customer's MediaPipe upper-lid landmarks. Their density, taper, length and irregularity follow the look recipe (natural/volume/dramatic). Camera-blur-dependent softness, source-eye closing/profiling, and visibility clipping are included. Raw catalogue image/liner artifacts still exist underneath for now.
+- `src/lib/makeup-gl.ts`: new `uLift`, `uOpening`, `uLinerColor`, `uLinerWidth`, `uWingLength`, `uLashLength`, `uLashCount`, `uInkSoft` uniforms sent to the existing MakeupGL context. There is **no second GPU context or CPU raster step** in this native mode.
+- `tests/material-eye-native.spec.ts`: tests compare GPU raster with and without eyeliner/eyelashes on two synthetic skin depths; assert no changes to protected background, sclera, occlusion, or introduction of hard clipping. A separate test verifies a profile far eye is suppressed and the closed-eye aperture reaches zero (strands are conditional on this aperture).
+- **Regression diagnosed and fixed in test:** Electric Blue uses `liner:"graphic"`, with a 0.30-eye-span wing. The initial guard assumed Hollywood's 0.22-span wing, falsely flagging pixels at **x 89–90, y 163–167**. Corrected the test to the actual catalog geometry; a separate stricter background check remains in place.
+- `docs/REALISM_IMPLEMENTATION_V2.md`: updated with design, test evidence, limitations.
+
+**Verification on committed source SHA `392768e6b88cae9bf23918388de23d45504271fe` (CI run `43987081850`):** Node/offline shell, TypeScript typecheck, Vite build, all **10 targeted material-eye tests**, **end-to-end saved-photo native integration test**, and **streamed download/retry test** passed. The **full Playwright app suite was still in progress** when documentation was subsequently updated. Check current branch HEAD and current Actions; do NOT assert the full suite passed unless GitHub reports the final conclusion. Documentation commits trigger fresh PR CI and may cancel prior ones due to concurrency.
+
+**Feature flag remains unchanged:** `?eyePilot=v2&eyeCompute=native` in a development build, **saved-photo only**. Ordinary customers and live mirror still use the old renderer. **Production main and Cloudflare site have not been merged or deployed.** No real-photo blind evaluations or Android performance certification yet.
+
+**Next exact engineering tasks:**
+
+1. Read PR #23 latest HEAD, its GitHub Actions result and logs. Fix any regression. Let at least one full app test suite complete before promoting the branch.
+2. Add GPU-native makeup **rhinestone facets and eye shimmer/finish** that share the actual photo's light and eyelid; prove no clipping, lens-consistent specular highlights, and no unauthorized edits.
+3. Improve eye landmarks beyond the sparse 9-point lash curve: real eyelid crease, natural lash self-occlusion, hooded and monolid eyes, glasses/hand occlusion, near-closed/smiling eyes, extreme profiles. Introduce accurate per-region coverage and compare against annotated photos.
+4. Benchmark GPU execution time (not only CPU submission) and peak memory on representative low/mid/high-memory Android devices. Keep the CPU/reference fallback and deterministic feature flags.
+5. Validate real consented photographs with independent blind comparisons, especially dark skin, liner/lash precision, and no identity/skin texture distortion. Only expand to 42 catalog looks and production if objective quality gates pass.
+6. Update this handoff, issue #24 and PR #23 description with precise commits/tests for cross-chat continuation.
+
 ## New-chat start procedure (mandatory)
 
 1. Connect/use the GitHub app and fetch PR #23, current head SHA and workflow status; do not assume the latest chat's SHA still applies.
