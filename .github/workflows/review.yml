@@ -39,6 +39,8 @@ jobs:
         run: npm run test:ui -- tests/material-eye-native-integration.spec.ts
       - name: Verify streamed download cancellation and retry
         run: npm run test:ui -- tests/tryon-download.spec.ts
+      - name: Verify responsive live-camera capture after studio edits
+        run: npm run test:ui -- tests/tryon.spec.ts --grep "live mirror paints the look on the camera picture"
       - name: Upload targeted test results
         continue-on-error: true
         if: always()
