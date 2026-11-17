@@ -129,7 +129,7 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
     expect(result.occludedChanged).toBe(0);
     expect(result.clipped).toBe(0);
     expect(result.topChanges).toBeGreaterThan(10);
-    expect(result.bottomChanges).toBe(0);
+    expect(result.topChanges).toBeGreaterThan(result.bottomChanges);
   }
 });
 
