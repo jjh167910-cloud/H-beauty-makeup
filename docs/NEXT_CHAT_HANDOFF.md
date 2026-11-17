@@ -306,6 +306,32 @@ GitHub Actions `43997291151` on source SHA `d754662b6aaa42e677998e094ed69ecad052
 3. Track whether 9–32ms quiet intervals improve actual tap latency and the live FPS/thermal balance on a physical Android device. Tune only on real evidence; don't assert a specific FPS from CI's software renderer.
 4. Update `docs/NEXT_CHAT_HANDOFF.md`, `docs/REALISM_IMPLEMENTATION_V2.md`, tracker issue #24 and PR #23 after making verified changes. Every commit of handoff may rerun the PR Actions due current workflow design.
 
+## Latest increment — privacy-safe physical-Android GPU A/B benchmark harness (2026-11-17)
+
+**Canonical project:** `jjh167910-cloud/H-beauty-makeup`, branch `feat/realism-benchmark-v2`, open PR #23, issue #24. **Main/Cloudflare production unchanged.** Read the CURRENT PR HEAD and Actions runs; docs commits increment SHAs.
+
+### Ground truth before the new implementation
+The previous latest code SHA `0577894f6797e98ae4855025652c5d8975d83914` **PASSED ALL REQUIRED CI**: GitHub Actions `44000889530` review and **three of three full Playwright shards** success, separate live camera smoke `44000889876` success. The live camera click fix and the new native geometry/fallback gates were fully tested then. This did not prove photorealistic image quality or Android timing.
+
+### Files added and modified in this session
+- `src/lib/native-eye-gpu-timer.ts`: bounded local GPU timer `snapshot()` + `resetSamples()`, allowing exclusion of warm-up queries and full retention of actual query-mode labels; no photo pixels.
+- `src/lib/makeup-gl.ts`: thin `nativeEyeGpuSamples()` + `resetNativeEyeGpuSamples()` local diagnostics, unchanged default GPU pipeline.
+- New `src/lib/native-eye-benchmark.ts`: **private, opt-in research helper** `runNativeEyeAB(preparedShot)`. Uses `?eyePilot=v2` feature gate, prepares a balanced 30 A/B or B/A paired trials of standard native eye shader vs scissored framebuffer-blit native-fast shader, with 3 warm-ups per mode. Each successful draw shares the SAME local photo and look; the report never includes face pixels, landmarks, names or device identity. Query extension unavailable yields `unsupported-gpu-timer`; hidden/aborted session yields `aborted`; fewer than **30 valid, nonduplicate WebGL2 GPU elapsed queries for each ACTUAL mode** yields `insufficient-samples`, never a reported speedup. Per-mode p50/p95/min/max and speedup percentage are exposed only when sample counts suffice. Fast driver failure samples stay classified as native; no fake benchmark win.
+- New `tests/material-eye-benchmark.spec.ts`: browser checks of 30+30 deterministic fake-GPU percentiles, invalid/duplicate values, insufficient samples, refusing to run without research feature flag, URL restoration, no photo in results, and one-per-mode smoke through the existing generated no-makeup saved portrait; the latter must **never** qualify as statistically sufficient. Added to early targeted `review.yml` and the already sharded general full suite.
+- `docs/NATIVE_EYE_ANDROID_BENCHMARK.md`: Android Chrome DevTools protocol with a locally bundled synthetic no-makeup fixture; physical low/mid/high tier privacy-safe QA checklist and runnable console command. Not installed in public salon UI.
+- `docs/REALISM_IMPLEMENTATION_V2.md`: architecture and honest validation limits updated.
+
+### CI state
+- New benchmark code committed across several revisions, with source `f025cc06d880b8d76f1fb8593e89a17bdfcce00d` fixing a TypeScript visibility-narrowing failure present in `f2fb74d057c392dee22354c299ee3e9f6eeccd2b`. The earlier failed source **is not green**.
+- Browser benchmark targeted suite and complete Playwright suite were **not yet confirmed at the current documentation HEAD** when this handoff was prepared. Check latest PR #23 Actions `Try-on review` and independent `Live mirror camera frame regression`. Docs commits retrigger CI and can cancel in-flight previous SHA runs.
+- **No physical Android device was connected or tested**; absolutely no claim that native-fast is faster, that energy or memory usage is acceptable, or that output beats competing apps. Benchmark results from software renderer or mock tests only validate the *harness*.
+
+### Next implementation tasks
+1. Fetch current PR HEAD; inspect newest `Try-on review` steps. If `tests/material-eye-benchmark.spec.ts` fails or TypeScript/test integration fails, fetch the exact job logs and fix the code **on this branch**, do not skip tests.
+2. After a complete green CI, produce a documented opt-in mobile QA execution workflow that can collect actual valid on-device GPU p50/p95 on multiple Android tiers without leaking customer portrait bytes. The existing research helper can run in Chrome DevTools; no external model inference or image upload required. Collect >=30 valid queries per mode with balanced order, track heat/memory/battery and tap latency. If any GPU extension unavailable, report unsupported, do not substitute CPU time.
+3. Continue genuine physically accurate eye material research with consented real makeup photographs and annotated gaze/eyelid/glass/occlusion examples; blind artists assess the four pilot looks (3 modified looks + no-makeup negative control) before any 42-look promotion.
+4. Update PR #23, issue #24 and this handoff with concrete verified SHAs and CI outcomes. **Do not merge/deploy main/Cloudflare** without real-photo and real-device quality evidence.
+
 ## New-chat start procedure (mandatory)
 
 1. Connect/use the GitHub app and fetch PR #23, current head SHA and workflow status; do not assume the latest chat's SHA still applies.
