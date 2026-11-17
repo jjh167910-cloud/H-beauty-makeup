@@ -120,10 +120,11 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
       let inkChanged=0, inkOutside=0, scleraChanged=0;
       const outsideCoordinates:Array<[number,number]> = [];
       for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-        // The liner wing extends up to 0.22 eye widths beyond the outer corner.
-        // Both bounding ranges include that expected geometry but never the
-        // unrelated portrait background.
-        const i=(y*W+x)*4, eyeX=(x>90&&x<290)||(x>310&&x<520);
+        // Electric Blue's "graphic" wing extends 0.30 eye spans beyond the
+        // left outer corner: 130-(0.30*130)=91 px, plus its 2-3px
+        // anti-aliased width. Pixels x=89..90 are intentional ink.
+        // The separate protectedChanged assertion guards x<85 / x>550.
+        const i=(y*W+x)*4, eyeX=(x>=85&&x<290)||(x>310&&x<520);
         let different=false;
         for(let c=0;c<3;c++) if(Math.abs(display[i+c]-noInk[i+c])>2)different=true;
         if(!different)continue;
