@@ -119,7 +119,10 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
       const noInk=flip(noInkRead);
       let inkChanged=0, inkOutside=0, scleraChanged=0;
       for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-        const i=(y*W+x)*4, eyeX=(x>105&&x<280)||(x>325&&x<485);
+        // The liner wing extends up to 0.22 eye widths beyond the outer corner.
+        // Both bounding ranges include that expected geometry but never the
+        // unrelated portrait background.
+        const i=(y*W+x)*4, eyeX=(x>90&&x<290)||(x>310&&x<520);
         let different=false;
         for(let c=0;c<3;c++) if(Math.abs(display[i+c]-noInk[i+c])>2)different=true;
         if(!different)continue;
