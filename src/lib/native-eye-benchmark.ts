@@ -149,15 +149,19 @@ export async function runNativeEyeAB(
     u.searchParams.set("eyeTiming", "1");
     history.replaceState(history.state, "", u.href);
   };
+  // Visibility can change while asynchronous GPU work is in flight.
+  // Keep the check in a helper so TypeScript does not assume a page
+  // validated before an await must remain visible afterward.
+  const pageIsVisible = () => document.visibilityState !== "hidden";
   const draw = async (mode: NativeEyeGpuMode) => {
-    if (options.signal?.aborted || document.visibilityState === "hidden")
+    if (options.signal?.aborted || !pageIsVisible())
       return false;
     setMode(mode);
     await paintLook(shot, lookId, level);
     // A nonblocking yield gives the GPU a chance to make a query available.
     r.pollNativeEyeGpuTiming();
     await sleep(22);
-    return !options.signal?.aborted && document.visibilityState !== "hidden";
+    return !options.signal?.aborted && pageIsVisible();
   };
 
   inProgress = true;
