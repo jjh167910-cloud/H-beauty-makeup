@@ -118,6 +118,7 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
       gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,noInkRead);
       const noInk=flip(noInkRead);
       let inkChanged=0, inkOutside=0, scleraChanged=0;
+      const outsideCoordinates:Array<[number,number]> = [];
       for(let y=0;y<H;y++)for(let x=0;x<W;x++){
         // The liner wing extends up to 0.22 eye widths beyond the outer corner.
         // Both bounding ranges include that expected geometry but never the
@@ -127,7 +128,10 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
         for(let c=0;c<3;c++) if(Math.abs(display[i+c]-noInk[i+c])>2)different=true;
         if(!different)continue;
         inkChanged++;
-        if(!eyeX||y<55||y>235)inkOutside++;
+        if(!eyeX||y<55||y>235){
+          inkOutside++;
+          if(outsideCoordinates.length<32)outsideCoordinates.push([x,y]);
+        }
         if((x>=190&&x<=200&&y>=189&&y<=201)||
            (x>=400&&x<=410&&y>=189&&y<=201)) scleraChanged++;
       }
@@ -146,7 +150,7 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
         if(altered){changed++;if(y<160)topChanges++;else bottomChanges++;}
       }
       observations.push({depth,changed,protectedChanged,occludedChanged,clipped,
-        topChanges,bottomChanges,inkChanged,inkOutside,scleraChanged});
+        topChanges,bottomChanges,inkChanged,inkOutside,scleraChanged,outsideCoordinates});
       textures.forEach(t=>gl.deleteTexture(t));
     }
     return {observations,enabled:[...material.enabled]};
@@ -163,7 +167,7 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
     expect(result.topChanges).toBeGreaterThan(10);
     expect(result.topChanges).toBeGreaterThan(result.bottomChanges);
     expect(result.inkChanged).toBeGreaterThan(50);
-    expect(result.inkOutside).toBe(0);
+    expect(result.inkOutside, JSON.stringify(result.outsideCoordinates)).toBe(0);
     expect(result.scleraChanged).toBe(0);
   }
 });
