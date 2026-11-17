@@ -235,6 +235,21 @@ The experimental **saved-photo-only** native path `?eyePilot=v2&eyeCompute=nativ
 
 **Next:** benchmark GPU timers + memory on Android; optimize the second shader pass via a protected framebuffer copy and small eye scissor regions; improve eyelid segmentation and photograph-based blind evaluations before extending beyond the three modified + one negative-control pilot looks.
 
+## Native-fast GPU scissored postpass — 2026-11-17
+
+**New opt-in research mode:** `?eyePilot=v2&eyeCompute=native-fast`, saved photos only, using the same independent/experimental `MakeupGL` native eye-material shader that already renders shade, liner, lashes, shimmer and rhinestone facets. `native` (full-screen GPU) and the normal production renderer remain unchanged.
+
+- The previous native path painted a full-size RGBA8 framebuffer and then ran the expensive eye-material shader over **every pixel** of the portrait even though the eye effect is local.
+- `nativeEyeScissor()` in `src/lib/material-eye-native.ts` computes a conservative WebGL2 bottom-left eye-envelope rectangle using *this photo's* eyelid/brow landmarks, lash length, wing extension (including Electric Blue's 0.30-span graphic wing) and camera-edge softness. Invalid geometry disables scissoring, not the whole photo.
+- `MakeupGL.render(..., nativeEyeId, nativeFast)` first paints the old full composition to the existing optional RGBA8 target. When `nativeFast` is requested, it copies that target to the default drawing buffer entirely **on the GPU** with `gl.blitFramebuffer`, then enables `gl.scissor` for the conservative eye rectangle and executes the **same** native fragment shader, avoiding shader execution over the unedited background. If blit fails, the shader draws the complete frame. The GPU drawing buffer is never uploaded to a server.
+- The newly exposed `MakeupGL.lastNativeEyeFast` distinguishes actual optimized execution from a fallback. CPU time `lastNativeEyeMs` is still a draw-submission duration, **not** GPU execution timing or a proven performance improvement.
+- `tests/material-eye-native-fast.spec.ts` compares real saved-photo output of the same generated reference portrait in native and native-fast modes. It checks that the optimized GPU blit path actually ran, unchanged pixels outside the scissor rectangle, tolerances for small in-eye quantization differences, and rejection of invalid eye coordinates. Included in the early CI browser suite.
+- The initial fast wiring commit produced a TypeScript error due to a missing `nativeFast` parameter on the serialized `paintGpuNow` worker. Fixed in commit `20368af53c5c127448a9177490e00871fcbdb5a7`.
+
+**Validation on code commit `20368af53c5c127448a9177490e00871fcbdb5a7`:** GitHub Actions run `43991217956` passed Node/offline tests, TypeScript, Vite build, all targeted eye-material/browser tests **including fast/full GPU parity**, and the full saved-photo native integration smoke. At the last observation the streamed model download retry and long full application Playwright suite did not yet have a final result. Do not claim full production readiness from these checks.
+
+**Remaining measurements and safety gates:** measure actual GPU milliseconds using `EXT_disjoint_timer_query_webgl2` when supported; profile video/photo output, GPU memory/thermal cost, eye-shader fragment count and smoothness on low/mid/high-end physical Android devices; perform real makeup-photo blind comparisons. The optimized rectangle can still cover a large portion of a close-up face, and framebuffer blits have driver-specific costs. Preserve the old path and independently prove perceptual quality before rollout.
+
 ## Shipping policy
 
 1. Production stays on main during research; use a feature flag and pilot branch.
