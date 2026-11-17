@@ -4,7 +4,8 @@
  * Shader-native face-space eyelid coverage and cosmetic pigment on the SAME
  * MakeupGL context and its framebuffer chain. No CPU per-pixel mask, second
  * WebGL context, 2D eye blits, or gl.readPixels. This pass intentionally
- * replaces eyeshadow only: the existing renderer still supplies liner/lashes.
+ * adds eyelid pigment and individually positioned vector-like liner/lashes.
+ * Legacy makeup remains beneath this experimental pass pending blind review.
  * Experimental still-photo look flag only; never automatically live/production.
  */
 import type { Pt } from "./tryon";
@@ -21,6 +22,14 @@ export type NativeEyeMaterial = {
   pigmentB: Float32Array;
   amount: number;
   mode: number; // 0 wash; 1 blue gradient
+  lift: Float32Array;
+  opening: Float32Array;
+  linerColor: Float32Array;
+  linerWidth: number;
+  wingLength: number;
+  lashLength: number;
+  lashCount: number;
+  inkSoft: number;
 };
 
 const upperIds = [
@@ -47,7 +56,8 @@ export function nativeEyeMaterial(P: Pt[], lookId: string, level: Level): Native
   if (!look) return null;
   const upper = new Float32Array(36), brows = new Float32Array(20);
   const frame = new Float32Array(8), span = new Float32Array(2);
-  const enabled = new Int32Array(2);
+  const enabled = new Int32Array(2), lift = new Float32Array(4);
+  const opening = new Float32Array(2);
   for (let e = 0; e < 2; e++) {
     const u = upperIds[e], b = browIds[e];
     if ([...u,...b].some(id => !P[id] || !Number.isFinite(P[id][0]) || !Number.isFinite(P[id][1]))) continue;
@@ -59,8 +69,13 @@ export function nativeEyeMaterial(P: Pt[], lookId: string, level: Level): Native
     const gap = Math.hypot(bx-(x0+x1)/2, by-(y0+y1)/2);
     if (gap < length * 0.08 || gap > length * 1.25) continue;
     const up = e === 0 ? P[159] : P[386], down = e === 0 ? P[145] : P[374];
-    const opening = Math.hypot(up[0]-down[0], up[1]-down[1])/length;
-    if (!Number.isFinite(opening) || opening > 0.68) continue;
+    const aperture = Math.hypot(up[0]-down[0], up[1]-down[1])/length;
+    if (!Number.isFinite(aperture) || aperture > 0.68) continue;
+    const xMid=(x0+x1)/2, yMid=(y0+y1)/2;
+    const browGap=Math.hypot(bx-xMid, by-yMid);
+    if (!Number.isFinite(browGap) || browGap < length*0.08) continue;
+    lift.set([(bx-xMid)/browGap, (by-yMid)/browGap], e*2);
+    opening[e]=aperture;
     for(let j=0;j<9;j++) upper.set([P[u[j]][0], P[u[j]][1]], (e*9+j)*2);
     for(let j=0;j<5;j++) brows.set([P[b[j]][0], P[b[j]][1]], (e*5+j)*2);
     frame.set([x0, y0, (x1-x0)/length, (y1-y0)/length],e*4);
@@ -79,6 +94,14 @@ export function nativeEyeMaterial(P: Pt[], lookId: string, level: Level): Native
     pigmentA: colour(look.lid[0]), pigmentB: colour(look.lid[1]),
     amount: (lookId==="electric-blue" ? 0.78 : lookId==="rhinestone" ? 0.43 : 0.39)*strength,
     mode: lookId==="electric-blue" ? 1 : 0,
+    lift, opening,
+    linerColor: colour(look.linerColor ?? "#21151a"),
+    linerWidth: look.liner==="none" ? 0 : (look.liner==="thin" ? 0.011 : 0.021)*strength,
+    wingLength: ["wing","fox","graphic","siren"].includes(look.liner)
+      ? (look.liner==="graphic" ? 0.30 : 0.22)*strength : 0,
+    lashLength: (look.lashes==="dramatic" ? 0.15 : look.lashes==="volume" ? 0.115 : 0.075)*strength,
+    lashCount: look.lashes==="dramatic" ? 26 : look.lashes==="volume" ? 22 : 18,
+    inkSoft: 0.7,
   };
 }
 
@@ -101,6 +124,12 @@ export const NATIVE_EYE_FS = [
   "uniform vec3 uPigmentA, uPigmentB;",
   "uniform float uAmount;",
   "uniform int uMode;",
+  "uniform vec2 uLift[2];",
+  "uniform float uOpening[2];",
+  "uniform vec3 uLinerColor;",
+  "uniform float uLinerWidth, uWingLength, uLashLength;",
+  "uniform int uLashCount;",
+  "uniform float uInkSoft;",
   "out vec4 o;",
   "float ramp(float a, float b, float x) {",
   "  float t = clamp((x-a)/max(b-a,1e-6),0.0,1.0);",
@@ -124,6 +153,18 @@ export const NATIVE_EYE_FS = [
   "  int i=min(int(floor(f)),3);",
   "  return mix(uBrows[eye*5+i],uBrows[eye*5+i+1],f-float(i));",
   "}",
+  "float segmentDistance(vec2 pt, vec2 a, vec2 b) {",
+  "  vec2 d=b-a;",
+  "  return length(pt-a-d*clamp(dot(pt-a,d)/max(dot(d,d),1e-5),0.0,1.0));",
+  "}",
+  "float fiber(vec2 photo, vec2 root, vec2 lift, vec2 outward, float len, float widthPx) {",
+  "  vec2 mid=root+lift*len*0.57+outward*len*0.11;",
+  "  vec2 tip=root+lift*len+outward*len*0.3;",
+  "  float d=min(segmentDistance(photo,root,mid),segmentDistance(photo,mid,tip));",
+  "  float fraction=clamp(length(photo-root)/max(len,0.001),0.0,1.0);",
+  "  float taper=mix(widthPx,0.13,fraction);",
+  "  return 1.0-ramp(taper,taper+uInkSoft,d);",
+  "}",
   "float visible(vec2 photo) {",
   "  if(uVisOn==0) return 0.0;",
   "  vec2 q=(photo-uVisBox.xy)/max(uVisBox.z,0.001);",
@@ -135,13 +176,14 @@ export const NATIVE_EYE_FS = [
   "  vec4 prior=texelFetch(uPrevious,pixel,0);",
   "  // The GL drawingBuffer's bottom-up pixel row must map to selfie top-down.",
   "  vec2 photo=vec2(gl_FragCoord.x,uSize.y-gl_FragCoord.y);",
-  "  float eyeMask=0.0, shadeMix=0.0, mixWeight=0.0;",
+  "  float eyeMask=0.0, mixWeight=0.0;",
+  "  float inkStrength=0.0;",
   "  float refLight=0.24;",
   "  for(int eye=0;eye<2;eye++){",
   "    if(uEnabled[eye]==0) continue;",
   "    vec4 frame=uFrame[eye];",
   "    float t=dot(photo-frame.xy,frame.zw)/max(uSpan[eye],1.0);",
-  "    if(t < -0.04 || t>1.04) continue;",
+  "    if(t < -0.34 || t>1.06) continue;",
   "    vec2 lid=onUpper(eye,t), brow=onBrow(eye,t);",
   "    vec2 axis=brow-lid;",
   "    float v=dot(photo-lid,axis)/max(dot(axis,axis),4.0);",
@@ -149,9 +191,43 @@ export const NATIVE_EYE_FS = [
   "    float extent=ramp(-0.035,0.06,v)*(1.0-ramp(0.42,0.74,v));",
   "    float grad = uMode==1 ? mix(1.0,0.7,clamp(t,0.0,1.0)) : 1.0;",
   "    float coverage=clamp(edge*extent*grad,0.0,1.0);",
-  "    if(coverage <= eyeMask) continue;",
-  "    eyeMask=coverage;",
-  "    mixWeight=0.45*(1.0-t)+0.55*ramp(0.12,0.65,v);",
+  "    if(coverage>eyeMask){",
+  "      eyeMask=coverage;",
+  "      mixWeight=0.45*(1.0-t)+0.55*ramp(0.12,0.65,v);",
+  "    }",
+  "    // Eyeball and sclera are below the upper lid. Only draw fibers above it.",
+  "    if(v>=-0.012 && v<0.60){",
+  "      float ew=uSpan[eye];",
+  "      vec2 lift=normalize(uLift[eye]);",
+  "      vec2 outward=-frame.zw;",
+  "      float ink=0.0;",
+  "      if(uLinerWidth>0.0 && t>=0.0 && t<=1.0){",
+  "        float d=distance(photo,lid);",
+  "        float radius=max(0.50,ew*uLinerWidth*",
+  "          (0.42+0.58*pow(max(0.0,sin(3.14159265*clamp(t,0.0,1.0))),0.6)));",
+  "        ink=max(ink,1.0-ramp(radius,radius+uInkSoft,d));",
+  "      }",
+  "      if(uWingLength>0.0 && t>=-0.34 && t<0.24){",
+  "        vec2 tip=frame.xy+outward*(ew*uWingLength)+lift*(ew*0.11);",
+  "        float wing=segmentDistance(photo,onUpper(eye,0.14),tip);",
+  "        float r=max(0.45,ew*uLinerWidth*0.7);",
+  "        ink=max(ink,1.0-ramp(r,r+uInkSoft,wing));",
+  "      }",
+  "      if(uLashLength>0.0 && uOpening[eye]>=0.045 && t>=-0.04 && t<=1.04){",
+  "        // Fixed upper bound for WebGL2 mobile shader compilation.",
+  "        for(int i=1;i<27;i++){",
+  "          if(i>=uLashCount) break;",
+  "          float f=float(i)/float(uLashCount);",
+  "          if(abs(t-f)>0.11) continue;",
+  "          float variation=0.87+0.13*sin(float(i)*23.7);",
+  "          float len=ew*uLashLength*variation*(0.50+0.5*(1.0-f));",
+  "          float strand=fiber(photo,onUpper(eye,f),lift,outward,len,",
+  "            max(0.34,ew*0.0048));",
+  "          ink=max(ink,strand*(0.55+0.25*abs(sin(float(i)*13.3))));",
+  "        }",
+  "      }",
+  "      inkStrength=max(inkStrength,ink);",
+  "    }",
   "    vec2 refPt=mix(onUpper(eye,0.5),onBrow(eye,0.5),0.24);",
   "    ivec2 refPixel=ivec2(clamp(floor(refPt),vec2(0.0),uSize-vec2(1.0)));",
   "    vec3 refRGB=linearRGB(texelFetch(uOriginal,refPixel,0).rgb);",
@@ -160,7 +236,8 @@ export const NATIVE_EYE_FS = [
   "  float visibility=visible(photo);",
   "  float opacity=clamp(eyeMask*uAmount*visibility,0.0,0.87);",
   "  float replace=ramp(0.005,0.04,eyeMask)*visibility;",
-  "  if(opacity < 0.5/255.0 || replace < 0.5/255.0){",
+  "  float lineAlpha=clamp(inkStrength*visibility*0.88,0.0,0.93);",
+  "  if((opacity < 0.5/255.0 || replace < 0.5/255.0) && lineAlpha < 0.5/255.0){",
   "    o=prior; return;",
   "  }",
   "  // Original selfie uOriginal was uploaded as TexImageSource (its first",
@@ -172,6 +249,7 @@ export const NATIVE_EYE_FS = [
   "  vec3 pigment=mix(uPigmentA,uPigmentB,clamp(mixWeight,0.0,1.0))*illumination;",
   "  vec3 filled=mix(base,pigment,opacity);",
   "  vec3 result=mix(old,filled,replace);",
+  "  result=mix(result,uLinerColor,lineAlpha);",
   "  o=vec4(toSRGB(result),prior.a);",
   "}",
 ].join("\n");
