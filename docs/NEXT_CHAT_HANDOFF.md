@@ -107,6 +107,32 @@ At the time of this handoff update, the implemented code commits include:
 4. Use real **consented** photos with true makeup and independent blind review for placement, lashes, deep skin, editorials and occlusions. No image quality claim from synthetic fixtures alone.
 5. Update this handoff and issue #24 with actual results, NOT forecasts.
 
+## Current implementation milestone — shader-native eye pigment in existing MakeupGL (2026-11-17)
+
+**Current PR:** #23, branch `feat/realism-benchmark-v2`. **Production main and public Cloudflare site unchanged.**
+
+This session implemented and committed:
+- `src/lib/material-eye-native.ts`: GLSL ES 3.0 native face-space upper-lid and eyebrow geometry, material coverage, two authored linear-light pigments per look, per-fragment skin-aware lighting and face visibility. Detects invalid or collapsed eyes, suppresses profile eye hallucination. Native shadow-only pilot for Hollywood, electric blue, rhinestone; no-makeup negative control.
+- `src/lib/makeup-gl.ts`: native material stage integrated **within the current renderer's WebGL2 context**, after the main composite. It lazily allocates a single temporary full-size RGBA8 framebuffer and performs a GPU-to-GPU shader pass onto the final canvas, with no `gl.readPixels`, no CPU-built per-pixel eye masks, no separate GPU engine and no intermediary Canvas2D blits. Lazy compile and incomplete-FBO fallback keep default production safe. `lastNativeEye` and `lastNativeEyeMs` diagnose application (elapsed milliseconds are CPU draw submission, *not* GPU time).
+- `src/lib/tryon.ts`: only **saved-photo** `?eyePilot=v2&eyeCompute=native` routes into the renderer, not live mirror, guided tutorial or thumbnails; if experimental shader fails, falls back to existing CPU eye overlay.
+- `tests/material-eye-native.spec.ts`: synthetic light/deep-colour and occlusion pixel-lock regression, no-makeup control and degenerate-face rejection.
+- `tests/material-eye-native-integration.spec.ts`: actual saved-photo preparation → `paintLook` → `MakeupGL.render` integration using the repository's existing generated makeup-free catalog face, verifying native application and the protected outer image region.
+- `.github/workflows/review.yml`: early targeted shader regression + native integrated saved-photo test ahead of long full browser suite.
+- `docs/REALISM_IMPLEMENTATION_V2.md`: updated with scope, fallback, tests and limits.
+
+**VERIFIED against native integration commit `216aeccccd7d29ec9740536ba90509a880767c91`:** GitHub CI showed Node/offline shell tests, TypeScript typecheck, Vite build, isolated eye-material/browser tests and **full saved-photo native integration test all successful**. The download/retry and the full suite were still running at last observation and may be cancelled when newer docs commits arrive; fetch current SHA/results, do not assume final green.
+
+**Feature flag:** `?eyePilot=v2&eyeCompute=native` on development build only. Legacy `cpu`, `gpu` (readback), and `canvas` experimental modes are still available for A/B. Default remains original production renderer.
+
+**Critical limitations:** native pass covers authored **eyeshadow only**. It still relies on baseline generated-photo layers for liner, eyelashes and rhinestones, and on MediaPipe 478 geometry for the eyelid. It has not been independently compared against real makeup photographs, nor benchmarked on low-end Android. The extra full-size framebuffer could increase GPU memory/per-frame time; a passing desktop smoke test does not imply 30fps.
+
+**Next priorities for any new chat:**
+1. Fetch PR #23 latest head, Actions tests, and logs. Fix any failure in the new native integration or full Playwright suite. Preserve opt-in safety.
+2. Implement GPU-native physically tapered **liner and individual eyelash primitives**, matching the customer's actual lash curve, with visibility/depth occlusion and controlled softness. Add separate tests on two eye shapes, closed eyes and profiles.
+3. Reduce temporary full-size framebuffer allocations or prove affordable memory/performance across three actual Android device tiers; measure GPU timer queries or frame times, not only CPU submission.
+4. Test true photographed makeup against baseline with consented, blinded expert review, preserving identity, natural pores and eye geometry; do not claim state of the art without this evidence.
+5. Extend four pilot material looks and then the 42-look catalog only after real-photo and performance gates. Update this handoff and issue #24 at every substantial commit.
+
 ## New-chat start procedure (mandatory)
 
 1. Connect/use the GitHub app and fetch PR #23, current head SHA and workflow status; do not assume the latest chat's SHA still applies.
