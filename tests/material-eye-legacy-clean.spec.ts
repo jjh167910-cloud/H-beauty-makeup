@@ -114,6 +114,43 @@ test("native eye wing does not transmit legacy catalog-color ghost under new ink
     gl.uniform1f(uniform("uWingLength"),mat.wingLength);
     const old=draw(ghost,0);
     const cleaned=draw(ghost,1);
+    // Test catalog mascara leaking BETWEEN new strokes, using the
+    // underlying source to restore just the customer's upper-lid seam.
+    // All new makeup is disabled to ensure the seam cleanup itself is
+    // genuinely effective, not merely hidden under newly painted ink.
+    const seamGhost=new Uint8Array(image);
+    for(let y=124;y<=145;y++)for(let x=125;x<=175;x++){
+      const off=(y*W+x)*4;
+      seamGhost[off]=239;seamGhost[off+1]=26;seamGhost[off+2]=178;
+    }
+    gl.uniform1f(uniform("uAmount"),0);
+    gl.uniform1f(uniform("uLinerWidth"),0);
+    gl.uniform1f(uniform("uWingLength"),0);
+    gl.uniform1f(uniform("uLashLength"),0);
+    gl.uniform1f(uniform("uShimmer"),0);
+    gl.uniform1f(uniform("uRhinestones"),0);
+    const seamUnclean=draw(seamGhost,0);
+    const seamRestored=draw(seamGhost,1);
+    gl.uniform1f(uniform("uAmount"),mat.amount);
+    gl.uniform1f(uniform("uLinerWidth"),mat.linerWidth);
+    gl.uniform1f(uniform("uWingLength"),mat.wingLength);
+    let seamImproved=0,seamProtected=0,seamSclera=0;
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+      const off=(y*W+x)*4;
+      let priorDistance=0,afterDistance=0;
+      for(let c=0;c<3;c++){
+        priorDistance+=Math.abs(seamUnclean[off+c]-image[off+c]);
+        afterDistance+=Math.abs(seamRestored[off+c]-image[off+c]);
+      }
+      if(x>=125&&x<=175&&y>=124&&y<=145 &&
+         afterDistance<priorDistance-8) seamImproved++;
+      if((x<112||x>188||y<105||y>169) &&
+         seamUnclean.slice(off,off+4).some((v,i)=>v!==seamRestored[off+i]))
+        seamProtected++;
+      if(y>=149&&y<=170&&x>=125&&x<=175 &&
+         seamUnclean.slice(off,off+4).some((v,i)=>v!==seamRestored[off+i]))
+        seamSclera++;
+    }
     // Anatomic lash fan is evaluated in the actual GPU shader, with
     // eyeshadow held constant and eyeliner/wing disabled for isolation.
     gl.uniform1f(uniform("uLinerWidth"),0);
@@ -228,7 +265,8 @@ test("native eye wing does not transmit legacy catalog-color ghost under new ink
     textures.forEach(v=>gl.deleteTexture(v));
     return {inkSamples,legacyDifference,cleanedDifference,protectedDifference,
       wingRootScore,wingTipScore,wingOutside,glintCases,highlightRecovery:mat.highlightRecovery,
-      lashChanged,lashOutside,outerLashes,innerLashes};
+      lashChanged,lashOutside,outerLashes,innerLashes,
+      seamImproved,seamProtected,seamSclera};
   });
   test.skip(!!r.unavailable,"WebGL2 not available");
   expect(r.invalid).not.toBe(true);
@@ -243,6 +281,9 @@ test("native eye wing does not transmit legacy catalog-color ghost under new ink
   expect(r.outerLashes).toBeGreaterThan(0);
   expect(r.innerLashes).toBeGreaterThan(0);
   expect(r.lashOutside).toBe(0);
+  expect(r.seamImproved).toBeGreaterThan(15);
+  expect(r.seamProtected).toBe(0);
+  expect(r.seamSclera).toBe(0);
   expect(r.highlightRecovery).toBeGreaterThan(0);
   expect(r.highlightRecovery).toBeLessThanOrEqual(0.45);
   expect(r.glintCases).toHaveLength(2);

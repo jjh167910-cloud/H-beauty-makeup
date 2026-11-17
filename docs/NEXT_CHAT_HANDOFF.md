@@ -156,6 +156,15 @@ No production release/merge, no private photos, licensing separately.
 - **New SHA CI:** fetch exact PR #23 head after commit and check `Try-on review` required job + **3/3 Playwright shards** and independent camera run. Do not cite preceding green baseline as proof of this commit. Fix real logs without relaxing pixel/quality thresholds.
 - **Release barriers:** consented diverse photographs with blinded artist ratings, glasses/hair/hooded/monolid occlusion, low/mid/high physical Android p50/p95/thermal/memory; licensing handled separately. Keep `main`, Cloudflare production, customer selfies and default/live renderer unchanged.
 
+## Continuation — 2026-11-17: restore genuine upper-lid seam, not catalog mascara
+
+- **Verified baseline:** PR #23 at `1887bac3e0a955df1e1ced4e8aa80a4460727fb5` has [review 44131960247](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/44131960247) **completed SUCCESS** including required review and all 3 full Playwright shards; [camera 44131960168](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/44131960168) **completed SUCCESS**.
+- **Rendering quality defect:** existing native material restores the original inside eyeshadow wash and beneath new eyeliner, but baked source-model mascara/eyeliner can still show in gaps along the lid. This exposes the catalog model's eye geometry despite the new customer-fitted strands.
+- **Change:** `src/lib/material-eye-native.ts` computes a feathered, upper-lid-only `legacySeam` from each validated eye's normalized lid/brow coordinates, restores the *original customer pixel* under that narrow strip, then applies native eye material as before. Its output is visibility-/occlusion-masked, clipped away below the upper lid to guard sclera, and disabled outside the opt-in `uCleanLegacy` mode. This is not full source-image erasure, a skin filter or a model texture.
+- **Test:** `tests/material-eye-legacy-clean.spec.ts` adds a synthetic magenta old-mascara residue along an upper-lid strip, disables all new pigment/liner/lashes to prove the cleanup operates independently, measures improved original-photo restoration and exact protected/sclera preservation. Retains all prior lash, wing, highlight and ghost tests; already in targeted review CI.
+- **New commit validation:** check the exact HEAD's required review, **all 3 full Playwright shards** and independent live-camera workflow. Do not confuse baseline green with this increment. Real skin/eyelid photo fidelity and physical Android GPU/thermal gates remain open.
+- **Isolation:** research branch only, default/live/public production unaffected, no uploaded selfies and no merge or Cloudflare release. Licensing separately handled.
+
 ## Mandatory next-chat operating procedure
 
 1. Fetch PR #23 **current head SHA** and check `Try-on review` plus separate `Live mirror camera frame regression` workflows for **that exact SHA**. Require `review`, **all three** `Full Playwright suite` shards and independent camera **completed success**. If any fail, read GitHub job logs and fix the real problem. Cancelled runs caused by later commits are not “green”.

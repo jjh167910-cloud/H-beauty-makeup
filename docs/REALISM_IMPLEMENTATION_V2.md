@@ -462,3 +462,21 @@ Focused GPU tests cover both eyelash segments and bytewise protected pixels,
 plus total occlusion for light and deep synthetic skin. Claims about realistic
 appearance or better Android speed require blind consented photo ratings and
 physical phone timing; neither is inferred from these tests.
+
+### Restoring the original eyelid seam to remove inherited catalog mascara (2026-11-17)
+
+In the native saved-photo pilot, residual source-model eyeliner and lashes can
+persist between the newly generated customer's ink and fibers. The shader now
+computes a strictly upper-lid, narrow, feathered restoration seam in each
+validated eye's own face coordinates. In this narrow strip it restores the
+original customer photo beneath the newly applied native eye material. The
+restoration is conditioned on the opt-in `uCleanLegacy` switch, partial
+visibility, and validated eye geometry; no cosmetic edits should occur below
+the lid on sclera, behind an occluder or outside the face ROI. The shader
+continues returning the prior pixel byte-identically where all weights are 0.
+
+Targeted GPU tests inject synthetic magenta inherited mascara, deliberately
+turn off all new cosmetics, and insist the source-photo seam is measurably
+restored with unchanged sclera/protected pixels. This **does not** establish
+that real hooded/monolid eyes look correct, and physical Android GPU cost and
+blinded consented artist reviews are still required before release.
