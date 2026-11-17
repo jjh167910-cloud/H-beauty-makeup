@@ -512,3 +512,22 @@ an otherwise valid other eye survives while the unsafe legacy CPU fallback
 remains blocked. No photograph is uploaded. The tolerances are deliberately
 conservative engineering checks; real varied eyelid photos and blinded artist
 review are required to establish safety/coverage and to tune false rejection.
+
+### Occlusion-aware real-photo light reference selection (2026-11-17)
+
+Native eyelid shading originally derived a five-site skin-light reference even
+when a reference position was covered by hair or an eyeglass arm. Such pixels
+must never be interpreted as the subject's skin reflectance. Each light probe
+now uses the existing occlusion visibility texture. Fully visible sites keep
+the exact prior nested-median algorithm. Partial references use only the
+uncovered samples (trimmed estimate for 3–4, cautious two-site mean if agreeing);
+zero or one usable references disables new native pigment, broad eyeshadow
+replacement and mica rather than guessing a colour. Eyeliner/occlusion and
+local original-photo seam logic remain independent and protected.
+
+The GPU regression masks a source light sample, injects a photographic white
+outlier, checks zero far-field pigment contamination while visible pigment
+remains, and verifies an original-RGBA-preserving fail-closed outcome when
+all five probes are occluded. This incurs additional visibility-texture
+lookups; no device speed benefit is claimed without physical Android data.
+Real-photo artist review is still required for false negative occlusions.

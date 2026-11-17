@@ -234,6 +234,79 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
       for(const site of savedSites)
         gl.texSubImage2D(gl.TEXTURE_2D,0,site.x,site.y,1,1,
           gl.RGBA,gl.UNSIGNED_BYTE,site.px);
+      // Occluded lighting references: hair/glasses cannot contaminate
+      // source-colour adaptation, and no new pigment is allowed when all
+      // of one eye's five reference sites are hidden.
+      const fullVisible=new Uint8Array(vis.length);
+      for(let k=0;k<fullVisible.length;k+=2)fullVisible[k]=255;
+      const occludeSites=(sites:typeof savedSites)=>{
+        const hidden=fullVisible.slice();
+        for(const site of sites){
+          const cx=Math.floor(site.x*256/W),cy=Math.floor(site.y*256/W);
+          for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+            const x=cx+dx,y=cy+dy;
+            if(x>=0&&y>=0&&x<256&&y<256)hidden[(y*256+x)*2]=0;
+          }
+        }
+        return hidden;
+      };
+      const visTexture=textures[2];
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D,visTexture);
+      gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,256,256,gl.RG,
+        gl.UNSIGNED_BYTE,occludeSites([savedSites[0]]));
+      gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+      const excludedRead=new Uint8Array(prior.length);
+      gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,excludedRead);
+      const excluded=flip(excludedRead);
+      const discarded=savedSites[0];
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D,textures[1]);
+      gl.texSubImage2D(gl.TEXTURE_2D,0,discarded.x,discarded.y,1,1,
+        gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([255,252,250,255]));
+      gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+      const excludedCorruptRead=new Uint8Array(prior.length);
+      gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,excludedCorruptRead);
+      const excludedCorrupt=flip(excludedCorruptRead);
+      let hiddenSampleInfluence=0, visiblePigmentSamples=0;
+      for(let y=136;y<=156;y++)for(let x=216;x<=247;x++){
+        const at=(y*W+x)*4;
+        for(let c=0;c<3;c++){
+          if(excluded[at+c]!==excludedCorrupt[at+c])hiddenSampleInfluence++;
+          if(excluded[at+c]!==prior[at+c])visiblePigmentSamples++;
+        }
+      }
+      gl.texSubImage2D(gl.TEXTURE_2D,0,discarded.x,discarded.y,1,1,
+        gl.RGBA,gl.UNSIGNED_BYTE,discarded.px);
+      // Only the left eye is enabled. All five sampled skin sites are
+      // hidden, while the eyelid itself remains visible: no reliable
+      // pigment illumination exists, so this must be an exact no-op.
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D,visTexture);
+      gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,256,256,gl.RG,
+        gl.UNSIGNED_BYTE,occludeSites(savedSites));
+      gl.uniform1iv(gl.getUniformLocation(p,"uEnabled"),new Int32Array([1,0]));
+      for(const uniform of ["uLinerWidth","uWingLength","uLashLength",
+        "uShimmer","uRhinestones"])
+        gl.uniform1f(gl.getUniformLocation(p,uniform),0);
+      gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+      const noReferenceRead=new Uint8Array(prior.length);
+      gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,noReferenceRead);
+      const noReference=flip(noReferenceRead);
+      let missingReferenceDifferences=0;
+      for(let k=0;k<prior.length;k++)
+        if(noReference[k]!==prior[k])missingReferenceDifferences++;
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D,visTexture);
+      gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,256,256,gl.RG,
+        gl.UNSIGNED_BYTE,vis);
+      gl.uniform1iv(gl.getUniformLocation(p,"uEnabled"),material.enabled);
+      gl.uniform1f(gl.getUniformLocation(p,"uLinerWidth"),material.linerWidth);
+      gl.uniform1f(gl.getUniformLocation(p,"uWingLength"),material.wingLength);
+      gl.uniform1f(gl.getUniformLocation(p,"uLashLength"),material.lashLength);
+      // Shader's original shimmer/gem values were zero in this raster test.
+      gl.uniform1f(gl.getUniformLocation(p,"uShimmer"),0);
+      gl.uniform1f(gl.getUniformLocation(p,"uRhinestones"),0);
       // Isolate the native eyeliner and lashes from eyeshadow: the raster must
       // change when fibers are enabled, even on deep skin, without source-face pixels.
       gl.uniform1f(gl.getUniformLocation(p,"uLinerWidth"),0);
@@ -291,7 +364,8 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
         topChanges,bottomChanges,inkChanged,inkOutside,scleraChanged,outsideCoordinates,
         detailSamples, textureRetention: paintedDetail / Math.max(1, originalDetail),
         leftEyeCrossTalk, leftEyePainted, lightProbeMax, lightProbeMean,
-        trueLightResponse, otherEyeCoherentChange});
+        trueLightResponse, otherEyeCoherentChange,
+        hiddenSampleInfluence,visiblePigmentSamples,missingReferenceDifferences});
       textures.forEach(t=>gl.deleteTexture(t));
     }
     return {observations,enabled:[...material.enabled]};
@@ -322,6 +396,9 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
     expect(result.lightProbeMean).toBeLessThan(2.5);
     expect(result.trueLightResponse).toBeGreaterThan(100);
     expect(result.otherEyeCoherentChange).toBe(0);
+    expect(result.visiblePigmentSamples).toBeGreaterThan(40);
+    expect(result.hiddenSampleInfluence).toBe(0);
+    expect(result.missingReferenceDifferences).toBe(0);
   }
 });
 

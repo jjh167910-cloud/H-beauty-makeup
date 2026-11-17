@@ -183,6 +183,16 @@ No production release/merge, no private photos, licensing separately.
 - **After THIS commit:** check the latest exact SHA's required review, **3/3 full Playwright shards** and independent camera workflow. Fix actual failures rather than relaxing thresholds. No real-photo artistic fidelity claim or Android runtime performance claim yet.
 - **Remaining gates:** consented blinded makeup-artist comparisons on hooded/monolid/asymmetric occluded eyes, real low/mid/high Android GPU p50/p95 and thermals. Production/main unchanged, research opt-in only, no customer photos in Git; licensing handled separately.
 
+## Continuation — 2026-11-17: occlusion-aware photographic light references
+
+**Previously verified source:** PR #23 SHA `f68770083dd525c4b22365e39b4914adff621e32`: [review 44165614852](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/44165614852) completed SUCCESS for required review and all 3 full Playwright shards; [independent camera 44165614903](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/44165614903) SUCCESS. This does NOT validate the new commit.
+
+**New opt-in shader:** Original-photo pigment illumination references now check the existing hair/glasses/face visibility mask at each of five upper-lid/brow reference sites. Masked sites are **excluded** rather than treated as dark skin. With all five valid, the previous validated nested median is preserved exactly. With 3–4 valid, use their trimmed robust estimate; with 2 use a conservative pair mean only when their luminance difference is ≤0.25; with fewer than 2, fail closed on pigmentation/old-eyeshadow replacement/mica but retain separately safe eyeliner and photo-seam cleanup. No new datasets, new GPU textures or source-image uploads. This adds up to five visibility lookups per contributing eye pixel and must be benchmarked on physical Android; do NOT assert speed gains.
+
+**Test:** `tests/material-eye-native.spec.ts` now selectively obscures one real original-photo reference sample in the mask, changes that precise source pixel to a white outlier, and verifies the *far painted eyelid* remains RGB-identical while other visible pigment still renders. All five references masked forces an exact full-frame no-op when liner/particles are disabled, with the eyelid itself still visible. Existing strict tests for true five-site coherent lighting, other-eye independence, sclera, occlusion, natural texture and protected pixels remain.
+
+**Exact-new-commit checks:** fetch PR head and require review + **all 3 full Playwright shards** + independent camera completed success. If failing, inspect actual logs, fix rather than loosen thresholds. Real consented artist-blind skin/hooded/monolid/glasses evaluation and Android low/mid/high timing/thermal data are still required. Remains opt-in saved-photo research only; main/public Cloudflare unchanged; licensing separately handled.
+
 ## Mandatory next-chat operating procedure
 
 1. Fetch PR #23 **current head SHA** and check `Try-on review` plus separate `Live mirror camera frame regression` workflows for **that exact SHA**. Require `review`, **all three** `Full Playwright suite` shards and independent camera **completed success**. If any fail, read GitHub job logs and fix the real problem. Cancelled runs caused by later commits are not “green”.
