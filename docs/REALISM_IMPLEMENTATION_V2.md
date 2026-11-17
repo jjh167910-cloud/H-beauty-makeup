@@ -319,6 +319,20 @@ The opt-in Android GPU timing runner is now explicitly **blocked by output integ
 
 See `docs/NATIVE_EYE_ANDROID_BENCHMARK.md`, PR #23, issue #24.
 
+## GPU query backpressure and disjoint integrity — 2026-11-17
+
+The local-only Android native-eye A/B benchmark is now robust to **delayed asynchronous GPU query completion** without weakening evidence requirements.
+
+Previously, the benchmark rendered exactly 30 requests per mode while `EXT_disjoint_timer_query_webgl2` could hold only **three** unresolved queries. A driver delay could suppress valid query starts, making the final result unavailable even if the phone rendered correctly. The timer retained only the latest 64 measurements, potentially discarding valid earlier observations during a longer test.
+
+- `src/lib/native-eye-gpu-timer.ts`: exposes a monotonically increasing **sample epoch**. Reset, GPU disjoint, driver-query exception and context disposal invalidate that generation. GPU query results remain asynchronous and local; there is still no `gl.finish()`, blocking readback or upload.
+- `src/lib/makeup-gl.ts`: exposes read-only pending query count and sample epoch to the opt-in research runner.
+- `src/lib/native-eye-benchmark.ts`: nonblocking poll/yield waits for spare query capacity, accumulates unique sequence IDs before the timer's 64-sample ring buffer can evict them, and retries balanced A/B or B/A draws within **at most 90 submissions per mode** and a **180-second budget**. Any evidence epoch change causes `gpu-evidence-lost` with **no** comparative speedup. Timed draws must actually execute their requested native/fast shader mode or return unavailable. Reported draw counts distinguish real submissions from requested target samples.
+- `summarizeNativeEyeAB`: refuses any caller-provided required sample count **below 30 per actual mode**. The 1-sample CI smoke remains insufficient regardless of successful frames; null/unsupported/disjoint/missing data cannot turn into a performance claim.
+- `tests/material-eye-timing.spec.ts` exercises pending-query saturation, resetting, GPU disjoint and loss of evidence generation; `tests/material-eye-benchmark.spec.ts` tests the non-negotiable statistical minimum and bounded retry metadata. The prior image-parity gate is unchanged.
+
+This is **benchmark robustness**, not proof that `native-fast` is faster, photorealistic, more energy efficient, or ready for production. Physical Android samples and real photographic artist-blind validation remain required. See `docs/NATIVE_EYE_ANDROID_BENCHMARK.md`.
+
 ## Shipping policy
 
 1. Production stays on main during research; use a feature flag and pilot branch.
