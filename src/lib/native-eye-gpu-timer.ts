@@ -62,8 +62,9 @@ export class NativeEyeGpuTimer {
   }
 
   /** Must be paired with begin() even when the paint pass throws. */
-  end(): void {
+  end(actualMode?: NativeEyeGpuMode): void {
     const active = this.active;
+    if (active && actualMode) active.mode = actualMode;
     if (!active || !this.ext) return;
     this.active = null;
     try {
