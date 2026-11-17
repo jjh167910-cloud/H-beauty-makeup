@@ -354,6 +354,31 @@ The previous SHA `7e72d4df3be02c8870db83fb08175e5d520d742a` passed **all** GitHu
 4. No connected physical Android device in this chat; do not invent real GPU time, power, memory values or speedups. Preserve user photo privacy (on device/offline).
 5. Keep issue #24, PR #23, and this handoff synchronized with verified exact GitHub SHA/CI. Do not merge into main or deploy to public worker until genuine physical-device and real-image quality evidence.
 
+## Latest continuation — reliable physical-Android GPU query collection (2026-11-17)
+
+**Canonical:** `jjh167910-cloud/H-beauty-makeup`, research branch `feat/realism-benchmark-v2`, PR #23, engineering tracker #24. Production main/Cloudflare site untouched.
+
+### Confirmed green starting point
+At start of this continuation, branch SHA **`e75e4ac69bb51a6125c69eea133ce8a0aca814ee`** had **fully green** GitHub Actions: `Try-on review` run **44061910388** (required review and all three full Playwright shards passed), plus independent `Live mirror camera frame regression` run **44061910401** success. This certifies the previous **offline/TypeScript/build, eye shader/pixel parity/benchmark, saved-photo integration, streamed downloads and camera test** gates, *not* actual visual photorealism or Android GPU speed.
+
+### Source implementation committed in this continuation
+- `src/lib/native-eye-gpu-timer.ts` commit `114bb2016fd4124b3b5238cfcf3726f0378325c8`: new `sampleEpoch` increments on reset, GPU-disjoint, driver-query exception and context loss. A timed study can now distinguish a valid continuous GPU query generation from invalidation rather than accidentally comparing pre/post-disjoint measurements.
+- `src/lib/makeup-gl.ts` commit `6510609667cfa8db68c76fa7d9aac7c0415cc342`: read-only `nativeEyeGpuPendingCount()` and `nativeEyeGpuSampleEpoch()` for opt-in local benchmark, no default render UI changes.
+- `src/lib/native-eye-benchmark.ts` commit `995ad9d6d62245f803d8c47844ac625e566d751d`: bounded **nonblocking** GPU timer query drain+yield rather than submitting 30 blindly with only 3 outstanding query slots. Collects newly completed unique GPU sequence IDs into a private local list before the timer's 64-entry ring buffer evicts them. Alternates full/fast order, permits at most **90 submissions per mode** within **180 seconds**, checks actual requested GPU render mode, and aborts with `gpu-evidence-lost` if the timer epoch resets. Adds requested vs actual render count metadata. Statistics still require 30 valid queries in **each** actual mode, and still require strict full-image local pixel-parity preflight before timing. Never substitute CPU time, gl.finish, image readbacks during timed pass or uploaded telemetry.
+- `tests/material-eye-timing.spec.ts` commit `fa3e096b21d55a10fef2f5ac28b0f66dc65bfd85`: browser regression test for query backlog, epoch reset, disjoint invalidation, context disposal and recovery, no query leaks.
+- `tests/material-eye-benchmark.spec.ts` commit `abf05bd3919d1ca7c5796ba7fe836eeaa12c755b`: rejects a caller-requested one-query evidence threshold and checks bounded actual retry metadata. A one-trial CI smoke remains strictly insufficient; no fabricated speedup.
+- `docs/NATIVE_EYE_ANDROID_BENCHMARK.md` commit `6a0b1685bca51e84e5ad115e23b83f2110c52448` and `docs/REALISM_IMPLEMENTATION_V2.md` commit `31b26bba0cde045211a46ef6cd06db0c6d94aa76`: physical phone protocol, evidence and timeout semantics, disjoint/unsupported cases.
+- Issue #24, PR #23 updated; this handoff is final code-affecting commit planned in this session.
+
+### CI at time of writing: MUST refresh
+The previous SHA `e75e4ac...` had passed 100% of automated checks. **This new sampling implementation must pass its own newest-head GitHub Actions review and all 3 full Playwright shards**. Its first `review` workflow reached TypeScript and Vite build success and was running early targeted browser tests on source `6a0b1685bca51e84e5ad115e23b83f2110c52448`; subsequent docs and this handoff trigger new CI that can cancel earlier in-flight PR runs. Do not confuse a cancelled previous run with a failure of the current head, and do not claim latest-head fully green until all jobs explicitly pass.
+
+### Next engineering action
+1. Read current PR #23 HEAD and current Actions workflows. If `tests/material-eye-timing.spec.ts` or `tests/material-eye-benchmark.spec.ts` fails, retrieve **job log**; fix precise TypeScript/assertion/GPU flow bug, rerun early targeted tests, then allow all 3 full Playwright shards to complete on one unmodified commit. Confirm separate live-camera smoke.
+2. The real phone benchmark remains **unrun**: with consenting local image and optional generated fixture, measure 30+ genuine `EXT_disjoint_timer_query_webgl2` samples per requested mode on low/mid/high Android tiers, report actual p50/p95, memory/thermal/battery and capture interaction, without transmitting selfies. If extension unsupported or disjoint, report insufficient.
+3. Physically accurate makeup research: validate upper/lower lid, skin microtexture/pigment opacity, occlusion by hands, hair, spectacles, and rhinestone/eyelash optics with annotated consented real photos and blind professional comparisons of four pilot looks. This remains the major aesthetic blocker; synthetic no-makeup fixture and parity do **not** certify realism, and 42 looks still need editorial validation.
+4. Keep research-only and offline privacy restrictions. No merge/deploy to main or Cloudflare based only on green CI. Update PR #23, issue #24 and handoff with actual verified data.
+
 ## New-chat start procedure (mandatory)
 
 1. Connect/use the GitHub app and fetch PR #23, current head SHA and workflow status; do not assume the latest chat's SHA still applies.
