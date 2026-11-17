@@ -166,9 +166,47 @@ test("native eye wing does not transmit legacy catalog-color ghost under new ink
         reference[i+1]!==wingless[i+1] ||
         reference[i+2]!==wingless[i+2]) wingOutside++;
     }
+    // Compare actual rendered glints with recovery disabled and enabled.
+    // The only difference comes from the customer's synthetic source pixel:
+    // the shader is forbidden from generating made-up texture/highlights.
+    const glintCases=[];
+    for(const skin of [
+      {name:"light",base:[184,151,139],glint:[233,217,206]},
+      {name:"deep",base:[66,43,36],glint:[158,131,118]}
+    ]) {
+      const input=new Uint8Array(W*H*4);
+      for(let i=0;i<W*H;i++) input.set([...skin.base,255],i*4);
+      const gx=145,gy=125, off=(gy*W+gx)*4;
+      input.set([...skin.glint,255],off);
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D,textures[1]);
+      gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,W,H,0,
+        gl.RGBA,gl.UNSIGNED_BYTE,input);
+      gl.uniform1f(uniform("uHighlightRecovery"),0);
+      const flat=draw(input,1);
+      gl.uniform1f(uniform("uHighlightRecovery"),mat.highlightRecovery);
+      const preserved=draw(input,1);
+      let baselineDistance=0,recoveredDistance=0,changedOutside=0,clipped=0;
+      for(let c=0;c<3;c++){
+        baselineDistance+=Math.abs(flat[off+c]-input[off+c]);
+        recoveredDistance+=Math.abs(preserved[off+c]-input[off+c]);
+      }
+      for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+        const i=(y*W+x)*4;
+        if(x<65||x>230||y<62||y>185) {
+          for(let c=0;c<4;c++)if(preserved[i+c]!==input[i+c])
+            changedOutside++;
+        }
+        if(preserved[i]===0||preserved[i]===255||
+           preserved[i+1]===0||preserved[i+1]===255||
+           preserved[i+2]===0||preserved[i+2]===255)clipped++;
+      }
+      glintCases.push({name:skin.name,baselineDistance,
+        recoveredDistance,changedOutside,clipped});
+    }
     textures.forEach(v=>gl.deleteTexture(v));
     return {inkSamples,legacyDifference,cleanedDifference,protectedDifference,
-      wingRootScore,wingTipScore,wingOutside};
+      wingRootScore,wingTipScore,wingOutside,glintCases,highlightRecovery:mat.highlightRecovery};
   });
   test.skip(!!r.unavailable,"WebGL2 not available");
   expect(r.invalid).not.toBe(true);
@@ -179,4 +217,14 @@ test("native eye wing does not transmit legacy catalog-color ghost under new ink
   expect(r.wingRootScore).toBeGreaterThan(30);
   expect(r.wingTipScore).toBeLessThan(r.wingRootScore * 0.8);
   expect(r.wingOutside).toBe(0);
+  expect(r.highlightRecovery).toBeGreaterThan(0);
+  expect(r.highlightRecovery).toBeLessThanOrEqual(0.45);
+  expect(r.glintCases).toHaveLength(2);
+  for(const sample of r.glintCases){
+    expect(sample.baselineDistance, sample.name).toBeGreaterThan(5);
+    expect(sample.recoveredDistance, sample.name)
+      .toBeLessThan(sample.baselineDistance);
+    expect(sample.changedOutside, sample.name).toBe(0);
+    expect(sample.clipped, sample.name).toBe(0);
+  }
 });

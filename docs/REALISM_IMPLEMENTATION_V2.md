@@ -424,3 +424,23 @@ fidelity still requires blinded comparisons on consented human photos with
 hooded, monolid, occluded and asymmetric eyes. Never confuse the synthetic
 tests with that real-world evaluation. This mode is opt-in only.
 
+
+### Preserving real photographic eyelid highlights — 2026-11-17
+
+Under semi-opaque eyeshadow, the prior native shader could flatten tiny, naturally
+occurring specular glints even though its skin microtexture residual was retained.
+The opt-in pigment shader now uses an already available **original-photo**
+five-site low-pass to detect only positive linear-luminance relief. A bounded
+finish-dependent recovery blends back a fraction of the customer's own highlight;
+no artificial highlight, pore pattern or skin-smoothing model is introduced.
+Matte looks use less recovery than shimmer or reflective ones. Masked-out,
+occluded, sclera and protected regions are unaffected. No extra source-image
+texture fetches are required, though the changed ALU cost still needs physical
+Android profiling.
+
+Targeted WebGL A/B compares recovery on/off on independent light and deep
+synthetic skin fixtures and requires the original bright texel's RGB distance
+to decrease, zero new hard clipping, and zero changed outside-ROI pixels. The
+real-world quality gate is still blind professional review of consented
+photographs, including difficult eyelid anatomy and lighting; unit tests are
+not evidence of comparative photorealism.

@@ -30,6 +30,7 @@ export type NativeEyeMaterial = {
   lashLength: number;
   lashCount: number;
   inkSoft: number;
+  highlightRecovery: number; // bound original eyelid specular detail, per finish
   shimmer: number; // photo-light-matched sparse micro-powder; zero disables
   rhinestones: number; // faceted gems anchored on this customer's lid
 };
@@ -175,6 +176,10 @@ export function nativeEyeMaterial(P: Pt[], lookId: string, level: Level, photoBl
     // lens measurements are bounded for stable low-end WebGL2 rendering.
     inkSoft: Math.max(0.7, Math.min(3.5,
       Number.isFinite(photoBlurPx) ? Math.max(0, photoBlurPx) * 0.80 : 0.7)),
+    // Matte looks preserve fewer source highlights than reflective/shimmering
+    // finishes. Never recreate detail that was not present in the selfie.
+    highlightRecovery: lookId === "hollywood" ? 0.16 :
+      lookId === "electric-blue" ? 0.30 : 0.36,
     shimmer: look.accents?.includes("shimmer") ? 0.11*strength : 0,
     rhinestones: look.accents?.includes("rhinestones") ? 0.90*strength : 0,
   };
@@ -259,6 +264,7 @@ export const NATIVE_EYE_FS = [
   "uniform float uLinerWidth, uWingLength, uLashLength;",
   "uniform int uLashCount;",
   "uniform float uInkSoft;",
+  "uniform float uHighlightRecovery;",
   "uniform int uCleanLegacy;",
   "uniform float uShimmer, uRhinestones;",
   "out vec4 o;",
@@ -475,6 +481,15 @@ export const NATIVE_EYE_FS = [
   "    vec3 microtexture=clamp(base-smoothAlbedo,vec3(-0.045),vec3(0.045));",
   "    filled=clamp(filled+microtexture*(0.60*opacity),",
   "      vec3(1.0/255.0),vec3(254.0/255.0));",
+  "    // A bright REAL photo highlight is reflected light, not a pigment",
+  "    // defect: avoid smearing it into a flat painted patch. Reintroduce",
+  "    // only the customer pixel, only for positive local luminance relief.",
+  "    // Skin pores, freckles and shadows are never fabricated by this pass.",
+  "    float positiveLight=max(0.0,dot(base-smoothAlbedo,",
+  "      vec3(0.2126,0.7152,0.0722)));",
+  "    float specular=ramp(0.025,0.12,positiveLight);",
+  "    float recovery=clamp(uHighlightRecovery,0.0,0.45)*specular*opacity;",
+  "    filled=mix(filled,base,recovery);",
   "  }",
   "  // In the opt-in native photo pilot, a catalog-model eyelash/wing",
   "  // must not ghost through this customer-fitted ink. Restore only the",

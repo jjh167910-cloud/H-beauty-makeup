@@ -2931,6 +2931,7 @@ export class MakeupGL {
       // Use the same capped optical edge that determined scissor padding.
       // Recomputing blur here used to widen shader ink beyond the ROI.
       gl.uniform1f(this.uni(p, "uInkSoft"), nativeData.inkSoft);
+      gl.uniform1f(this.uni(p, "uHighlightRecovery"), nativeData.highlightRecovery);
       // Material-only removal of old catalog wing/eyelash remnants.
       // This native pass is gated to opt-in prepared photos, never live.
       gl.uniform1i(this.uni(p, "uCleanLegacy"), 1);
