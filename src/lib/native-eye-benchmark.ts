@@ -81,7 +81,7 @@ export function summarizeNativeEyeAB(
   };
 }
 
-export type NativeEyeABReport = NativeEyeABSummary & {
+export type NativeEyeABReport = Omit<NativeEyeABSummary, "status"> & {
   kind: "local-gpu-eye-ab";
   status: NativeEyeABSummary["status"] | "unsupported-gpu-timer" | "aborted";
   lookId: "hollywood" | "electric-blue" | "rhinestone";
