@@ -161,3 +161,47 @@ test("per-look confidence marks uncertain results even when the headline clears 
   assert.ok(result.lookWilson95.hollywood.lower > 0.5);
   assert.equal(result.subjectWins, 22);
 });
+
+test("disjoint subject groups cannot masquerade as a fully matched four-look pilot", () => {
+  const cases = pilotCases().map(c => ({ ...c, sample_id: c.sample_id + "-" + c.look_id }));
+  const result = evaluatePilot(cases);
+  assert.equal(result.subjects, 120);
+  assert.equal(result.independentCases, 120);
+  assert.equal(result.completeSubjects, 0);
+  assert.equal(result.ratedCompleteSubjects, 0);
+  assert.equal(result.status, "insufficient-evidence");
+  assert.ok(result.incomplete.some(s => /all four required pilot looks/.test(s)));
+  assert.deepEqual(result.skinGroupSubjects, { light: 0, medium: 0, deep: 0 });
+});
+
+test("conflicting skin-depth metadata for the same subject is a hard failure", () => {
+  const cases = pilotCases();
+  cases[1].skin_group = "deep";
+  const result = evaluatePilot(cases);
+  assert.equal(result.status, "fail");
+  assert.ok(result.issues.some(s => /Inconsistent skin group/.test(s)));
+});
+
+test("look-by-skin regressions cannot hide behind excellent marginal preference", () => {
+  const cases = pilotCases();
+  for (const c of cases)
+    if (c.skin_group === "deep" && c.look_id === "rhinestone")
+      c.paired_preference = "competitor";
+  const result = evaluatePilot(cases);
+  assert.ok(result.preference > 0.9);
+  assert.ok(result.lookPreference.rhinestone > 0.5);
+  assert.ok(result.subgroupPreference.deep > 0.5);
+  assert.equal(result.lookSkinPreference.rhinestone.deep, 0);
+  assert.equal(result.lookSkinPreference.hollywood.deep, 1);
+  assert.equal(result.status, "fail");
+  assert.ok(result.issues.some(s => /rhinestone \/ deep/.test(s)));
+});
+
+test("complete matched cohort and look-by-skin metrics preserve the passing pilot fixture", () => {
+  const result = evaluatePilot(pilotCases());
+  assert.equal(result.status, "pass");
+  assert.equal(result.completeSubjects, 30);
+  assert.equal(result.ratedCompleteSubjects, 30);
+  assert.equal(result.lookSkinPreference["electric-blue"].medium, 1);
+  assert.ok(result.lookSkinWilson95["electric-blue"].medium.lower > 0.5);
+});

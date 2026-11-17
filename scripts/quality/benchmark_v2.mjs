@@ -9,6 +9,9 @@ import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
 const SKIN_GROUPS = ["light", "medium", "deep"];
+// The pre-registered V2 study evaluates all four conditions on EACH subject;
+// look counts from disjoint sets of customers cannot substitute for this cohort.
+const PILOT_LOOKS = ["no-makeup", "hollywood", "electric-blue", "rhinestone"];
 
 const validCount = (n) => Number.isSafeInteger(n) && n >= 0;
 const assertCount = (n, label) => {
@@ -83,7 +86,10 @@ export function evaluatePilot(cases, {
   const issues = [], incomplete = [], pairs = new Set(), subjects = new Set(), looks = new Set();
   const byLook = new Map(), bySkin = new Map(SKIN_GROUPS.map((s) => [s, new Set()]));
   const bySubjectVotes = new Map();
+  const bySubjectLooks = new Map();
+  const bySubjectSkin = new Map();
   const byLookVotes = new Map();
+  const byLookSkinVotes = new Map();
   const bySkinVotes = new Map(SKIN_GROUPS.map((s) => [s, { wins: 0, reviewed: 0, artistTotal: 0, artistN: 0 }]));
   let wins = 0, reviewed = 0;
 
@@ -96,6 +102,15 @@ export function evaluatePilot(cases, {
     const pair = c.sample_id + ":" + c.look_id;
     if (pairs.has(pair)) issues.push("Duplicate independent face/look case at index " + i);
     pairs.add(pair); subjects.add(c.sample_id); looks.add(c.look_id);
+    if (!PILOT_LOOKS.includes(c.look_id))
+      issues.push("Unregistered pilot look at index " + i);
+    const previousSkin = bySubjectSkin.get(c.sample_id);
+    if (previousSkin && previousSkin !== c.skin_group)
+      issues.push("Inconsistent skin group for independent subject " + c.sample_id);
+    else bySubjectSkin.set(c.sample_id, c.skin_group);
+    const subjectLooks = bySubjectLooks.get(c.sample_id) || new Set();
+    subjectLooks.add(c.look_id);
+    bySubjectLooks.set(c.sample_id, subjectLooks);
     bySkin.get(c.skin_group).add(c.sample_id);
     byLook.set(c.look_id, (byLook.get(c.look_id) || 0) + 1);
     if (c.capture_type !== "consented_real_selfie") incomplete.push("Real, consented selfie evidence missing");
@@ -122,19 +137,36 @@ export function evaluatePilot(cases, {
       const lookGroup = byLookVotes.get(c.look_id) || { wins: 0, reviewed: 0 };
       lookGroup.reviewed++;
       byLookVotes.set(c.look_id, lookGroup);
+      const lookSkinKey = c.look_id + ":" + c.skin_group;
+      const lookSkin = byLookSkinVotes.get(lookSkinKey) || { wins: 0, reviewed: 0 };
+      lookSkin.reviewed++;
+      byLookSkinVotes.set(lookSkinKey, lookSkin);
       if (vote === "candidate") {
-        wins++; sw.wins++; subgroup.wins++; lookGroup.wins++;
+        wins++; sw.wins++; subgroup.wins++; lookGroup.wins++; lookSkin.wins++;
       }
     } else incomplete.push("Paired blind preference missing");
   }
 
+  // Complete coverage is a SUBJECT-level prerequisite; aggregate N per look
+  // may pass with four entirely disjoint participant groups.
+  const completeSubjects = new Set([...bySubjectLooks]
+    .filter(([, seen]) => PILOT_LOOKS.every((look) => seen.has(look)))
+    .map(([id]) => id));
+  const completeBySkin = new Map(SKIN_GROUPS.map((skin) => [skin, new Set()]));
+  for (const id of completeSubjects)
+    completeBySkin.get(bySubjectSkin.get(id)).add(id);
+
   if (subjects.size < minimumSubjects) incomplete.push("Need at least " + minimumSubjects + " independent selfies");
+  if (completeSubjects.size < minimumSubjects)
+    incomplete.push("Need at least " + minimumSubjects + " subjects evaluated on all four required pilot looks");
+  for (const look of PILOT_LOOKS)
+    if (!looks.has(look)) incomplete.push("Missing required pilot look: " + look);
   if (looks.size < minimumLooks) incomplete.push("Need at least " + minimumLooks + " pilot looks");
   for (const [look, count] of byLook) {
     if (count < minimumSubjects) incomplete.push("Too few independent subjects for look " + look);
   }
   for (const skin of SKIN_GROUPS) {
-    if (bySkin.get(skin).size < minimumSkinGroupSubjects)
+    if (completeBySkin.get(skin).size < minimumSkinGroupSubjects)
       incomplete.push("Too few independent subjects in skin group " + skin);
   }
   if (reviewed < minimumSubjects * minimumLooks)
@@ -143,9 +175,13 @@ export function evaluatePilot(cases, {
   const preference = reviewed ? wins / reviewed : null;
   // Customer clusters are independent; repeated looks on one face are not.
   // A subject "wins" if her evaluated looks meet the predeclared 70% target.
-  const subjectWins = [...bySubjectVotes.values()]
-    .filter((v) => v.reviewed >= minimumLooks && v.wins / v.reviewed >= minimumPreference).length;
-  const subjectWinInterval = wilson95(subjectWins, subjects.size);
+  const ratedCompleteSubjects = [...bySubjectVotes]
+    .filter(([id, v]) => completeSubjects.has(id) && v.reviewed >= PILOT_LOOKS.length);
+  if (ratedCompleteSubjects.length < minimumSubjects)
+    incomplete.push("Need independent blind preferences for each required look on the complete cohort");
+  const subjectWins = ratedCompleteSubjects
+    .filter(([, v]) => v.wins / v.reviewed >= minimumPreference).length;
+  const subjectWinInterval = wilson95(subjectWins, ratedCompleteSubjects.length);
   if (reviewed && preference < minimumPreference)
     issues.push("Blind preference below target");
   if (subjects.size && subjectWinInterval.lower <= 0.5)
@@ -161,6 +197,21 @@ export function evaluatePilot(cases, {
       issues.push("Blind preference below chance for look: " + look);
     if (v.reviewed >= minimumSubjects && lookWilson95[look].lower <= 0.5)
       incomplete.push("Insufficient confidence for look: " + look);
+  }
+  // Joint look x skin-depth cells expose regressions hidden in both
+  // single-axis marginals. Avoid conclusions for underpowered cells.
+  const lookSkinPreference = {}, lookSkinWilson95 = {};
+  for (const look of PILOT_LOOKS) {
+    lookSkinPreference[look] = {};
+    lookSkinWilson95[look] = {};
+    for (const skin of SKIN_GROUPS) {
+      const cell = byLookSkinVotes.get(look + ":" + skin) || { wins: 0, reviewed: 0 };
+      const fraction = cell.reviewed ? cell.wins / cell.reviewed : null;
+      lookSkinPreference[look][skin] = fraction;
+      lookSkinWilson95[look][skin] = wilson95(cell.wins, cell.reviewed);
+      if (cell.reviewed >= minimumSkinGroupSubjects && fraction < 0.5)
+        issues.push("Blind preference below chance in look/skin stratum: " + look + " / " + skin);
+    }
   }
   const subgroupPreference = {};
   const artistMeans = [];
@@ -178,10 +229,14 @@ export function evaluatePilot(cases, {
   const dedupe = (a) => [...new Set(a)];
   return {
     status: issues.length ? "fail" : incomplete.length ? "insufficient-evidence" : "pass",
-    subjects: subjects.size, looks: looks.size, independentCases: pairs.size,
-    skinGroupSubjects: Object.fromEntries([...bySkin].map(([k, s]) => [k, s.size])),
+    subjects: subjects.size, completeSubjects: completeSubjects.size,
+    ratedCompleteSubjects: ratedCompleteSubjects.length,
+    looks: looks.size, independentCases: pairs.size,
+    // These are full four-look cohort counts, not partially covered people.
+    skinGroupSubjects: Object.fromEntries([...completeBySkin].map(([k, s]) => [k, s.size])),
     wins, reviewed, preference, subjectWins, subjectWinWilson95: subjectWinInterval,
     subgroupPreference, lookPreference, lookWilson95,
+    lookSkinPreference, lookSkinWilson95,
     issues: dedupe(issues), incomplete: dedupe(incomplete),
     requiresArtistSignoff: true, requiresLicenseReview: true,
     certification: "None: engineering and pilot evidence only; not proof of photorealism",

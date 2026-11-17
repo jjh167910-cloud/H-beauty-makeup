@@ -106,6 +106,24 @@ until pilot exit gates are independently met.
 - No CI test or synthetic-photo evaluation may certify "state of the art". Phase promotion is
   blocked until a human artist and legal reviewer sign off.
 
+### Complete-cohort and intersectional quality gate (research continuation, 2026-11-17)
+
+The four predeclared pilot conditions (`no-makeup`, `hollywood`, `electric-blue`,
+`rhinestone`) must be evaluated **on each of at least 30 distinct anonymized subjects**.
+Passing aggregate sample counts per look is not enough: four disjoint groups of 30 faces
+would create 120 comparisons but **zero** subjects with full four-look coverage.
+`evaluatePilot` now returns `completeSubjects`, `ratedCompleteSubjects` and
+`skinGroupSubjects` for the complete matched cohort, validates consistent skin
+stratum per anonymous subject, and requires all four registered pilot IDs.
+
+In addition to aggregate, per-look and per-skin preference, the private report includes
+`lookSkinPreference` and `lookSkinWilson95` for each look/skin-depth intersection.
+A look-by-skin cell with at least five comparisons and fewer than 50% H-Beauty wins
+is a failed quality gate even if both marginal averages are above 50%.
+Unpowered cells are reported but not treated as reliable evidence.
+The report contains no selfie pixels, landmarks, filenames or identifying subject data.
+These tests use synthetic *metadata* and never certify human realism.
+
 ### Machine-readable pilot report
 
 Put this JSON **only in a private folder outside the public repository**. No real photos are

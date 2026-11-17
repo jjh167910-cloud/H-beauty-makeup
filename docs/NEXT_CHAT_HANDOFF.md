@@ -56,6 +56,14 @@ Original user roadmap (18-page `Roadmap.pdf`, dated 2026-11-16; see detailed imp
 
 **Still required:** real consented photos (hooded/monolid/glasses, varied lighting/depth) and blinded artist scores; physical low/mid/high Android GPU p50/p95, thermal, memory and capture response. Cloudflare PR preview builds have reported failures; keep these distinct from GitHub Actions and **do not deploy or merge** before release gates. Main/public worker intentionally unchanged; licensing handled separately. Never upload private selfies.
 
+## Continuation — 2026-11-17: complete-cohort and intersectional blind-study evidence
+
+- **Baseline at the start of this iteration:** PR #23 head `491bc65adc503b6fb5195ba12636dc570ca07f1f`; [review 44088307814](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/44088307814) **completed SUCCESS**, including targeted native eye and all three full Playwright shards; [camera 44088307807](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/44088307807) **completed SUCCESS**. The opt-in lens/landmark research commit was green.
+- **Quality finding:** `evaluatePilot` previously counted 30 subjects per look even when those were four disjoint sets, and could miss failures isolated to one look/skin-depth intersection. This weakens evidence for any claim that a material renderer improves photorealism.
+- **This implementation:** `scripts/quality/benchmark_v2.mjs` requires 30 matched independent faces with all four required pilot conditions, validates one consistent skin-depth stratum per subject, uses the rated complete cohort for clustered Wilson confidence, and reports/fails underperforming look-by-skin cells when adequately sampled. Node regression tests cover disjoint cohorts, conflicting metadata, intersectional failures and the passing fixture; `docs/REALISM_IMPLEMENTATION_V2.md` documents the gate.
+- **New commit CI:** check current PR head SHA after committing; verify `Try-on review` (review + all 3 Playwright shards) and separate camera run. The preceding green source does not validate this new metadata-gate commit.
+- **Still unresolved:** consented real-photo blind artist comparisons and real low/mid/high-tier Android GPU, memory, thermal, camera data. Cloudflare preview build failure previously reported, but logs inaccessible; do not infer cause. Research remains `?eyePilot=v2` saved-photo opt-in; main/production unchanged. Licensing handled separately.
+
 ## Mandatory next-chat operating procedure
 
 1. Fetch PR #23 **current head SHA** and check `Try-on review` plus separate `Live mirror camera frame regression` workflows for **that exact SHA**. Require `review`, **all three** `Full Playwright suite` shards and independent camera **completed success**. If any fail, read GitHub job logs and fix the real problem. Cancelled runs caused by later commits are not “green”.
