@@ -379,6 +379,30 @@ The previous SHA `e75e4ac...` had passed 100% of automated checks. **This new sa
 3. Physically accurate makeup research: validate upper/lower lid, skin microtexture/pigment opacity, occlusion by hands, hair, spectacles, and rhinestone/eyelash optics with annotated consented real photos and blind professional comparisons of four pilot looks. This remains the major aesthetic blocker; synthetic no-makeup fixture and parity do **not** certify realism, and 42 looks still need editorial validation.
 4. Keep research-only and offline privacy restrictions. No merge/deploy to main or Cloudflare based only on green CI. Update PR #23, issue #24 and handoff with actual verified data.
 
+## Latest continuation — restore source-photo skin microtexture in opt-in eye pigment (2026-11-17)
+
+**Project:** `jjh167910-cloud/H-beauty-makeup`; PR #23, issue #24, branch `feat/realism-benchmark-v2`. Production `main` and the public Cloudflare salon app remain untouched.
+
+### CI inherited at start
+Latest prior head `fa53b66c4ae6ab893ce46038172564f171cf114c`, Actions `44069622283`: targeted `review` **PASS**, full suite shards **1/3 PASS**, **2/3 PASS**; shard **3/3 still running** when the new implementation began. A subsequent source commit cancelled that run before the last shard completed. Separate independent live camera smoke for that prior head had passed. **Never call that old head fully green**, and refresh Actions on the new head.
+
+### Code actually committed
+1. `src/lib/material-eye-native.ts` commit `f9441537b21c7102fb29ea7514c408efdeda5c9e`: experimental `NATIVE_EYE_FS` now avoids flattening fine original eyelid skin texture under cosmetic pigment. It derives a bounded `±0.045` linear-RGB high-frequency albedo residual from the **original user photo** minus its center-weighted 5-tap neighbor mean. The extra restoration is weighted by `0.60 × actual pigment opacity`, with color clipping protection, and runs only for tinted pixels. No generated pores, cross-face template texture, identity change or photo upload. Default/live production renderer unchanged; still only `?eyePilot=v2` saved-photo pilot.
+2. `tests/material-eye-native.spec.ts` commit `bbde5aedbfb1fca791571877d58559656ee67086`: checks retention of original high-frequency contrast in an unobstructed eyelid ROI on **light and deep synthetic skin textures**, plus the existing strict exclusions for sclera, occluded regions, protected areas, and no 0/255 clipping. The tests are limited to generated fixtures; they are NOT artist-perceptual studies.
+3. `docs/REALISM_IMPLEMENTATION_V2.md` commit `23d10365ef8e419dda0b676bce968b4e2ff292a5`: detailed shader design, performance trade-offs and research limitations.
+4. Updated issue #24 and PR #23 with source commits and validation status. This handoff finalizes the session. **Refresh current head/CI**, because documenting the code also triggers review Actions and may cancel earlier in-flight runs.
+
+### Verification known at the moment of documentation
+- Source head `bbde5aedbfb1fca791571877d58559656ee67086`, GitHub `Try-on review` run **44071564413**: TypeScript, Vite build, **targeted eye-material/geometry tests including new synthetic microtexture checks PASSED**; native saved-photo integration and streamed download/retry **PASSED**. The required additional live-camera step was still running at last observation. Independent `Live mirror camera frame regression` run **44071564241 COMPLETED SUCCESS** on the same source.
+- The latest *documentation-inclusive* HEAD after this handoff creates a new Actions run. **None of the updated source is approved for promotion until the new head passes required review plus all three sharded full Playwright jobs**.
+- No real Android GPU p50/p95, thermal/memory, blind artist-rated makeup realism, or consented representative eye-type/skin-depth photo dataset results have been collected. Microtexture retention is a plausible materials improvement, not demonstrated state-of-the-art performance.
+
+### Next concrete action
+1. Query GitHub PR #23 current head and all associated `Try-on review` jobs. If any shader native/finish/parity, original detail contrast, saved-photo/live-camera or complete suite fails, download actual failed job logs and **fix**, not bypass/skip the test. If all green, note exact SHA/jobs. Avoid many successive commits cancelling costly shards.
+2. Continue experimental **region-aware occlusion/skin-material** quality, especially hooded/monolid profiles, sunglasses/hair edges and lower eyelid conditions. Use tests that separately enforce true source skin texture retention, only authorized cosmetic pixels, and no iris/sclera changes. Do not invent real visual superiority.
+3. Obtain **real low/mid/high Android GPU timer** results through `docs/NATIVE_EYE_ANDROID_BENCHMARK.md`. Native shader gained four texture fetches per tinted pixel, so physical performance must be reassessed; the opt-in local A/B runner is available. No devices connected now.
+4. Run consented real-photo blinded artist review for three modified looks plus no-makeup control. Only after that and verified Android resource safety should the experimental mode be considered for a staged rollout; no automatic merge/deployment.
+
 ## New-chat start procedure (mandatory)
 
 1. Connect/use the GitHub app and fetch PR #23, current head SHA and workflow status; do not assume the latest chat's SHA still applies.
