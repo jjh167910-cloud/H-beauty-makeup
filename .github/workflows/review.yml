@@ -39,14 +39,47 @@ jobs:
         run: npm run test:ui -- tests/material-eye-native-integration.spec.ts
       - name: Verify streamed download cancellation and retry
         run: npm run test:ui -- tests/tryon-download.spec.ts
-      - name: Try-on tests
-        run: npm run test:ui
-      - name: Upload test results
+      - name: Upload targeted test results
         continue-on-error: true
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: tryon-test-results
+          name: tryon-targeted-results
+          path: |
+            test-results/
+          retention-days: 7
+
+  # The complete UI suite contains 23 heavyweight photo-model tests in a
+  # single spec file. By default Playwright shards by file, not test, so
+  # --fully-parallel is needed to spread that spec across three runners.
+  # Every test still executes exactly once; no regression is skipped.
+  # One worker per runner avoids parallel software WebGL/ONNX pressure.
+  full-browser:
+    name: Full Playwright suite (shard ${{ matrix.shard }}/3)
+    needs: review
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify runner Chrome
+        run: google-chrome --version
+      - name: Full UI regression tests (all specs, disjoint shards)
+        run: npm run test:ui -- --fully-parallel --workers=1 --shard=${{ matrix.shard }}/3
+      - name: Upload shard test results
+        continue-on-error: true
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tryon-full-shard-${{ matrix.shard }}
           path: |
             test-results/
           retention-days: 7
