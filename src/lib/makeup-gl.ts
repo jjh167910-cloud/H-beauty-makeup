@@ -24,7 +24,7 @@
  */
 import type { Pt } from "./tryon";
 import { NATIVE_EYE_FS, nativeEyeMaterial, nativeEyeScissor } from "./material-eye-native";
-import { NativeEyeGpuTimer, type NativeEyeGpuMeasurement, type NativeEyeGpuMode } from "./native-eye-gpu-timer";
+import { NativeEyeGpuTimer, type NativeEyeGpuMeasurement, type NativeEyeGpuMode, type NativeEyeGpuSummary } from "./native-eye-gpu-timer";
 
 export type Level = "soft" | "natural" | "bold";
 /** (catalog layer, lipstick opacity, eye detail), as LEVELS in teacher.py. */
@@ -1935,6 +1935,12 @@ export class MakeupGL {
     this.lastNativeEyeGpuMs = latest?.gpuMs ?? null;
     this.lastNativeEyeGpuMode = latest?.mode ?? null;
     return latest;
+  }
+
+  /** Development-only, sampled GPU elapsed-time summary (no uploads). */
+  nativeEyeGpuProfile(): NativeEyeGpuSummary[] {
+    this.pollNativeEyeGpuTiming();
+    return this.nativeEyeGpuTimer?.summarize() ?? [];
   }
 
   /** A renderer, or null when the phone has no WebGL2 (the app then uses the tiny networks). */
