@@ -160,6 +160,18 @@ export function nativeEyeMaterial(P: Pt[], lookId: string, level: Level): Native
 }
 
 /**
+ * The legacy CPU eye overlay has a less strict geometric validator.
+ * It must never be allowed to "rescue" an opt-in native render rejected
+ * because one of the customer's eyes is distorted or occluded. On native
+ * shader/driver failure, the already-composed baseline photo is safer than
+ * guessing new eyeliner/eyelashes for a rejected eye.
+ */
+export function nativeEyeLegacyFallbackAllowed(P: Pt[], lookId: string, level: Level): boolean {
+  const material = nativeEyeMaterial(P, lookId, level);
+  return Boolean(material && material.enabled[0] === 1 && material.enabled[1] === 1);
+}
+
+/**
  * Conservative output-space scissor for an opt-in same-context fast GPU pass.
  * Shader can never affect pixels outside each eye's upper lid / brow envelope,
  * except wing tips, curled lashes and their subpixel antialiasing. This helper
