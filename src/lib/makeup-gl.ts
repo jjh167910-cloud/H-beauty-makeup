@@ -23,6 +23,7 @@
  * Everything else stays her own pixels.
  */
 import type { Pt } from "./tryon";
+import { NATIVE_EYE_FS, nativeEyeMaterial } from "./material-eye-native";
 
 export type Level = "soft" | "natural" | "bold";
 /** (catalog layer, lipstick opacity, eye detail), as LEVELS in teacher.py. */
@@ -1904,6 +1905,9 @@ export class MakeupGL {
   private size = [0, 0];
   private float: boolean;
   private targets: Record<string, Target> = {};
+  /** Allocated only for the opt-in, saved-photo native material research path. */
+  private nativeOutput: Target | null = null;
+  private nativeProgramUnavailable = false;
   private depth: WebGLRenderbuffer | null = null;
   private smallDepth: WebGLRenderbuffer | null = null;
   private small = [1, 1];
@@ -1955,6 +1959,47 @@ export class MakeupGL {
     this.wbuf = gl.createBuffer()!;
   }
 
+  /** Lazy shader compile: failure in an experimental pass never disables
+   * the entire production renderer on an older WebGL2 phone.
+   */
+  private nativeEyeProgram(): WebGLProgram | null {
+    if (this.progs.nativeEye) return this.progs.nativeEye;
+    if (this.nativeProgramUnavailable) return null;
+    const gl = this.gl;
+    const vert = gl.createShader(gl.VERTEX_SHADER);
+    const frag = gl.createShader(gl.FRAGMENT_SHADER);
+    const program = gl.createProgram();
+    if (!vert || !frag || !program) {
+      this.nativeProgramUnavailable = true;
+      return null;
+    }
+    try {
+      gl.shaderSource(vert, QUAD_VS);
+      gl.shaderSource(frag, NATIVE_EYE_FS);
+      gl.compileShader(vert);
+      gl.compileShader(frag);
+      if (!gl.getShaderParameter(vert, gl.COMPILE_STATUS) ||
+          !gl.getShaderParameter(frag, gl.COMPILE_STATUS))
+        throw new Error(gl.getShaderInfoLog(frag) || gl.getShaderInfoLog(vert) || "native eye shader");
+      gl.attachShader(program, vert);
+      gl.attachShader(program, frag);
+      gl.bindAttribLocation(program, 0, "aPos");
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS))
+        throw new Error(gl.getProgramInfoLog(program) || "native eye link");
+      this.progs.nativeEye = program;
+      return program;
+    } catch (error) {
+      this.nativeProgramUnavailable = true;
+      gl.deleteProgram(program);
+      console.warn("Experimental native eye shader disabled", error);
+      return null;
+    } finally {
+      gl.deleteShader(vert);
+      gl.deleteShader(frag);
+    }
+  }
+
   private texture(): WebGLTexture {
     const gl = this.gl, t = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, t);
@@ -1985,6 +2030,11 @@ export class MakeupGL {
     if (this.size[0] === w && this.size[1] === h) return;
     const gl = this.gl;
     for (const t of Object.values(this.targets)) { gl.deleteFramebuffer(t.fb); t.tex.forEach((x) => gl.deleteTexture(x)); }
+    if (this.nativeOutput) {
+      gl.deleteFramebuffer(this.nativeOutput.fb);
+      this.nativeOutput.tex.forEach(t => gl.deleteTexture(t));
+      this.nativeOutput = null;
+    }
     if (this.depth) gl.deleteRenderbuffer(this.depth);
     const target = (count: number, float: boolean) => this.target(count, float, w, h);
     this.targets = {
@@ -2254,7 +2304,8 @@ export class MakeupGL {
    * it). The result is on this.canvas (w x h).
    */
   render(source: TexImageSource, w: number, h: number, P: Pt[], look: LookFiles, face: FaceStats, level: Level, tris: number[],
-    lip: LipInfo = look.lip, canon?: Canon, steps?: StepState, products?: Products, vis?: Visibility | null, lips?: LipGrid | null) {
+    lip: LipInfo = look.lip, canon?: Canon, steps?: StepState, products?: Products, vis?: Visibility | null, lips?: LipGrid | null,
+    nativeEyeId?: string) {
     const gl = this.gl;
     if (this.canvas.width !== w || this.canvas.height !== h) { this.canvas.width = w; this.canvas.height = h; }
     this.resize(w, h);
@@ -2591,9 +2642,18 @@ export class MakeupGL {
       this.drawQuad(p);
     }
 
-    // 4. everything together, onto the canvas
+    // 4. Main makeup composition. In the explicitly opt-in PHOTO pilot,
+    // write it to an RGBA8 framebuffer instead of the default drawingBuffer.
+    // The next material pass runs in this same context, without CPU ROI
+    // readbacks, second WebGL contexts or canvas-to-canvas blits.
+    // Invalid/unsupported geometry leaves the proven default path unchanged.
+    const nativeData = nativeEyeId && vis && !steps && !products?.mine
+      ? nativeEyeMaterial(P, nativeEyeId, level) : null;
+    const nativeProgram = nativeData ? this.nativeEyeProgram() : null;
+    const nativeOn = Boolean(nativeData && nativeProgram);
+    if (nativeOn && !this.nativeOutput) this.nativeOutput = this.target(1, false, w, h);
     gl.disable(gl.SCISSOR_TEST);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, nativeOn ? this.nativeOutput!.fb : null);
     p = this.use("main");
     this.bindTex(p, "uSrc", foundOn ? this.targets.srcF.tex[0] : this.src, 0);
     this.bindTex(p, "uLayer", (soft ? this.targets.detail : extendOn ? this.targets.layerX : this.targets.layer).tex[0], 1);
@@ -2733,6 +2793,29 @@ export class MakeupGL {
       gl.uniform4f(this.uni(p, "uMid"), mid[0], mid[1], dir[0], dir[1]);
     }
     this.drawQuad(p, -1);
+    if (nativeOn && nativeData && nativeProgram) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.disable(gl.DEPTH_TEST);
+      gl.disable(gl.BLEND);
+      gl.disable(gl.SCISSOR_TEST);
+      p = this.use("nativeEye");
+      this.bindTex(p, "uPrevious", this.nativeOutput!.tex[0], 0);
+      this.bindTex(p, "uOriginal", this.src, 1);
+      this.bindTex(p, "uVis", this.grids.vis.prob, 2);
+      gl.uniform2f(this.uni(p, "uSize"), w, h);
+      gl.uniform3f(this.uni(p, "uVisBox"), ...vis!.box);
+      gl.uniform1i(this.uni(p, "uVisOn"), 1);
+      gl.uniform2fv(this.uni(p, "uUpper"), nativeData.upper);
+      gl.uniform2fv(this.uni(p, "uBrows"), nativeData.brows);
+      gl.uniform4fv(this.uni(p, "uFrame"), nativeData.frame);
+      gl.uniform1fv(this.uni(p, "uSpan"), nativeData.span);
+      gl.uniform1iv(this.uni(p, "uEnabled"), nativeData.enabled);
+      gl.uniform3fv(this.uni(p, "uPigmentA"), nativeData.pigmentA);
+      gl.uniform3fv(this.uni(p, "uPigmentB"), nativeData.pigmentB);
+      gl.uniform1f(this.uni(p, "uAmount"), nativeData.amount);
+      gl.uniform1i(this.uni(p, "uMode"), nativeData.mode);
+      this.drawQuad(p); // FBO texture -> drawingBuffer; orientation already corrected by main pass
+    }
   }
 
   dispose() {
