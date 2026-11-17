@@ -333,6 +333,18 @@ Previously, the benchmark rendered exactly 30 requests per mode while `EXT_disjo
 
 This is **benchmark robustness**, not proof that `native-fast` is faster, photorealistic, more energy efficient, or ready for production. Physical Android samples and real photographic artist-blind validation remain required. See `docs/NATIVE_EYE_ANDROID_BENCHMARK.md`.
 
+## Original-photo eyelid microtexture retention — experimental WebGL material pass (2026-11-17)
+
+The original native WebGL2 eyelid pilot used `filled=mix(originalSkin,pigment,opacity)`, attenuating the customer's real fine-grained eyelid surface detail as pigment opacity increased. This is a material realism limitation: eyeshadow should modify reflectance/pigment while retaining visible source skin structure, not replace the eyelid with the synthetic catalog model's texture or a flat painted layer.
+
+The latest **opt-in-only** `NATIVE_EYE_FS` now applies a strictly bounded **source-photo high-frequency residual** after linear-light pigment mixing:
+
+- Read the original customer pixel and four neighboring **customer pixels** (left/right/up/down, clamped within the image). Their center-weighted 5-tap low-pass estimate gives `microtexture = clamp(originalAlbedo - lowpass, ±0.045 linear RGB)`. There is no generated pore noise, AI source texture transfer, skin smoothing or facial-proportion modification.
+- Restore at `0.60 × cosmetic pigment opacity`; clamp material output before the final sRGB conversion. Read four extra original texels **only where eyelid pigment opacity is above 0.015**. The existing shader visibility gate, eyebrow/upper-lid geometry, protected pixels, normal/live production isolation and native-fast framebuffer/scissor still apply.
+- Existing tests now sample local synthetic fine-skin contrast on **light and deep skin fixtures**, while asserting protected/occluded/sclera pixels, absence of hard clipping, and non-flat pigment. The rest of the saved-photo native, shader parity and live-camera suites remain mandatory. Source commits `f9441537b21c7102fb29ea7514c408efdeda5c9e` and `bbde5aedbfb1fca791571877d58559656ee67086`.
+
+**Limits:** This retains *some* photographed high-frequency source detail and can plausibly reduce plastic-looking eye pigment, but synthetic unit tests do **not** establish a perceptual improvement. Source detail may include sensor noise or imperfections and extra texture reads can cost GPU time. No physically measured Android p50/p95, no certified per-skin-group improvement and no blinded makeup-artist comparisons on consented real photographs are available. This cannot be called state of the art or production-ready; all three pilot looks and the eventual 42-look catalog require genuine representative photo/artist validation.
+
 ## Shipping policy
 
 1. Production stays on main during research; use a feature flag and pilot branch.
