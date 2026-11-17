@@ -279,6 +279,21 @@ This is **development-only performance infrastructure**, not an assertion that n
 
 **Implementation commits:** `9a628120aba5990135f859599f3d736f0862847b` (guard), `610a918cb74c37d82b5db0ef06bd4cd5c5c887dc` (browser tests), `7450a7fc67da32d2f29fa52df690d7377cfb9855` (CI gate). No production merge or deployment. Review the latest GitHub Actions before calling these tests passed.
 
+## Live camera capture actionability and full-suite CI regression — 2026-11-17
+
+Full PR verification reached the complete three-shard Playwright suite in `43997291151`. The quality-review job and shards **1/3** and **2/3** passed, but shard **3/3 failed one of its 15 tests**: `tests/tryon.spec.ts:493` (“live mirror paints the look ... a capture becomes a photo try-on”). The other **14 passed**. A structured Playwright failure artifact showed that the visible, enabled `گرفتن عکس` (“Take photo”) button did not complete an automated click before the original **300,000-ms total test deadline** after changing lipstick and toggling studio lighting. The artifact does not prove that the capture handler itself was blocked for five minutes—the total scenario had many steps and substantial model work.
+
+### Actual code fix, not a skipped or disabled test
+- `src/lib/live-tryon.ts` (commit `8bca6436dca4dd87357cbbbf5f65bb666240bce2`): the synchronous on-device detection/segmentation/studio/live-GPU draw loop now schedules its next animation frame after a small **9–32 ms quiet period**, adjusted by recent frame work. This gives taps, accessibility controls, and capture events a chance to run even on heavily loaded software renderers. `pauseForCapture()` / `resumeAfterCapture()` suspend expensive live image work without stopping the camera stream.
+- `src/components/tryon.tsx` (commit `aa6b93770fa729d7e015dbd59e825a6117567f06`): the capture handler pauses live rendering before extracting/encoding the unmirrored video frame, resumes on failure, and retains the original photo try-on workflow after capture. Normal camera and appearance pipeline preserved.
+- `.github/workflows/review.yml` (commit `00f338c36def25f5b964d1929f042f9137a4ed69`): explicitly exercises the previously failing camera-to-photo scenario **before** all three expensive full-suite shards. The pre-existing independent `live-mirror-smoke.yml` also runs this scenario whenever its files change.
+- `tests/tryon.spec.ts` (commit `7e5a399b88462e55d82f6cf866062911ae07bfaf`): the long multi-action software-rendered scenario has a **600-second total allowance** while the critical capture click itself must dispatch in **at most 20 seconds**. This keeps real click responsiveness as an enforced assertion rather than only increasing the end-to-end timeout; the post-capture image remains subject to its existing 120-second explicit limit.
+
+### Grounded verification
+- GitHub's dedicated independent `Live mirror camera frame regression` workflow run `44000522932` **passed** on the frame-pacing/capture-pause changes (source `00f338c36def25f5b964d1929f042f9137a4ed69`), before the separate stricter-click-budget edit.
+- The newest source `7e5a399b88462e55d82f6cf866062911ae07bfaf` has independent live-smoke run `44000741037` and PR review run `44000741018`; they were still running when this section was recorded. Consult the latest GitHub Actions status, do **not** claim a complete green PR until `review`, all three full-browser shards, and the dedicated live-smoke run explicitly pass.
+- **No production deployment or main merge.** No real Android physical-device interaction, thermal, battery, GPU p50/p95 or blinded photographic appearance study is implied by a CI pass. The underlying mobile photo capture is still on-device and does not upload private selfies.
+
 ## Shipping policy
 
 1. Production stays on main during research; use a feature flag and pilot branch.
