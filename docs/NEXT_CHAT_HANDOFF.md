@@ -214,6 +214,36 @@ This session implemented and committed:
 
 **Suggested new-chat prompt:** "Continue H-Beauty Makeup's highest-possible photorealistic, offline virtual try-on. Read `docs/NEXT_CHAT_HANDOFF.md` in branch `feat/realism-benchmark-v2` of `jjh167910-cloud/H-beauty-makeup`, PR #23, issue #24 and current CI. Fix failures, implement GPU timer-query benchmarking and real-device performance safeguards, commit tested work on the branch, preserve production and update the handoff."
 
+## Latest session: native GPU timer queries + per-mode p50/p95 (2026-11-17)
+
+**Active work:** GitHub `jjh167910-cloud/H-beauty-makeup`, branch `feat/realism-benchmark-v2`, open PR #23, tracking issue #24. **Production main and Cloudflare site unchanged.** This section is the newest engineering milestone, above the generic start procedure.
+
+### Actual commits and files
+- New `src/lib/native-eye-gpu-timer.ts` — **local, nonblocking WebGL2 GPU timer** using `EXT_disjoint_timer_query_webgl2` and `TIME_ELAPSED_EXT`. It checks readiness before result retrieval, has a maximum of three pending queries and retains only 64 completed measurements, discards all measurements on GPU disjoint/context loss, never calls `gl.finish()` or `readPixels()`, never uploads image data. It distinguishes the actual `native` vs `native-fast` path even after a blit fallback. Exposes per-mode p50/p95/min/max/sample counts.
+- `src/lib/makeup-gl.ts`: native same-context eye shader pass is instrumented **only if `eyeTiming=1` on the research URL**. Query wraps blit + shader for native-fast and full shader for native; `try/finally` guarantees termination. Exposed `nativeEyeGpuTimingSupported`, `lastNativeEyeGpuMs`, `lastNativeEyeGpuMode`, `pollNativeEyeGpuTiming()`, and `nativeEyeGpuProfile()`. Separate pre-existing `lastNativeEyeMs` is **CPU submission time**, not GPU time. Timer cleans itself up on WebGL context loss or renderer dispose.
+- New `tests/material-eye-timing.spec.ts`: synthetic/mock browser tests for unsupported extension, delayed results (no blocking retrieval), correct ns→ms conversion, disjoint/history invalidation, context loss, query backlog, negative readings and mode-specific bounded p50/p95. Added to short targeted Playwright CI step.
+- `tests/material-eye-native-fast.spec.ts`: enabled `eyeTiming=1` during photo-render parity checks; timer support is allowed to be absent on a software runner, and results never block the photo.
+- `docs/REALISM_IMPLEMENTATION_V2.md`: updated architecture, exact diagnostic flags, and real Android measurement protocol.
+
+### Exact test result
+Source commit `2595c85d80f90d07e75c9745e1389865b1805d19`, GitHub Actions **run `43992204888`**:
+- **PASSED:** offline Node tests, TypeScript, Vite build, all targeted eye renderer and GPU timing browser tests, end-to-end saved-photo native smoke, streamed AI model download/cancel/retry.
+- The long general `Try-on tests` Playwright suite was **still running** at the time of this update and is NOT claimed green; the subsequent documentation commit may cancel superseded jobs automatically. Check latest PR HEAD and Jobs URL, because each new commit retriggers CI.
+- The code is compiled and browser-tested but **no real Android GPU performance measurements exist**. No performance gain, state-of-the-art photorealism or physical smartphone validation is asserted.
+
+### Research flags
+- `?eyePilot=v2&eyeCompute=native&eyeTiming=1` measures native eye shader GPU elapsed time.
+- `?eyePilot=v2&eyeCompute=native-fast&eyeTiming=1` measures the *same* native shader plus same-GPU-context blit/scissor in the optimized mode. The existing `native` and `native-fast` image paths also work without `eyeTiming`.
+- Only in the **saved-photo** opt-in branch; default/live mirror and production unchanged.
+- Current `gpu()?.nativeEyeGpuProfile()` returns per-mode last 64 local measurements. Unsupported extension => empty samples rather than a made-up time.
+
+### Next highest-value actions
+1. Inspect PR #23 newest SHA, latest CI outcome and failure logs. Fix any failures and allow one **complete** full Playwright suite to finish green before merging or deploying.
+2. Collect **actual real-phone** GPU measurements: randomized A/B native vs native-fast on low/mid/high-end Android, 30+ valid queries per mode with the same photograph/look/output resolution, warmed GPU, and no disjoint results. Check p50/p95, extra fullscreen RGBA8 buffer memory, peak usage, sustained thermal behavior and battery cost; never equate CPU submission ms with GPU execution ms. No connected physical Android device is currently available in this chat.
+3. Improve direct per-eye scissor geometry on hooded, monolid, near-closed, glasses, extreme yaw/occluded photos; test with annotated self-consented images while preserving pixels outside authorized masks.
+4. Perform genuine real makeup photos versus candidate renders blinded with artists. Quality targets remain native photorealistic lashes, liner, pigments, skin pores and rhinestone optics; expand from the three pilot looks plus no-makeup control to all 42 only when evidence warrants it.
+5. Update this file, PR #23 and issue #24 after each verified milestone. The next chat should proceed without asking for the original roadmap.
+
 ## New-chat start procedure (mandatory)
 
 1. Connect/use the GitHub app and fetch PR #23, current head SHA and workflow status; do not assume the latest chat's SHA still applies.
