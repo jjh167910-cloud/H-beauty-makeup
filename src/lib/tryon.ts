@@ -990,7 +990,7 @@ async function myTurn<T>(work: () => Promise<T>): Promise<T> {
 }
 
 async function paintGpuNow(source: HTMLCanvasElement, points: Pt[], look: string, level: Level, face?: FaceStats, lip?: LipChoice | null,
-  steps?: StepState, picks?: ProductPicks | null, vis?: Visibility | null, lips?: LipGrid | null, nativeEye = false): Promise<HTMLCanvasElement> {
+  steps?: StepState, picks?: ProductPicks | null, vis?: Visibility | null, lips?: LipGrid | null, nativeEye = false, nativeFast = false): Promise<HTMLCanvasElement> {
   const r = gpu();
   if (!r) throw "failed" satisfies TryOnError;
   const stats = face ?? measureFace(source, points);
