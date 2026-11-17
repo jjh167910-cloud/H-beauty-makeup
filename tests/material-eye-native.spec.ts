@@ -108,6 +108,36 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
       const read=new Uint8Array(prior.length);
       gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,read);
       const display=flip(read);
+      // Independently vary the RIGHT eye's source-light reference texel.
+      // Under asymmetric studio lighting, the LEFT eye must not change:
+      // cosmetic pigment should reference its OWN eye, not whichever
+      // enabled eye happens to execute last in the shader loop.
+      const rightUpperIdx=(1*9+4)*2, rightBrowIdx=(1*5+2)*2;
+      const refX=Math.floor(material.upper[rightUpperIdx]*0.76+
+        material.brows[rightBrowIdx]*0.24);
+      const refY=Math.floor(material.upper[rightUpperIdx+1]*0.76+
+        material.brows[rightBrowIdx+1]*0.24);
+      const refOff=(refY*W+refX)*4;
+      const referenceOriginal=new Uint8Array(original.subarray(refOff,refOff+4));
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D,textures[1]);
+      gl.texSubImage2D(gl.TEXTURE_2D,0,refX,refY,1,1,gl.RGBA,
+        gl.UNSIGNED_BYTE,new Uint8Array([242,238,233,255]));
+      gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+      const otherEyeRead=new Uint8Array(prior.length);
+      gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,otherEyeRead);
+      const otherEyeBrightened=flip(otherEyeRead);
+      // Restore exact original source before other raster regressions.
+      gl.texSubImage2D(gl.TEXTURE_2D,0,refX,refY,1,1,gl.RGBA,
+        gl.UNSIGNED_BYTE,referenceOriginal);
+      let leftEyeCrossTalk=0, leftEyePainted=0;
+      for(let y=125;y<=163;y++)for(let x=155;x<=247;x++){
+        const offset=(y*W+x)*4;
+        for(let c=0;c<3;c++){
+          if(display[offset+c]!==prior[offset+c])leftEyePainted++;
+          if(display[offset+c]!==otherEyeBrightened[offset+c])leftEyeCrossTalk++;
+        }
+      }
       // Isolate the native eyeliner and lashes from eyeshadow: the raster must
       // change when fibers are enabled, even on deep skin, without source-face pixels.
       gl.uniform1f(gl.getUniformLocation(p,"uLinerWidth"),0);
@@ -163,7 +193,8 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
       }
       observations.push({depth,changed,protectedChanged,occludedChanged,clipped,
         topChanges,bottomChanges,inkChanged,inkOutside,scleraChanged,outsideCoordinates,
-        detailSamples, textureRetention: paintedDetail / Math.max(1, originalDetail)});
+        detailSamples, textureRetention: paintedDetail / Math.max(1, originalDetail),
+        leftEyeCrossTalk, leftEyePainted});
       textures.forEach(t=>gl.deleteTexture(t));
     }
     return {observations,enabled:[...material.enabled]};
@@ -187,6 +218,8 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
     // after pigmentation rather than returning a synthetic flat wash.
     expect(result.textureRetention).toBeGreaterThan(0.35);
     expect(result.textureRetention).toBeLessThan(1.8);
+    expect(result.leftEyePainted).toBeGreaterThan(100);
+    expect(result.leftEyeCrossTalk).toBe(0);
   }
 });
 
