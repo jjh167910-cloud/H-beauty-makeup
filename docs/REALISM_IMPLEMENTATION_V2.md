@@ -345,6 +345,18 @@ The latest **opt-in-only** `NATIVE_EYE_FS` now applies a strictly bounded **sour
 
 **Limits:** This retains *some* photographed high-frequency source detail and can plausibly reduce plastic-looking eye pigment, but synthetic unit tests do **not** establish a perceptual improvement. Source detail may include sensor noise or imperfections and extra texture reads can cost GPU time. No physically measured Android p50/p95, no certified per-skin-group improvement and no blinded makeup-artist comparisons on consented real photographs are available. This cannot be called state of the art or production-ready; all three pilot looks and the eventual 42-look catalog require genuine representative photo/artist validation.
 
+## Three-site per-eye photometric robustness — 2026-11-17
+
+The prior native eye WebGL2 pigment shader used one source-photo skin-light sample for each contributing eye. Even after correcting inter-eye cross-contamination, a **single** bright specular pixel, dark stray hair, or sensor-noise artifact at that reference coordinate could alter illumination compensation across an otherwise unaffected painted eyelid.
+
+Research-only material update:
+- `src/lib/material-eye-native.ts` uses three **original customer photo** source texels, at normalized upper-lid/brow coordinates `along=0.33`, `0.50`, `0.67`, each `24%` of the upper lid-to-brow distance, to derive linear sRGB luminance.
+- Take the **median luminance**, rather than the average or a single center value. It rejects one isolated extreme reference value without inventing skin texture. Selection remains confined to the **eye whose pigment/liner/gem contributes the current output pixel**; side-lit left and right eyes remain independent.
+- `tests/material-eye-native.spec.ts` now injects **near-black (3) and near-white (250)** source RGB into only the central reference texel. It checks that distant eyelid makeup stays within a strict channel-maximum/mean tolerance, excluding only the direct local 3×3 texture footprint. Uses light and deep synthetic skin; existing protected pixels, no eye/sclera spill, no clipping, eye-isolation and original skin-texture tests remain.
+- This adds two texture fetches to the opt-in shader for relevant output pixels; its physical Android GPU cost must be measured with `docs/NATIVE_EYE_ANDROID_BENCHMARK.md`. It is *not* evidence of superior photorealism; hair/eyeglass occlusion and pigment/material reflectance still require consented real-photo tests and artist-blinded ratings.
+
+Commits: `f6a27f2db14d06ba6a28cc4a6f79cee89e536cf0` and `53b479a5c59d2bd4b4a1d7dbfe5133634890ee46`. Retain experiment behind `?eyePilot=v2`, not live/production. Verify all current-HEAD CI before promotion.
+
 ## Shipping policy
 
 1. Production stays on main during research; use a feature flag and pilot branch.
