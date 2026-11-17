@@ -205,6 +205,21 @@ Tests:
 
 This milestone is **not** full photorealistic superiority, full native vector eyelashes/liner, native face segmentation/dense geometry, all-42-look migration, or physical-phone 30fps. Blind human evaluation and real-world Android performance profiling remain required.
 
+## Same-context GPU eyeliner + individually anchored eyelashes — 2026-11-17
+
+The experimental `?eyePilot=v2&eyeCompute=native` saved-photo renderer now includes **authored eyeliner and tapered eyelash fibers**, on top of its shader-native pigment. They are generated in `src/lib/material-eye-native.ts` in GLSL ES 3.0 and drawn in the existing `MakeupGL` WebGL2 context; the CPU does not rasterize coverage masks, and this path does not use `gl.readPixels`.
+
+- **Per-eye anatomy:** each upper-lid anchor and brow tangent comes from the current photo. A direction-to-brow unit vector defines outward curl even when the source selfie is rotated. Far/profile eyes with collapsed geometry are suppressed; the closed-eye aperture inhibits individual lash strands.
+- **Shape-specific eyeliner:** cosmetic look metadata controls thickness and colour. Wing, fox, siren and longer `graphic` styles use distinct wing lengths. Electric Blue specifies `liner: "graphic"` and a **0.30-eye-span** extension, while Hollywood uses the shorter wing (0.22 spans). Liner geometry is distance-field rendered with subpixel softness.
+- **Individually anchored fibers:** strand roots follow the target customer's nine-point upper-lid curve. Strand lengths, densities and irregularities vary by look (natural, volume, dramatic) and taper toward each tip. The shader skips work outside the eyelid ROI and clips below the lid to protect the sclera. All of this remains an experimental research approximation, **not photo-trained eyelashes or proof of cosmetic fidelity**.
+- **Camera matching:** image-derived blur is supplied as a uniform to control subpixel ink antialiasing. Fragment output blends authored linear-light ink over the previous makeup render, with bounded RGB encoding and no change outside the authorized eye region or the visibility mask.
+
+**Quality verification:** GitHub PR #23, branch `feat/realism-benchmark-v2`. Commit `392768e6b88cae9bf23918388de23d45504271fe` passed the offline Node tests, TypeScript, Vite build, ten targeted eye-material browser tests, full saved-photo native integration test, and stream-download retry checks. The full application Playwright suite was still running at the last check; **do not treat targeted passes as a completed PR**.
+
+Regression details: an early test incorrectly assumed the shorter Hollywood wing length for Electric Blue. The browser test reported the nine pixels at **(89–90, 163–167)**; verifying the look metadata showed they belong to Electric Blue's intentionally longer graphic wing. The correct 0.30-span protected-eye geometry is now reflected in the test; independent background and sclera pixel-lock checks were retained.
+
+**Not yet solved:** true photorealistic lash/liner depth, individualized lashes based on dense eye segmentation, eyelid occlusion by existing natural lashes, raw camera optics beyond blur, shimmer/rhinestone BRDF, physical Android memory/performance, 42-look migration and real-client photographed makeup comparisons. The original catalog-ratio baseline is still present under the experimental postpass and has not been replaced across the app.
+
 ## Shipping policy
 
 1. Production stays on main during research; use a feature flag and pilot branch.
