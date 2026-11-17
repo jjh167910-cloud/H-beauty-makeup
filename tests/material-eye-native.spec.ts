@@ -180,3 +180,41 @@ test("native face-space pilot fails closed for degenerate geometry and no-makeup
   expect(result.malformed).toBeNull();
   expect(result.empty).toBeNull();
 });
+
+
+test("native lash geometry disables a collapsed far eye and closed-eye strands", async ({ page }) => {
+  await page.goto("/");
+  const checks = await page.evaluate(async () => {
+    const { nativeEyeMaterial } = await import("/src/lib/material-eye-native.ts");
+    const P = Array.from({ length: 478 }, () => [300, 155, 0]);
+    const left = [33, 246, 161, 160, 159, 158, 157, 173, 133];
+    left.forEach((id,i) => P[id] = [130 + 17*i, 165 - 13*Math.sin(i*Math.PI/8), 0]);
+    [70, 63, 105, 66, 107].forEach((id,i) => P[id] = [135 + 34*i, 99, 0]);
+    P[145] = [198, 183, 0];
+    const right = [263, 466, 388, 387, 386, 385, 384, 398, 362];
+    right.forEach((id,i) => P[id] = [402 - 4*i, 165 - 3*Math.sin(i*Math.PI/8), 0]);
+    [300, 293, 334, 296, 336].forEach((id,i) => P[id] = [401 - 8*i, 143, 0]);
+    P[374] = [386, 172, 0];
+    const opened = nativeEyeMaterial(P, "hollywood", "natural");
+    P[145] = P[159].slice();
+    const closed = nativeEyeMaterial(P, "hollywood", "natural");
+    return {
+      enabled: opened ? [...opened.enabled] : null,
+      opening: opened ? [...opened.opening] : null,
+      closedOpening: closed?.opening[0] ?? -1,
+      closedEnabled: closed?.enabled[0] ?? 0,
+      linerWidth: opened?.linerWidth ?? 0,
+      wingLength: opened?.wingLength ?? 0,
+      lashLength: opened?.lashLength ?? 0,
+      lashCount: opened?.lashCount ?? 0,
+    };
+  });
+  expect(checks.enabled).toEqual([1,0]);
+  expect(checks.opening![0]).toBeGreaterThan(0.045);
+  expect(checks.closedOpening).toBe(0);
+  expect(checks.closedEnabled).toBe(1);
+  expect(checks.linerWidth).toBeGreaterThan(0);
+  expect(checks.wingLength).toBeGreaterThan(0);
+  expect(checks.lashLength).toBeGreaterThan(0.1);
+  expect(checks.lashCount).toBeGreaterThanOrEqual(20);
+});
