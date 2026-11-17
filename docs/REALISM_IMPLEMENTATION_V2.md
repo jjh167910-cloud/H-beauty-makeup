@@ -480,3 +480,21 @@ turn off all new cosmetics, and insist the source-photo seam is measurably
 restored with unchanged sclera/protected pixels. This **does not** establish
 that real hooded/monolid eyes look correct, and physical Android GPU cost and
 blinded consented artist reviews are still required before release.
+
+### Lens-sized upper-lid restoration and zero-pigment preservation (2026-11-17)
+
+A relative-to-brow `0.16` cleanup band scales to a visibly broad strip on
+large face crops and can erase genuine photographic detail above the eye.
+Native eye cleanup now stops after at most `1.6 + uInkSoft` source-photo pixels
+(or `0.16` times local lid-to-brow gap, whichever is smaller), feathering from
+the lashline to its upper limit. The original customer photograph, not the
+catalog source, supplies any restored pixels.
+
+When native pigment `uAmount=0`, the large eyeshadow replacement mask must
+be zero. This prevents the apparent no-new-makeup control from silently
+removing an entire eyelid layer; the separate tightly masked experimental
+legacy-seam cleanup remains under `uCleanLegacy` and the visibility mask.
+An early GPU regression enforces an exact all-RGBA identity with no cosmetic
+passes/cleanup, positive restoration beside the lid with cleanup, zero change
+3–4 pixels above it and existing protected/sclera checks. The work is a
+technical precondition, **not** an artist-rated photorealism certification.

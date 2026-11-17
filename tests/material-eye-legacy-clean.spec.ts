@@ -131,6 +131,22 @@ test("native eye wing does not transmit legacy catalog-color ghost under new ink
     gl.uniform1f(uniform("uRhinestones"),0);
     const seamUnclean=draw(seamGhost,0);
     const seamRestored=draw(seamGhost,1);
+    // With pigment at zero, disabling the native cleanup must preserve
+    // EVERY prior RGBA channel. The old replacement mask incorrectly
+    // cleared a broad eyelid wash, even with no active cosmetic material.
+    let noCosmeticsDelta=0;
+    for(let k=0;k<seamGhost.length;k++)
+      if(seamUnclean[k]!==seamGhost[k]) noCosmeticsDelta++;
+    const probe=(arr:Uint8Array,x:number,y:number)=>{
+      const offset=(y*W+x)*4;
+      return [...arr.subarray(offset,offset+4)];
+    };
+    const near=[145,134],far=[145,131];
+    const rgbDistance=(a:number[],b:number[])=>
+      Math.abs(a[0]-b[0])+Math.abs(a[1]-b[1])+Math.abs(a[2]-b[2]);
+    const nearBefore=rgbDistance(probe(seamUnclean,...near),probe(image,...near));
+    const nearAfter=rgbDistance(probe(seamRestored,...near),probe(image,...near));
+    const farDelta=rgbDistance(probe(seamRestored,...far),probe(seamUnclean,...far));
     gl.uniform1f(uniform("uAmount"),mat.amount);
     gl.uniform1f(uniform("uLinerWidth"),mat.linerWidth);
     gl.uniform1f(uniform("uWingLength"),mat.wingLength);
@@ -266,7 +282,8 @@ test("native eye wing does not transmit legacy catalog-color ghost under new ink
     return {inkSamples,legacyDifference,cleanedDifference,protectedDifference,
       wingRootScore,wingTipScore,wingOutside,glintCases,highlightRecovery:mat.highlightRecovery,
       lashChanged,lashOutside,outerLashes,innerLashes,
-      seamImproved,seamProtected,seamSclera};
+      seamImproved,seamProtected,seamSclera,
+      noCosmeticsDelta,nearBefore,nearAfter,farDelta};
   });
   test.skip(!!r.unavailable,"WebGL2 not available");
   expect(r.invalid).not.toBe(true);
@@ -282,6 +299,10 @@ test("native eye wing does not transmit legacy catalog-color ghost under new ink
   expect(r.innerLashes).toBeGreaterThan(0);
   expect(r.lashOutside).toBe(0);
   expect(r.seamImproved).toBeGreaterThan(15);
+  expect(r.noCosmeticsDelta).toBe(0);
+  expect(r.nearBefore).toBeGreaterThan(100);
+  expect(r.nearAfter).toBeLessThan(r.nearBefore * 0.5);
+  expect(r.farDelta).toBe(0);
   expect(r.seamProtected).toBe(0);
   expect(r.seamSclera).toBe(0);
   expect(r.highlightRecovery).toBeGreaterThan(0);
