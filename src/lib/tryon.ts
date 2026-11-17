@@ -1692,8 +1692,11 @@ export async function paintLook(prepared: Shot, look: string, level: Level = "na
     // Opt-in research preview, isolated to saved photos. The live mirror, tutorial,
     // look thumbnails and production default remain on the original engine.
     // Native mode has already rendered a shader in the SAME MakeupGL context.
-    // User-customized makeup is never overwritten by a pilot look recipe.
-    if (!nativeEye && !picks && materialEyePilotEnabled(look)) {
+    // If a phone cannot compile that optional shader or the eye geometry is
+    // degenerate, preserve the experimental CPU fallback without losing the
+    // user's photo. User-customized makeup is never overwritten.
+    const nativeApplied = nativeEye && gpu()?.lastNativeEye === true;
+    if (!nativeApplied && !picks && materialEyePilotEnabled(look)) {
       try {
         applyMaterialEyeV2(result, photo, points, look, level, prepared.vis, prepared.face?.blur ?? 0.7);
       } catch (error) {
