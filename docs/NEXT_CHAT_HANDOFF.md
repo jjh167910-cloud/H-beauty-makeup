@@ -188,6 +188,32 @@ This session implemented and committed:
 
 **To resume in another chat:** "Continue H-Beauty Makeup's highest quality offline/on-device virtual try-on. Read `docs/NEXT_CHAT_HANDOFF.md` on branch `feat/realism-benchmark-v2`, PR #23, issue #24, and current GitHub CI. Fix any failures and implement the next validated GPU-stage improvement. Commit work to the research branch, preserve production, and update the handoff again."
 
+## Current session — same-context native-fast GPU eye rendering (2026-11-17)
+
+**Canonical work:** connected GitHub repo `jjh167910-cloud/H-beauty-makeup`, research PR #23, branch `feat/realism-benchmark-v2`, tracking issue #24. **Production main and Cloudflare site have not been changed**. New code is only reachable in saved-photo opt-in mode.
+
+### Concrete implementation
+- `src/lib/material-eye-native.ts`: `nativeEyeScissor()` produces a conservative WebGL bottom-left scissor rectangle based on *customer's* upper-lid/brow landmarks, wing tip length, eyelash curl and optical soft edge. Invalid/nonfinite landmarks fail closed to a full-frame native draw rather than clipping the customer's eye.
+- `src/lib/makeup-gl.ts`: new optional `nativeFast` argument. Base image is first rendered to the already-existing optional RGBA8 framebuffer, copied directly GPU-to-GPU with `gl.blitFramebuffer` to the drawing buffer, then the same native shadow/liner/lash/shimmer/facet fragment shader runs only within the bounded eye region. This removes expensive fragment shader invocation over most of the background on suitable photos. Driver blit failure falls back to full shader. No `gl.readPixels`, extra GL context, CPU eye ROI painting or network upload. Diagnostic `lastNativeEyeFast` confirms actual optimized-path use.
+- `src/lib/tryon.ts`: separate saved-photo-only URL flag `?eyePilot=v2&eyeCompute=native-fast`. The existing `?eyePilot=v2&eyeCompute=native` remains the **unchanged reference** and normal production output remains unchanged. Serialized renderer worker now takes `nativeFast`.
+- `tests/material-eye-native-fast.spec.ts`: compares both paths on the same repository-generated reference face, verifies true scissor execution, byte-exact protected regions, near-equal in-eye output, and invalid-bounds handling. Added to the early PR browser CI step.
+- `docs/REALISM_IMPLEMENTATION_V2.md`: updated with architecture, meaningful limitations, CI status and next performance gates.
+
+### CI status and precise commit references
+- Initial wiring source code compile failed on `tryon.ts` because the `paintGpuNow` worker was missing the new `nativeFast` argument; **fixed** in source commit `20368af53c5c127448a9177490e00871fcbdb5a7`.
+- On **commit `20368af53c5c127448a9177490e00871fcbdb5a7`**, GitHub Actions workflow run **`43991217956`** passed the Node/offline shell, TypeScript typecheck, Vite build, and **expanded targeted browser tests including the fast/full GPU output parity and protected-pixel checks**, plus the full saved-photo native smoke integration test. The streaming model download and general `Try-on tests` full Playwright suite had **not** both completed at the last inspection. Later documentation commits launch new runs and may cancel earlier ones; do not claim a complete green run without checking the latest run's final conclusion.
+- Last recorded source-code head BEFORE documentation commits: `20368af53c5c127448a9177490e00871fcbdb5a7`. **Refresh the PR head**, as documentation updates create newer commits.
+- No live deployment, main merge, real human makeup photo A/B, physical Android performance measurement, or verified state-of-the-art claim.
+
+### Highest-value next work
+1. Fetch GitHub PR #23 current head SHA and latest `Try-on review` jobs. Read any failed job logs and fix tests. Confirm a **complete** CI run (the long suite has been repeatedly cancelled by incremental development commits).
+2. Add genuine GPU execution-time benchmarking via nonblocking `EXT_disjoint_timer_query_webgl2` query polling (never block camera with `gl.finish` or readPixels), with CPU fallback and context loss handling. Compare `native` and `native-fast` on a real low/mid/high-end Android device. Test GPU memory overhead and sustained thermal FPS.
+3. Enhance dense eye geometry/occlusion: 478 sparse landmarks do not reliably capture all crease and lash conditions, especially monolid/hooded eyes, eyeglasses, hands and high yaw. Preserve identity and source-photo skin pores at eye borders.
+4. Run explicit real photographed-makeup blind comparisons across skin depths and styles. Treat source catalog ratios beneath the new shader as unresolved until four pilot looks are fully authored, then migrate all 42 only with pass/fail evidence.
+5. Always update issue #24, PR #23 and `docs/NEXT_CHAT_HANDOFF.md` when finished. Do not merge/deploy until safe.
+
+**Suggested new-chat prompt:** "Continue H-Beauty Makeup's highest-possible photorealistic, offline virtual try-on. Read `docs/NEXT_CHAT_HANDOFF.md` in branch `feat/realism-benchmark-v2` of `jjh167910-cloud/H-beauty-makeup`, PR #23, issue #24 and current CI. Fix failures, implement GPU timer-query benchmarking and real-device performance safeguards, commit tested work on the branch, preserve production and update the handoff."
+
 ## New-chat start procedure (mandatory)
 
 1. Connect/use the GitHub app and fetch PR #23, current head SHA and workflow status; do not assume the latest chat's SHA still applies.
