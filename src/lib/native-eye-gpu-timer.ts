@@ -53,6 +53,21 @@ export class NativeEyeGpuTimer {
   get pendingCount(): number { return this.pending.length; }
   get latest(): NativeEyeGpuMeasurement | null { return this.last; }
 
+  /** Raw bounded GPU samples for local opt-in A/B; values contain no photo data. */
+  snapshot(): NativeEyeGpuMeasurement[] {
+    this.poll();
+    return this.history.map((sample) => ({ ...sample }));
+  }
+
+  /** Clear warm-up samples and pending timers before a controlled A/B run. */
+  resetSamples(): boolean {
+    if (this.active) return false;
+    this.clearPending();
+    this.last = null;
+    this.history.length = 0;
+    return true;
+  }
+
   /** Bounded, local-only p50/p95 per requested mode. No facial data stored. */
   summarize(): NativeEyeGpuSummary[] {
     const out: NativeEyeGpuSummary[] = [];
