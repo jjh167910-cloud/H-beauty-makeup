@@ -531,3 +531,23 @@ remains, and verifies an original-RGBA-preserving fail-closed outcome when
 all five probes are occluded. This incurs additional visibility-texture
 lookups; no device speed benefit is claimed without physical Android data.
 Real-photo artist review is still required for false negative occlusions.
+
+### Photographic skin texture protection near hair and glasses edges (2026-11-18)
+
+The previous four-neighbour source-photo low-pass included every adjacent
+pixel equally, even if that neighbor belonged to dark hair, an eyeglass frame,
+or a bright reflection rather than skin. Its artificial light/dark residual
+was then reintroduced as 'microtexture' into the new cosmetic material. The
+experimental native eyelid shader now applies normalized, squared linear-RGB
+contrast weights to its *existing* four neighbors before deriving the local
+albedo residual and original highlight. Near-identical skin keeps the same
+fine-detail support; a discontinuous material boundary is ignored. Unlike
+procedural smoothing, this adds no source pixels, training data or GPU texture
+fetches. It does add a few arithmetic operations and needs real Android timing.
+
+The GPU regression paints four neighbors dark or bright next to the same
+visible synthetic face pixel, and requires unchanged center RGBA within 2
+8-bit levels for both light and deep skin while retaining nonzero native
+pigmentation. The original owner photo and fully protected pixels stay
+unchanged. These synthetic tests are engineering guards, not a blinded
+photorealism judgement on actual human skin.

@@ -307,6 +307,39 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
       // Shader's original shimmer/gem values were zero in this raster test.
       gl.uniform1f(gl.getUniformLocation(p,"uShimmer"),0);
       gl.uniform1f(gl.getUniformLocation(p,"uRhinestones"),0);
+      // A camera photo can contain a dark hair or bright glasses glint
+      // immediately next to visible skin. Four immediate source neighbours
+      // are altered, but the CENTER still belongs to the customer.
+      // Eye shading at that center must not acquire an artificial halo.
+      // Baseline photo details elsewhere and all other passes stay intact.
+      const edgeCenter:[number,number]=[230,146];
+      const edgeNeighbours:Array<[number,number]>=[
+        [229,146],[231,146],[230,145],[230,147]
+      ];
+      let edgeHaloMax=0,edgeCenterPainted=0;
+      const edgeAt=(edgeCenter[1]*W+edgeCenter[0])*4;
+      for(let c=0;c<3;c++)
+        if(Math.abs(display[edgeAt+c]-prior[edgeAt+c])>2)
+          edgeCenterPainted++;
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D,textures[1]);
+      for(const shade of [2,253]){
+        for(const [x,y] of edgeNeighbours)
+          gl.texSubImage2D(gl.TEXTURE_2D,0,x,y,1,1,gl.RGBA,
+            gl.UNSIGNED_BYTE,new Uint8Array([shade,shade,shade,255]));
+        gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+        const edgeRead=new Uint8Array(prior.length);
+        gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,edgeRead);
+        const edgeOut=flip(edgeRead);
+        for(let c=0;c<4;c++)
+          edgeHaloMax=Math.max(edgeHaloMax,
+            Math.abs(edgeOut[edgeAt+c]-display[edgeAt+c]));
+      }
+      for(const [x,y] of edgeNeighbours) {
+        const i=(y*W+x)*4;
+        gl.texSubImage2D(gl.TEXTURE_2D,0,x,y,1,1,gl.RGBA,
+          gl.UNSIGNED_BYTE,original.subarray(i,i+4));
+      }
       // Isolate the native eyeliner and lashes from eyeshadow: the raster must
       // change when fibers are enabled, even on deep skin, without source-face pixels.
       gl.uniform1f(gl.getUniformLocation(p,"uLinerWidth"),0);
@@ -365,7 +398,8 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
         detailSamples, textureRetention: paintedDetail / Math.max(1, originalDetail),
         leftEyeCrossTalk, leftEyePainted, lightProbeMax, lightProbeMean,
         trueLightResponse, otherEyeCoherentChange,
-        hiddenSampleInfluence,visiblePigmentSamples,missingReferenceDifferences});
+        hiddenSampleInfluence,visiblePigmentSamples,missingReferenceDifferences,
+        edgeHaloMax,edgeCenterPainted});
       textures.forEach(t=>gl.deleteTexture(t));
     }
     return {observations,enabled:[...material.enabled]};
@@ -399,6 +433,8 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
     expect(result.visiblePigmentSamples).toBeGreaterThan(40);
     expect(result.hiddenSampleInfluence).toBe(0);
     expect(result.missingReferenceDifferences).toBe(0);
+    expect(result.edgeCenterPainted).toBeGreaterThan(0);
+    expect(result.edgeHaloMax).toBeLessThanOrEqual(2);
   }
 });
 
