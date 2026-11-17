@@ -426,6 +426,28 @@ At the beginning of this continuation source HEAD **`154784ae52149c8a5fef670c5a8
 3. Physical low/mid/high Android `EXT_disjoint_timer_query_webgl2` measurements with `docs/NATIVE_EYE_ANDROID_BENCHMARK.md` are still **not collected**; prior timer/backpressure/30-sample floor and strict pixel parity gates are in place. No FPS, GPU, thermal or battery claims without physical measurements.
 4. The v2 material-aware eye shader remains opt-in via `?eyePilot=v2` and default public production renderer is unchanged; do **not merge/deploy** before actual visual and phone gates. Update PR body, issue #24 and this handoff after real verified work.
 
+## Latest continuation — robust source-eye photometry against single-point artifacts (2026-11-17)
+
+**Source repository** `jjh167910-cloud/H-beauty-makeup`, research branch `feat/realism-benchmark-v2`, PR #23, quality tracker issue #24. Keep production `main` and Cloudflare worker unchanged. The user expects concrete code+tests and no unnecessary questions; preserve optional `?eyePilot=v2` and private offline/on-device photo rendering.
+
+### Baseline verified
+The previous production-isolated research SHA **`d345d39100f1d17dc7804d04f0da20243473be58`** passed required `Try-on review` early gate in GitHub Actions `44077284887`, and independent live camera smoke `44077284891` success. **Three full Playwright shards were still in progress** when newer code was committed, so the previous head was not fully confirmed green. Earlier fully green head `154784ae52149c8a5fef670c5a8c7233e14624ba` passed all 3 shards + separate camera. Don't infer current head status from those historical runs.
+
+### Concrete source improvement
+The experimental `NATIVE_EYE_FS` shader correctly chooses which eye contributes to each fragment after the previous per-eye isolation fix. However, its illumination normalization was still anchored at **one original-photo texel** per eye; a bright glint, dark hair strand, or isolated image noise at that point could shift the entire eye's cosmetic pigment/gem lighting.
+
+- `src/lib/material-eye-native.ts`, commit **`f6a27f2db14d06ba6a28cc4a6f79cee89e536cf0`**: sample three source-light original-photo skin pixels per eye in linear-light luminance at normalized positions `t=0.33,0.50,0.67` and `v=0.24` lid-to-brow, take the **median**. Single outliers cannot dominate the full eye. Per-eye isolation remains intact; never borrow catalog-model skin or generate artificial pores. This changes only opt-in native saved-photo eye pilot; public live renderer/UI untouched.
+- `tests/material-eye-native.spec.ts`, commit **`53b479a5c59d2bd4b4a1d7dbfe5133634890ee46`**: after established baseline/cross-eye tests, mutate ONLY the current eye's center photometric sample to **RGB=3** and **RGB=250**, rerender WebGL, compare distant painted eyelid pixels while excluding the local ±2px source-microtexture footprint, on **light and deep synthetic skin**. Strict max channel change <=12; mean channel change <2.5. Existing tests assert no source-sclera change, no hidden/occluded pigment, no clipping or protected-pixel leakage, and retained skin detail. If this new regression fails, inspect actual CI logs and fix real behavior—not by loosening thresholds.
+- `docs/REALISM_IMPLEMENTATION_V2.md`, commit **`32f7ca5da5230a8a3aeb6f98f181c0210c5c4f1c`** explains design, limits and extra GPU fetch cost. Tracker issue #24 and PR #23 bodies updated with code+QA evidence.
+
+### CI state and immediate next step
+At source SHA `53b479a5c59d2bd4b4a1d7dbfe5133634890ee46`, `Try-on review` run **`44078460640`** reached TypeScript/Vite success and was running targeted eye native WebGL tests; independent camera smoke **`44078460562`** was running at last poll. This document is another commit, which triggers a **new latest HEAD** and Actions. **Check PR #23 current HEAD and its newest Actions runs; these supersede previous runs**, then confirm targeted shader tests, saved-photo integration, streamed model retry, 20-second camera-capture gate, and all three full Playwright shards. Treat canceled previous runs as superseded, not success.
+
+Physical low/mid/high Android GPU p50/p95/thermal/battery remain unmeasured, as do consented real-photo artist-blind tests across hooded eyelids, glasses, hair occlusion, skin tones and all 42 looks. This is a robust photo-adaptation improvement, not verified state-of-the-art photorealism. Do not merge to production without those quality gates.
+
+### Specific subsequent code target
+Once this SHA is fully green, improve facial occlusion handling with measured realistic landmarks/visibility, especially when a dark hair strand or glasses frame covers multiple photometric skin-reference sites. Use fail-closed renderer behavior and strict pixel-protection tests. Avoid model-based assumptions about visibility without consented real-photo evidence. Physical device GPU timing is mandatory because robust reference adds two source texel reads per contributing pixel. Continue to update this handoff, PR #23, and issue #24 with commits and verified results.
+
 ## New-chat start procedure (mandatory)
 
 1. Connect/use the GitHub app and fetch PR #23, current head SHA and workflow status; do not assume the latest chat's SHA still applies.
