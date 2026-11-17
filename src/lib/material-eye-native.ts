@@ -263,7 +263,7 @@ export const NATIVE_EYE_FS = [
   "        facetGlint=max(facetGlint,glint*coverage);",
   "      }",
   "    }",
-  "    vec2 refPt=mix(onUpper(eye,0.5),onBrow(eye,0.5),0.24);
+  "    vec2 refPt=mix(onUpper(eye,0.5),onBrow(eye,0.5),0.24);",
   "    ivec2 refPixel=ivec2(clamp(floor(refPt),vec2(0.0),uSize-vec2(1.0)));",
   "    vec3 refRGB=linearRGB(texelFetch(uOriginal,refPixel,0).rgb);",
   "    refLight=max(0.012,dot(refRGB,vec3(0.2126,0.7152,0.0722)));",
@@ -298,6 +298,6 @@ export const NATIVE_EYE_FS = [
   "  vec3 facet=mix(vec3(0.22,0.20,0.28),",
   "    vec3(0.75,0.79,0.82)*lightAdapt,clamp(0.24+facetGlint*0.65,0.0,1.0));",
   "  result=mix(result,facet,gemAlpha);",
-  "  o=vec4(toSRGB(result),prior.a);
+  "  o=vec4(toSRGB(result),prior.a);",
   "}",
 ].join("\n");
