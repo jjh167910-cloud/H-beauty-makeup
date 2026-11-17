@@ -551,3 +551,17 @@ visible synthetic face pixel, and requires unchanged center RGBA within 2
 pigmentation. The original owner photo and fully protected pixels stay
 unchanged. These synthetic tests are engineering guards, not a blinded
 photorealism judgement on actual human skin.
+
+### Decoupling true photographic glints from edge-safe microtexture (2026-11-18)
+
+CI on `66e456d` exposed a real regression: bilateral rejection of four
+normal-colored neighbors surrounding a true bright glint made the local
+microtexture low-pass equal to the center, removing the positive residual
+used by the highlight-recovery term. The previously strict light-skin test
+correctly failed; it must not be weakened. The revised GPU calculation
+continues using edge-aware source RGB for microtexture, but detects glints
+from the middle-two luminance of the original four neighboring photo pixels
+and the independently validated eye-skin reference. A dark hair edge cannot
+turn ordinary skin into a false specular point, while a true source highlight
+can still survive pigment overlay. Both glint fidelity and hair-edge safety
+GPU tests are mandatory; no new source texture reads are introduced.
