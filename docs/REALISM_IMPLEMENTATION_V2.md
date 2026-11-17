@@ -444,3 +444,21 @@ to decrease, zero new hard clipping, and zero changed outside-ROI pixels. The
 real-world quality gate is still blind professional review of consented
 photographs, including difficult eyelid anatomy and lighting; unit tests are
 not evidence of comparative photorealism.
+
+### Native lash fan, physically constrained strands, and visibility-first rejection — 2026-11-17
+
+The prior experimental lash material leaned every strand in the outer direction,
+regardless of follicle position, and derived taper from radial distance to the
+follicle instead of progress along the arcing fiber. The new local shader maps
+outer-to-inner lid position to a signed, bounded lash fan, tapers along the
+root-to-tip chord and fades coverage beyond the tip. Inner lashes are shorter,
+central lashes rise and outer lashes turn toward the temple. Pigment, lash
+count, camera blur and photographed skin are otherwise preserved.
+
+Opaque hair/occlusion masks now short-circuit before expensive per-eye
+geometry and multi-point photometry, returning exactly the previous RGBA
+pixel. The shader retains normal feathering when visibility is nonzero.
+Focused GPU tests cover both eyelash segments and bytewise protected pixels,
+plus total occlusion for light and deep synthetic skin. Claims about realistic
+appearance or better Android speed require blind consented photo ratings and
+physical phone timing; neither is inferred from these tests.

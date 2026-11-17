@@ -114,6 +114,27 @@ test("native eye wing does not transmit legacy catalog-color ghost under new ink
     gl.uniform1f(uniform("uWingLength"),mat.wingLength);
     const old=draw(ghost,0);
     const cleaned=draw(ghost,1);
+    // Anatomic lash fan is evaluated in the actual GPU shader, with
+    // eyeshadow held constant and eyeliner/wing disabled for isolation.
+    gl.uniform1f(uniform("uLinerWidth"),0);
+    gl.uniform1f(uniform("uWingLength"),0);
+    const lashless=draw(image,1);
+    gl.uniform1f(uniform("uLashLength"),mat.lashLength);
+    const lashed=draw(image,1);
+    gl.uniform1f(uniform("uLashLength"),0);
+    gl.uniform1f(uniform("uLinerWidth"),mat.linerWidth);
+    gl.uniform1f(uniform("uWingLength"),mat.wingLength);
+    let lashChanged=0, lashOutside=0, outerLashes=0, innerLashes=0;
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+      const at=(y*W+x)*4;
+      let different=false;
+      for(let c=0;c<4;c++) if(lashed[at+c]!==lashless[at+c]) different=true;
+      if(!different)continue;
+      lashChanged++;
+      if(x<65||x>230||y<62||y>185)lashOutside++;
+      if(x>=110&&x<=135&&y>=115&&y<=149)outerLashes++;
+      if(x>=158&&x<=185&&y>=115&&y<=149)innerLashes++;
+    }
     let inkSamples=0, legacyDifference=0, cleanedDifference=0, protectedDifference=0;
     for(let y=0;y<H;y++)for(let x=0;x<W;x++){
       const i=(y*W+x)*4;
@@ -206,7 +227,8 @@ test("native eye wing does not transmit legacy catalog-color ghost under new ink
     }
     textures.forEach(v=>gl.deleteTexture(v));
     return {inkSamples,legacyDifference,cleanedDifference,protectedDifference,
-      wingRootScore,wingTipScore,wingOutside,glintCases,highlightRecovery:mat.highlightRecovery};
+      wingRootScore,wingTipScore,wingOutside,glintCases,highlightRecovery:mat.highlightRecovery,
+      lashChanged,lashOutside,outerLashes,innerLashes};
   });
   test.skip(!!r.unavailable,"WebGL2 not available");
   expect(r.invalid).not.toBe(true);
@@ -217,6 +239,10 @@ test("native eye wing does not transmit legacy catalog-color ghost under new ink
   expect(r.wingRootScore).toBeGreaterThan(30);
   expect(r.wingTipScore).toBeLessThan(r.wingRootScore * 0.8);
   expect(r.wingOutside).toBe(0);
+  expect(r.lashChanged).toBeGreaterThan(10);
+  expect(r.outerLashes).toBeGreaterThan(0);
+  expect(r.innerLashes).toBeGreaterThan(0);
+  expect(r.lashOutside).toBe(0);
   expect(r.highlightRecovery).toBeGreaterThan(0);
   expect(r.highlightRecovery).toBeLessThanOrEqual(0.45);
   expect(r.glintCases).toHaveLength(2);

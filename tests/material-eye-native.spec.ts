@@ -108,6 +108,22 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
       const read=new Uint8Array(prior.length);
       gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,read);
       const display=flip(read);
+      // Entirely occluded faces must emit the previous framebuffer exactly.
+      // This now exercises the preflight visibility fast-path before native
+      // lash loops and five-point photometry (RGB and alpha byte equality).
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D,textures[2]);
+      gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,256,256,
+        gl.RG,gl.UNSIGNED_BYTE,new Uint8Array(vis.length));
+      gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+      const hiddenRead=new Uint8Array(prior.length);
+      gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,hiddenRead);
+      const hiddenPixels=flip(hiddenRead);
+      let fullyHiddenDifferences=0;
+      for(let k=0;k<prior.length;k++)
+        if(hiddenPixels[k]!==prior[k])fullyHiddenDifferences++;
+      gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,256,256,
+        gl.RG,gl.UNSIGNED_BYTE,vis);
       // Independently vary the RIGHT eye's source-light reference texel.
       // Under asymmetric studio lighting, the LEFT eye must not change:
       // cosmetic pigment should reference its OWN eye, not whichever
@@ -271,7 +287,7 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
         paintedDetail += Math.abs(display[i] - display[j]);
         detailSamples++;
       }
-      observations.push({depth,changed,protectedChanged,occludedChanged,clipped,
+      observations.push({depth,fullyHiddenDifferences,changed,protectedChanged,occludedChanged,clipped,
         topChanges,bottomChanges,inkChanged,inkOutside,scleraChanged,outsideCoordinates,
         detailSamples, textureRetention: paintedDetail / Math.max(1, originalDetail),
         leftEyeCrossTalk, leftEyePainted, lightProbeMax, lightProbeMean,
@@ -287,6 +303,7 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
   for (const result of results.observations) {
     expect(result.changed).toBeGreaterThan(100);
     expect(result.protectedChanged).toBe(0);
+    expect(result.fullyHiddenDifferences).toBe(0);
     expect(result.occludedChanged).toBe(0);
     expect(result.clipped).toBe(0);
     expect(result.topChanges).toBeGreaterThan(10);
