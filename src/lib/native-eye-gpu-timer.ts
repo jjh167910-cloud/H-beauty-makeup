@@ -15,6 +15,14 @@ export type NativeEyeGpuMeasurement = {
   /** GPU may complete an earlier frame after a newer frame was submitted. */
   sequence: number;
 };
+export type NativeEyeGpuSummary = {
+  mode: NativeEyeGpuMode;
+  samples: number;
+  p50Ms: number;
+  p95Ms: number;
+  minMs: number;
+  maxMs: number;
+};
 
 type WebGLTimerExtension = {
   TIME_ELAPSED_EXT: number;
@@ -33,7 +41,9 @@ export class NativeEyeGpuTimer {
   private sequence = 0;
   private lost = false;
   private last: NativeEyeGpuMeasurement | null = null;
+  private readonly history: NativeEyeGpuMeasurement[] = [];
   static readonly MAX_PENDING = 3;
+  static readonly MAX_HISTORY = 64;
 
   constructor(private readonly gl: WebGL2RenderingContext) {
     this.ext = gl.getExtension("EXT_disjoint_timer_query_webgl2") as WebGLTimerExtension | null;
@@ -42,6 +52,23 @@ export class NativeEyeGpuTimer {
   get supported(): boolean { return this.ext !== null && !this.lost; }
   get pendingCount(): number { return this.pending.length; }
   get latest(): NativeEyeGpuMeasurement | null { return this.last; }
+
+  /** Bounded, local-only p50/p95 per requested mode. No facial data stored. */
+  summarize(): NativeEyeGpuSummary[] {
+    const out: NativeEyeGpuSummary[] = [];
+    const percentile = (values: number[], p: number) =>
+      values[Math.max(0, Math.ceil(p * values.length) - 1)];
+    for (const mode of ["native", "native-fast"] as const) {
+      const values = this.history.filter(s => s.mode === mode).map(s => s.gpuMs).sort((a, b) => a - b);
+      if (!values.length) continue;
+      out.push({
+        mode, samples: values.length, p50Ms: percentile(values, 0.5),
+        p95Ms: percentile(values, 0.95), minMs: values[0],
+        maxMs: values[values.length - 1],
+      });
+    }
+    return out;
+  }
 
   /** Start one timestamp-free GPU elapsed query around a single eye pass. */
   begin(mode: NativeEyeGpuMode): boolean {
@@ -87,6 +114,7 @@ export class NativeEyeGpuTimer {
       if (this.gl.getParameter(this.ext.GPU_DISJOINT_EXT)) {
         this.clearPending();
         this.last = null;
+        this.history.length = 0; // Disjoint invalidates earlier comparisons.
         return null;
       }
       // WebGL queries return completion status asynchronously. A bounded
@@ -102,12 +130,15 @@ export class NativeEyeGpuTimer {
             mode: next.mode, gpuMs: ns / 1e6, sequence: next.sequence
           };
           if (!this.last || candidate.sequence > this.last.sequence) this.last = candidate;
+          this.history.push(candidate);
+          if (this.history.length > NativeEyeGpuTimer.MAX_HISTORY) this.history.shift();
         }
       }
     } catch {
       // A context reset or buggy driver must not affect the customer's output.
       this.clearPending();
       this.last = null;
+      this.history.length = 0;
     }
     return this.last;
   }
@@ -122,6 +153,7 @@ export class NativeEyeGpuTimer {
     }
     this.clearPending();
     this.last = null;
+    this.history.length = 0;
   }
 
   private clearPending(): void {
