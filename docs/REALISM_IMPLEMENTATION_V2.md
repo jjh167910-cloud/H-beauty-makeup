@@ -307,6 +307,18 @@ The optional CPU/Android benchmark infrastructure now includes a **repeatable on
 
 **Validation state:** Historical PR source `0577894f6797e98ae4855025652c5d8975d83914` was fully green on Actions `44000889530` and live-smoke `44000889876`. The first new benchmark code at source `f2fb74d057c392dee22354c299ee3e9f6eeccd2b` failed TypeScript due an async `document.visibilityState` narrowing; fixed in `f025cc06d880b8d76f1fb8593e89a17bdfcce00d`. New benchmark branch must pass its own latest CI before promotion. No low/mid/high-end physical Android measurements or blind real-photo visual study are available. The `nativeRgba8FramebufferBytes` estimate is **not measured peak GPU memory**.
 
+## Physical-device GPU A/B pixel parity gate — 2026-11-17
+
+The opt-in Android GPU timing runner is now explicitly **blocked by output integrity** before any performance comparison. A faster shader is not acceptable if it changes the person's photo or incorrectly clips makeup.
+
+- `src/lib/native-eye-parity.ts` (new) compares the actual full-resolution `ImageData` from the same saved-photo pipeline rendered once as `native` and once as `native-fast`. It validates a conservative bottom-left WebGL scissor ROI against top-down Canvas2D rows. It returns numeric metrics only: inside/outside pixel counts, changed protected-pixel count, maximum protected RGBA delta, maximum overall channel delta, and whole-image mean absolute channel delta.
+- Strict pass: **zero** changed pixels outside the conservative eye ROI, maximum RGBA channel difference **≤3**, whole-image mean channel difference **<0.5**, and confirmation that the corresponding full/fast GPU modes really executed. Incorrect ROI, mismatched image sizes, or unexpected render fallback fail or report unavailable. The opt-in audit does not upload, serialize or save the raw photo.
+- `src/lib/native-eye-benchmark.ts` performs parity preflight after initial model/GPU initialization and **before warm-up and timed samples**. A failed audit returns `image-parity-failed`, or `image-parity-unavailable`, without p50/p95 speedup claims. The preflight's two Canvas2D image readbacks may cause a one-off GPU synchronization; they happen **outside measured trials**, and the renderer itself remains free of `gl.readPixels()`, GPU `finish()` and sync waits. Future real phone measurements must still account for thermal/memory impact.
+- `tests/material-eye-parity.spec.ts` tests a synthetic 4×3 portrait with inverted GL row coordinates, inside tolerance, *one* altered protected channel causing failure, excessive differences inside ROI, malformed bounds and a real generated-photo integration comparison. The early GitHub CI gate includes it. The existing benchmark smoke test now checks for passed parity whenever timer queries are supported; unsupported GPU timers remain explicitly unsupported.
+- This is a **shader equivalence** requirement, not a claim that the original photo has been artistically transformed photorealistically or that the native renderer is better than a competitor. Real consented photos, eyelid/eyeglasses/hair occlusion classes, blinded professional makeup comparison, and physical Android GPU/thermal QA remain mandatory for production.
+
+See `docs/NATIVE_EYE_ANDROID_BENCHMARK.md`, PR #23, issue #24.
+
 ## Shipping policy
 
 1. Production stays on main during research; use a feature flag and pilot branch.
