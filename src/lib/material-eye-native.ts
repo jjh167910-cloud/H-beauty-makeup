@@ -30,6 +30,8 @@ export type NativeEyeMaterial = {
   lashLength: number;
   lashCount: number;
   inkSoft: number;
+  shimmer: number; // photo-light-matched sparse micro-powder; zero disables
+  rhinestones: number; // faceted gems anchored on this customer's lid
 };
 
 const upperIds = [
@@ -102,6 +104,8 @@ export function nativeEyeMaterial(P: Pt[], lookId: string, level: Level): Native
     lashLength: (look.lashes==="dramatic" ? 0.15 : look.lashes==="volume" ? 0.115 : 0.075)*strength,
     lashCount: look.lashes==="dramatic" ? 26 : look.lashes==="volume" ? 22 : 18,
     inkSoft: 0.7,
+    shimmer: look.accents?.includes("shimmer") ? 0.11*strength : 0,
+    rhinestones: look.accents?.includes("rhinestones") ? 0.90*strength : 0,
   };
 }
 
@@ -130,6 +134,7 @@ export const NATIVE_EYE_FS = [
   "uniform float uLinerWidth, uWingLength, uLashLength;",
   "uniform int uLashCount;",
   "uniform float uInkSoft;",
+  "uniform float uShimmer, uRhinestones;",
   "out vec4 o;",
   "float ramp(float a, float b, float x) {",
   "  float t = clamp((x-a)/max(b-a,1e-6),0.0,1.0);",
@@ -165,6 +170,16 @@ export const NATIVE_EYE_FS = [
   "  float taper=mix(widthPx,0.13,fraction);",
   "  return 1.0-ramp(taper,taper+uInkSoft,d);",
   "}",
+  "// A deterministic screen-space powder sparkle, anchored to each selfie",
+  "// pixel. Sparse grains keep skin pores visible; no learned texture transfer.",
+  "float grain(vec2 px) {",
+  "  vec2 cell=floor(px * 0.75);",
+  "  return fract(sin(dot(cell,vec2(127.1,311.7)))*43758.5453123);",
+  "}",
+  "float stoneCoverage(vec2 p,vec2 q,float radius) {",
+  "  float d=length((p-q)/max(radius,0.3));",
+  "  return 1.0-ramp(0.80,1.13,d);",
+  "}",
   "float visible(vec2 photo) {",
   "  if(uVisOn==0) return 0.0;",
   "  vec2 q=(photo-uVisBox.xy)/max(uVisBox.z,0.001);",
@@ -178,6 +193,7 @@ export const NATIVE_EYE_FS = [
   "  vec2 photo=vec2(gl_FragCoord.x,uSize.y-gl_FragCoord.y);",
   "  float eyeMask=0.0, mixWeight=0.0;",
   "  float inkStrength=0.0;",
+  "  float gems=0.0, facetGlint=0.0;",
   "  float refLight=0.24;",
   "  for(int eye=0;eye<2;eye++){",
   "    if(uEnabled[eye]==0) continue;",
@@ -228,7 +244,26 @@ export const NATIVE_EYE_FS = [
   "      }",
   "      inkStrength=max(inkStrength,ink);",
   "    }",
-  "    vec2 refPt=mix(onUpper(eye,0.5),onBrow(eye,0.5),0.24);",
+  "    // Gemstone centers are in THIS eye's lid/brow coordinate system.",
+  "    // Avoid material on iris, cheek or eyebrow, and keep the stones",
+  "    // independent of the source catalog model's photograph.",
+  "    if(uRhinestones>0.0 && t>0.03 && t<0.96 && v>0.08 && v<0.61){",
+  "      for(int i=0;i<7;i++){",
+  "        float f=(float(i)+0.75)/7.65;",
+  "        float h=0.24 + 0.08*sin(float(i)*2.2);",
+  "        vec2 center=mix(onUpper(eye,f),onBrow(eye,f),h);",
+  "        float radius=max(1.1, uSpan[eye]*(0.010+0.002*sin(float(i)*2.7)));",
+  "        float coverage=stoneCoverage(photo,center,radius);",
+  "        if(coverage<=0.0) continue;",
+  "        vec2 q=(photo-center)/radius;",
+  "        // An off-center facet simulates a small specular glint, not a",
+  "        // flat pure-white dot. The final encoder reserves clipping room.",
+  "        float glint=exp(-dot(q-vec2(-0.25,-0.34),q-vec2(-0.25,-0.34))*8.0);",
+  "        gems=max(gems,coverage);",
+  "        facetGlint=max(facetGlint,glint*coverage);",
+  "      }",
+  "    }",
+  "    vec2 refPt=mix(onUpper(eye,0.5),onBrow(eye,0.5),0.24);
   "    ivec2 refPixel=ivec2(clamp(floor(refPt),vec2(0.0),uSize-vec2(1.0)));",
   "    vec3 refRGB=linearRGB(texelFetch(uOriginal,refPixel,0).rgb);",
   "    refLight=max(0.012,dot(refRGB,vec3(0.2126,0.7152,0.0722)));",
@@ -237,7 +272,11 @@ export const NATIVE_EYE_FS = [
   "  float opacity=clamp(eyeMask*uAmount*visibility,0.0,0.87);",
   "  float replace=ramp(0.005,0.04,eyeMask)*visibility;",
   "  float lineAlpha=clamp(inkStrength*visibility*0.88,0.0,0.93);",
-  "  if((opacity < 0.5/255.0 || replace < 0.5/255.0) && lineAlpha < 0.5/255.0){",
+  "  float gemAlpha=clamp(gems*visibility*uRhinestones,0.0,0.94);",
+  "  float fineGrain=grain(photo);",
+  "  float powder=step(0.983,fineGrain)*eyeMask*visibility*uShimmer;",
+  "  if((opacity < 0.5/255.0 || replace < 0.5/255.0) &&",
+  "     lineAlpha < 0.5/255.0 && gemAlpha < 0.5/255.0 && powder < 0.5/255.0){",
   "    o=prior; return;",
   "  }",
   "  // Original selfie uOriginal was uploaded as TexImageSource (its first",
@@ -250,6 +289,15 @@ export const NATIVE_EYE_FS = [
   "  vec3 filled=mix(base,pigment,opacity);",
   "  vec3 result=mix(old,filled,replace);",
   "  result=mix(result,uLinerColor,lineAlpha);",
-  "  o=vec4(toSRGB(result),prior.a);",
+  "  // Film-grain-like mica only catches a small amount of the local light.",
+  "  // Blend in linear light to preserve the underlying skin's texture.",
+  "  float lightAdapt=clamp(illumination,0.35,1.15);",
+  "  result=mix(result,vec3(0.58,0.54,0.50)*lightAdapt,clamp(powder,0.0,0.22));",
+  "  // Glass/foil gemstones: shadowed mauve rim and a restrained silver",
+  "  // facet. No full-white pixels or cross-face baked highlights.",
+  "  vec3 facet=mix(vec3(0.22,0.20,0.28),",
+  "    vec3(0.75,0.79,0.82)*lightAdapt,clamp(0.24+facetGlint*0.65,0.0,1.0));",
+  "  result=mix(result,facet,gemAlpha);",
+  "  o=vec4(toSRGB(result),prior.a);
   "}",
 ].join("\n");
