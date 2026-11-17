@@ -150,8 +150,20 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
         }
         if(altered){changed++;if(y<160)topChanges++;else bottomChanges++;}
       }
+      // The native pigment cannot obliterate the original high-frequency
+      // skin pattern. Probe a clear section of the lid away from wing, iris
+      // and the intentionally occluded visibility fixture.
+      let originalDetail = 0, paintedDetail = 0, detailSamples = 0;
+      for (let y = 141; y <= 151; y++) for (let x = 225; x <= 240; x++) {
+        const i = (y * W + x) * 4;
+        const j = (y * W + x - 1) * 4;
+        originalDetail += Math.abs(original[i] - original[j]);
+        paintedDetail += Math.abs(display[i] - display[j]);
+        detailSamples++;
+      }
       observations.push({depth,changed,protectedChanged,occludedChanged,clipped,
-        topChanges,bottomChanges,inkChanged,inkOutside,scleraChanged,outsideCoordinates});
+        topChanges,bottomChanges,inkChanged,inkOutside,scleraChanged,outsideCoordinates,
+        detailSamples, textureRetention: paintedDetail / Math.max(1, originalDetail)});
       textures.forEach(t=>gl.deleteTexture(t));
     }
     return {observations,enabled:[...material.enabled]};
@@ -170,6 +182,11 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
     expect(result.inkChanged).toBeGreaterThan(50);
     expect(result.inkOutside, JSON.stringify(result.outsideCoordinates)).toBe(0);
     expect(result.scleraChanged).toBe(0);
+    expect(result.detailSamples).toBeGreaterThan(150);
+    // All detail must derive from the original image. Retain natural pores
+    // after pigmentation rather than returning a synthetic flat wash.
+    expect(result.textureRetention).toBeGreaterThan(0.35);
+    expect(result.textureRetention).toBeLessThan(1.8);
   }
 });
 
