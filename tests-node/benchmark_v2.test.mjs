@@ -138,7 +138,9 @@ test("poor performance on deep skin fails despite an excellent aggregate score",
       cases.find((c) => c.sample_id === "private-" + subject && c.look_id === look).paired_preference = "competitor";
   const result = evaluatePilot(cases);
   assert.ok(result.preference >= 0.70);
-  assert.equal(result.subgroupPreference.deep, 0.25);
+  // Three active cosmetic looks are rated; two deliberate losses leave
+  // deep-skin preference at one of three. The untouched control is excluded.
+  assert.equal(result.subgroupPreference.deep, 1 / 3);
   assert.equal(result.status, "fail");
   assert.ok(result.issues.some((issue) => /deep/.test(issue)));
 });

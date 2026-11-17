@@ -90,6 +90,10 @@ shards and independent camera workflow. Main and public production unchanged.
 - `docs/REALISM_IMPLEMENTATION_V2.md` records the revised study protocol. Check latest PR head, required Node/review, 3 full shards and independent camera outcomes after committing. This is **benchmark credibility**, not measured photographic superiority.
 - Keep the production `main`, customer selfies, default renderer and Cloudflare release unchanged. Real consented artist evaluation and physical Android performance still required.
 
+### Negative-control CI fixture adjustment
+
+Source `4a210b79747741de8274daa602b0d69d1e8c16ab`, [review 44092671551](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/44092671551), ran Node tests but FAILED one *obsolete expected statistic* in `poor performance on deep skin fails despite an excellent aggregate score`: expected 0.25 from four rated looks, actual 1/3 after correctly excluding the no-makeup negative control. The underlying subgroup fail behavior is intact. Corrected the assertion to 1/3, retaining the strict `status === "fail"` and explicit deep-stratum violation checks. Full browser shards skipped on that failed run. Recheck the next commit's complete CI; no production edits.
+
 ## Mandatory next-chat operating procedure
 
 1. Fetch PR #23 **current head SHA** and check `Try-on review` plus separate `Live mirror camera frame regression` workflows for **that exact SHA**. Require `review`, **all three** `Full Playwright suite` shards and independent camera **completed success**. If any fail, read GitHub job logs and fix the real problem. Cancelled runs caused by later commits are not “green”.
