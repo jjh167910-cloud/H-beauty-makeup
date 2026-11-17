@@ -84,4 +84,13 @@ test("opt-in GPU benchmark uses only local metrics, restores URL and does not in
   expect(result.report.photoWidth).toBeGreaterThan(300);
   expect(result.report.evidence).toContain("not certified");
   expect(result.report.medianGpuSpeedupPercent).toBeNull();
+  // When a GPU timer is available, sampled timing cannot proceed unless the
+  // actual full-resolution native vs fast output passed protected-pixel audit.
+  if (result.report.status !== "unsupported-gpu-timer") {
+    expect(result.report.pixelParity?.status).toBe("pass");
+    expect(result.report.pixelParity?.outsideChangedPixels).toBe(0);
+    expect(result.report.pixelParity?.maxChannelDelta).toBeLessThanOrEqual(3);
+  } else {
+    expect(result.report.pixelParity).toBeNull();
+  }
 });
