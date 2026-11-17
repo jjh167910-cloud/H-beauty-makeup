@@ -498,3 +498,17 @@ An early GPU regression enforces an exact all-RGBA identity with no cosmetic
 passes/cleanup, positive restoration beside the lid with cleanup, zero change
 3–4 pixels above it and existing protected/sclera checks. The work is a
 technical precondition, **not** an artist-rated photorealism certification.
+
+### Fail-closed curved eyelid / eyebrow collision (2026-11-17)
+
+The original validated eyelid order and adjacent-point jumps, but a single
+landmark could move near the eyebrow while still passing both, especially on
+partially occluded or low-brow images. The opt-in native material validator now
+limits upper-lid displacement from the eye-endpoint chord to 0.32 eye widths
+and requires 0.025 eye widths of signed gap below the local interpolated brow.
+The tests transform the complete geometry through five rotations, allow a
+smooth upper-lid arch, reject a single eyebrow collision, and confirm that
+an otherwise valid other eye survives while the unsafe legacy CPU fallback
+remains blocked. No photograph is uploaded. The tolerances are deliberately
+conservative engineering checks; real varied eyelid photos and blinded artist
+review are required to establish safety/coverage and to tune false rejection.

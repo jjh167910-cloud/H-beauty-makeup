@@ -93,8 +93,29 @@ export function nativeEyeGeometryValid(P: Pt[], u: number[], b: number[]): boole
   // An individual erroneous brow point can cross the lid while its mean
   // stays plausible. Reject that eye instead of painting the sclera/cheek.
   const side = Math.sign(signedBrowOffset);
-  return b.every(id =>
-    ((P[id][0] - x0) * -dy + (P[id][1] - y0) * dx) * side >= span * 0.02);
+  if (!b.every(id =>
+    ((P[id][0] - x0) * -dy + (P[id][1] - y0) * dx) * side >= span * 0.02))
+    return false;
+  // Each eyelid point must remain within a plausible lid arc, and BELOW
+  // the brow at approximately the same along-eye position. A single stale
+  // mesh point can be close enough to its neighbours to pass the jump test,
+  // yet place shadow/liner on the eyebrow or forehead. Both comparisons
+  // use the local eye chord, so rotated selfies are handled identically.
+  for (let i = 1; i < u.length - 1; i++) {
+    const point = P[u[i]];
+    const excursion = (point[0] - x0) * -dy +
+      (point[1] - y0) * dx;
+    if (Math.abs(excursion) > span * 0.32) return false;
+    const f = i * (b.length - 1) / (u.length - 1);
+    const j = Math.min(b.length - 2, Math.floor(f));
+    const blend = f - j;
+    const bxLocal = P[b[j]][0] * (1 - blend) + P[b[j + 1]][0] * blend;
+    const byLocal = P[b[j]][1] * (1 - blend) + P[b[j + 1]][1] * blend;
+    const separation = ((bxLocal - point[0]) * -dy +
+      (byLocal - point[1]) * dx) * side;
+    if (separation < span * 0.025) return false;
+  }
+  return true;
 }
 
 /** Rejects geometrically impossible eyelids. Never generates a mirrored eye. */

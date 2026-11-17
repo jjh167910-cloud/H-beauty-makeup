@@ -174,6 +174,15 @@ No production release/merge, no private photos, licensing separately.
 - **Current commit release gate:** verify exact new SHA's review job, three full Playwright shards and independent camera check. If red, inspect actual log and fix without weakening protection. Do not merge or release.
 - **Human validation remains:** blinded consented real photos with difficult eye anatomy, eyeglasses and hair occlusion; real Android low/mid/high-tier GPU p50/p95, thermal, memory. Synthetic correctness does not establish superior photographic results. Licensing separately handled. Production/main untouched.
 
+## Continuation — 2026-11-17: reject eyelid-to-brow tracking drift
+
+- **Verified baseline at the start:** PR #23 SHA `6f2433a4f2faafbd341b6b34db4299a478d3a47e` passed [Try-on review 44141023263](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/44141023263) **with all three full Playwright shards** and [separate live-camera regression 44141023226](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/44141023226) SUCCESS. This validation applies to baseline only.
+- **Found a fail-open geometry gap:** a single upper-lid landmark can jump into brow space yet remain monotonic and close enough to neighbouring lid points to pass the old validator; this can incorrectly drag original-photo pigments, eyeliner, lashes or cleanup to the eyebrow/forehead.
+- **Fix:** `nativeEyeGeometryValid` now rejects a lid-arc excursion beyond 0.32 local eye widths and requires at least 0.025 eye widths of signed separation from the interpolated brow at corresponding eye position. The checks use the eye's own chord/normal and are rotation-invariant. Only a malformed eye is disabled; a valid opposite eye may render. An inconsistent eye also blocks the looser legacy CPU fallback. This is a conservative geometry hypothesis, not clinical truth for all eyelid anatomies.
+- **Tests:** `tests/material-eye-geometry.spec.ts` adds an isolated stale upper landmark, an overlapping low eyebrow, a valid smooth-curvature control and one-eye-rejection/legacy-fallback assertions. It retains original five-angle rotation tests. Existing early target CI includes this spec.
+- **After THIS commit:** check the latest exact SHA's required review, **3/3 full Playwright shards** and independent camera workflow. Fix actual failures rather than relaxing thresholds. No real-photo artistic fidelity claim or Android runtime performance claim yet.
+- **Remaining gates:** consented blinded makeup-artist comparisons on hooded/monolid/asymmetric occluded eyes, real low/mid/high Android GPU p50/p95 and thermals. Production/main unchanged, research opt-in only, no customer photos in Git; licensing handled separately.
+
 ## Mandatory next-chat operating procedure
 
 1. Fetch PR #23 **current head SHA** and check `Try-on review` plus separate `Live mirror camera frame regression` workflows for **that exact SHA**. Require `review`, **all three** `Full Playwright suite` shards and independent camera **completed success**. If any fail, read GitHub job logs and fix the real problem. Cancelled runs caused by later commits are not “green”.

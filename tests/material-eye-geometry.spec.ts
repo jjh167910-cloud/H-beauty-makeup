@@ -25,6 +25,19 @@ test("eye geometry rejects crossed curves, missing lower lids and implausible br
     const flattenedBrow = clone();
     for(let i=0;i<brow.length;i++)
       flattenedBrow[brow[i]] = [122+30*i,145,0];
+    // A single stale point moves into eyebrow space without reversing
+    // the upper-lid order or exceeding the existing neighbour-jump gate.
+    const lidIntoBrow = clone();
+    lidIntoBrow[159] = [180,98,0];
+    // Local lid/brow overlap must also reject when the entire eyebrow is
+    // naturally closer to the eye (hooded or low-brow geometry).
+    const lowBrowOverlap = clone();
+    brow.forEach((id,i) => lowBrowOverlap[id] = [122+30*i,127,0]);
+    lowBrowOverlap[159] = [180,128,0];
+    // The same coarse eye remains valid when the upper lid follows an
+    // ordinary smooth arc. Do not reject natural eyelid curvature.
+    const smoothArc = clone();
+    smoothArc[159] = [180,125,0];
     const crossedBrow = clone();
     [crossedBrow[70],crossedBrow[107]]=[crossedBrow[107],crossedBrow[70]];
     const invertedLower = clone();
@@ -46,19 +59,25 @@ test("eye geometry rejects crossed curves, missing lower lids and implausible br
     return {
       valid:check(original), crossed:check(crossed),warped:check(warped),
       flattenedBrow:check(flattenedBrow), crossedBrow:check(crossedBrow),
+      lidIntoBrow:check(lidIntoBrow),lowBrowOverlap:check(lowBrowOverlap),
+      smoothArc:check(smoothArc),
       invertedLower:check(invertedLower),missingLower:check(missingLower),
       nonfiniteLower:check(nonfiniteLower),
       rotated:[0,37,90,180,270].map(rotated)
     };
   });
   expect(result.valid).toEqual({valid:true,material:true});
+  expect(result.smoothArc).toEqual({valid:true,material:true});
   for(const key of ["crossed","warped","flattenedBrow","crossedBrow",
+       "lidIntoBrow","lowBrowOverlap",
        "invertedLower","missingLower","nonfiniteLower"] as const)
     expect(result[key].material, key).toBe(false);
   expect(result.crossed.valid).toBe(false);
   expect(result.warped.valid).toBe(false);
   expect(result.flattenedBrow.valid).toBe(false);
   expect(result.crossedBrow.valid).toBe(false);
+  expect(result.lidIntoBrow.valid).toBe(false);
+  expect(result.lowBrowOverlap.valid).toBe(false);
   for(const rotated of result.rotated)
     expect(rotated).toEqual({valid:true,material:true});
 });
@@ -99,4 +118,32 @@ test("native geometry rejection also prevents the looser legacy CPU overlay fall
   expect(result.remainingEye).toEqual([1,0]);
   expect(result.noneSafe).toBe(true);
   expect(result.unknownStyle).toBe(true);
+});
+
+test("one stale eyelid cannot paint eyebrow or authorize a legacy fallback", async ({ page }) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const { nativeEyeMaterial, nativeEyeLegacyFallbackAllowed } =
+      await import("/src/lib/material-eye-native.ts");
+    const P = Array.from({ length: 478 }, () => [0,0,0]);
+    const lu=[33,246,161,160,159,158,157,173,133];
+    const ru=[263,466,388,387,386,385,384,398,362];
+    const lb=[70,63,105,66,107],rb=[300,293,334,296,336];
+    lu.forEach((id,i)=>P[id]=[120+15*i,150-10*Math.sin(i*Math.PI/8),0]);
+    ru.forEach((id,i)=>P[id]=[440-15*i,150-10*Math.sin(i*Math.PI/8),0]);
+    lb.forEach((id,i)=>P[id]=[122+30*i,99+4*Math.abs(i-2),0]);
+    rb.forEach((id,i)=>P[id]=[438-30*i,99+4*Math.abs(i-2),0]);
+    P[145]=[180,177,0];P[374]=[380,177,0];
+    const valid=nativeEyeMaterial(P,"hollywood","natural");
+    const safeBefore=nativeEyeLegacyFallbackAllowed(P,"hollywood","natural");
+    P[159]=[180,98,0];
+    const partial=nativeEyeMaterial(P,"hollywood","natural");
+    const fallback=nativeEyeLegacyFallbackAllowed(P,"hollywood","natural");
+    return {valid:valid&&[...valid.enabled],
+      safeBefore,partial:partial&&[...partial.enabled],fallback};
+  });
+  expect(result.valid).toEqual([1,1]);
+  expect(result.safeBefore).toBe(true);
+  expect(result.partial).toEqual([0,1]);
+  expect(result.fallback).toBe(false);
 });
