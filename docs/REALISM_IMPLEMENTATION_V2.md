@@ -188,6 +188,23 @@ Tests: `tests/material-eye-gpu.spec.ts` asserts canvas-vs-readback pixel parity,
 
 **Release gate unchanged:** production remains on original renderer; independent photographed-makeup quality, user-identity protection, device performance and the complete app test suite must be validated before promotion. The next engineering task is to incorporate material shaders and face-space coverage into the existing `MakeupGL` framebuffer chain, eliminating canvas-to-canvas texture copies and CPU ROI readbacks.
 
+## Shader-native MakeupGL framebuffer integration — 2026-11-17
+
+**Development-only experiment, not released.** New `src/lib/material-eye-native.ts` defines analytic, face-space eyelid coverage and linear-light pigment in GLSL ES 3.0, with eyebrow/upper-lid curves computed from the user's landmarks. It requires real face visibility and rejects collapsed/unreliable eye geometry. The `no-makeup` control is never altered. Initial native pigment pilots: Hollywood, electric blue and rhinestone. Existing eyeliner, eyelashes and rhinestone geometry still come from the baseline renderer until these individual materials are replaced and independently measured.
+
+`MakeupGL.render` now supports an optional **native eye-material postpass** inside its own WebGL2 context. For `?eyePilot=v2&eyeCompute=native` on saved photos, the old full-face composition first renders into an opt-in RGBA8 framebuffer. A second fullscreen shader consumes that texture, the original selfie texture and the renderer's existing face-visibility texture, then outputs directly to the same context's drawing buffer. It computes the eye mask **per fragment on the GPU**. No CPU eye-ROI readback, no CPU per-pixel weight map, no auxiliary WebGL context and no 2D mask-row blits. The extra target is lazily allocated only for this mode, and destroyed on resize. The native shader is lazily compiled, so its failure does not affect ordinary production rendering.
+
+The API exposes `MakeupGL.lastNativeEye` and `lastNativeEyeMs` for local diagnostics; the latter is **CPU submission time only**, not GPU execution time. On invalid geometry, unsupported WebGL2 shader or incomplete framebuffer, saved-photo rendering reverts to the previous opt-in CPU eye-material overlay. It does not silently claim a native result.
+
+Tests:
+- `tests/material-eye-native.spec.ts`: standalone WebGL2 face-fitting / visible-skin / colour/clipping / untouched background tests on synthetic light/deep photos, plus degenerate geometry/no-makeup rejection.
+- `tests/material-eye-native-integration.spec.ts`: **full saved-photo photo-preparation → `paintLook` → `MakeupGL` path**, comparing the existing generated bare catalog face under the native and baseline shader; requires native application and protected outer-region parity.
+- Existing material/CPU/readback/canvas tests remain as regression references, and the native tests run early in GitHub PR CI.
+
+**Verified on commit `216aeccccd7d29ec9740536ba90509a880767c91`:** Node tests, TypeScript typecheck, Vite build, isolated shader/canvas regressions and the full saved-photo native smoke test passed. The streamed download check and full browser suite require their final GitHub conclusion at the current head before declaring the PR completely green.
+
+This milestone is **not** full photorealistic superiority, full native vector eyelashes/liner, native face segmentation/dense geometry, all-42-look migration, or physical-phone 30fps. Blind human evaluation and real-world Android performance profiling remain required.
+
 ## Shipping policy
 
 1. Production stays on main during research; use a feature flag and pilot branch.
