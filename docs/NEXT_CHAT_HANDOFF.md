@@ -332,6 +332,28 @@ The previous latest code SHA `0577894f6797e98ae4855025652c5d8975d83914` **PASSED
 3. Continue genuine physically accurate eye material research with consented real makeup photographs and annotated gaze/eyelid/glass/occlusion examples; blind artists assess the four pilot looks (3 modified looks + no-makeup negative control) before any 42-look promotion.
 4. Update PR #23, issue #24 and this handoff with concrete verified SHAs and CI outcomes. **Do not merge/deploy main/Cloudflare** without real-photo and real-device quality evidence.
 
+## Latest quality milestone — local protected-pixel parity preflight for Android A/B (2026-11-17)
+
+**Canonical codebase:** `jjh167910-cloud/H-beauty-makeup`, branch `feat/realism-benchmark-v2`, PR #23, tracker issue #24. **Production main and Cloudflare worker unchanged.**
+
+### Verified baseline before this new work
+The previous SHA `7e72d4df3be02c8870db83fb08175e5d520d742a` passed **all** GitHub Actions in `Try-on review` run **44006130958**: required Node/offline, TypeScript, Vite, early eye-material/geometry/benchmark browser tests, full native saved-photo integration, streamed model downloads, responsive live capture, and **all three full browser shards**. The separate `Live mirror camera frame regression` run **44006132561** was also green. These are actual completed checks, but no Android physical device or blinded real-photo makeup study was conducted.
+
+### Code committed in THIS continuation
+- New `src/lib/native-eye-parity.ts` (commit `85bcf5299ecca259d5bb154ca7177c175adef3a7`): **local-only, full-resolution native-vs-fast pixel auditor**. Input: two Canvas2D `ImageData` objects from the exact same locally prepared photo and shader eye scissor ROI. Converts WebGL bottom-left ROI to canvas top-down pixels. Returns numeric counts/differences only, never image data. Strict pass requires **ZERO changed RGBA pixels outside ROI**, overall max absolute channel delta **<=3**, whole image mean absolute delta **<0.5**, and proof that full and optimized shader stages executed; otherwise fail/unavailable.
+- `src/lib/native-eye-benchmark.ts` (commit `95f8a7b6d0a3669cccf4510add91f6d8595b01cb`): existing opt-in `runNativeEyeAB` now performs the full-res pixel parity check BEFORE warmups and GPU timing trials. If it fails, returns `image-parity-failed` / `image-parity-unavailable` and no performance claim. The two Canvas2D readbacks are **explicitly opt-in diagnostic preflight** and occur outside timed GPU queries; the real-time renderer does not add any `gl.readPixels`, GPU `finish()` or blocking query waits. The report includes only parity metadata, GPU statistics and photo dimensions, never selfie pixels/landmarks.
+- New `tests/material-eye-parity.spec.ts` (commit `a7c5bfe413b830840db0ff311dd5539d07cc6a16`): synthetic 4x3 strict ROI audit incl. protected pixel single-channel mutation, out-of-range differences, wrong dimensions, invalid scissor and unexecuted fast pass; separate *real saved-photo pipeline* comparison using the bundled generated no-makeup catalog portrait and rhinestone look. No actual customer identity used.
+- `tests/material-eye-benchmark.spec.ts` (commit `c6881594e9a5106cebca0285e3daba4066e15364`): benchmark smoke now checks successful parity whenever a GPU timer extension is available, while maintaining 30-sample requirement for any timing claim.
+- `.github/workflows/review.yml` (commit `c6e3c6a0c7c4148242aea23bfcbc06ece659997c`): adds new dedicated parity tests to early targeted material/benchmark suite, before heavyweight full-app shards.
+- `docs/NATIVE_EYE_ANDROID_BENCHMARK.md` (commit `f579f2474d97f260df5174ca6acdbd72ac632973`) and `docs/REALISM_IMPLEMENTATION_V2.md` (commit `419884cce51fcfcde6932f18533cf6f7c06c5aa9`): precise audit threshold and honest Canvas2D readback-vs-GPU-timing distinction, physical device protocol and quality limitations.
+
+### Verify next
+1. **Current PR HEAD is dynamic.** Immediately query PR #23 and latest `Try-on review` GitHub Actions. Because documentation commits trigger concurrency cancellation, the latest source SHA may be this handoff commit; wait for *its* early targeted parity suite + native saved-photo smoke + download/live camera checks and **all three full-suite shards**. Fetch failing job logs if any and fix them—never silence failures.
+2. On Android real device, run `?eyePilot=v2` and the documented private `runNativeEyeAB(shot)` protocol, collecting 30+ valid GPU timer queries each for native and native-fast. **No GPU speedup is claimed**. Parity fail/unavailable on any target phone blocks the comparison; never compare CPU submission time in place of GPU elapsed time. Read `docs/NATIVE_EYE_ANDROID_BENCHMARK.md`.
+3. This is still **not** a photorealistic makeup research breakthrough. The architecture's shader only checks parity between modes, not whether either output resembles physically applied makeup. Need real consented portraits (different eye types/occlusion/skin depths), identity preservation, photographic pigment/lash/rhinestone optics and professional blinded comparisons before promoting to all 42 looks or production.
+4. No connected physical Android device in this chat; do not invent real GPU time, power, memory values or speedups. Preserve user photo privacy (on device/offline).
+5. Keep issue #24, PR #23, and this handoff synchronized with verified exact GitHub SHA/CI. Do not merge into main or deploy to public worker until genuine physical-device and real-image quality evidence.
+
 ## New-chat start procedure (mandatory)
 
 1. Connect/use the GitHub app and fetch PR #23, current head SHA and workflow status; do not assume the latest chat's SHA still applies.
