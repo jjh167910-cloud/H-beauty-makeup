@@ -131,7 +131,7 @@ export async function runNativeEyeAB(
   const original = location.href;
   const started = performance.now();
   const r = gpu();
-  const empty = summarizeNativeEyeAB([], Math.min(target, 30));
+  const empty = summarizeNativeEyeAB([], 30);
   const make = (status: NativeEyeABReport["status"], metrics: NativeEyeABSummary): NativeEyeABReport => ({
     ...metrics, status, kind: "local-gpu-eye-ab", lookId, level,
     photoWidth: shot.photo.width, photoHeight: shot.photo.height,
@@ -181,7 +181,7 @@ export async function runNativeEyeAB(
         ? ["native", "native-fast"] : ["native-fast", "native"];
       for (const mode of order)
         if (!(await draw(mode)))
-          return make("aborted", summarizeNativeEyeAB(r.nativeEyeGpuSamples(), Math.min(target, 30)));
+          return make("aborted", summarizeNativeEyeAB(r.nativeEyeGpuSamples(), 30));
     }
     // Do not block the GPU; at most eight short async drains for the final
     // GPU query results. Incomplete/driver-disjoint results remain INSUFFICIENT.
@@ -191,7 +191,7 @@ export async function runNativeEyeAB(
       if (options.signal?.aborted) return make("aborted", empty);
       await sleep(35);
     }
-    const metrics = summarizeNativeEyeAB(r.nativeEyeGpuSamples(), Math.min(target, 30));
+    const metrics = summarizeNativeEyeAB(r.nativeEyeGpuSamples(), 30);
     return make(metrics.status, metrics);
   } finally {
     // Restore only the research toggles on the SAME page, never navigate away
