@@ -2830,6 +2830,15 @@ export class MakeupGL {
       gl.uniform3fv(this.uni(p, "uPigmentB"), nativeData.pigmentB);
       gl.uniform1f(this.uni(p, "uAmount"), nativeData.amount);
       gl.uniform1i(this.uni(p, "uMode"), nativeData.mode);
+      gl.uniform2fv(this.uni(p, "uLift"), nativeData.lift);
+      gl.uniform1fv(this.uni(p, "uOpening"), nativeData.opening);
+      gl.uniform3fv(this.uni(p, "uLinerColor"), nativeData.linerColor);
+      gl.uniform1f(this.uni(p, "uLinerWidth"), nativeData.linerWidth);
+      gl.uniform1f(this.uni(p, "uWingLength"), nativeData.wingLength);
+      gl.uniform1f(this.uni(p, "uLashLength"), nativeData.lashLength);
+      gl.uniform1i(this.uni(p, "uLashCount"), nativeData.lashCount);
+      gl.uniform1f(this.uni(p, "uInkSoft"),
+        Math.max(0.7, Math.min(2.8, face.blur ?? nativeData.inkSoft)));
       this.drawQuad(p); // FBO texture -> drawingBuffer; orientation already corrected by main pass
       this.lastNativeEye = true;
       this.lastNativeEyeMs = performance.now() - nativeStarted;
