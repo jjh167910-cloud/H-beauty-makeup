@@ -19,11 +19,14 @@ test("GPU benchmark evidence gate excludes duplicates, nonfinite queries and low
     const extended = summarizeNativeEyeAB(samples.concat(invalid));
     const short = summarizeNativeEyeAB(samples.slice(0, 56));
     const empty = summarizeNativeEyeAB([]);
-    let invalidTarget = false;
+    let invalidTarget = false, oneSampleCannotCertify = false;
     try { summarizeNativeEyeAB(samples, 0); } catch { invalidTarget = true; }
-    return { clean, extended, short, empty, invalidTarget };
+    try { summarizeNativeEyeAB(samples.slice(0,2), 1); }
+    catch { oneSampleCannotCertify = true; }
+    return { clean, extended, short, empty, invalidTarget, oneSampleCannotCertify };
   });
   expect(x.invalidTarget).toBe(true);
+  expect(x.oneSampleCannotCertify).toBe(true);
   expect(x.clean.status).toBe("sufficient-samples");
   expect(x.clean.samples).toEqual({ native: 30, "native-fast": 30 });
   expect(x.clean.timings).toEqual([
@@ -81,6 +84,9 @@ test("opt-in GPU benchmark uses only local metrics, restores URL and does not in
   expect(result.report.minRequiredPerMode).toBe(30);
   expect(result.report.kind).toBe("local-gpu-eye-ab");
   expect(result.report.attemptedPerMode).toBe(1);
+  expect(result.report.maxAttemptsPerMode).toBeGreaterThan(1);
+  expect(result.report.renderedPerMode.native).toBeLessThanOrEqual(result.report.maxAttemptsPerMode);
+  expect(result.report.renderedPerMode["native-fast"]).toBeLessThanOrEqual(result.report.maxAttemptsPerMode);
   expect(result.report.photoWidth).toBeGreaterThan(300);
   expect(result.report.evidence).toContain("not certified");
   expect(result.report.medianGpuSpeedupPercent).toBeNull();
