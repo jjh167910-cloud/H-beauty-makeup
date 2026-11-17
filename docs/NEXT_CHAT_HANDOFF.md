@@ -403,6 +403,29 @@ Latest prior head `fa53b66c4ae6ab893ce46038172564f171cf114c`, Actions `440696222
 3. Obtain **real low/mid/high Android GPU timer** results through `docs/NATIVE_EYE_ANDROID_BENCHMARK.md`. Native shader gained four texture fetches per tinted pixel, so physical performance must be reassessed; the opt-in local A/B runner is available. No devices connected now.
 4. Run consented real-photo blinded artist review for three modified looks plus no-makeup control. Only after that and verified Android resource safety should the experimental mode be considered for a staged rollout; no automatic merge/deployment.
 
+## Latest continuation — source-eye lighting isolation (2026-11-17)
+
+**Repository:** `jjh167910-cloud/H-beauty-makeup`, research branch `feat/realism-benchmark-v2`, open PR #23 and issue #24. User wants highest achievable makeup photorealism, offline on-device rendering, zero customer selfie upload, and measured results. **Default main and public Cloudflare Worker unchanged.**
+
+### Verified baseline
+At the beginning of this continuation source HEAD **`154784ae52149c8a5fef670c5a8c7233e14624ba`** was completely green: GitHub Actions **`44072288324` Try-on review** (targeted review plus all three full Playwright shards all success) and independent live-camera **`44072288364` success**. This validates synthetic/browser functional checks, not visual photorealism on real people or Android GPU performance.
+
+### Concrete rendering bug found and fixed
+- `src/lib/material-eye-native.ts` original **NATIVE_EYE_FS** fragment shader kept one `refLight` variable and updated it at the bottom of the loop over two enabled eyes, regardless of which eye actually produced cosmetic coverage at the current pixel. Thus the right eye's photographic illumination reference could unintentionally change color/shading of LEFT-eye eyelid pigment or shiny gemstones. The bug is material under asymmetric lighting and different-eye shadow.
+- Commit **`4468b7bb5457cf946d774e2b48191884f4a5721e`**: shader now tracks `dominantEyeContribution` for each output pixel and chooses the reference from whichever eye actually applies pigment, liner/lashes or rhinestone coverage. Skips unrelated opposite eye as contributor. Existing original-photo pore-texture retention, native/fast shader parity, sclera/visibility occlusion, default production isolation all preserved.
+- Commit **`54a3a0f01e3ca1aebd60c6ede591bbed252676d8`**: extended `tests/material-eye-native.spec.ts`. The browser raster test modifies **only the RIGHT eye's photographic illumination reference** in WebGL source texture, rerenders the SAME makeup look and asserts zero changed RGB channels across the LEFT eye's rendered patch; executes for **both light/deep synthetic skin** and requires the left-eye makeup actually painted >100 channels. Retains protected pixel, sclera, clipping, and source skin-microtexture checks. A real GPU shader regression now catches per-eye lighting cross-contamination; no customer's photo is involved.
+- Issue #24 and PR #23 contain the exact defect and source SHA links.
+
+### Current CI at handoff-writing time (refresh immediately)
+- Source code SHA `54a3a0f01e3ca1aebd60c6ede591bbed252676d8`, `Try-on review` run **`44076856249`**: offline/Node, TypeScript and Vite build passed; native-eye material/geometry shader browser suite still in progress at last polling. Separate live-camera smoke **`44076856222` completed SUCCESS**. Do not claim all tests green unless the shader test and **all three full browser shards** finish successfully.
+- This handoff edit creates its own newer HEAD and CI run, potentially cancelling the previous run due to workflow concurrency; query PR #23 and newest Actions after handoff commit, and use that as source of truth.
+
+### Next actual development and validation work
+1. **Check new-HEAD CI first.** If the cross-eye shading test fails, fetch the failed job logs and pinpoint whether the right-light texel manipulation changed the left output, the synthetic left eye has insufficient paint, or a WebGL issue occurred. Repair the actual shader/fixture, not by relaxing protected/lighting assertions. Then let all 3 full Playwright shards pass at one fixed HEAD.
+2. On consenting real photos, visually compare side-lit left/right eyes for the 3 material looks (Hollywood, Electric Blue, Rhinestone), especially separate eye illumination, subject's texture, iris/sclera/eyeglasses/hair/hand occlusion. Use blinded makeup artists, preserve identity and never upload selfies. Current synthetic tests alone do not establish improvement.
+3. Physical low/mid/high Android `EXT_disjoint_timer_query_webgl2` measurements with `docs/NATIVE_EYE_ANDROID_BENCHMARK.md` are still **not collected**; prior timer/backpressure/30-sample floor and strict pixel parity gates are in place. No FPS, GPU, thermal or battery claims without physical measurements.
+4. The v2 material-aware eye shader remains opt-in via `?eyePilot=v2` and default public production renderer is unchanged; do **not merge/deploy** before actual visual and phone gates. Update PR body, issue #24 and this handoff after real verified work.
+
 ## New-chat start procedure (mandatory)
 
 1. Connect/use the GitHub app and fetch PR #23, current head SHA and workflow status; do not assume the latest chat's SHA still applies.
