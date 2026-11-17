@@ -34,7 +34,7 @@ jobs:
       - name: Verify runner Chrome
         run: google-chrome --version
       - name: Verify new eye-material pixel and geometry regressions
-        run: npm run test:ui -- tests/material-eye-v2.spec.ts tests/material-eye-gpu.spec.ts tests/material-eye-canvas.spec.ts tests/material-eye-native.spec.ts tests/material-eye-finish.spec.ts
+        run: npm run test:ui -- tests/material-eye-v2.spec.ts tests/material-eye-gpu.spec.ts tests/material-eye-canvas.spec.ts tests/material-eye-native.spec.ts tests/material-eye-finish.spec.ts tests/material-eye-native-fast.spec.ts
       - name: Verify native material eye on full saved-photo renderer
         run: npm run test:ui -- tests/material-eye-native-integration.spec.ts
       - name: Verify streamed download cancellation and retry
