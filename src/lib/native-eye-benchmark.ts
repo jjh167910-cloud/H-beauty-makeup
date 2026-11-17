@@ -49,8 +49,8 @@ export function summarizeNativeEyeAB(
   samples: NativeEyeGpuMeasurement[], minRequiredPerMode = 30,
 ): NativeEyeABSummary {
   if (!Array.isArray(samples) || !Number.isSafeInteger(minRequiredPerMode) ||
-    minRequiredPerMode < 1 || minRequiredPerMode > 32)
-    throw new RangeError("Expected samples and a target of 1..32 valid GPU queries per mode");
+    minRequiredPerMode < 30 || minRequiredPerMode > 32)
+    throw new RangeError("At least 30 valid GPU queries per mode are required for timing evidence");
   const seen = new Set<number>();
   const byMode: Record<NativeEyeGpuMode, number[]> = { native: [], "native-fast": [] };
   for (const sample of samples) {
@@ -86,13 +86,16 @@ export function summarizeNativeEyeAB(
 export type NativeEyeABReport = Omit<NativeEyeABSummary, "status"> & {
   kind: "local-gpu-eye-ab";
   status: NativeEyeABSummary["status"] | "unsupported-gpu-timer" | "aborted" |
-    "image-parity-failed" | "image-parity-unavailable";
+    "image-parity-failed" | "image-parity-unavailable" | "gpu-evidence-lost";
   lookId: "hollywood" | "electric-blue" | "rhinestone";
   level: Level;
   photoWidth: number;
   photoHeight: number;
   warmupsPerMode: number;
   attemptedPerMode: number;
+  /** Local render submissions, including retries for uncompleted GPU queries. */
+  renderedPerMode: Record<NativeEyeGpuMode, number>;
+  maxAttemptsPerMode: number;
   totalWallMs: number;
   timerSupported: boolean;
   /** Exact on-device full-resolution A/B pixel integrity measured before timing. */
@@ -123,6 +126,10 @@ export async function runNativeEyeAB(
   const lookId = options.lookId ?? "hollywood";
   const level = options.level ?? "natural";
   const warmups = options.warmupsPerMode ?? 3, target = options.samplesPerMode ?? 30;
+  // Query completion may lag on mid-range Android devices. Retrying a bounded
+  // number of alternating trials is safer than accepting fewer than 30 samples.
+  const maxAttempts = Math.min(90, Math.max(target * 3, target + 8));
+  const rendered: Record<NativeEyeGpuMode, number> = { native: 0, "native-fast": 0 };
   if (!Number.isSafeInteger(warmups) || warmups < 0 || warmups > 10 ||
       !Number.isSafeInteger(target) || target < 1 || target > 30)
     throw new RangeError("Warmups must be 0..10 and valid trials must be 1..30 per mode");
@@ -142,6 +149,7 @@ export async function runNativeEyeAB(
     ...metrics, status, kind: "local-gpu-eye-ab", lookId, level,
     photoWidth: shot.photo.width, photoHeight: shot.photo.height,
     warmupsPerMode: warmups, attemptedPerMode: target,
+    renderedPerMode: { ...rendered }, maxAttemptsPerMode: maxAttempts,
     timerSupported: r?.nativeEyeGpuTimingSupported === true,
     pixelParity,
     totalWallMs: Math.round(performance.now() - started),
@@ -207,25 +215,76 @@ export async function runNativeEyeAB(
       if (!(await draw("native-fast"))) return make("aborted", empty);
       if (!(await draw("native"))) return make("aborted", empty);
     }
-    // Drop warm-up and delayed first-use queries; isolate measured trials.
+    // The timer retains only the latest 64 samples. A real Android GPU may
+    // complete queries several frames late: collect fresh sequence IDs
+    // incrementally so history eviction cannot silently erase valid trials.
+    // The epoch changes on disjoint, context loss or driver query exceptions.
     if (!r.resetNativeEyeGpuSamples()) return make("insufficient-samples", empty);
-    for (let i = 0; i < target; i++) {
-      // Balanced AB/BA trials mitigate warmed-cache and thermal-order bias.
-      const order: NativeEyeGpuMode[] = i % 2 === 0
+    const sampleEpoch = r.nativeEyeGpuSampleEpoch();
+    const seen = new Set<number>();
+    const observed: NativeEyeGpuMeasurement[] = [];
+    const collect = (): boolean => {
+      const completed = r.nativeEyeGpuSamples(); // never blocks GPU
+      if (r.nativeEyeGpuSampleEpoch() !== sampleEpoch || r.lost) return false;
+      for (const sample of completed) {
+        if (!seen.has(sample.sequence)) {
+          seen.add(sample.sequence);
+          observed.push(sample);
+        }
+      }
+      return true;
+    };
+    const summary = () => summarizeNativeEyeAB(observed, 30);
+    const enough = () => {
+      const counts = summary().samples;
+      return counts.native >= target && counts["native-fast"] >= target;
+    };
+    // Never force a GPU finish/readback. A bounded poll-and-yield interval
+    // lets older asynchronous queries complete before exhausting the three
+    // pending-query slots. A driver that never completes reports insufficient.
+    const awaitSlot = async (): Promise<"ready" | "aborted" | "lost" | "full"> => {
+      for (let n = 0; n < 24; n++) {
+        if (options.signal?.aborted || !pageIsVisible()) return "aborted";
+        if (!collect()) return "lost";
+        if (r.nativeEyeGpuPendingCount() < 2) return "ready";
+        await sleep(25);
+      }
+      return "full";
+    };
+    for (let trial = 0; trial < maxAttempts && !enough(); trial++) {
+      // This is a limit on time spent testing, not a promise of actual GPU
+      // speed. A throttled phone is allowed to return insufficient evidence.
+      if (performance.now() - started > 180_000) break;
+      const order: NativeEyeGpuMode[] = trial % 2 === 0
         ? ["native", "native-fast"] : ["native-fast", "native"];
-      for (const mode of order)
-        if (!(await draw(mode)))
-          return make("aborted", summarizeNativeEyeAB(r.nativeEyeGpuSamples(), 30));
+      for (const mode of order) {
+        const slot = await awaitSlot();
+        if (slot === "aborted") return make("aborted", summary());
+        if (slot === "lost") return make("gpu-evidence-lost", empty);
+        if (slot === "full") return make("insufficient-samples", summary());
+        if (!(await draw(mode))) return make("aborted", summary());
+        rendered[mode]++;
+        // Even if the WebGL timer starts, a failed accelerated blit may
+        // downgrade the render to full-native. Never quietly count this
+        // as an optimized comparison.
+        const actualMode: NativeEyeGpuMode | null =
+          !r.lastNativeEye ? null : r.lastNativeEyeFast ? "native-fast" : "native";
+        if (actualMode !== mode)
+          return make("image-parity-unavailable", empty);
+        if (!collect()) return make("gpu-evidence-lost", empty);
+      }
     }
-    // Do not block the GPU; at most eight short async drains for the final
-    // GPU query results. Incomplete/driver-disjoint results remain INSUFFICIENT.
-    for (let attempt = 0; attempt < 8; attempt++) {
-      const data = r.nativeEyeGpuSamples();
-      if (data.length >= target * 2) break;
-      if (options.signal?.aborted) return make("aborted", empty);
-      await sleep(35);
+    // Drain late asynchronous queries. This does not force synchronization
+    // and cannot replace absent GPU timing evidence with CPU wall time.
+    for (let i = 0; i < 24; i++) {
+      if (options.signal?.aborted || !pageIsVisible()) return make("aborted", summary());
+      if (!collect()) return make("gpu-evidence-lost", empty);
+      if (enough() || r.nativeEyeGpuPendingCount() === 0) break;
+      await sleep(25);
     }
-    const metrics = summarizeNativeEyeAB(r.nativeEyeGpuSamples(), 30);
+    const metrics = summary();
+    // The study's minimum 30 valid queries per actual mode is non-negotiable,
+    // even when the caller requests a one-trial CI smoke.
     return make(metrics.status, metrics);
   } finally {
     // Restore only the research toggles on the SAME page, never navigate away
