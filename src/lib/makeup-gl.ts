@@ -1914,6 +1914,9 @@ export class MakeupGL {
   /** Guided-filter grids (the visible face, her lips; made on first use) and the map each last fitted (the live mirror and the tutorial paint many frames with one map). */
   private grids: Record<string, { n: number; prob: WebGLTexture; t: Record<string, Target>; last: { key: object; w: number; h: number; out: [number, WebGLTexture] } | null }> = {};
   lost = false;
+  /** Observability only; no customer image or landmarks are logged/stored. */
+  lastNativeEye = false;
+  lastNativeEyeMs = 0;
 
   /** A renderer, or null when the phone has no WebGL2 (the app then uses the tiny networks). */
   static create(): MakeupGL | null {
@@ -2307,6 +2310,8 @@ export class MakeupGL {
     lip: LipInfo = look.lip, canon?: Canon, steps?: StepState, products?: Products, vis?: Visibility | null, lips?: LipGrid | null,
     nativeEyeId?: string) {
     const gl = this.gl;
+    this.lastNativeEye = false;
+    this.lastNativeEyeMs = 0;
     if (this.canvas.width !== w || this.canvas.height !== h) { this.canvas.width = w; this.canvas.height = h; }
     this.resize(w, h);
     const [kLayer, kLip, kEye] = LEVELS[level];
@@ -2650,8 +2655,18 @@ export class MakeupGL {
     const nativeData = nativeEyeId && vis && !steps && !products?.mine
       ? nativeEyeMaterial(P, nativeEyeId, level) : null;
     const nativeProgram = nativeData ? this.nativeEyeProgram() : null;
-    const nativeOn = Boolean(nativeData && nativeProgram);
-    if (nativeOn && !this.nativeOutput) this.nativeOutput = this.target(1, false, w, h);
+    let nativeOn = Boolean(nativeData && nativeProgram);
+    if (nativeOn && !this.nativeOutput) {
+      this.nativeOutput = this.target(1, false, w, h);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.nativeOutput.fb);
+      if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+        // Fail closed: do not attempt to draw into an incomplete target.
+        gl.deleteFramebuffer(this.nativeOutput.fb);
+        this.nativeOutput.tex.forEach(t => gl.deleteTexture(t));
+        this.nativeOutput = null;
+        nativeOn = false;
+      }
+    }
     gl.disable(gl.SCISSOR_TEST);
     gl.bindFramebuffer(gl.FRAMEBUFFER, nativeOn ? this.nativeOutput!.fb : null);
     p = this.use("main");
@@ -2794,6 +2809,7 @@ export class MakeupGL {
     }
     this.drawQuad(p, -1);
     if (nativeOn && nativeData && nativeProgram) {
+      const nativeStarted = performance.now();
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.disable(gl.DEPTH_TEST);
       gl.disable(gl.BLEND);
@@ -2815,6 +2831,8 @@ export class MakeupGL {
       gl.uniform1f(this.uni(p, "uAmount"), nativeData.amount);
       gl.uniform1i(this.uni(p, "uMode"), nativeData.mode);
       this.drawQuad(p); // FBO texture -> drawingBuffer; orientation already corrected by main pass
+      this.lastNativeEye = true;
+      this.lastNativeEyeMs = performance.now() - nativeStarted;
     }
   }
 
