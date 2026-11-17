@@ -113,9 +113,15 @@ test("confidence is clustered by independent customer, not inflated by repeated 
   // 20 customers prefer H-Beauty on all looks; 10 on only two looks.
   // The per-face/look point estimate is 83%, but only 20/30 subjects
   // individually meet the 70% target. That is not conclusive at 95%.
-  for (let subject = 20; subject < 30; subject++)
-    for (const look of ["no-makeup", "hollywood"])
+  // Distribute losses across all four looks within the deep-skin group.
+  // Otherwise the look-by-skin safety gate rightly detects a real subgroup
+  // failure and this would stop testing the separate cluster-confidence gate.
+  for (let subject = 20; subject < 30; subject++) {
+    const lostLooks = subject < 25
+      ? ["no-makeup", "hollywood"] : ["electric-blue", "rhinestone"];
+    for (const look of lostLooks)
       cases.find((c) => c.sample_id === "private-" + subject && c.look_id === look).paired_preference = "competitor";
+  }
   const result = evaluatePilot(cases);
   assert.ok(result.preference > 0.8);
   assert.equal(result.subjectWins, 20);

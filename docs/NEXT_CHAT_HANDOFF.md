@@ -64,6 +64,24 @@ Original user roadmap (18-page `Roadmap.pdf`, dated 2026-11-16; see detailed imp
 - **New commit CI:** check current PR head SHA after committing; verify `Try-on review` (review + all 3 Playwright shards) and separate camera run. The preceding green source does not validate this new metadata-gate commit.
 - **Still unresolved:** consented real-photo blind artist comparisons and real low/mid/high-tier Android GPU, memory, thermal, camera data. Cloudflare preview build failure previously reported, but logs inaccessible; do not infer cause. Research remains `?eyePilot=v2` saved-photo opt-in; main/production unchanged. Licensing handled separately.
 
+### CI regression repaired in this follow-up commit
+
+Initial study-gate commit `71b13c438051bda29a9363d5e1e67b9bc71836be`
+triggered [review run 44091293387](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/44091293387):
+offline Node tests **25/26 passed**; the one failure was the pre-existing
+`confidence is clustered by independent customer` fixture
+(`tests-node/benchmark_v2.test.mjs`, near line 111). The new cross-stratum
+gate correctly returned `fail` because all deep-skin subjects lost the same
+two looks, while that older fixture expected `insufficient-evidence`.
+The fix splits the ten affected subjects into two groups losing different
+looks: every look/skin cell remains at least at chance, but only 20/30 subjects
+meet the predeclared 70% goal, leaving Wilson 95% inconclusive. The
+cross-stratum gate and its independent regression tests remain **strict**,
+without relaxing any quality threshold. Three full Playwright shards were
+skipped on the failing source; do not mark the old run green.
+Verify the latest head's Node, typecheck, build, targeted browser, three full
+shards and independent camera workflow. Main and public production unchanged.
+
 ## Mandatory next-chat operating procedure
 
 1. Fetch PR #23 **current head SHA** and check `Try-on review` plus separate `Live mirror camera frame regression` workflows for **that exact SHA**. Require `review`, **all three** `Full Playwright suite` shards and independent camera **completed success**. If any fail, read GitHub job logs and fix the real problem. Cancelled runs caused by later commits are not “green”.
