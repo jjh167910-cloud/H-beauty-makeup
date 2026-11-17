@@ -13,6 +13,8 @@
  * per mode to be analytically sufficient. CI software GPU is not a phone.
  */
 import { paintLook, gpu, type Shot } from "./tryon";
+import { nativeEyeMaterial, nativeEyeScissor } from "./material-eye-native";
+import { auditNativeEyePixels, type NativeEyePixelParity } from "./native-eye-parity";
 import type { Level } from "./makeup-gl";
 import type { NativeEyeGpuMeasurement, NativeEyeGpuMode } from "./native-eye-gpu-timer";
 
@@ -83,7 +85,8 @@ export function summarizeNativeEyeAB(
 
 export type NativeEyeABReport = Omit<NativeEyeABSummary, "status"> & {
   kind: "local-gpu-eye-ab";
-  status: NativeEyeABSummary["status"] | "unsupported-gpu-timer" | "aborted";
+  status: NativeEyeABSummary["status"] | "unsupported-gpu-timer" | "aborted" |
+    "image-parity-failed" | "image-parity-unavailable";
   lookId: "hollywood" | "electric-blue" | "rhinestone";
   level: Level;
   photoWidth: number;
@@ -92,10 +95,12 @@ export type NativeEyeABReport = Omit<NativeEyeABSummary, "status"> & {
   attemptedPerMode: number;
   totalWallMs: number;
   timerSupported: boolean;
+  /** Exact on-device full-resolution A/B pixel integrity measured before timing. */
+  pixelParity: NativeEyePixelParity | null;
   /** This is a FRAMEBUFFER estimate, not measured total GPU memory. */
   nativeRgba8FramebufferBytes: number;
   /** No user photo, landmarks, ID, device fingerprint, or image content. */
-  evidence: "GPU elapsed queries only; physical device and photo quality not certified";
+  evidence: "Local GPU elapsed queries and pixel-parity preflight only; physical device and photo quality not certified";
 };
 
 let inProgress = false;
@@ -131,15 +136,17 @@ export async function runNativeEyeAB(
   const original = location.href;
   const started = performance.now();
   const r = gpu();
+  let pixelParity: NativeEyePixelParity | null = null;
   const empty = summarizeNativeEyeAB([], 30);
   const make = (status: NativeEyeABReport["status"], metrics: NativeEyeABSummary): NativeEyeABReport => ({
     ...metrics, status, kind: "local-gpu-eye-ab", lookId, level,
     photoWidth: shot.photo.width, photoHeight: shot.photo.height,
     warmupsPerMode: warmups, attemptedPerMode: target,
     timerSupported: r?.nativeEyeGpuTimingSupported === true,
+    pixelParity,
     totalWallMs: Math.round(performance.now() - started),
     nativeRgba8FramebufferBytes: shot.photo.width * shot.photo.height * 4,
-    evidence: "GPU elapsed queries only; physical device and photo quality not certified",
+    evidence: "Local GPU elapsed queries and pixel-parity preflight only; physical device and photo quality not certified",
   });
   if (!r) return make("unsupported-gpu-timer", empty);
   const setMode = (mode: NativeEyeGpuMode) => {
@@ -173,6 +180,29 @@ export async function runNativeEyeAB(
     if (r.nativeEyeGpuTimingSupported !== true)
       return make("unsupported-gpu-timer", empty);
 
+    // Fail closed on image-quality differences BEFORE executing the timed
+    // trials. The full ImageData readback is diagnostic-only and happens
+    // outside measured GPU samples, not in the production/live renderer.
+    const material = nativeEyeMaterial(shot.points, lookId, level);
+    const roi = material ? nativeEyeScissor(material, shot.photo.width, shot.photo.height) : null;
+    if (!roi) return make("image-parity-unavailable", empty);
+
+    setMode("native");
+    const originalCanvas = await paintLook(shot, lookId, level);
+    const fullApplied = r.lastNativeEye === true && r.lastNativeEyeFast !== true;
+    const nativePixels = originalCanvas.getContext("2d")?.getImageData(
+      0, 0, shot.photo.width, shot.photo.height);
+    setMode("native-fast");
+    const optimizedCanvas = await paintLook(shot, lookId, level);
+    const fastApplied = r.lastNativeEye === true && r.lastNativeEyeFast === true;
+    const fastPixels = optimizedCanvas.getContext("2d")?.getImageData(
+      0, 0, shot.photo.width, shot.photo.height);
+    if (!nativePixels || !fastPixels) return make("image-parity-unavailable", empty);
+    pixelParity = auditNativeEyePixels(nativePixels, fastPixels, roi, fullApplied, fastApplied);
+    if (pixelParity.status !== "pass")
+      return make(pixelParity.status === "fail" ? "image-parity-failed" : "image-parity-unavailable", empty);
+
+    // Fresh warmups follow the pixel readback so it cannot pollute timing.
     for (let i = 0; i < warmups; i++) {
       if (!(await draw("native-fast"))) return make("aborted", empty);
       if (!(await draw("native"))) return make("aborted", empty);
