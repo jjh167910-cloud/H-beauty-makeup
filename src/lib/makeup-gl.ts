@@ -1948,6 +1948,15 @@ export class MakeupGL {
     return this.nativeEyeGpuTimer?.snapshot() ?? [];
   }
 
+  /** Local-only query backlog and evidence generation; never a GPU stall. */
+  nativeEyeGpuPendingCount(): number {
+    return this.nativeEyeGpuTimer?.pendingCount ?? 0;
+  }
+
+  nativeEyeGpuSampleEpoch(): number {
+    return this.nativeEyeGpuTimer?.sampleEpoch ?? -1;
+  }
+
   resetNativeEyeGpuSamples(): boolean {
     const reset = this.nativeEyeGpuTimer?.resetSamples() ?? false;
     if (reset) {
