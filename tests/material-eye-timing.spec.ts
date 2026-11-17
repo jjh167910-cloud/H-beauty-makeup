@@ -169,3 +169,63 @@ test("native vs native-fast GPU p50/p95 profiles are bounded and mode-specific",
   expect(actual.created).toBe(actual.deleted);
   expect(actual.emptyOnDispose).toEqual([]);
 });
+
+
+test("GPU sample epochs invalidate past readings and a slow query backlog cannot silently fabricate success", async ({ page }) => {
+  await page.goto("/");
+  const values = await page.evaluate(async () => {
+    const { NativeEyeGpuTimer } = await import("/src/lib/native-eye-gpu-timer.ts");
+    let ready = false, disjoint = false, created = 0, deleted = 0;
+    const gl = {
+      QUERY_RESULT_AVAILABLE: 2, QUERY_RESULT: 3,
+      getExtension: () => ({ TIME_ELAPSED_EXT: 7, GPU_DISJOINT_EXT: 8 }),
+      createQuery: () => ({ n: ++created }),
+      deleteQuery: () => { deleted++; },
+      beginQuery: () => {}, endQuery: () => {},
+      isContextLost: () => false,
+      getParameter: () => disjoint,
+      getQueryParameter: (_q: object, p: number) => p === 2 ? ready : 1_250_000,
+    } as unknown as WebGL2RenderingContext;
+    const timer = new NativeEyeGpuTimer(gl);
+    const epoch0 = timer.sampleEpoch;
+    for (let i = 0; i < NativeEyeGpuTimer.MAX_PENDING; i++) {
+      if (!timer.begin("native")) throw Error("Failed to create a test query");
+      timer.end();
+    }
+    const backedUp = timer.pendingCount === NativeEyeGpuTimer.MAX_PENDING &&
+      timer.begin("native-fast") === false && timer.snapshot().length === 0;
+    ready = true;
+    const completed = timer.snapshot().length;
+    const epochBeforeReset = timer.sampleEpoch;
+    const reset = timer.resetSamples();
+    const cleared = timer.snapshot().length === 0 && timer.pendingCount === 0;
+    const epochAfterReset = timer.sampleEpoch;
+    timer.begin("native-fast");
+    timer.end();
+    disjoint = true;
+    const noStale = timer.snapshot().length === 0;
+    const epochAfterDisjoint = timer.sampleEpoch;
+    disjoint = false;
+    timer.begin("native");
+    timer.end();
+    const resumed = timer.snapshot().length === 1;
+    timer.dispose();
+    const epochAfterDispose = timer.sampleEpoch;
+    return {
+      epoch0, backedUp, completed, epochBeforeReset, reset, cleared,
+      epochAfterReset, noStale, epochAfterDisjoint, resumed,
+      epochAfterDispose, created, deleted,
+    };
+  });
+  expect(values.backedUp).toBe(true);
+  expect(values.completed).toBe(3);
+  expect(values.reset).toBe(true);
+  expect(values.cleared).toBe(true);
+  expect(values.epochBeforeReset).toBe(values.epoch0);
+  expect(values.epochAfterReset).toBe(values.epoch0 + 1);
+  expect(values.noStale).toBe(true);
+  expect(values.epochAfterDisjoint).toBe(values.epochAfterReset + 1);
+  expect(values.resumed).toBe(true);
+  expect(values.epochAfterDispose).toBe(values.epochAfterDisjoint + 1);
+  expect(values.created).toBe(values.deleted);
+});
