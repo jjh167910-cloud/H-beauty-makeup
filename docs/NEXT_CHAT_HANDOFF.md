@@ -267,6 +267,20 @@ Source commit `2595c85d80f90d07e75c9745e1389865b1805d19`, GitHub Actions **run `
 4. Use existing opt-in flags `?eyePilot=v2&eyeCompute=native` and `native-fast`, optionally `&eyeTiming=1`; collect randomized GPU p50/p95 on actual Android devices rather than trusting software renderer timing. Guard GPU memory and device crashes.
 5. After each material change, update issue #24, PR #23 and this handoff with exact verified test results and branch SHA. Production default and offline privacy stay stable.
 
+## Follow-up safety closure — reject invalid eye geometry in legacy CPU fallback (2026-11-17)
+
+After adding rotation-invariant native landmark validity checks, a second risk was found and fixed: the saved-photo native GPU failure path originally retried the old CPU eye overlay even when the native shader had rejected the customer's distorted, missing or occluded eye landmarks. The CPU reference accepts a wider set of geometries and could have repainted such an eye.
+
+**Completed on PR #23 experimental branch:**
+- `src/lib/material-eye-native.ts`: new exported `nativeEyeLegacyFallbackAllowed(P, look, level)`. It returns true only if **both** eyes passed strict native landmark validation (current intended rule); otherwise retain the existing baseline-rendered photograph instead of running the less-strict experimental CPU overlay. Code commit `571050fc63447b9f54e57126ddd9155ff86066bc`.
+- `src/lib/tryon.ts`: before any native-to-CPU fallback, gate the call to `applyMaterialEyeV2` with `nativeEyeLegacyFallbackAllowed`. Non-native legacy test modes are not changed. If one native eye is valid, the native GPU path may still render that eye independently; if the GPU stage fails, reject the CPU overlay for the whole photo to avoid inventing the invalid eye. Commit `311d7c685b36625bf8006cec14df4416384fafdb`.
+- `tests/material-eye-geometry.spec.ts`: added two-good-eyes positive control, one-bad-eye / both-bad-eyes rejection and no-makeup negative control. Commit `3550ef6bca9eea3a8eb3ac659e51b00c087f8e77`.
+- `docs/REALISM_IMPLEMENTATION_V2.md`: updated with the actual preserved-baseline behavior, superseding its earlier wording about a generic fallback.
+
+**Verification:** The newest Actions run was queued at the time of the documentation update. Do NOT call the new geometry or fallback tests green until the current PR head run's early targeted step and full saved-photo integration have passed. The previous source commit prior to geometry modifications passed the targeted WebGL, offline/TS/build, integration and streamed-download checks, but the very long application suite was cancelled by continued source commits. **Main/production unchanged.**
+
+**Next step:** Check current PR #23 head and GitHub `Try-on review` run. Fetch logs and fix if new strict geometry rejects the existing generated catalog photo; keep a strong safety gate rather than loosening to satisfy an invalid fixture. Once targeted and integration pass, allow a full app-suite run to finish. Real portrait/Android GPU-quality evidence remains necessary for any public rollout.
+
 ## New-chat start procedure (mandatory)
 
 1. Connect/use the GitHub app and fetch PR #23, current head SHA and workflow status; do not assume the latest chat's SHA still applies.
