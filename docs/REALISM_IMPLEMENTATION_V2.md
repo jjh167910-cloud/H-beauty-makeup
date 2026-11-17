@@ -267,6 +267,16 @@ This is **development-only performance infrastructure**, not an assertion that n
 
 **Next required evidence:** run a repeated, randomized A/B on low/mid/high-end *physical Android devices*, at identical image size and look with a warmed GPU; collect at least 30+ valid, non-disjoint per-mode samples; compare GPU p50/p95, CPU submission latency, FBO memory, sustained thermal/frame-time behavior, and image parity. Timings from CI's software renderer are not proof of physical-device speedup. Real human photographed-makeup blind comparisons and independent quality review are still mandatory before production.
 
+## Landmark-geometry fail-closed safety increment — 2026-11-17
+
+**Development-branch-only:** The shader-native saved-photo pilot now validates the target customer's actual eyelid/brow/lower-lid geometry before computing pigment, liner, individual lashes or facet locations. This is independent of reference catalog appearance; the aim is to **not hallucinate makeup on invalid or occluded landmarks**, not to invent a plausible new eye.
+
+`src/lib/material-eye-native.ts` exports `nativeEyeGeometryValid`, a small rotation-invariant geometric guard. It checks all nine upper-eyelid landmarks and all five brow landmarks are present and finite, ensures the upper-lid curve projects broadly monotonically along the eye chord, rejects single grossly displaced upper-lid vertices, rejects eyebrows that reverse their order or collapse onto the eyelid chord, and retains the existing per-eye width/eyebrow gap checks. The lower-lid landmark must also be finite, present and on the correct side of the brow direction; a genuinely closed eyelid remains supported (lash strands are disabled by aperture gating). Each eye is checked independently; a malformed far/profile eye is suppressed rather than mirrored. When **both** are invalid, the new experimental material stage yields no result and the saved-photo flow follows its preexisting safe fallback.
+
+`tests/material-eye-geometry.spec.ts` exercises real rotations (0°, 37°, 90°, 180°, 270°), monotone and crossed curves, malformed upper vertex, inverted eyebrow ordering, eyebrow-chord collapse, missing/NaN lower-lid points and lower lid illegally moved into the eyebrow region. The existing GPU raster tests and real saved-photo generated catalog smoke test remain in the early CI gate to detect overstrict false negatives. This is still a **heuristic geometry safeguard**, not a learned per-pixel eyelid/occlusion mask; real annotation-driven thresholds for hooded/monolid eyes and challenging poses remain needed.
+
+**Implementation commits:** `9a628120aba5990135f859599f3d736f0862847b` (guard), `610a918cb74c37d82b5db0ef06bd4cd5c5c887dc` (browser tests), `7450a7fc67da32d2f29fa52df690d7377cfb9855` (CI gate). No production merge or deployment. Review the latest GitHub Actions before calling these tests passed.
+
 ## Shipping policy
 
 1. Production stays on main during research; use a feature flag and pilot branch.
