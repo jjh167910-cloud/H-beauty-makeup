@@ -23,7 +23,7 @@
  * Everything else stays her own pixels.
  */
 import type { Pt } from "./tryon";
-import { NATIVE_EYE_FS, nativeEyeMaterial } from "./material-eye-native";
+import { NATIVE_EYE_FS, nativeEyeMaterial, nativeEyeScissor } from "./material-eye-native";
 
 export type Level = "soft" | "natural" | "bold";
 /** (catalog layer, lipstick opacity, eye detail), as LEVELS in teacher.py. */
@@ -1917,6 +1917,8 @@ export class MakeupGL {
   /** Observability only; no customer image or landmarks are logged/stored. */
   lastNativeEye = false;
   lastNativeEyeMs = 0;
+  /** True iff a same-context baseline blit plus scissored native pass succeeded. */
+  lastNativeEyeFast = false;
 
   /** A renderer, or null when the phone has no WebGL2 (the app then uses the tiny networks). */
   static create(): MakeupGL | null {
@@ -2308,10 +2310,11 @@ export class MakeupGL {
    */
   render(source: TexImageSource, w: number, h: number, P: Pt[], look: LookFiles, face: FaceStats, level: Level, tris: number[],
     lip: LipInfo = look.lip, canon?: Canon, steps?: StepState, products?: Products, vis?: Visibility | null, lips?: LipGrid | null,
-    nativeEyeId?: string) {
+    nativeEyeId?: string, nativeEyeFast = false) {
     const gl = this.gl;
     this.lastNativeEye = false;
     this.lastNativeEyeMs = 0;
+    this.lastNativeEyeFast = false;
     if (this.canvas.width !== w || this.canvas.height !== h) { this.canvas.width = w; this.canvas.height = h; }
     this.resize(w, h);
     const [kLayer, kLip, kEye] = LEVELS[level];
@@ -2814,6 +2817,28 @@ export class MakeupGL {
       gl.disable(gl.DEPTH_TEST);
       gl.disable(gl.BLEND);
       gl.disable(gl.SCISSOR_TEST);
+      let nativeRect: [number, number, number, number] | null = null;
+      if (nativeEyeFast) {
+        // Copy the already-composed photo in GPU memory, then shade only the
+        // localized eye envelope. All untouched pixels remain bit-exact with
+        // the default renderer; no 2D canvas or gl.readPixels is involved.
+        const rect = nativeEyeScissor(nativeData, w, h);
+        if (rect) {
+          gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.nativeOutput!.fb);
+          gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+          gl.readBuffer(gl.COLOR_ATTACHMENT0);
+          gl.blitFramebuffer(0, 0, w, h, 0, 0, w, h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+          const blitError = gl.getError();
+          // If a driver rejects the blit, the next fullscreen shader draw
+          // restores the complete photo rather than leaving an empty buffer.
+          if (blitError === gl.NO_ERROR) {
+            nativeRect = rect;
+          } else {
+            console.warn("Eye native scissor blit unavailable", blitError);
+          }
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        }
+      }
       p = this.use("nativeEye");
       this.bindTex(p, "uPrevious", this.nativeOutput!.tex[0], 0);
       this.bindTex(p, "uOriginal", this.src, 1);
@@ -2841,8 +2866,17 @@ export class MakeupGL {
         Math.max(0.7, Math.min(2.8, face.blur ?? nativeData.inkSoft)));
       gl.uniform1f(this.uni(p, "uShimmer"), nativeData.shimmer);
       gl.uniform1f(this.uni(p, "uRhinestones"), nativeData.rhinestones);
-      this.drawQuad(p); // FBO texture -> drawingBuffer; orientation already corrected by main pass
+      if (nativeRect) {
+        gl.enable(gl.SCISSOR_TEST);
+        gl.scissor(nativeRect[0], nativeRect[1], nativeRect[2], nativeRect[3]);
+      }
+      try {
+        this.drawQuad(p); // FBO texture -> drawingBuffer, same orientation
+      } finally {
+        gl.disable(gl.SCISSOR_TEST);
+      }
       this.lastNativeEye = true;
+      this.lastNativeEyeFast = nativeRect !== null;
       this.lastNativeEyeMs = performance.now() - nativeStarted;
     }
   }
