@@ -220,6 +220,21 @@ Regression details: an early test incorrectly assumed the shorter Hollywood wing
 
 **Not yet solved:** true photorealistic lash/liner depth, individualized lashes based on dense eye segmentation, eyelid occlusion by existing natural lashes, raw camera optics beyond blur, shimmer/rhinestone BRDF, physical Android memory/performance, 42-look migration and real-client photographed makeup comparisons. The original catalog-ratio baseline is still present under the experimental postpass and has not been replaced across the app.
 
+## Native eye micro-shimmer and faceted gemstones — 2026-11-17
+
+The experimental **saved-photo-only** native path `?eyePilot=v2&eyeCompute=native` now includes two look-controlled, shader-native finish materials, in addition to its earlier linear-light eyeshadow, eyeliner and individually drawn eyelashes.
+
+- **Micro-shimmer** is enabled only for looks declaring `accents: ["shimmer"]` (currently Hollywood and Rhinestone in the three-look pilot). Tiny deterministic light-catching particles are generated in the customer's photo coordinate system, blended at low opacity in linear light with a source-photo illumination estimate. The shader leaves the underlying skin texture intact rather than copying high-frequency pixels from the catalog model.
+- **Rhinestone facets** are enabled only for looks declaring `accents: ["rhinestones"]` (the Rhinestone pilot). Seven small faceted spots **per valid eye** are anchored between its own upper-lid and eyebrow curves, with spatially offset specular facets. A source-photo-derived light estimate bounds highlight energy. Hard 0/255 clipping is avoided in the new output encoder.
+- **Safety:** both effects share the existing analytic eye-region gating and visibility/occlusion mask; no model or network requests are added, no new WebGL context is used, and unrelated pixels take an exact previous-output fast path. The no-makeup control and Electric Blue are unchanged by both finish toggles.
+- **Tests:** `tests/material-eye-finish.spec.ts` renders the same generated eye three ways (no finish; shimmer only; shimmer + gems), verifies that only the authorized eye area changes, and checks hard clipping, sclera, occlusion and the style metadata. Included in early PR CI checks.
+
+**Verified source** `f2877fd69e8acff34875977925a4b249d1860676` with GitHub Actions run `43990338747`: Node/offline shell, TypeScript, Vite build, target eye-material/browser tests including the finish test, full saved-photo native integration, and streamed model-download retry **passed**. The long full application Playwright suite was *still in progress* at the last check; that is not a completed full-suite pass. Earlier `866a9048f66bd05d025d294991eff8d53eda1a5b` failed TypeScript on two GLSL string terminators; both were corrected in `f2877fd6…`.
+
+**Limits:** these are procedural glossy approximations, *not* proven physically correct gemstones or a neural high-fidelity finisher. No actual human selfie's makeup appearance has been independently graded; no Android GPU execution/memory measurement has been performed. A fragment shader still draws over the full photo in the native postpass, which may be expensive on low-memory phones. Full release gates and production default remain unchanged.
+
+**Next:** benchmark GPU timers + memory on Android; optimize the second shader pass via a protected framebuffer copy and small eye scissor regions; improve eyelid segmentation and photograph-based blind evaluations before extending beyond the three modified + one negative-control pilot looks.
+
 ## Shipping policy
 
 1. Production stays on main during research; use a feature flag and pilot branch.
