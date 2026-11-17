@@ -407,3 +407,20 @@ Research anchors:
 - ECCV 2024 TinyBeauty: https://www.ecva.net/papers/eccv_2024/papers_ECCV/html/3942_ECCV_2024_paper.php
 - FFHQ license: https://github.com/NVlabs/ffhq-dataset/blob/master/LICENSE.txt
 - FLUX 3 Image Klein terms: https://huggingface.co/black-forest-labs/flux-3-image-klein
+
+### Tapered, photo-fitted upper eyeliner wing (research continuation, 2026-11-17)
+
+The experimental WebGL2 native eye shader uses the customer's own upper-lid
+curve and measured eye width to position a wing. A uniform-width segment
+had a marker-like, rounded tip. Replace it with a continuously tapering
+screen-space wedge from the outer lid to the target wing tip: root radius
+decreases with segment progress, anti-aliasing follows the already measured
+photo blur, and alpha drops to zero beyond the pointed endpoint.
+
+Acceptance is at two levels: synthetic GPU regression requires less visible
+wing coverage near the tip than near its root, no change outside a safe facial
+ROI, and preservation of legacy color ghost suppression; *actual* cosmetic
+fidelity still requires blinded comparisons on consented human photos with
+hooded, monolid, occluded and asymmetric eyes. Never confuse the synthetic
+tests with that real-world evaluation. This mode is opt-in only.
+

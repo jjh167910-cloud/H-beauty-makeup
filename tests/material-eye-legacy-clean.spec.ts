@@ -109,6 +109,9 @@ test("native eye wing does not transmit legacy catalog-color ghost under new ink
       return flip(read);
     };
     const reference=draw(image,1);
+    gl.uniform1f(uniform("uWingLength"),0);
+    const wingless=draw(image,1);
+    gl.uniform1f(uniform("uWingLength"),mat.wingLength);
     const old=draw(ghost,0);
     const cleaned=draw(ghost,1);
     let inkSamples=0, legacyDifference=0, cleanedDifference=0, protectedDifference=0;
@@ -129,8 +132,43 @@ test("native eye wing does not transmit legacy catalog-color ghost under new ink
           cleaned[i+2]!==ghost[i+2]||cleaned[i+3]!==ghost[i+3]))
         protectedDifference++;
     }
+    // The root of a real wing carries more ink than its pointed tip.
+    // Probe equal cross-sections of the *native shader's* rendered wing
+    // relative to the same makeup with the wing switched off.
+    const root = [116.2, 140.8], tip = [
+      P[33][0] - mat.span[0]*mat.wingLength,
+      P[33][1] + mat.lift[1]*mat.span[0]*0.11
+    ];
+    const crossSection=(fraction:number)=>{
+      const dx=tip[0]-root[0],dy=tip[1]-root[1];
+      const len=Math.hypot(dx,dy);
+      const cx=root[0]+fraction*dx,cy=root[1]+fraction*dy;
+      let score=0,distinct=new Set<number>();
+      for(let j=-5;j<=5;j++){
+        const x=Math.round(cx-j*dy/len),y=Math.round(cy+j*dx/len);
+        if(x<0||y<0||x>=W||y>=H)continue;
+        const i=(y*W+x)*4;
+        if(distinct.has(i))continue; distinct.add(i);
+        score+=Math.abs(reference[i]-wingless[i])+
+          Math.abs(reference[i+1]-wingless[i+1])+
+          Math.abs(reference[i+2]-wingless[i+2]);
+      }
+      return score;
+    };
+    const wingRootScore=crossSection(0.36);
+    const wingTipScore=crossSection(0.86);
+    // No output outside the source photograph's protected face frame.
+    let wingOutside=0;
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++) {
+      if(x>=65&&x<=230&&y>=62&&y<=185)continue;
+      const i=(y*W+x)*4;
+      if(reference[i]!==wingless[i] ||
+        reference[i+1]!==wingless[i+1] ||
+        reference[i+2]!==wingless[i+2]) wingOutside++;
+    }
     textures.forEach(v=>gl.deleteTexture(v));
-    return {inkSamples,legacyDifference,cleanedDifference,protectedDifference};
+    return {inkSamples,legacyDifference,cleanedDifference,protectedDifference,
+      wingRootScore,wingTipScore,wingOutside};
   });
   test.skip(!!r.unavailable,"WebGL2 not available");
   expect(r.invalid).not.toBe(true);
@@ -138,4 +176,7 @@ test("native eye wing does not transmit legacy catalog-color ghost under new ink
   expect(r.legacyDifference).toBeGreaterThan(100);
   expect(r.cleanedDifference).toBeLessThan(r.legacyDifference*0.75);
   expect(r.protectedDifference).toBe(0);
+  expect(r.wingRootScore).toBeGreaterThan(30);
+  expect(r.wingTipScore).toBeLessThan(r.wingRootScore * 0.8);
+  expect(r.wingOutside).toBe(0);
 });

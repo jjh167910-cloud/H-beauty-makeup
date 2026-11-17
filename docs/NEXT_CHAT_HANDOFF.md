@@ -129,6 +129,14 @@ real-world beauty improvement or mobile performance superiority from synthetic
 tests. Physical Android/GPU + consented blinded artist assessment outstanding.
 No production release/merge, no private photos, licensing separately.
 
+## 2026-11-17 — customer-fitted tapered eyeliner wing (research-only)
+
+- **Verified green input:** PR #23 baseline SHA `b9c0825d83bd70bd1a6533d5354744841ee2ebd4` passed [Try-on review 44098745500](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/44098745500) (**review plus 3/3 full Playwright shards**) and independent [camera workflow 44098745372](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/44098745372). Previous local legacy-wing cleanup and blur correction were not deployed.
+- **New opt-in GPU geometry:** `src/lib/material-eye-native.ts` introduces `taperedWing`, a screen-space wing whose width diminishes smoothly from its lid-root toward a pointed outer tip, with the existing measured lens softness applied to its anti-aliased edge. The shader uses *unclamped* segment progress to prevent soft ink extending indefinitely past the tip. The customer's own landmarks still anchor both endpoints; existing visibility, sclera, protected-pixel and fail-closed geometry rules remain. No changes to other makeup layers, full catalog, default mode or live mirror.
+- **New rendering regression:** `tests/material-eye-legacy-clean.spec.ts` still verifies legacy-magenta ghost suppression and protected regions, and now renders with wing on versus wing off to measure root-versus-tip ink cross sections. The test is already part of early targeted CI.
+- **Status of THIS commit:** not certified by the previous green run. Recheck exact-head new GitHub Actions required review, 3/3 full Playwright shards and independent camera workflow, fix actual logs on failure. This is engineered shape plausibility, not a blinded human photograph result. Real-phone GPU/thermals and consented diverse eyelid/occlusion photo review remain.
+- **Isolation:** `feat/realism-benchmark-v2` only; do not merge, deploy public worker, collect selfie data or imply commercial proof. Licensing separately handled.
+
 ## Mandatory next-chat operating procedure
 
 1. Fetch PR #23 **current head SHA** and check `Try-on review` plus separate `Live mirror camera frame regression` workflows for **that exact SHA**. Require `review`, **all three** `Full Playwright suite` shards and independent camera **completed success**. If any fail, read GitHub job logs and fix the real problem. Cancelled runs caused by later commits are not “green”.
