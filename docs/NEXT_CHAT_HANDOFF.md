@@ -244,6 +244,29 @@ Source commit `2595c85d80f90d07e75c9745e1389865b1805d19`, GitHub Actions **run `
 4. Perform genuine real makeup photos versus candidate renders blinded with artists. Quality targets remain native photorealistic lashes, liner, pigments, skin pores and rhinestone optics; expand from the three pilot looks plus no-makeup control to all 42 only when evidence warrants it.
 5. Update this file, PR #23 and issue #24 after each verified milestone. The next chat should proceed without asking for the original roadmap.
 
+## Latest increment — rotation-invariant eye geometry fail-closed guard (2026-11-17)
+
+**Canonical state:** `jjh167910-cloud/H-beauty-makeup`, branch `feat/realism-benchmark-v2`, open PR #23, engineering tracker #24. **Production main and public Cloudflare remain unchanged.** The only customer-accessible renderer remains the old default; these checks apply to the opt-in saved-photo material pilot.
+
+### What changed in GitHub
+- `src/lib/material-eye-native.ts` (code commit `9a628120aba5990135f859599f3d736f0862847b`): new exported `nativeEyeGeometryValid()` checks nine upper-lid and five eyebrow points individually on both eyes. Its rotation-invariant eye-chord projections reject impossible reversed/crossed eyelid curves, drastic single-point displacements, reversed or flattened eyebrows, and finite-point errors. Additionally the **lower** eyelid point must be present and finite and must not jump above the upper eyelid into the brow's halfspace. Missing lower-lid landmarks no longer throw a rendering exception. Closed lids remain valid for shadow but original lash aperture gate suppresses strands. Per-eye failure never hallucinates an opposite eye.
+- `tests/material-eye-geometry.spec.ts` (commit `610a918cb74c37d82b5db0ef06bd4cd5c5c887dc`): positive controls with the same target eye geometry rotated by 0/37/90/180/270 degrees; negative controls for crossed/wildly distorted lid, inverted/flattened brow, missing/NaN lower lid, and lower lid intruding into the eyebrow region. The tests never use private customer photographs.
+- `.github/workflows/review.yml` (commit `7450a7fc67da32d2f29fa52df690d7377cfb9855`): new test added to early targeted GPU/eye browser gate.
+- `docs/REALISM_IMPLEMENTATION_V2.md`: updated with implementation and quality caveats.
+- Previous source branch head `16839ca330e778521d4de8e704e7b3e02606d88d` had passed Node/offline, TypeScript, Vite, GPU timing/eye shader targeted tests, native saved-photo and streamed download checks. **General Playwright suite was still running and was cancelled by the next source code commit; do not claim complete green CI.**
+
+### What is NOT validated yet
+- New geometric thresholds are engineering heuristics, not annotated clinical/artist labels for monolid, hooded eyes, hands/glasses, high yaw, wink/smile, etc. CI has to show existing catalog face acceptance and all targeted regression tests PASS before considering this gate safe.
+- Independent real makeup-photo blinded quality review, facial identity/skin microtexture tests on actual consented photographs, production Android GPU speed/memory/thermals and all 42 catalog styles are not done.
+- GPU `eyeTiming=1` local nonblocking query and per-mode p50/p95 from last session are still implemented, but no real smartphone readings have been captured.
+
+### Next exact tasks
+1. Fetch PR #23 **current HEAD** and newest `Try-on review` GitHub Actions job steps. If `tests/material-eye-geometry.spec.ts`, `tests/material-eye-native.spec.ts` or full saved-photo integration fails, read job logs, fix precisely, rerun. **Never mistake a queued/cancelled/full-suite-in-progress job for a green build**.
+2. Once targeted checks pass, preserve this version and seek **one complete full Playwright suite result** (prior continuous commits have repeatedly cancelled long runs). Do not merge PR #23 to main solely for a CI pass.
+3. Further quality work must include annotated, consented real portrait data across monolid, hooded, closed, low light and occluded eye geometries. Preserve pixel identity outside the precise eye material masks and exclude failed geometry rather than guessing.
+4. Use existing opt-in flags `?eyePilot=v2&eyeCompute=native` and `native-fast`, optionally `&eyeTiming=1`; collect randomized GPU p50/p95 on actual Android devices rather than trusting software renderer timing. Guard GPU memory and device crashes.
+5. After each material change, update issue #24, PR #23 and this handoff with exact verified test results and branch SHA. Production default and offline privacy stay stable.
+
 ## New-chat start procedure (mandatory)
 
 1. Connect/use the GitHub app and fetch PR #23, current head SHA and workflow status; do not assume the latest chat's SHA still applies.
