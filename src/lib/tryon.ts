@@ -29,6 +29,7 @@ import { hdBackend, hdFace, hdNeeded, hdRunning, hdSession } from "./face-hd";
 import { STUDIO_CRISP, Studio, studioParams } from "./studio-gl";
 import { styleById } from "@/data/makeup-styles";
 import { applyMaterialEyeV2, materialEyePilotEnabled } from "./material-eye-v2";
+import { nativeEyeLegacyFallbackAllowed } from "./material-eye-native";
 import lookGains from "@/data/look-gains.json";
 import {
   LIP_GRID, LIPS_IN, LIPS_OUT, MakeupGL, STEP_KEYS, linHex, VIS_SEG, eyeWidth, lensSigma, linerColour, lipChoice, measureFace, mineLight, pigment, productLight, visCrop,
@@ -1698,7 +1699,11 @@ export async function paintLook(prepared: Shot, look: string, level: Level = "na
     // degenerate, preserve the experimental CPU fallback without losing the
     // user's photo. User-customized makeup is never overwritten.
     const nativeApplied = nativeEye && gpu()?.lastNativeEye === true;
-    if (!nativeApplied && !picks && materialEyePilotEnabled(look)) {
+    // Do NOT route invalid native landmarks through the legacy CPU overlay.
+    // It has looser geometry checks and could otherwise paint an occluded or
+    // distorted eye. Keep the already-rendered base photo instead.
+    const legacyEyeSafe = !nativeEye || nativeEyeLegacyFallbackAllowed(points, look, level);
+    if (!nativeApplied && legacyEyeSafe && !picks && materialEyePilotEnabled(look)) {
       try {
         applyMaterialEyeV2(result, photo, points, look, level, prepared.vis, prepared.face?.blur ?? 0.7);
       } catch (error) {
