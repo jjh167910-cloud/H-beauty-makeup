@@ -156,6 +156,38 @@ This session implemented and committed:
 5. Validate real consented photographs with independent blind comparisons, especially dark skin, liner/lash precision, and no identity/skin texture distortion. Only expand to 42 catalog looks and production if objective quality gates pass.
 6. Update this handoff, issue #24 and PR #23 description with precise commits/tests for cross-chat continuation.
 
+## Latest completed engineering increment — native eyelid shimmer + rhinestones (2026-11-17)
+
+**Canonical branch:** `feat/realism-benchmark-v2`; PR #23, tracker issue #24. **Production main / public Cloudflare site unchanged.** Read the PR head and latest CI first; branch SHAs below describe historical commits, not necessarily current HEAD after this handoff edit.
+
+### Committed implementation
+- `src/lib/material-eye-native.ts` now generates two additional independent **WebGL2-native** photo-coordinate materials:
+  - sparse deterministic micro-shimmer enabled by the look metadata `accents: ["shimmer"]`; soft linear-light highlight blend, limited density, no catalog reference texture;
+  - seven face-fitted small gemstone facets per valid eye enabled by `accents: ["rhinestones"]`, with eye-specific positions (upper lid to brow), offset specular reflections, illumination adaptation, hard-clipping prevention and the pre-existing face visibility mask.
+- `src/lib/makeup-gl.ts` passes `uShimmer` and `uRhinestones` uniforms to the already integrated **single WebGL2 context** shader. No CPU eye ROI painting, extra WebGL context or synchronous `gl.readPixels` in the native photo pipeline.
+- `tests/material-eye-finish.spec.ts` added as a browser regression: the same eye with finishes off, shimmer on, and shimmer + gemstones; check isolated material differences, visual geometry, hard RGB clipping, sclera, occluded pixels, protected background and per-look gating. Included early in `.github/workflows/review.yml`.
+- `docs/REALISM_IMPLEMENTATION_V2.md` updated with architectural, photographic and rollout limits.
+
+### Exact validation history
+- Source commit `866a9048f66bd05d025d294991eff8d53eda1a5b`, initial CI `43990214858`: FAILED **typecheck** due two unterminated GLSL strings in the TypeScript shader array. This was a plain syntax defect, not a runtime image regression.
+- Source commit `f2877fd69e8acff34875977925a4b249d1860676`: fixed both malformed string terminators. CI run **43990338747** passed Node/offline tests, TypeScript, Vite build, **targeted eye shader/browser tests including new facets + shimmer test**, **native full saved-photo integration smoke**, and **model download/cancellation/retry**. The **full `Try-on tests` browser suite was still in progress** when this handoff was prepared; do not assert full-suite success.
+- Documentation commits may cancel superseded CI runs by workflow concurrency. Always fetch the **latest PR #23 HEAD SHA** and Actions jobs for the up-to-date outcome.
+
+### Remaining technical/quality risks
+- Shader-rendered gem facets and particle shimmer are carefully bounded procedural approximations; no real-photo evidence of state-of-the-art visual quality or gemstone physics.
+- Full-size final second-pass framebuffer may have significant memory cost; no Android GPU execution-time measurement, power evaluation, sustained FPS, or thermal profiling.
+- Existing catalog photo-ratio layers still contribute underneath the pilot for much of the face. Neural image-quality teacher and genuinely authored 42-look material migration not complete.
+- Eyelid contour uses nine upper-lid anchors and five brow anchors; hooded/monolid, glasses and occluded faces require dense geometry and independent photographic QA.
+
+### Most useful next implementation task
+1. Inspect current PR #23 latest Actions run. If full test suite failed, fetch exact job logs, fix the failures and rerun. Confirm a complete **green** run, not only targeted tests.
+2. Benchmark GPU stage using `EXT_disjoint_timer_query_webgl2` when available; distinguish CPU submission time from GPU time. Guard low-memory devices.
+3. Replace the expensive fullscreen eye postpass with safe GPU-to-GPU base-framebuffer copy and per-eye rectangle scissor redraw, preserving an exact untouched-pixel path and testing the row orientation. Keep the native flag and CPU fallback. This can improve Android energy use without sacrificing cosmetic detail.
+4. Improve dense eyelid and occlusion geometry and blinded real-photo assessments for lashes/liner, darker skin, hooded eyes and jewel placement; only then expand all 42 looks and production rollout.
+5. At the end, update **this** file, PR #23 and tracker #24 with verified commits, tests, blockers and the next exact code edit.
+
+**To resume in another chat:** "Continue H-Beauty Makeup's highest quality offline/on-device virtual try-on. Read `docs/NEXT_CHAT_HANDOFF.md` on branch `feat/realism-benchmark-v2`, PR #23, issue #24, and current GitHub CI. Fix any failures and implement the next validated GPU-stage improvement. Commit work to the research branch, preserve production, and update the handoff again."
+
 ## New-chat start procedure (mandatory)
 
 1. Connect/use the GitHub app and fetch PR #23, current head SHA and workflow status; do not assume the latest chat's SHA still applies.
