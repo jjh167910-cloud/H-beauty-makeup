@@ -967,8 +967,8 @@ export async function productsFor(look: string, picks: ProductPicks | null | und
  * is on the engine's canvas.
  */
 export function paintGpu(source: HTMLCanvasElement, points: Pt[], look: string, level: Level, face?: FaceStats, lip?: LipChoice | null,
-  steps?: StepState, picks?: ProductPicks | null, vis?: Visibility | null, lips?: LipGrid | null): Promise<HTMLCanvasElement> {
-  return myTurn(() => paintGpuNow(source, points, look, level, face, lip, steps, picks, vis, lips));
+  steps?: StepState, picks?: ProductPicks | null, vis?: Visibility | null, lips?: LipGrid | null, nativeEye = false): Promise<HTMLCanvasElement> {
+  return myTurn(() => paintGpuNow(source, points, look, level, face, lip, steps, picks, vis, lips, nativeEye));
 }
 
 /**
@@ -990,14 +990,15 @@ async function myTurn<T>(work: () => Promise<T>): Promise<T> {
 }
 
 async function paintGpuNow(source: HTMLCanvasElement, points: Pt[], look: string, level: Level, face?: FaceStats, lip?: LipChoice | null,
-  steps?: StepState, picks?: ProductPicks | null, vis?: Visibility | null, lips?: LipGrid | null): Promise<HTMLCanvasElement> {
+  steps?: StepState, picks?: ProductPicks | null, vis?: Visibility | null, lips?: LipGrid | null, nativeEye = false): Promise<HTMLCanvasElement> {
   const r = gpu();
   if (!r) throw "failed" satisfies TryOnError;
   const stats = face ?? measureFace(source, points);
   if (stats.blur == null) stats.blur = photoBlur(source, points);
   const [files, all] = await Promise.all([loadLook(look), meta()]);
   const products = await resolveProducts(look, picks, stats, all, !lip);
-  r.render(source, source.width, source.height, points, files, stats, level, all.tris, lipChoice(files.lip, lip, all.swatch), all.canon, steps, products, vis, lips);
+  r.render(source, source.width, source.height, points, files, stats, level, all.tris, lipChoice(files.lip, lip, all.swatch), all.canon, steps, products, vis, lips,
+    nativeEye && !picks && !steps ? look : undefined);
   return r.canvas;
 }
 
@@ -1685,11 +1686,14 @@ export async function paintLook(prepared: Shot, look: string, level: Level = "na
   if (engine() === "gpu") {
     prepared.face ??= measureFace(photo, points);
     if (prepared.lips === undefined) prepared.lips = lipProb(photo, points);
-    g.drawImage(await paintGpu(photo, points, look, level, prepared.face, lip, undefined, picks, prepared.vis, prepared.lips), 0, 0);
+    const nativeEye = !picks && materialEyePilotEnabled(look) &&
+      new URLSearchParams(location.search).get("eyeCompute") === "native";
+    g.drawImage(await paintGpu(photo, points, look, level, prepared.face, lip, undefined, picks, prepared.vis, prepared.lips, nativeEye), 0, 0);
     // Opt-in research preview, isolated to saved photos. The live mirror, tutorial,
     // look thumbnails and production default remain on the original engine.
+    // Native mode has already rendered a shader in the SAME MakeupGL context.
     // User-customized makeup is never overwritten by a pilot look recipe.
-    if (!picks && materialEyePilotEnabled(look)) {
+    if (!nativeEye && !picks && materialEyePilotEnabled(look)) {
       try {
         applyMaterialEyeV2(result, photo, points, look, level, prepared.vis, prepared.face?.blur ?? 0.7);
       } catch (error) {
