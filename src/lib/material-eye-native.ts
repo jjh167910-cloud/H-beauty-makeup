@@ -109,6 +109,48 @@ export function nativeEyeMaterial(P: Pt[], lookId: string, level: Level): Native
   };
 }
 
+/**
+ * Conservative output-space scissor for an opt-in same-context fast GPU pass.
+ * Shader can never affect pixels outside each eye's upper lid / brow envelope,
+ * except wing tips, curled lashes and their subpixel antialiasing. This helper
+ * deliberately adds extra padding; too large is only slower, too small would
+ * clip makeup. Coordinates returned are WebGL bottom-left, not selfie top-left.
+ *
+ * Two eyes share one rectangle to avoid extra fullscreen shader draw calls.
+ * Null means draw the complete frame rather than risk clipping.
+ */
+export function nativeEyeScissor(m: NativeEyeMaterial, w: number, h: number):
+    [number, number, number, number] | null {
+  if (!Number.isSafeInteger(w) || !Number.isSafeInteger(h) || w < 1 || h < 1) return null;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (let eye = 0; eye < 2; eye++) {
+    if (!m.enabled[eye]) continue;
+    const span = m.span[eye];
+    if (!Number.isFinite(span) || span < 14) return null;
+    // The wing reaches up to 0.30 eye widths; lashes also extend outward.
+    // Add a full 0.15 span for uncertain brow/curve/optical edge behavior.
+    const radius = Math.max(12, span * (
+      Math.max(m.wingLength, m.lashLength) + 0.15) + 3 * m.inkSoft);
+    for (const [points, n] of [[m.upper, 9], [m.brows, 5]] as const) {
+      for (let j = 0; j < n; j++) {
+        const i = (eye * n + j) * 2, x = points[i], y = points[i + 1];
+        if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+        x0 = Math.min(x0, x - radius);
+        y0 = Math.min(y0, y - radius);
+        x1 = Math.max(x1, x + radius);
+        y1 = Math.max(y1, y + radius);
+      }
+    }
+  }
+  if (!Number.isFinite(x0)) return null;
+  const left = Math.max(0, Math.floor(x0));
+  const top = Math.max(0, Math.floor(y0));
+  const right = Math.min(w, Math.ceil(x1));
+  const bottom = Math.min(h, Math.ceil(y1));
+  if (right <= left || bottom <= top) return null;
+  return [left, h - bottom, right - left, bottom - top];
+}
+
 /** Fullscreen postpass: RGBA source input + base renderer output + existing
  * raw visibility map, all as textures in one WebGL2 context. Rendered canvas
  * orientation matches the base renderer's final flip=-1. The untouched
