@@ -51,6 +51,46 @@ const colour = (s: string) => {
   return new Float32Array([1, 3, 5].map(i => sRGBLinear(parseInt(s.slice(i, i+2), 16))));
 };
 
+/**
+ * Input may contain missing, stale or occluded landmark points. This check
+ * is rotation-invariant and deliberately permissive toward natural eyelid
+ * curvature, but rejects sudden flipped/crossed curves which would put ink
+ * onto the eyeball or the surrounding skin.
+ */
+export function nativeEyeGeometryValid(P: Pt[], u: number[], b: number[]): boolean {
+  const finite = (id: number) => P[id] != null &&
+    Number.isFinite(P[id][0]) && Number.isFinite(P[id][1]);
+  if (![...u, ...b].every(finite)) return false;
+  const [x0, y0] = P[u[0]], [x1, y1] = P[u[8]];
+  const span = Math.hypot(x1 - x0, y1 - y0);
+  if (!Number.isFinite(span) || span < 14) return false;
+  const dx = (x1 - x0) / span, dy = (y1 - y0) / span;
+  const project = (id: number) => ((P[id][0] - x0) * dx +
+    (P[id][1] - y0) * dy) / span;
+  let prev = -1;
+  for (let i = 0; i < u.length; i++) {
+    const t = project(u[i]);
+    if (t < -0.30 || t > 1.30 || t < prev - 0.14) return false;
+    if (i > 0 && Math.hypot(P[u[i]][0] - P[u[i - 1]][0],
+      P[u[i]][1] - P[u[i - 1]][1]) > span * 0.44) return false;
+    prev = t;
+  }
+  // Sparse eyebrow landmarks may be irregular, but cannot jump across
+  // half the eye width backwards or invert the overall brow arc.
+  prev = -1;
+  for (const id of b) {
+    const t = project(id);
+    if (t < -0.60 || t > 1.60 || t < prev - 0.45) return false;
+    prev = t;
+  }
+  const bx = b.reduce((sum, id) => sum + P[id][0] / b.length, 0);
+  const by = b.reduce((sum, id) => sum + P[id][1] / b.length, 0);
+  // Reject a "brow" on the eye chord itself. A lateral displacement
+  // alone must not be mistaken for genuine eyelid-to-brow separation.
+  const signedBrowOffset = (bx - x0) * -dy + (by - y0) * dx;
+  return Math.abs(signedBrowOffset) >= span * 0.06;
+}
+
 /** Rejects geometrically impossible eyelids. Never generates a mirrored eye. */
 export function nativeEyeMaterial(P: Pt[], lookId: string, level: Level): NativeEyeMaterial | null {
   if (!P || P.length < 468 || !["hollywood", "electric-blue", "rhinestone"].includes(lookId)) return null;
@@ -62,7 +102,7 @@ export function nativeEyeMaterial(P: Pt[], lookId: string, level: Level): Native
   const opening = new Float32Array(2);
   for (let e = 0; e < 2; e++) {
     const u = upperIds[e], b = browIds[e];
-    if ([...u,...b].some(id => !P[id] || !Number.isFinite(P[id][0]) || !Number.isFinite(P[id][1]))) continue;
+    if (!nativeEyeGeometryValid(P, u, b)) continue;
     const [x0,y0] = P[u[0]], [x1,y1] = P[u[8]];
     const length = Math.hypot(x1-x0,y1-y0);
     if (!Number.isFinite(length) || length < 14) continue;
@@ -70,13 +110,23 @@ export function nativeEyeMaterial(P: Pt[], lookId: string, level: Level): Native
     const by = b.reduce((sum, id) => sum + P[id][1] / b.length, 0);
     const gap = Math.hypot(bx-(x0+x1)/2, by-(y0+y1)/2);
     if (gap < length * 0.08 || gap > length * 1.25) continue;
-    const up = e === 0 ? P[159] : P[386], down = e === 0 ? P[145] : P[374];
+    const upId = e === 0 ? 159 : 386, downId = e === 0 ? 145 : 374;
+    const up = P[upId], down = P[downId];
+    if (!up || !down ||
+        !Number.isFinite(up[0]) || !Number.isFinite(up[1]) ||
+        !Number.isFinite(down[0]) || !Number.isFinite(down[1])) continue;
     const aperture = Math.hypot(up[0]-down[0], up[1]-down[1])/length;
     if (!Number.isFinite(aperture) || aperture > 0.68) continue;
     const xMid=(x0+x1)/2, yMid=(y0+y1)/2;
     const browGap=Math.hypot(bx-xMid, by-yMid);
     if (!Number.isFinite(browGap) || browGap < length*0.08) continue;
-    lift.set([(bx-xMid)/browGap, (by-yMid)/browGap], e*2);
+    const liftX = (bx - xMid) / browGap, liftY = (by - yMid) / browGap;
+    // The lower-lid landmark must not jump up into the brow region.
+    // A closed eye (zero aperture) is valid; the lash shader suppresses
+    // strands in that case.
+    if ((down[0] - up[0]) * liftX + (down[1] - up[1]) * liftY >
+        length * 0.10) continue;
+    lift.set([liftX, liftY], e*2);
     opening[e]=aperture;
     for(let j=0;j<9;j++) upper.set([P[u[j]][0], P[u[j]][1]], (e*9+j)*2);
     for(let j=0;j<5;j++) brows.set([P[b[j]][0], P[b[j]][1]], (e*5+j)*2);
