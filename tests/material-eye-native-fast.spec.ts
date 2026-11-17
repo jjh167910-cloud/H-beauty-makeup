@@ -6,7 +6,7 @@ import { test, expect } from "playwright/test";
  */
 test("native-fast scissored GPU output matches full native render with intact protected pixels", async ({ page }) => {
   test.setTimeout(360_000);
-  await page.goto("/?eyePilot=v2&eyeCompute=native");
+  await page.goto("/?eyePilot=v2&eyeCompute=native&eyeTiming=1");
   const audit = await page.evaluate(async () => {
     const { paintLook, preparePhoto, gpu } = await import("/src/lib/tryon.ts");
     const { nativeEyeMaterial, nativeEyeScissor } = await import("/src/lib/material-eye-native.ts");
@@ -17,16 +17,18 @@ test("native-fast scissored GPU output matches full native render with intact pr
     const bounds = material ? nativeEyeScissor(material, shot.photo.width, shot.photo.height) : null;
     if (!bounds) return { missing: true };
 
-    history.replaceState({}, "", "/?eyePilot=v2&eyeCompute=native");
+    history.replaceState({}, "", "/?eyePilot=v2&eyeCompute=native&eyeTiming=1");
     const standard = await paintLook(shot, "rhinestone", "natural");
     const standardNative = gpu()?.lastNativeEye === true;
     const standardFast = gpu()?.lastNativeEyeFast === true;
     const a = standard.getContext("2d")!.getImageData(0, 0, standard.width, standard.height).data;
 
-    history.replaceState({}, "", "/?eyePilot=v2&eyeCompute=native-fast");
+    history.replaceState({}, "", "/?eyePilot=v2&eyeCompute=native-fast&eyeTiming=1");
     const optimized = await paintLook(shot, "rhinestone", "natural");
     const optimizedNative = gpu()?.lastNativeEye === true;
     const optimizedFast = gpu()?.lastNativeEyeFast === true;
+    const timingSupported = gpu()?.nativeEyeGpuTimingSupported;
+    const measurement = gpu()?.pollNativeEyeGpuTiming();
     const b = optimized.getContext("2d")!.getImageData(0, 0, optimized.width, optimized.height).data;
     const W = standard.width, H = standard.height;
     let changed = 0, protectedChanged = 0, maxChannelDiff = 0;
@@ -49,6 +51,7 @@ test("native-fast scissored GPU output matches full native render with intact pr
     }
     return {
       standardNative, standardFast, optimizedNative, optimizedFast,
+      timingSupported, measurement,
       width: W, height: H, bounds, changed, protectedChanged, maxOutside,
       maxChannelDiff, meanDifference: accumulated / compared,
       croppedArea: rw * rh, totalArea: W * H
@@ -59,6 +62,13 @@ test("native-fast scissored GPU output matches full native render with intact pr
   expect(audit.standardFast).toBe(false);
   expect(audit.optimizedNative).toBe(true);
   expect(audit.optimizedFast).toBe(true);
+  expect(typeof audit.timingSupported).toBe("boolean");
+  // Queries may not be available yet, even when the GPU extension exists.
+  if (audit.measurement) {
+    expect(audit.measurement.gpuMs).toBeGreaterThanOrEqual(0);
+    expect(audit.measurement.gpuMs).toBeLessThan(10_000);
+    expect(["native", "native-fast"]).toContain(audit.measurement.mode);
+  }
   expect(audit.croppedArea).toBeLessThan(audit.totalArea * 0.9);
   expect(audit.protectedChanged).toBe(0);
   expect(audit.maxOutside).toBe(0);
