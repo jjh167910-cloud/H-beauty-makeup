@@ -250,6 +250,23 @@ The experimental **saved-photo-only** native path `?eyePilot=v2&eyeCompute=nativ
 
 **Remaining measurements and safety gates:** measure actual GPU milliseconds using `EXT_disjoint_timer_query_webgl2` when supported; profile video/photo output, GPU memory/thermal cost, eye-shader fragment count and smoothness on low/mid/high-end physical Android devices; perform real makeup-photo blind comparisons. The optimized rectangle can still cover a large portion of a close-up face, and framebuffer blits have driver-specific costs. Preserve the old path and independently prove perceptual quality before rollout.
 
+## Nonblocking real GPU elapsed-time instrumentation — 2026-11-17
+
+This is **development-only performance infrastructure**, not an assertion that native-fast is faster than full native on Android. It runs only on a saved-photo build with the two opt-in settings:
+
+- `?eyePilot=v2&eyeCompute=native&eyeTiming=1` — full-frame same-context GPU eye-material postpass.
+- `?eyePilot=v2&eyeCompute=native-fast&eyeTiming=1` — GPU blit plus eye-region scissored postpass, using the existing protected-pixel-safe fallback.
+
+`src/lib/native-eye-gpu-timer.ts` uses the standard WebGL2 `EXT_disjoint_timer_query_webgl2` extension. It starts a `TIME_ELAPSED_EXT` timer around the native eye pass and ends it even if rendering raises; the fast measurement **includes framebuffer blit and shader** (and is relabeled `native` if that optimization falls back). Importantly, `poll()` checks `QUERY_RESULT_AVAILABLE` before ever accessing `QUERY_RESULT`; it does not call `gl.finish`, `readPixels`, wait for sync objects, or upload photographs. It discards all pending/history samples on GPU disjoint or context loss, limits outstanding queries to three, and limits stored samples to **64** locally.
+
+`MakeupGL` exposes `nativeEyeGpuTimingSupported`, `lastNativeEyeGpuMs`, `lastNativeEyeGpuMode`, `pollNativeEyeGpuTiming()`, and `nativeEyeGpuProfile()`. The last provides independent bounded **p50/p95, min/max, and sample count** per actual native mode. `lastNativeEyeMs` is still only CPU submission time; it must not be compared as GPU runtime. If the timer extension is unsupported, all visual rendering is unaffected and GPU readings remain unavailable instead of fabricating a timing.
+
+`tests/material-eye-timing.spec.ts` uses deterministic mocked WebGL2 query APIs to exercise delayed result availability, unsupported extensions, query-cap backpressure, invalid ns, a GPU-disjoint invalidation, context loss, actual fallback-mode labeling and mode-specific bounded p50/p95. `tests/material-eye-native-fast.spec.ts` also renders an opt-in real saved-photo fixture with `eyeTiming=1` and confirms that enabling timing cannot break the pixel-equivalent image path. Both are in CI's short targeted eye-test step.
+
+**Verified on source commit `2595c85d80f90d07e75c9745e1389865b1805d19`, Actions run `43992204888`:** Node/offline tests, TypeScript, Vite production build, targeted eye-material/browser tests (including timing and native-fast parity), full saved-photo native integration and streamed AI download/retry checks passed. The much larger general Playwright suite was still **in progress** at the last recorded check; a complete CI success had not yet been reported. Documentation commits can supersede runs, so check PR #23 current head.
+
+**Next required evidence:** run a repeated, randomized A/B on low/mid/high-end *physical Android devices*, at identical image size and look with a warmed GPU; collect at least 30+ valid, non-disjoint per-mode samples; compare GPU p50/p95, CPU submission latency, FBO memory, sustained thermal/frame-time behavior, and image parity. Timings from CI's software renderer are not proof of physical-device speedup. Real human photographed-makeup blind comparisons and independent quality review are still mandatory before production.
+
 ## Shipping policy
 
 1. Production stays on main during research; use a feature flag and pilot branch.
