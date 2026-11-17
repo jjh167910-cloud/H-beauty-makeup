@@ -1943,6 +1943,20 @@ export class MakeupGL {
     return this.nativeEyeGpuTimer?.summarize() ?? [];
   }
 
+  /** Opt-in research diagnostics only; no pixel data or network calls. */
+  nativeEyeGpuSamples(): NativeEyeGpuMeasurement[] {
+    return this.nativeEyeGpuTimer?.snapshot() ?? [];
+  }
+
+  resetNativeEyeGpuSamples(): boolean {
+    const reset = this.nativeEyeGpuTimer?.resetSamples() ?? false;
+    if (reset) {
+      this.lastNativeEyeGpuMs = null;
+      this.lastNativeEyeGpuMode = null;
+    }
+    return reset;
+  }
+
   /** A renderer, or null when the phone has no WebGL2 (the app then uses the tiny networks). */
   static create(): MakeupGL | null {
     try {
