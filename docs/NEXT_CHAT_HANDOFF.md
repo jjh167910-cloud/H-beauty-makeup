@@ -281,6 +281,31 @@ After adding rotation-invariant native landmark validity checks, a second risk w
 
 **Next step:** Check current PR #23 head and GitHub `Try-on review` run. Fetch logs and fix if new strict geometry rejects the existing generated catalog photo; keep a strong safety gate rather than loosening to satisfy an invalid fixture. Once targeted and integration pass, allow a full app-suite run to finish. Real portrait/Android GPU-quality evidence remains necessary for any public rollout.
 
+## Most recent work — live camera input responsiveness and capture safety (2026-11-17)
+
+**Project:** `jjh167910-cloud/H-beauty-makeup`; experimental PR #23; source branch `feat/realism-benchmark-v2`; issue #24. **Main/Cloudflare production untouched.**
+
+### First complete sharded run revealed a single real failure
+GitHub Actions `43997291151` on source SHA `d754662b6aaa42e677998e094ed69ecad052da12`: required targeted `review` job succeeded; full shard **1/3** succeeded; shard **2/3** succeeded; shard **3/3** finished failure with **14 passed / 1 failed**. The only failed test: `tests/tryon.spec.ts:493` live camera to captured photo after switching the look, lipstick, and studio lighting. Playwright artifact `tryon-full-shard-3` reported the **300-second TOTAL scenario timeout** during a click on visible, enabled `گرفتن عکس`. This was not evidence of five full minutes blocked in one click; the test had already spent time on CPU-heavy model work.
+
+### Changes already pushed
+- `src/lib/live-tryon.ts`: commit `8bca6436dca4dd87357cbbbf5f65bb666240bce2`. A **9–32 ms adaptive idle interval** follows each synchronous live-video detection/segmentation/studio render; gives input events time rather than scheduling heavy animation frames back-to-back. New `pauseForCapture()/resumeAfterCapture()` suspend live painting without losing camera stream.
+- `src/components/tryon.tsx`: commit `aa6b93770fa729d7e015dbd59e825a6117567f06`. Capturing a still frame pauses heavy live processing first; resumes if capture fails, and otherwise follows the existing offline still-photo try-on.
+- `.github/workflows/review.yml`: commit `00f338c36def25f5b964d1929f042f9137a4ed69`. The previously failed live-capture case is now a named early gate before the full three-shard suite. The repository's existing `.github/workflows/live-mirror-smoke.yml` also runs it independently on affected file changes.
+- `tests/tryon.spec.ts`: commit `7e5a399b88462e55d82f6cf866062911ae07bfaf`. Entire heavy multi-step journey given **600s**, but the critical capture `.click({ timeout: 20_000 })` and post-capture result appearance **120s** remain strict; no test has been skipped or changed into a mock.
+- `docs/REALISM_IMPLEMENTATION_V2.md`: comprehensive diagnosis and released-vs-research scope.
+
+### Results explicitly verified, and not yet verified
+- **PASS:** dedicated `Live mirror camera frame regression` CI **run 44000522932** on source `00f338c36def25f5b964d1929f042f9137a4ed69` including the real live camera/photo flow, frame scheduling and capture pause. That was before changing the test timeout.
+- **PENDING at documentation time:** independent live-smoke `44000741037` and main PR review `44000741018` for source `7e5a399b88462e55d82f6cf866062911ae07bfaf`. Documentation updates create a newer head and may automatically cancel the prior main review (but not necessarily the separate live-smoke).
+- The new CI full-shard pipeline from the prior commit successfully distributed all tests; no coverage skipped. Need a complete green **review + 3 shards** for the latest code before considering merge, and even then no public rollout without real-photo and Android evidence.
+
+### Next instructions, no user clarification needed
+1. Query PR #23 current head and latest GitHub Actions. Make sure the independent live-camera smoke is green after the **20-second click** budget, then check the new main `review` and all three full-browser shard conclusions. If a shard fails, fetch its exact decoded GitHub job log and artifact; implement the precise fix without bypassing the assertions.
+2. If all tests pass, **do not merge to public main automatically**; the app's visual photorealism remains unproven on real consented makeup photographs. Begin low/mid/high Android device p50/p95 actual GPU timing using existing `eyeTiming=1` opt-in, and blind artist comparisons of 4 pilot looks.
+3. Track whether 9–32ms quiet intervals improve actual tap latency and the live FPS/thermal balance on a physical Android device. Tune only on real evidence; don't assert a specific FPS from CI's software renderer.
+4. Update `docs/NEXT_CHAT_HANDOFF.md`, `docs/REALISM_IMPLEMENTATION_V2.md`, tracker issue #24 and PR #23 after making verified changes. Every commit of handoff may rerun the PR Actions due current workflow design.
+
 ## New-chat start procedure (mandatory)
 
 1. Connect/use the GitHub app and fetch PR #23, current head SHA and workflow status; do not assume the latest chat's SHA still applies.
