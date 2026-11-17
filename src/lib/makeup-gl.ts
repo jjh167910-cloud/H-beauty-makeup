@@ -2710,7 +2710,7 @@ export class MakeupGL {
     // readbacks, second WebGL contexts or canvas-to-canvas blits.
     // Invalid/unsupported geometry leaves the proven default path unchanged.
     const nativeData = nativeEyeId && vis && !steps && !products?.mine
-      ? nativeEyeMaterial(P, nativeEyeId, level) : null;
+      ? nativeEyeMaterial(P, nativeEyeId, level, face.blur ?? 0) : null;
     const nativeProgram = nativeData ? this.nativeEyeProgram() : null;
     let nativeOn = Boolean(nativeData && nativeProgram);
     if (nativeOn && !this.nativeOutput) {

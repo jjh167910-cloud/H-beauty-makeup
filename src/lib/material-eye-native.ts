@@ -88,11 +88,16 @@ export function nativeEyeGeometryValid(P: Pt[], u: number[], b: number[]): boole
   // Reject a "brow" on the eye chord itself. A lateral displacement
   // alone must not be mistaken for genuine eyelid-to-brow separation.
   const signedBrowOffset = (bx - x0) * -dy + (by - y0) * dx;
-  return Math.abs(signedBrowOffset) >= span * 0.06;
+  if (Math.abs(signedBrowOffset) < span * 0.06) return false;
+  // An individual erroneous brow point can cross the lid while its mean
+  // stays plausible. Reject that eye instead of painting the sclera/cheek.
+  const side = Math.sign(signedBrowOffset);
+  return b.every(id =>
+    ((P[id][0] - x0) * -dy + (P[id][1] - y0) * dx) * side >= span * 0.02);
 }
 
 /** Rejects geometrically impossible eyelids. Never generates a mirrored eye. */
-export function nativeEyeMaterial(P: Pt[], lookId: string, level: Level): NativeEyeMaterial | null {
+export function nativeEyeMaterial(P: Pt[], lookId: string, level: Level, photoBlurPx = 0): NativeEyeMaterial | null {
   if (!P || P.length < 468 || !["hollywood", "electric-blue", "rhinestone"].includes(lookId)) return null;
   const look = styleById.get(lookId)?.look;
   if (!look) return null;
@@ -140,6 +145,18 @@ export function nativeEyeMaterial(P: Pt[], lookId: string, level: Level): Native
     const ratio=Math.min(span[0],span[1])/Math.max(span[0],span[1]);
     if(ratio < 0.60) enabled[span[0] < span[1] ? 0 : 1]=0;
   }
+  // Reject duplicate/mis-associated eye landmarks, a tracking failure
+  // that otherwise superposes opaque makeup onto the same patch of skin.
+  if (enabled[0] && enabled[1]) {
+    const center = (eye: number): [number, number] => {
+      const i = eye * 18;
+      return [(upper[i] + upper[i+16]) / 2,
+        (upper[i+1] + upper[i+17]) / 2];
+    };
+    const a = center(0), b = center(1);
+    if (Math.hypot(a[0]-b[0], a[1]-b[1]) <
+        Math.max(span[0], span[1]) * 0.65) return null;
+  }
   const strength = level === "soft" ? 0.7 : level === "bold" ? 1.12 : 1;
   return {
     upper, brows, frame, span, enabled,
@@ -153,7 +170,11 @@ export function nativeEyeMaterial(P: Pt[], lookId: string, level: Level): Native
       ? (look.liner==="graphic" ? 0.30 : 0.22)*strength : 0,
     lashLength: (look.lashes==="dramatic" ? 0.15 : look.lashes==="volume" ? 0.115 : 0.075)*strength,
     lashCount: look.lashes==="dramatic" ? 26 : look.lashes==="volume" ? 22 : 18,
-    inkSoft: 0.7,
+    // A soft camera photo must not acquire unnaturally sharp cosmetic ink.
+    // Sharp photos retain the established 0.7 px edge, and noisy/invalid
+    // lens measurements are bounded for stable low-end WebGL2 rendering.
+    inkSoft: Math.max(0.7, Math.min(3.5,
+      Number.isFinite(photoBlurPx) ? Math.max(0, photoBlurPx) * 0.80 : 0.7)),
     shimmer: look.accents?.includes("shimmer") ? 0.11*strength : 0,
     rhinestones: look.accents?.includes("rhinestones") ? 0.90*strength : 0,
   };
@@ -282,7 +303,9 @@ export const NATIVE_EYE_FS = [
   "}",
   "float stoneCoverage(vec2 p,vec2 q,float radius) {",
   "  float d=length((p-q)/max(radius,0.3));",
-  "  return 1.0-ramp(0.80,1.13,d);",
+  "  // Preserve the old sharp-photo facets; broaden on blurred selfies.",
+  "  float feather=max(0.0,(uInkSoft-0.7)/max(radius,0.3));",
+  "  return 1.0-ramp(0.80-0.55*feather,1.13+0.55*feather,d);",
   "}",
   "float visible(vec2 photo) {",
   "  if(uVisOn==0) return 0.0;",
@@ -387,7 +410,8 @@ export const NATIVE_EYE_FS = [
   "        vec2 q=(photo-center)/radius;",
   "        // An off-center facet simulates a small specular glint, not a",
   "        // flat pure-white dot. The final encoder reserves clipping room.",
-  "        float glint=exp(-dot(q-vec2(-0.25,-0.34),q-vec2(-0.25,-0.34))*8.0);",
+  "        float glint=exp(-dot(q-vec2(-0.25,-0.34),q-vec2(-0.25,-0.34))*",
+  "          8.0/max(1.0,uInkSoft/0.7));",
   "        gems=max(gems,coverage);",
   "        eyeGems=max(eyeGems,coverage);",
   "        facetGlint=max(facetGlint,glint*coverage);",

@@ -46,6 +46,16 @@ Original user roadmap (18-page `Roadmap.pdf`, dated 2026-11-16; see detailed imp
 
 **Known verification on fix source** `4418e0c8dbf61d567e71067bbf8a31f4b3ab1643`, GitHub Actions `Try-on review` **44082529084**: offline Node, TypeScript, Vite build, **all targeted eye material/geometry tests including the previously failing outlier regression passed**, full saved-photo native integration passed, streamed model-download cancellation/retry passed. The final additional camera test and full 3 Playwright shards were in progress at time this handoff was prepared. Independent camera run **44082529195** completed SUCCESS. **Refresh and verify all jobs for the newest SHA**; editing this document creates a new commit/CI, and may cancel the prior run.
 
+## Latest continuation — 2026-11-17: lens-matched eye optics and fail-closed tracking
+
+**Baseline independently verified:** PR source `436147f0e86c1e51987f602cc4bb20f8badfb587`; [review Actions 44083471545](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/44083471545) completed SUCCESS for review and **all three full Playwright shards**; [separate camera Actions 44083471608](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/44083471608) completed SUCCESS. The historical nested-median regression no longer fails. This evidence applies **only** to the baseline commit, not automatically to the new commit.
+
+**Changes in this opt-in research commit:** `material-eye-native.ts` rejects brow-point penetration and near-coincident duplicate eyes; `makeup-gl.ts` passes the existing measured `face.blur` to the native saved-photo pass; liner/lash antialiasing and facet/glint falloff match the camera blur, bounded and unchanged for sharp originals. `tests/material-eye-lens.spec.ts` validates blur caps, preserved no-makeup control, conservative scissor growth and malformed-landmark rejection; it is added to early CI via `review.yml`. No production/live-camera opt-in was changed.
+
+**After commit:** resolve this PR's current HEAD SHA, verify the new review workflow's targeted tests and all three Playwright shards, plus the separate camera run. If any fails, read the actual job logs and fix, without relaxing pixel thresholds. The new commit is not validated merely because the preceding SHA was green.
+
+**Still required:** real consented photos (hooded/monolid/glasses, varied lighting/depth) and blinded artist scores; physical low/mid/high Android GPU p50/p95, thermal, memory and capture response. Cloudflare PR preview builds have reported failures; keep these distinct from GitHub Actions and **do not deploy or merge** before release gates. Main/public worker intentionally unchanged; licensing handled separately. Never upload private selfies.
+
 ## Mandatory next-chat operating procedure
 
 1. Fetch PR #23 **current head SHA** and check `Try-on review` plus separate `Live mirror camera frame regression` workflows for **that exact SHA**. Require `review`, **all three** `Full Playwright suite` shards and independent camera **completed success**. If any fail, read GitHub job logs and fix the real problem. Cancelled runs caused by later commits are not “green”.
