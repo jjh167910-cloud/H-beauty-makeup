@@ -38,7 +38,21 @@ test("opt-in native shader runs through the full saved-photo MakeupGL pipeline, 
       if(x<minX||x>maxX||y<minY||y>maxY)outside++;
       if(x<width*.08||x>width*.92||y<height*.08||y>height*.92)border++;
     }
-    return {nativeApplied,nativeSubmitMs,changed,outside,border,width,height};
+    // A deliberately soft photo exercises the actual GPU uniform upload,
+    // not merely the TypeScript helper. The base render may adapt too, but
+    // no customer image is transmitted or retained by this diagnostic.
+    history.replaceState({}, "", "/?eyePilot=v2&eyeCompute=native");
+    prep.plain.face!.blur = 3.2;
+    await m.paintLook(prep.plain, "electric-blue", "natural");
+    const runtime = m.gpu() as any;
+    const gl = runtime.gl as WebGL2RenderingContext;
+    const program = runtime.progs.nativeEye as WebGLProgram;
+    const uploadedInkSoft = gl.getUniform(program,
+      gl.getUniformLocation(program, "uInkSoft")) as number;
+    const uploadedCleanup = gl.getUniform(program,
+      gl.getUniformLocation(program, "uCleanLegacy")) as number;
+    return {nativeApplied,nativeSubmitMs,changed,outside,border,width,height,
+      uploadedInkSoft,uploadedCleanup};
   });
   expect(report.nativeApplied).toBe(true);
   expect(report.nativeSubmitMs).toBeGreaterThanOrEqual(0);
@@ -47,4 +61,8 @@ test("opt-in native shader runs through the full saved-photo MakeupGL pipeline, 
   expect(report.border).toBe(0);
   expect(report.width).toBeGreaterThan(300);
   expect(report.height).toBeGreaterThan(300);
+  // 3.2 px measured blur -> min(3.5, max(0.7, 0.8 * blur)) = 2.56.
+  // The previous renderer incorrectly uploaded 2.8, diverging from ROI.
+  expect(report.uploadedInkSoft).toBeCloseTo(2.56, 3);
+  expect(report.uploadedCleanup).toBe(1);
 });

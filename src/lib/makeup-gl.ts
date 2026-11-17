@@ -2928,8 +2928,12 @@ export class MakeupGL {
       gl.uniform1f(this.uni(p, "uWingLength"), nativeData.wingLength);
       gl.uniform1f(this.uni(p, "uLashLength"), nativeData.lashLength);
       gl.uniform1i(this.uni(p, "uLashCount"), nativeData.lashCount);
-      gl.uniform1f(this.uni(p, "uInkSoft"),
-        Math.max(0.7, Math.min(2.8, face.blur ?? nativeData.inkSoft)));
+      // Use the same capped optical edge that determined scissor padding.
+      // Recomputing blur here used to widen shader ink beyond the ROI.
+      gl.uniform1f(this.uni(p, "uInkSoft"), nativeData.inkSoft);
+      // Material-only removal of old catalog wing/eyelash remnants.
+      // This native pass is gated to opt-in prepared photos, never live.
+      gl.uniform1i(this.uni(p, "uCleanLegacy"), 1);
       gl.uniform1f(this.uni(p, "uShimmer"), nativeData.shimmer);
       gl.uniform1f(this.uni(p, "uRhinestones"), nativeData.rhinestones);
       if (nativeRect) {

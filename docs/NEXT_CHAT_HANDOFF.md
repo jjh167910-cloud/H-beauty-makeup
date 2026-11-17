@@ -94,6 +94,41 @@ shards and independent camera workflow. Main and public production unchanged.
 
 Source `4a210b79747741de8274daa602b0d69d1e8c16ab`, [review 44092671551](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/44092671551), ran Node tests but FAILED one *obsolete expected statistic* in `poor performance on deep skin fails despite an excellent aggregate score`: expected 0.25 from four rated looks, actual 1/3 after correctly excluding the no-makeup negative control. The underlying subgroup fail behavior is intact. Corrected the assertion to 1/3, retaining the strict `status === "fail"` and explicit deep-stratum violation checks. Full browser shards skipped on that failed run. Recheck the next commit's complete CI; no production edits.
 
+## 2026-11-17 — Opt-in native eye edge compositing and lens consistency
+
+**Baseline checked before implementation:** head `0197ec5352e9755106d72ce94a7a9988cc6ebd08` passed both
+[Try-on review 44092898942](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/44092898942)
+(including review and all three full browser shards) and
+[Live mirror regression 44092898963](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/44092898963).
+This is baseline evidence only, not a verdict on the new commit.
+
+**New source update (inspect latest PR HEAD):**
+- `src/lib/makeup-gl.ts`: the uploaded WebGL `uInkSoft` is now exactly
+  `nativeData.inkSoft` used by the eye shader's ROI/scissor calculation,
+  eliminating an inconsistent second blur clamp (which used a 2.8 px ceiling
+  instead of the material's 3.5 px) and reducing clipped or over-sharp ink.
+- `src/lib/material-eye-native.ts`: new `uCleanLegacy` switch, enabled only
+  when the opt-in prepared-photo native renderer successfully runs. At the
+  feathered eyeliner/wing edge outside the eyelid wash, the shader fades
+  legacy catalog residue toward the **customer's original photo** before
+  drawing native ink. The mask is limited to actual ink, already occlusion-
+  checked; other base complexion and all unaffected pixels remain unchanged.
+  This is *localized* removal of inherited eye detail, not a complete
+  material replacement of the old catalog face layer.
+- `tests/material-eye-native-integration.spec.ts` interrogates the actual
+  WebGL uniform after a forced 3.2 px synthetic blur setting (expected
+  `uInkSoft=2.56`), not merely the TS helper. Separate
+  `tests/material-eye-legacy-clean.spec.ts` compares a synthetic
+  magenta old-wing residue before/after local cleanup and checks untouched
+  protected pixels. `.github/workflows/review.yml` includes it in early CI.
+
+**Validation status:** New SHA's required review job, all 3 full Playwright
+shards, and separate camera regression MUST be checked after commit. Pixel
+tests use simulated face/ink, not real customer photography. Never claim
+real-world beauty improvement or mobile performance superiority from synthetic
+tests. Physical Android/GPU + consented blinded artist assessment outstanding.
+No production release/merge, no private photos, licensing separately.
+
 ## Mandatory next-chat operating procedure
 
 1. Fetch PR #23 **current head SHA** and check `Try-on review` plus separate `Live mirror camera frame regression` workflows for **that exact SHA**. Require `review`, **all three** `Full Playwright suite` shards and independent camera **completed success**. If any fail, read GitHub job logs and fix the real problem. Cancelled runs caused by later commits are not “green”.
