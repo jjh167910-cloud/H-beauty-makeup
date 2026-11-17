@@ -124,6 +124,21 @@ Unpowered cells are reported but not treated as reliable evidence.
 The report contains no selfie pixels, landmarks, filenames or identifying subject data.
 These tests use synthetic *metadata* and never certify human realism.
 
+### Negative-control contract (2026-11-17)
+
+The pre-registered `no-makeup` condition checks **exact image preservation**,
+not beauty preference. Its `paired_preference` may be a genuine tie or omitted:
+it does not contribute a synthetic win or loss to cosmetic A/B statistics.
+The private audit MUST include `inside_changed_pixels: 0` and the existing
+zero-change/zero-new-clipping measurements for every no-makeup case.
+Missing inside-pixel evidence is `insufficient-evidence`; any changed
+pixel is a hard failure. `untouchedControls` reports complete zero-delta
+control checks, and `lookPreference["no-makeup"]` is explicitly null.
+The four-look matched-cohort gate remains in force, but Wilson and subgroup
+cosmetic preference calculations use only the three **active** makeup looks.
+This prevents the honest no-makeup negative control from making a valid
+blind comparison mathematically impossible to pass.
+
 ### Machine-readable pilot report
 
 Put this JSON **only in a private folder outside the public repository**. No real photos are

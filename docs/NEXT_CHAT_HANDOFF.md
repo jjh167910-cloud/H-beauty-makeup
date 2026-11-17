@@ -82,6 +82,14 @@ skipped on the failing source; do not mark the old run green.
 Verify the latest head's Node, typecheck, build, targeted browser, three full
 shards and independent camera workflow. Main and public production unchanged.
 
+## Continuation — 2026-11-17: correctly score untouched no-makeup control
+
+- On source `56403b71418d6a200d8118521cb38f260f5879c3`, review [44091511215](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/44091511215) had its **required review job SUCCESS** and full three Playwright shards underway; independent camera [44091511197](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/44091511197) SUCCESS. Do not cite incomplete shards as green.
+- Found an important blind-study flaw during inspection: the `no-makeup` negative control was counted as a cosmetic preference trial, which would falsely penalize a genuine tie or tempt fabrication of a win. The corrected gate requires zero changed **inside and outside** pixels on the no-makeup condition, counts `untouchedControls`, and excludes this control from cosmetic preference, confidence and subgroup statistics. All four named looks remain mandatory for every subject.
+- `tests-node/benchmark_v2.test.mjs` fixtures now use a genuine tie on the no-makeup control, explicit `inside_changed_pixels:0`, and test control corruption/missing measurements without weakening other thresholds. The confidence-only fixture distributes losses across skin strata and still tests an inconclusive 20/30 subject-cluster interval.
+- `docs/REALISM_IMPLEMENTATION_V2.md` records the revised study protocol. Check latest PR head, required Node/review, 3 full shards and independent camera outcomes after committing. This is **benchmark credibility**, not measured photographic superiority.
+- Keep the production `main`, customer selfies, default renderer and Cloudflare release unchanged. Real consented artist evaluation and physical Android performance still required.
+
 ## Mandatory next-chat operating procedure
 
 1. Fetch PR #23 **current head SHA** and check `Try-on review` plus separate `Live mirror camera frame regression` workflows for **that exact SHA**. Require `review`, **all three** `Full Playwright suite` shards and independent camera **completed success**. If any fail, read GitHub job logs and fix the real problem. Cancelled runs caused by later commits are not “green”.

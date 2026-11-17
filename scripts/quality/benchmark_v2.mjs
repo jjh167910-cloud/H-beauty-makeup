@@ -12,6 +12,8 @@ const SKIN_GROUPS = ["light", "medium", "deep"];
 // The pre-registered V2 study evaluates all four conditions on EACH subject;
 // look counts from disjoint sets of customers cannot substitute for this cohort.
 const PILOT_LOOKS = ["no-makeup", "hollywood", "electric-blue", "rhinestone"];
+const CONTROL_LOOK = "no-makeup";
+const MAKEUP_LOOKS = PILOT_LOOKS.filter(look => look !== CONTROL_LOOK);
 
 const validCount = (n) => Number.isSafeInteger(n) && n >= 0;
 const assertCount = (n, label) => {
@@ -91,7 +93,7 @@ export function evaluatePilot(cases, {
   const byLookVotes = new Map();
   const byLookSkinVotes = new Map();
   const bySkinVotes = new Map(SKIN_GROUPS.map((s) => [s, { wins: 0, reviewed: 0, artistTotal: 0, artistN: 0 }]));
-  let wins = 0, reviewed = 0;
+  let wins = 0, reviewed = 0, untouchedControls = 0;
 
   for (const [i, c] of cases.entries()) {
     if (!c || typeof c !== "object" || !/^[a-zA-Z0-9_-]{1,80}$/.test(c.sample_id ?? "") ||
@@ -125,6 +127,19 @@ export function evaluatePilot(cases, {
     for (const key of ["outside_changed_pixels", "border_mask_pixels", "introduced_clipped_channels"]) {
       if (!validCount(c[key])) incomplete.push("Missing engineering measurement: " + key);
       else if (c[key] > 0) issues.push("Safety/quality violation: " + key + " for " + c.look_id);
+    }
+    // The registered no-makeup look is an IDENTITY/PIXEL negative control,
+    // not a cosmetic A/B preference test: two unchanged originals should tie.
+    // Never manufacture a beauty win from this control or penalize a true tie.
+    if (c.look_id === CONTROL_LOOK) {
+      if (!validCount(c.inside_changed_pixels))
+        incomplete.push("Missing unchanged no-makeup control pixel measurement");
+      else if (c.inside_changed_pixels > 0)
+        issues.push("No-makeup control changed editable pixels for " + c.sample_id);
+      if (c.inside_changed_pixels === 0 && c.outside_changed_pixels === 0 &&
+          c.border_mask_pixels === 0 && c.introduced_clipped_channels === 0)
+        untouchedControls++;
+      continue;
     }
     const vote = c.paired_preference;
     if (vote === "candidate" || vote === "competitor" || vote === "tie") {
@@ -169,14 +184,16 @@ export function evaluatePilot(cases, {
     if (completeBySkin.get(skin).size < minimumSkinGroupSubjects)
       incomplete.push("Too few independent subjects in skin group " + skin);
   }
-  if (reviewed < minimumSubjects * minimumLooks)
-    incomplete.push("Too few independently rated face/look comparisons");
+  if (untouchedControls < minimumSubjects)
+    incomplete.push("Too few independently verified no-makeup negative controls");
+  if (reviewed < minimumSubjects * MAKEUP_LOOKS.length)
+    incomplete.push("Too few independently rated makeup face/look comparisons");
 
   const preference = reviewed ? wins / reviewed : null;
   // Customer clusters are independent; repeated looks on one face are not.
   // A subject "wins" if her evaluated looks meet the predeclared 70% target.
   const ratedCompleteSubjects = [...bySubjectVotes]
-    .filter(([id, v]) => completeSubjects.has(id) && v.reviewed >= PILOT_LOOKS.length);
+    .filter(([id, v]) => completeSubjects.has(id) && v.reviewed >= MAKEUP_LOOKS.length);
   if (ratedCompleteSubjects.length < minimumSubjects)
     incomplete.push("Need independent blind preferences for each required look on the complete cohort");
   const subjectWins = ratedCompleteSubjects
@@ -200,6 +217,10 @@ export function evaluatePilot(cases, {
   }
   // Joint look x skin-depth cells expose regressions hidden in both
   // single-axis marginals. Avoid conclusions for underpowered cells.
+  // Control reports a neutral/null beauty score; its success is checked by
+  // untouched pixels, not by artificially inflating the cosmetic win rate.
+  lookPreference[CONTROL_LOOK] = null;
+  lookWilson95[CONTROL_LOOK] = null;
   const lookSkinPreference = {}, lookSkinWilson95 = {};
   for (const look of PILOT_LOOKS) {
     lookSkinPreference[look] = {};
@@ -229,7 +250,9 @@ export function evaluatePilot(cases, {
   const dedupe = (a) => [...new Set(a)];
   return {
     status: issues.length ? "fail" : incomplete.length ? "insufficient-evidence" : "pass",
-    subjects: subjects.size, completeSubjects: completeSubjects.size,
+    subjects: subjects.size, untouchedControls,
+    beautyLooks: MAKEUP_LOOKS.length,
+    completeSubjects: completeSubjects.size,
     ratedCompleteSubjects: ratedCompleteSubjects.length,
     looks: looks.size, independentCases: pairs.size,
     // These are full four-look cohort counts, not partially covered people.

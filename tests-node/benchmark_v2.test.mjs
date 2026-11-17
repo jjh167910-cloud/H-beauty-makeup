@@ -73,7 +73,8 @@ function pilotCases() {
     outside_changed_pixels: 0,
     border_mask_pixels: 0,
     introduced_clipped_channels: 0,
-    paired_preference: "candidate",
+    inside_changed_pixels: 0,
+    paired_preference: look === "no-makeup" ? "tie" : "candidate",
   }))).flat();
 }
 
@@ -113,17 +114,18 @@ test("confidence is clustered by independent customer, not inflated by repeated 
   // 20 customers prefer H-Beauty on all looks; 10 on only two looks.
   // The per-face/look point estimate is 83%, but only 20/30 subjects
   // individually meet the 70% target. That is not conclusive at 95%.
-  // Distribute losses across all four looks within the deep-skin group.
-  // Otherwise the look-by-skin safety gate rightly detects a real subgroup
-  // failure and this would stop testing the separate cluster-confidence gate.
-  for (let subject = 20; subject < 30; subject++) {
-    const lostLooks = subject < 25
-      ? ["no-makeup", "hollywood"] : ["electric-blue", "rhinestone"];
+  // Ten people spread across all skin groups lose two of three makeup
+  // looks. Every look-by-skin cell remains at/above chance; this tests
+  // customer-cluster uncertainty independently from subgroup regression.
+  const losingSubjects = [0, 1, 2, 10, 11, 12, 20, 21, 22, 23];
+  const makeupLooks = ["hollywood", "electric-blue", "rhinestone"];
+  losingSubjects.forEach((subject, i) => {
+    const lostLooks = [makeupLooks[i % 3], makeupLooks[(i + 1) % 3]];
     for (const look of lostLooks)
       cases.find((c) => c.sample_id === "private-" + subject && c.look_id === look).paired_preference = "competitor";
-  }
+  });
   const result = evaluatePilot(cases);
-  assert.ok(result.preference > 0.8);
+  assert.ok(result.preference > 0.7);
   assert.equal(result.subjectWins, 20);
   assert.ok(result.subjectWinWilson95.lower < 0.5);
   assert.equal(result.status, "insufficient-evidence");
@@ -132,7 +134,7 @@ test("confidence is clustered by independent customer, not inflated by repeated 
 test("poor performance on deep skin fails despite an excellent aggregate score", () => {
   const cases = pilotCases();
   for (let subject = 20; subject < 30; subject++)
-    for (const look of ["no-makeup", "hollywood", "electric-blue"])
+    for (const look of ["hollywood", "electric-blue"])
       cases.find((c) => c.sample_id === "private-" + subject && c.look_id === look).paired_preference = "competitor";
   const result = evaluatePilot(cases);
   assert.ok(result.preference >= 0.70);
@@ -147,7 +149,7 @@ test("one badly performing look cannot hide behind an excellent overall win rate
   for (const c of cases)
     if (c.look_id === "rhinestone") c.paired_preference = "competitor";
   const result = evaluatePilot(cases);
-  assert.equal(result.preference, 0.75);
+  assert.equal(result.preference, 2 / 3);
   assert.equal(result.lookPreference.rhinestone, 0);
   assert.equal(result.lookPreference.hollywood, 1);
   assert.equal(result.status, "fail");
@@ -194,7 +196,7 @@ test("look-by-skin regressions cannot hide behind excellent marginal preference"
     if (c.skin_group === "deep" && c.look_id === "rhinestone")
       c.paired_preference = "competitor";
   const result = evaluatePilot(cases);
-  assert.ok(result.preference > 0.9);
+  assert.ok(result.preference > 0.85);
   assert.ok(result.lookPreference.rhinestone > 0.5);
   assert.ok(result.subgroupPreference.deep > 0.5);
   assert.equal(result.lookSkinPreference.rhinestone.deep, 0);
@@ -210,4 +212,29 @@ test("complete matched cohort and look-by-skin metrics preserve the passing pilo
   assert.equal(result.ratedCompleteSubjects, 30);
   assert.equal(result.lookSkinPreference["electric-blue"].medium, 1);
   assert.ok(result.lookSkinWilson95["electric-blue"].medium.lower > 0.5);
+});
+
+test("negative-control ties are not treated as cosmetic losses or fake wins", () => {
+  const cases = pilotCases();
+  const result = evaluatePilot(cases);
+  assert.equal(result.status, "pass");
+  assert.equal(result.untouchedControls, 30);
+  assert.equal(result.beautyLooks, 3);
+  assert.equal(result.reviewed, 90);
+  assert.equal(result.wins, 90);
+  assert.equal(result.lookPreference["no-makeup"], null);
+  assert.equal(result.lookSkinPreference["no-makeup"].deep, null);
+});
+
+test("no-makeup control must have zero changed pixels, including editable regions", () => {
+  const cases = pilotCases();
+  const control = cases.find(c => c.sample_id === "private-0" && c.look_id === "no-makeup");
+  control.inside_changed_pixels = 1;
+  const changed = evaluatePilot(cases);
+  assert.equal(changed.status, "fail");
+  assert.ok(changed.issues.some(s => /No-makeup control changed/.test(s)));
+  control.inside_changed_pixels = undefined;
+  const unmeasured = evaluatePilot(cases);
+  assert.equal(unmeasured.status, "insufficient-evidence");
+  assert.ok(unmeasured.incomplete.some(s => /no-makeup control pixel/.test(s)));
 });
