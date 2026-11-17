@@ -491,7 +491,11 @@ test("phones without WebGL2 get the tiny-network engine and still paint on the d
 });
 
 test("live mirror paints the look on the camera picture and a capture becomes a photo try-on", async ({ page }) => {
-  test.setTimeout(300_000);
+  // CPU/SwiftShader GitHub runners must initialize multiple on-device models
+  // and render a sequence of camera, studio-light, lipstick and look changes.
+  // Retain strict per-action timeouts below rather than timing out the whole
+  // independent user journey during a final click.
+  test.setTimeout(600_000);
   const external: string[] = [];
   page.on("request", (request) => {
     const url = new URL(request.url());
@@ -526,7 +530,9 @@ test("live mirror paints the look on the camera picture and a capture becomes a 
   await expect.poll(() => liveLipRedness(page), { timeout: 30_000 }).toBeGreaterThan(20);
   await light.click();
   await expect(light).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "گرفتن عکس" }).click();
+  // A real capture tap must remain dispatchable while the mirror is running.
+  // It is not enough for the UI simply to be visible and enabled.
+  await page.getByRole("button", { name: "گرفتن عکس" }).click({ timeout: 20_000 });
   await expect(page.locator(".tryon__img--after")).toBeVisible({ timeout: 120_000 });
   await expect(page.locator(".tryon__img--after")).toHaveAttribute("alt", /غروب/);
   expect(external).toEqual([]);
