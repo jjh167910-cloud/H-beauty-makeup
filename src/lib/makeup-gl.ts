@@ -2849,11 +2849,12 @@ export class MakeupGL {
       // Time BOTH the GPU framebuffer blit and the shader in native-fast mode.
       // Mark a fallback to fullscreen native after the result is known.
       const queryStarted = timer?.begin(nativeEyeFast ? "native-fast" : "native") ?? false;
+      let nativeRect: [number, number, number, number] | null = null;
+      try {
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.disable(gl.DEPTH_TEST);
       gl.disable(gl.BLEND);
       gl.disable(gl.SCISSOR_TEST);
-      let nativeRect: [number, number, number, number] | null = null;
       if (nativeEyeFast) {
         // Copy the already-composed photo in GPU memory, then shade only the
         // localized eye envelope. All untouched pixels remain bit-exact with
@@ -2906,15 +2907,15 @@ export class MakeupGL {
         gl.enable(gl.SCISSOR_TEST);
         gl.scissor(nativeRect[0], nativeRect[1], nativeRect[2], nativeRect[3]);
       }
-      try {
-        this.drawQuad(p); // FBO texture -> drawingBuffer, same orientation
-      } finally {
-        gl.disable(gl.SCISSOR_TEST);
-        if (queryStarted) timer?.end(nativeRect ? "native-fast" : "native");
-      }
+      this.drawQuad(p); // FBO texture -> drawingBuffer, same orientation
       this.lastNativeEye = true;
       this.lastNativeEyeFast = nativeRect !== null;
       this.lastNativeEyeMs = performance.now() - nativeStarted;
+      } finally {
+        // Even shader/driver failures must retire a started query.
+        gl.disable(gl.SCISSOR_TEST);
+        if (queryStarted) timer?.end(nativeRect ? "native-fast" : "native");
+      }
     }
   }
 
