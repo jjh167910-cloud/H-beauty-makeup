@@ -122,3 +122,50 @@ test("GPU timer handles unsupported devices, query backlog and bad timestamp val
   expect(checks.resultReads).toBe(3);
   expect(checks.unsupported).toBe(true);
 });
+
+
+test("native vs native-fast GPU p50/p95 profiles are bounded and mode-specific", async ({ page }) => {
+  await page.goto("/");
+  const actual = await page.evaluate(async () => {
+    const { NativeEyeGpuTimer } = await import("/src/lib/native-eye-gpu-timer.ts");
+    let currentNs = 0, created = 0, deleted = 0;
+    const gl = {
+      QUERY_RESULT_AVAILABLE: 2, QUERY_RESULT: 3,
+      getExtension: () => ({ TIME_ELAPSED_EXT: 7, GPU_DISJOINT_EXT: 8 }),
+      createQuery: () => ({ id: ++created }),
+      deleteQuery: () => { deleted++; },
+      beginQuery: () => {}, endQuery: () => {},
+      isContextLost: () => false,
+      getParameter: () => false,
+      getQueryParameter: (_q: object, code: number) =>
+        code === 2 ? true : currentNs,
+    } as unknown as WebGL2RenderingContext;
+    const timer = new NativeEyeGpuTimer(gl);
+    const push = (mode: "native"|"native-fast", durationMs: number) => {
+      if(!timer.begin(mode)) throw Error("Unable to start GPU timer");
+      currentNs = durationMs * 1e6;
+      timer.end();
+      timer.poll();
+    };
+    for (let i = 1; i <= 10; i++) push("native", i);
+    for (let i = 1; i <= 10; i++) push("native-fast", i * 0.5);
+    const first = timer.summarize();
+    for (let i = 0; i < NativeEyeGpuTimer.MAX_HISTORY + 5; i++)
+      push("native-fast", 1);
+    const after = timer.summarize();
+    const latest = timer.latest;
+    const bounded = after.reduce((n, s) => n + s.samples, 0);
+    timer.dispose();
+    return { first, after, latest, bounded, created, deleted,
+      emptyOnDispose: timer.summarize() };
+  });
+  expect(actual.first).toEqual([
+    { mode: "native", samples: 10, p50Ms: 5, p95Ms: 10, minMs: 1, maxMs: 10 },
+    { mode: "native-fast", samples: 10, p50Ms: 2.5, p95Ms: 5, minMs: 0.5, maxMs: 5 },
+  ]);
+  expect(actual.bounded).toBeLessThanOrEqual(64);
+  expect(actual.latest?.mode).toBe("native-fast");
+  expect(actual.latest?.gpuMs).toBe(1);
+  expect(actual.created).toBe(actual.deleted);
+  expect(actual.emptyOnDispose).toEqual([]);
+});
