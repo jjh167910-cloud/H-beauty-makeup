@@ -138,6 +138,41 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
           if(display[offset+c]!==otherEyeBrightened[offset+c])leftEyeCrossTalk++;
         }
       }
+      // Corrupt exactly one skin-light reference in THIS eye with an
+      // extreme highlight and a dark occluder. Only the immediately local
+      // 3x3 source microtexture footprint may change. A single original
+      // lighting texel must no longer recolor the entire painted eyelid.
+      const leftUpperIdx=4*2, leftBrowIdx=2*2;
+      const leftRefX=Math.floor(material.upper[leftUpperIdx]*0.76+
+        material.brows[leftBrowIdx]*0.24);
+      const leftRefY=Math.floor(material.upper[leftUpperIdx+1]*0.76+
+        material.brows[leftBrowIdx+1]*0.24);
+      const leftRefOff=(leftRefY*W+leftRefX)*4;
+      const savedLeftRef=new Uint8Array(original.subarray(leftRefOff,leftRefOff+4));
+      let lightProbeMax=0, lightProbeMean=0;
+      for(const shade of [3,250]){
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D,textures[1]);
+        gl.texSubImage2D(gl.TEXTURE_2D,0,leftRefX,leftRefY,1,1,
+          gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([shade,shade,shade,255]));
+        gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+        const probeRead=new Uint8Array(prior.length);
+        gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,probeRead);
+        const probed=flip(probeRead);
+        let totalDelta=0, compared=0;
+        for(let y=128;y<=160;y++)for(let x=151;x<=250;x++){
+          if(Math.abs(x-leftRefX)<=2 && Math.abs(y-leftRefY)<=2) continue;
+          const i=(y*W+x)*4;
+          for(let c=0;c<3;c++){
+            const delta=Math.abs(display[i+c]-probed[i+c]);
+            totalDelta+=delta; compared++;
+            lightProbeMax=Math.max(lightProbeMax,delta);
+          }
+        }
+        lightProbeMean=Math.max(lightProbeMean,totalDelta/compared);
+      }
+      gl.texSubImage2D(gl.TEXTURE_2D,0,leftRefX,leftRefY,1,1,
+        gl.RGBA,gl.UNSIGNED_BYTE,savedLeftRef);
       // Isolate the native eyeliner and lashes from eyeshadow: the raster must
       // change when fibers are enabled, even on deep skin, without source-face pixels.
       gl.uniform1f(gl.getUniformLocation(p,"uLinerWidth"),0);
@@ -194,7 +229,7 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
       observations.push({depth,changed,protectedChanged,occludedChanged,clipped,
         topChanges,bottomChanges,inkChanged,inkOutside,scleraChanged,outsideCoordinates,
         detailSamples, textureRetention: paintedDetail / Math.max(1, originalDetail),
-        leftEyeCrossTalk, leftEyePainted});
+        leftEyeCrossTalk, leftEyePainted, lightProbeMax, lightProbeMean});
       textures.forEach(t=>gl.deleteTexture(t));
     }
     return {observations,enabled:[...material.enabled]};
@@ -220,6 +255,8 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
     expect(result.textureRetention).toBeLessThan(1.8);
     expect(result.leftEyePainted).toBeGreaterThan(100);
     expect(result.leftEyeCrossTalk).toBe(0);
+    expect(result.lightProbeMax).toBeLessThanOrEqual(12);
+    expect(result.lightProbeMean).toBeLessThan(2.5);
   }
 });
 
