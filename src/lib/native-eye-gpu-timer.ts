@@ -39,6 +39,8 @@ export class NativeEyeGpuTimer {
   private active: PendingQuery | null = null;
   private pending: PendingQuery[] = [];
   private sequence = 0;
+  /** Changes when timing evidence is invalidated by reset, disjoint or context loss. */
+  private epoch = 0;
   private lost = false;
   private last: NativeEyeGpuMeasurement | null = null;
   private readonly history: NativeEyeGpuMeasurement[] = [];
@@ -51,6 +53,7 @@ export class NativeEyeGpuTimer {
 
   get supported(): boolean { return this.ext !== null && !this.lost; }
   get pendingCount(): number { return this.pending.length; }
+  get sampleEpoch(): number { return this.epoch; }
   get latest(): NativeEyeGpuMeasurement | null { return this.last; }
 
   /** Raw bounded GPU samples for local opt-in A/B; values contain no photo data. */
@@ -65,6 +68,7 @@ export class NativeEyeGpuTimer {
     this.clearPending();
     this.last = null;
     this.history.length = 0;
+    this.epoch++;
     return true;
   }
 
@@ -130,6 +134,7 @@ export class NativeEyeGpuTimer {
         this.clearPending();
         this.last = null;
         this.history.length = 0; // Disjoint invalidates earlier comparisons.
+        this.epoch++;
         return null;
       }
       // WebGL queries return completion status asynchronously. A bounded
@@ -154,12 +159,14 @@ export class NativeEyeGpuTimer {
       this.clearPending();
       this.last = null;
       this.history.length = 0;
+      this.epoch++; // Treat a driver query exception as lost benchmark evidence.
     }
     return this.last;
   }
 
   /** A lost context invalidates all pending samples, not just the last one. */
   dispose(): void {
+    if (!this.lost) this.epoch++;
     this.lost = true;
     if (this.active && this.ext) {
       try { this.gl.endQuery(this.ext.TIME_ELAPSED_EXT); } catch { /* lost */ }
