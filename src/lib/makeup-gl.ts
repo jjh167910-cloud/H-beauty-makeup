@@ -2839,6 +2839,8 @@ export class MakeupGL {
       gl.uniform1i(this.uni(p, "uLashCount"), nativeData.lashCount);
       gl.uniform1f(this.uni(p, "uInkSoft"),
         Math.max(0.7, Math.min(2.8, face.blur ?? nativeData.inkSoft)));
+      gl.uniform1f(this.uni(p, "uShimmer"), nativeData.shimmer);
+      gl.uniform1f(this.uni(p, "uRhinestones"), nativeData.rhinestones);
       this.drawQuad(p); // FBO texture -> drawingBuffer; orientation already corrected by main pass
       this.lastNativeEye = true;
       this.lastNativeEyeMs = performance.now() - nativeStarted;
