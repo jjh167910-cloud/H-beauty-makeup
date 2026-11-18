@@ -240,3 +240,31 @@ test("no-makeup control must have zero changed pixels, including editable region
   assert.equal(unmeasured.status, "insufficient-evidence");
   assert.ok(unmeasured.incomplete.some(s => /no-makeup control pixel/.test(s)));
 });
+
+
+test("identical photo pairs remain counted and cannot fabricate a beauty win", () => {
+  const cases = pilotCases();
+  const pair = cases.find(c => c.sample_id === "private-0" && c.look_id === "hollywood");
+  pair.identical_image_pair = true;
+  pair.comparator_artist_score = 4.5;
+  const fabricated = evaluatePilot(cases);
+  assert.equal(fabricated.status, "fail");
+  assert.equal(fabricated.identicalMakeupPairs, 1);
+  assert.equal(fabricated.reviewed, 90);
+  assert.ok(fabricated.issues.some(s => /byte-identical A\/B images/.test(s)));
+
+  // Genuine tie is retained in 90 decisions; it is not used as a fake win.
+  pair.paired_preference = "tie";
+  const neutral = evaluatePilot(cases);
+  assert.equal(neutral.identicalMakeupPairs, 1);
+  assert.equal(neutral.reviewed, 90);
+  assert.equal(neutral.wins, 89);
+  assert.equal(neutral.status, "pass");
+
+  // Different realism grades for literally identical pixels are a rater-
+  // protocol concern, even when the preference vote was marked as a tie.
+  pair.comparator_artist_score = 2;
+  const bias = evaluatePilot(cases);
+  assert.equal(bias.status, "fail");
+  assert.ok(bias.issues.some(s => /Artist realism score differs/.test(s)));
+});
