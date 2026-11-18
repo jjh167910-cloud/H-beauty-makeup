@@ -237,6 +237,33 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
         gl.RG,gl.UNSIGNED_BYTE,rootMask);
       const concealedRootLashes=lashRaster(0.18);
       const detachedFiberPixels=leftInk(concealedRootLashes);
+      // Prove that the visibility ribbon leaves actual previously painted
+      // lash TIPS exposed: otherwise even a broken no-root-gate shader
+      // could satisfy the zero-detached-pixel assertion accidentally.
+      let exposedLashTips=0;
+      for(let y=70;y<220;y++)for(let x=85;x<300;x++){
+        const gx=Math.min(255,Math.floor(x*256/W));
+        const gy=Math.min(255,Math.floor(y*256/W));
+        if(rootMask[(gy*256+gx)*2]===0)continue;
+        const at=(y*W+x)*4;
+        if(Math.abs(openLashes[at]-prior[at])>2 ||
+           Math.abs(openLashes[at+1]-prior[at+1])>2 ||
+           Math.abs(openLashes[at+2]-prior[at+2])>2)exposedLashTips++;
+      }
+      // Repeat in the production guided RGBA coefficient representation
+      // (alpha-only constant fit). The root check must work in both modes.
+      const guidedRootData=new Uint8Array(256*256*4);
+      for(let i=0;i<256*256;i++)
+        guidedRootData[i*4+3]=rootMask[i*2];
+      const guidedRootTex=texture(guidedRootData,256,256);
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D,guidedRootTex);
+      gl.uniform1i(visibilityMode,2);
+      const guidedConcealedLashes=lashRaster(0.18);
+      const guidedDetachedFiberPixels=leftInk(guidedConcealedLashes);
+      gl.uniform1i(visibilityMode,1);
+      gl.bindTexture(gl.TEXTURE_2D,textures[2]);
+      gl.deleteTexture(guidedRootTex);
       // Partly visible roots must yield partly visible native lashes,
       // not pop abruptly to full opacity. Keep originally hidden areas
       // hidden and only attenuate the newly covered left-lid roots.
@@ -593,7 +620,8 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
         nearlyClosedLashCount,openEyeLashCount,otherEyeLashDrift,
         blockedRootTexels,unblockedTipTexels,detachedFiberPixels,
         detachedWingDifferences,otherEyeRootMaskDrift,
-        openRootEnergy,partialRootEnergy});
+        openRootEnergy,partialRootEnergy,exposedLashTips,
+        guidedDetachedFiberPixels});
       textures.forEach(t=>gl.deleteTexture(t));
     }
     return {observations,enabled:[...material.enabled]};
@@ -638,7 +666,9 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
     expect(result.otherEyeLashDrift).toBe(0);
     expect(result.blockedRootTexels).toBeGreaterThan(30);
     expect(result.unblockedTipTexels).toBeGreaterThan(20);
+    expect(result.exposedLashTips).toBeGreaterThan(10);
     expect(result.detachedFiberPixels).toBe(0);
+    expect(result.guidedDetachedFiberPixels).toBe(0);
     expect(result.detachedWingDifferences).toBe(0);
     expect(result.openRootEnergy).toBeGreaterThan(100);
     expect(result.partialRootEnergy).toBeGreaterThan(0);
