@@ -8,7 +8,7 @@ import { createHmac, randomBytes } from "node:crypto";
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { assertPrivateImageContainer } from "./private_image_audit.mjs";
-import { analyzeBlindScores } from "./blind_photo_analysis.mjs";
+import { analyzeBlindScores, CHALLENGE_TAGS } from "./blind_photo_analysis.mjs";
 
 export const BEAUTY_LOOKS = ["hollywood", "electric-blue", "rhinestone"];
 const SKINS = ["light", "medium", "deep"];
@@ -44,13 +44,21 @@ export function makeBlindAssignments(trials, seed) {
         !SKINS.includes(item.skin_group) || item.consent_confirmed !== true ||
         typeof item.candidate_file !== "string" || !item.candidate_file ||
         typeof item.comparator_file !== "string" || !item.comparator_file ||
-        item.candidate_file === item.comparator_file)
+        item.candidate_file === item.comparator_file ||
+        (item.challenge_tags !== undefined &&
+         (!Array.isArray(item.challenge_tags) ||
+          item.challenge_tags.some(tag => !CHALLENGE_TAGS.includes(tag)) ||
+          new Set(item.challenge_tags).size !== item.challenge_tags.length)))
       throw new Error("Invalid consent, image pair, skin group or anonymous trial");
     const pair = item.sample_id + ":" + item.look_id;
     if (unique.has(pair)) throw new Error("Duplicate subject/look pair: " + pair);
     unique.add(pair);
-    const subject = subjects.get(item.sample_id) || { skin: item.skin_group, looks: new Set() };
+    const challengeKey = [...(item.challenge_tags ?? [])].sort().join(",");
+    const subject = subjects.get(item.sample_id) ||
+      { skin: item.skin_group, challengeKey, looks: new Set() };
     if (subject.skin !== item.skin_group) throw new Error("Inconsistent skin group per subject");
+    if (subject.challengeKey !== challengeKey)
+      throw new Error("Inconsistent challenge tags for subject");
     subject.looks.add(item.look_id);
     subjects.set(item.sample_id, subject);
     const group = item.look_id + ":" + item.skin_group;
@@ -132,7 +140,8 @@ export function unblindScores(key, raterSheets) {
       comparatorScoreSum += item.candidate_side === "A" ? row.score_b : row.score_a;
     }
     return { sample_id: item.sample_id, skin_group: item.skin_group,
-      look_id: item.look_id, paired_preference:
+      look_id: item.look_id, challenge_tags: item.challenge_tags ?? [],
+      paired_preference:
         votes.candidate > votes.comparator ? "candidate" :
         votes.candidate < votes.comparator ? "competitor" : "tie",
       artist_score: scoreSum / ratings.length,
@@ -197,7 +206,7 @@ export async function packStudy(manifestFile, outputDir, seed) {
         image_b: "assets/" + fileB });
       key.push({ trial_id: a.trial_id, sample_id: a.sample_id,
         look_id: a.look_id, skin_group: a.skin_group,
-        candidate_side: a.candidate_side });
+        challenge_tags: a.challenge_tags ?? [], candidate_side: a.candidate_side });
     }
     const csv = ["trial_id,preferred,score_a,score_b",
       ...exposed.map(x => x.trial_id + ",,,")].join("\n") + "\n";
