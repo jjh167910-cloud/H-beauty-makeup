@@ -311,9 +311,18 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
       const maskedWingless=raster();
       gl.uniform1f(wingLoc,material.wingLength);
       const maskedWing=raster();
-      let detachedWingDifferences=0;
-      for(let i=0;i<maskedWing.length;i++)
-        if(maskedWing[i]!==maskedWingless[i])detachedWingDifferences++;
+      let detachedWingDifferences=0, otherEyeWingDifferences=0;
+      // Only LEFT wing's root is hidden. The visible RIGHT wing must
+      // continue drawing, and must not be counted as a regression.
+      for(let y=65;y<230;y++)for(let x=85;x<550;x++){
+        const i=(y*W+x)*4;
+        let changed=false;
+        for(let ch=0;ch<4;ch++)
+          if(maskedWing[i+ch]!==maskedWingless[i+ch])changed=true;
+        if(!changed)continue;
+        if(x<300)detachedWingDifferences++;
+        if(x>335)otherEyeWingDifferences++;
+      }
       // Restore the original segmentation and full native material.
       gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,256,256,
         gl.RG,gl.UNSIGNED_BYTE,vis);
@@ -619,8 +628,8 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
         guidedSourceSensitiveChanges,closeEyeLashCount,
         nearlyClosedLashCount,openEyeLashCount,otherEyeLashDrift,
         blockedRootTexels,unblockedTipTexels,detachedFiberPixels,
-        detachedWingDifferences,otherEyeRootMaskDrift,
-        openRootEnergy,partialRootEnergy,exposedLashTips,
+        detachedWingDifferences,otherEyeWingDifferences,
+        otherEyeRootMaskDrift,openRootEnergy,partialRootEnergy,exposedLashTips,
         guidedDetachedFiberPixels});
       textures.forEach(t=>gl.deleteTexture(t));
     }
@@ -670,6 +679,7 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
     expect(result.detachedFiberPixels).toBe(0);
     expect(result.guidedDetachedFiberPixels).toBe(0);
     expect(result.detachedWingDifferences).toBe(0);
+    expect(result.otherEyeWingDifferences).toBeGreaterThan(5);
     expect(result.openRootEnergy).toBeGreaterThan(100);
     expect(result.partialRootEnergy).toBeGreaterThan(0);
     expect(result.partialRootEnergy).toBeLessThan(result.openRootEnergy);
