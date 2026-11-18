@@ -205,6 +205,69 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
       const closeEyeLashCount=leftInk(closedLashes);
       const nearlyClosedLashCount=leftInk(almostClosedLashes);
       const openEyeLashCount=leftInk(openLashes);
+      // Hair/glasses can cover the root while leaving the drawn tip visible.
+      // In that case an unattached black fiber/wing must not be invented.
+      // Occlude the LEFT upper-lid curve in the existing RG visibility map,
+      // leaving its upper eyelid/long lash tips and the RIGHT eye visible.
+      const rootMask=vis.slice();
+      let blockedRootTexels=0, unblockedTipTexels=0;
+      for(let gy=0;gy<256;gy++)for(let gx=0;gx<256;gx++){
+        const px=(gx+0.5)*W/256, py=(gy+0.5)*W/256;
+        if(px<118||px>275||py<145||py>200)continue;
+        let minDistance=1e9;
+        for(let j=0;j<8;j++){
+          const ax=material.upper[j*2], ay=material.upper[j*2+1];
+          const bx=material.upper[(j+1)*2], by=material.upper[(j+1)*2+1];
+          const dx=bx-ax,dy=by-ay;
+          const t=Math.max(0,Math.min(1,
+            ((px-ax)*dx+(py-ay)*dy)/Math.max(dx*dx+dy*dy,1e-6)));
+          minDistance=Math.min(minDistance,
+            Math.hypot(px-(ax+t*dx),py-(ay+t*dy)));
+        }
+        if(minDistance<7){
+          rootMask[(gy*256+gx)*2]=0;
+          blockedRootTexels++;
+        }else if(minDistance>13 && py<165){
+          unblockedTipTexels++;
+        }
+      }
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D,textures[2]);
+      gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,256,256,
+        gl.RG,gl.UNSIGNED_BYTE,rootMask);
+      const concealedRootLashes=lashRaster(0.18);
+      const detachedFiberPixels=leftInk(concealedRootLashes);
+      let otherEyeRootMaskDrift=0;
+      for(let y=65;y<230;y++)for(let x=335;x<530;x++){
+        const i=(y*W+x)*4;
+        for(let ch=0;ch<4;ch++)
+          if(concealedRootLashes[i+ch]!==openLashes[i+ch])
+            otherEyeRootMaskDrift++;
+      }
+      // Isolate the wing from a fully active ordinary liner. With its
+      // anatomical root covered, toggling wing must change no pixels.
+      const linerLoc=gl.getUniformLocation(p,"uLinerWidth");
+      const wingLoc=gl.getUniformLocation(p,"uWingLength");
+      const lashLoc=gl.getUniformLocation(p,"uLashLength");
+      const raster=()=>{
+        gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+        const raw=new Uint8Array(prior.length);
+        gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,raw);
+        return flip(raw);
+      };
+      gl.uniform1f(lashLoc,0);
+      gl.uniform1f(linerLoc,material.linerWidth);
+      gl.uniform1f(wingLoc,0);
+      const maskedWingless=raster();
+      gl.uniform1f(wingLoc,material.wingLength);
+      const maskedWing=raster();
+      let detachedWingDifferences=0;
+      for(let i=0;i<maskedWing.length;i++)
+        if(maskedWing[i]!==maskedWingless[i])detachedWingDifferences++;
+      // Restore the original segmentation and full native material.
+      gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,256,256,
+        gl.RG,gl.UNSIGNED_BYTE,vis);
+      gl.uniform1f(lashLoc,material.lashLength);
       // Restore the complete material before all existing raster checks.
       gl.uniform1fv(openingLoc,material.opening);
       gl.uniform1f(gl.getUniformLocation(p,"uAmount"),material.amount);
@@ -504,7 +567,9 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
         edgeHaloMax,edgeCenterPainted,
         guidedOccludedChanges,guidedVisibleChanges,guidedCoarseChanges,
         guidedSourceSensitiveChanges,closeEyeLashCount,
-        nearlyClosedLashCount,openEyeLashCount,otherEyeLashDrift});
+        nearlyClosedLashCount,openEyeLashCount,otherEyeLashDrift,
+        blockedRootTexels,unblockedTipTexels,detachedFiberPixels,
+        detachedWingDifferences,otherEyeRootMaskDrift});
       textures.forEach(t=>gl.deleteTexture(t));
     }
     return {observations,enabled:[...material.enabled]};
@@ -547,6 +612,11 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
     expect(result.openEyeLashCount).toBeGreaterThan(20);
     expect(result.nearlyClosedLashCount).toBeLessThan(result.openEyeLashCount * 0.20);
     expect(result.otherEyeLashDrift).toBe(0);
+    expect(result.blockedRootTexels).toBeGreaterThan(30);
+    expect(result.unblockedTipTexels).toBeGreaterThan(20);
+    expect(result.detachedFiberPixels).toBe(0);
+    expect(result.detachedWingDifferences).toBe(0);
+    expect(result.otherEyeRootMaskDrift).toBe(0);
     if(result.depth==="light")
       expect(result.guidedSourceSensitiveChanges).toBeGreaterThan(100);
     else
