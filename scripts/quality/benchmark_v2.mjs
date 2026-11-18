@@ -93,7 +93,7 @@ export function evaluatePilot(cases, {
   const byLookVotes = new Map();
   const byLookSkinVotes = new Map();
   const bySkinVotes = new Map(SKIN_GROUPS.map((s) => [s, { wins: 0, reviewed: 0, artistTotal: 0, artistN: 0 }]));
-  let wins = 0, reviewed = 0, untouchedControls = 0;
+  let wins = 0, reviewed = 0, untouchedControls = 0, identicalMakeupPairs = 0;
 
   for (const [i, c] of cases.entries()) {
     if (!c || typeof c !== "object" || !/^[a-zA-Z0-9_-]{1,80}$/.test(c.sample_id ?? "") ||
@@ -140,6 +140,21 @@ export function evaluatePilot(cases, {
           c.border_mask_pixels === 0 && c.introduced_clipped_channels === 0)
         untouchedControls++;
       continue;
+    }
+    // Same encoded pixels do not demonstrate a cosmetic improvement. Keep
+    // these trials in the denominator: removing them would bias the result.
+    // If a rater claims one identical image is superior, the blind-study
+    // quality gate should fail rather than certify an A/B preference.
+    if (c.identical_image_pair === true) {
+      identicalMakeupPairs++;
+      if (c.paired_preference !== "tie")
+        issues.push("Blind preference reported for byte-identical A/B images: " + pair);
+      if (typeof c.comparator_artist_score === "number" &&
+          Number.isFinite(c.comparator_artist_score) &&
+          typeof c.artist_score === "number" &&
+          Number.isFinite(c.artist_score) &&
+          Math.abs(c.comparator_artist_score - c.artist_score) > 1e-8)
+        issues.push("Artist realism score differs across byte-identical A/B images: " + pair);
     }
     const vote = c.paired_preference;
     if (vote === "candidate" || vote === "competitor" || vote === "tie") {
@@ -250,7 +265,7 @@ export function evaluatePilot(cases, {
   const dedupe = (a) => [...new Set(a)];
   return {
     status: issues.length ? "fail" : incomplete.length ? "insufficient-evidence" : "pass",
-    subjects: subjects.size, untouchedControls,
+    subjects: subjects.size, untouchedControls, identicalMakeupPairs,
     beautyLooks: MAKEUP_LOOKS.length,
     completeSubjects: completeSubjects.size,
     ratedCompleteSubjects: ratedCompleteSubjects.length,
