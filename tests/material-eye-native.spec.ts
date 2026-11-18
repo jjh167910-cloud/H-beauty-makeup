@@ -237,6 +237,29 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
         gl.RG,gl.UNSIGNED_BYTE,rootMask);
       const concealedRootLashes=lashRaster(0.18);
       const detachedFiberPixels=leftInk(concealedRootLashes);
+      // Partly visible roots must yield partly visible native lashes,
+      // not pop abruptly to full opacity. Keep originally hidden areas
+      // hidden and only attenuate the newly covered left-lid roots.
+      const partialRootMask=vis.slice();
+      for(let i=0;i<partialRootMask.length;i+=2)
+        if(vis[i]>0 && rootMask[i]===0) partialRootMask[i]=148;
+      gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,256,256,
+        gl.RG,gl.UNSIGNED_BYTE,partialRootMask);
+      const partialRootLashes=lashRaster(0.18);
+      const leftFiberEnergy=(data:Uint8Array)=>{
+        let energy=0;
+        for(let y=70;y<220;y++)for(let x=85;x<300;x++){
+          const at=(y*W+x)*4;
+          for(let ch=0;ch<3;ch++)
+            energy+=Math.abs(data[at+ch]-prior[at+ch]);
+        }
+        return energy;
+      };
+      const openRootEnergy=leftFiberEnergy(openLashes);
+      const partialRootEnergy=leftFiberEnergy(partialRootLashes);
+      // Wing test still uses a fully hidden root, not partial visibility.
+      gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,256,256,
+        gl.RG,gl.UNSIGNED_BYTE,rootMask);
       let otherEyeRootMaskDrift=0;
       for(let y=65;y<230;y++)for(let x=335;x<530;x++){
         const i=(y*W+x)*4;
@@ -569,7 +592,8 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
         guidedSourceSensitiveChanges,closeEyeLashCount,
         nearlyClosedLashCount,openEyeLashCount,otherEyeLashDrift,
         blockedRootTexels,unblockedTipTexels,detachedFiberPixels,
-        detachedWingDifferences,otherEyeRootMaskDrift});
+        detachedWingDifferences,otherEyeRootMaskDrift,
+        openRootEnergy,partialRootEnergy});
       textures.forEach(t=>gl.deleteTexture(t));
     }
     return {observations,enabled:[...material.enabled]};
@@ -616,6 +640,9 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
     expect(result.unblockedTipTexels).toBeGreaterThan(20);
     expect(result.detachedFiberPixels).toBe(0);
     expect(result.detachedWingDifferences).toBe(0);
+    expect(result.openRootEnergy).toBeGreaterThan(100);
+    expect(result.partialRootEnergy).toBeGreaterThan(0);
+    expect(result.partialRootEnergy).toBeLessThan(result.openRootEnergy);
     expect(result.otherEyeRootMaskDrift).toBe(0);
     if(result.depth==="light")
       expect(result.guidedSourceSensitiveChanges).toBeGreaterThan(100);
