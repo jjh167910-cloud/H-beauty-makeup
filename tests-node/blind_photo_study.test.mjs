@@ -73,7 +73,7 @@ test("generated reviewer pack hides candidate labels, leaves images local and re
     await fs.writeFile(join(dir,"candidate.png"),image);
     await fs.writeFile(join(dir,"comparator.png"),image);
     const manifest=join(dir,"manifest.json"),output=join(tmpdir(),"hbeauty-blind-"+Date.now()+"-"+Math.floor(Math.random()*1e8));
-    await fs.writeFile(manifest,JSON.stringify({schema_version:1,trials:rows(1)}));
+    await fs.writeFile(manifest,JSON.stringify({schema_version:1,trials:rows(1).map(x=>({...x,challenge_tags:["glasses"]}))}));
     const pack=await packStudy(manifest,output,seed);
     assert.equal(pack.trials,3);
     const shown=JSON.parse(await fs.readFile(join(output,"reviewer","trials.json"),"utf8"));
@@ -88,6 +88,8 @@ test("generated reviewer pack hides candidate labels, leaves images local and re
     assert.ok(!JSON.stringify(shown).includes("subject-0"));
     assert.ok(!JSON.stringify(shown).includes("hollywood"));
     assert.ok(!JSON.stringify(shown).includes("skin_group"));
+    assert.ok(!JSON.stringify(shown).includes("glasses"));
+    assert.ok(key.assignments.every(x=>x.challenge_tags.includes("glasses")));
     for(const row of shown.trials){
       assert.deepEqual(await fs.readFile(join(output,"reviewer",row.image_a)),image);
       assert.deepEqual(await fs.readFile(join(output,"reviewer",row.image_b)),image);
