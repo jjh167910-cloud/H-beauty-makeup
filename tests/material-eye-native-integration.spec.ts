@@ -51,8 +51,13 @@ test("opt-in native shader runs through the full saved-photo MakeupGL pipeline, 
       gl.getUniformLocation(program, "uInkSoft")) as number;
     const uploadedCleanup = gl.getUniform(program,
       gl.getUniformLocation(program, "uCleanLegacy")) as number;
+    // Production composition and native eye must use the SAME fitted
+    // visibility mode (coarse fallback=1; photo-guided coefficients=2).
+    const expectedVisMode = runtime.grids.vis.last?.out?.[0] as number;
+    const uploadedVisMode = gl.getUniform(program,
+      gl.getUniformLocation(program, "uVisMode")) as number;
     return {nativeApplied,nativeSubmitMs,changed,outside,border,width,height,
-      uploadedInkSoft,uploadedCleanup};
+      uploadedInkSoft,uploadedCleanup,uploadedVisMode,expectedVisMode};
   });
   expect(report.nativeApplied).toBe(true);
   expect(report.nativeSubmitMs).toBeGreaterThanOrEqual(0);
@@ -65,4 +70,6 @@ test("opt-in native shader runs through the full saved-photo MakeupGL pipeline, 
   // The previous renderer incorrectly uploaded 2.8, diverging from ROI.
   expect(report.uploadedInkSoft).toBeCloseTo(2.56, 3);
   expect(report.uploadedCleanup).toBe(1);
+  expect([1, 2]).toContain(report.expectedVisMode);
+  expect(report.uploadedVisMode).toBe(report.expectedVisMode);
 });
