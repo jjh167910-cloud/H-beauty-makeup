@@ -14,6 +14,7 @@ Create a JSON file outside this Git repo, such as /private/hbeauty/manifest.json
 - candidate_file: relative path to the H-Beauty render of this subject
 - comparator_file: relative path to the baseline render of the SAME subject and same look
 - consent_confirmed: true (human operator confirmation; not automated consent verification)
+- challenge_tags: optional **private** array, the same for all three looks of one subject; choose only from `hooded`, `monolid`, `profile`, `glasses`, `hair_occlusion`, `low_light`. These are observational photographic conditions; do not treat unverified tags as clinical characteristics. Do not include identifying notes.
 
 The negative-control no-makeup original-pixel check remains in scripts/quality/benchmark_v2.mjs and is not counted as a beauty A/B preference.
 
@@ -35,10 +36,11 @@ Use at least two independent raters, preferably three or more. The command rejec
 
 ### Paired realism diagnostics (research only)
 
-The score JSON includes `photo_realism_analysis` with overall, per-look, per-skin and look × skin tables:
+The score JSON includes `photo_realism_analysis` with overall, per-look, per-skin, look × skin and annotated challenge-condition tables (`by_challenge`). The input challenge tags stay in the **private answer-key**; they do not appear in `reviewer/trials.json`, filenames or reviewer CSV:
 
 - `candidate_artist_mean`, `comparator_artist_mean` and `paired_artist_delta` (1–5 artist-score difference, candidate minus baseline; positive favors candidate).
 - `candidate_preference`, `comparator_preference`, and `tie_rate` (one consensus result per independent subject/look, not per rater click).
+- `annotated_subjects`, `annotation_warning`, and `by_challenge` to identify cases where glasses, profile views, hair occlusion, hooded/monolid eyelids or low light systematically reduce photographic realism; no annotated cases yields null, not a fake zero score.
 - `independent_subjects` and `subject_cluster_ci95`. The latter resamples whole **subjects** (not their correlated looks) using a fixed deterministic 2,048-draw percentile bootstrap, and is absent below 10 independent subjects in that slice. Interval estimates for recruited samples are descriptive, not representative-market or randomized-trial claims.
 
 This report is *not* a release certificate. A positive mean delta, preference lead or interval alone cannot certify a production improvement. Independently validate consent, rater independence and attention, camera exposure and matched crops, and inspect hard cases (hooded/monolid/profile eyes, glasses/hair overlap, low light). Rejoin with actual no-makeup controls, protected-pixel/clipping audits and required provenance in `benchmark_v2.mjs` before assessing the preregistered gates. Do not use synthetic or copied scores as real-human evidence.
