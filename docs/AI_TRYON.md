@@ -171,9 +171,11 @@ eyeshadow placement), using the left/right landmark pairs of MediaPipe's symmetr
 model (`canonical_face_model.obj`, Apache-2.0). Tested: a mirrored photo gives the mirrored result,
 for the look's own makeup and for her own eyeshadow.
 
-It runs at full photo resolution (up to 1600 px) in a fraction of a second, and on every frame of
-the live mirror (painted at up to 960 px, stepping down to 800, 640 and 480 on a phone that can't keep
-up; a phone far too slow skips straight to a size that is really smaller). The reference implementation is `scripts/tinybeauty/teacher.py`; the browser
+It runs at full photo resolution (up to 2048 px on a phone that says it has 6 GB or more, else 1600) in a fraction
+of a second, and on every frame of the live mirror (the camera asked for 1080 x 1440, painted at up to 1440 px,
+stepping down through 1280, 1080, 960, 800 and 640 to 480 on a phone that can't keep up, by its measured frame time;
+a phone far too slow skips straight to a size that is really smaller). The mirror paints each look with its recipe
+too (its eyeshadow's finish, highlighter, liner colour), so it is the photo result, not a lighter version of it. The reference implementation is `scripts/tinybeauty/teacher.py`; the browser
 engine matches it to 45–55 dB on the face.
 
 ### Each look at its full strength
@@ -394,6 +396,22 @@ her lips, a hand on her cheek, a scarf, a phone.
 
 ### Matching her photo
 
+- **Her camera's white and black** (`SHOULDER`, `LAYER_FLOOR`; `shoulder`, `layer_floor` in `teacher.py`). A look's
+  highlighter or blush on a lit cheek, a dewy finish, a bright lid pushed colour channels past 255 on every look and
+  test face (279,000 pixels on four faces, 42 looks), leaving flat patches with no skin texture, and a saturated lid
+  pushed its red to 0. Past 0.8 (linear) the brightest channel now rolls off towards 0.995, as a camera's highlights
+  do, the others with it in proportion (her skin's hue kept: rolled off one by one, a lit highlight greyed), never below
+  her own pixel there (in the foundation pass and the main pass); a look's layer darkens a channel at most
+  towards 4 % of her own, softly (a pigment still reflects a few percent of the light). On the four faces no channel
+  the makeup changed reaches 255 or 0 (tested on a brightly side-lit face and on deep skin).
+- **Her lashes and lash line.** A look's lightening (a pale lid shade) stays off her lashes and brow hairs (much darker
+  than her skin right around them) and off her upper lash line (the liner band), and its eyeshadow and its mica stay
+  off her lash line itself (where she, a little softened, is under 0.45 to 0.8 of her broad light): on a deep lash line
+  a shimmer's mica on the skin between her lashes read as pale specks (`HAIR_LIGHT`, `LASH_BAND_LIGHT`,
+  `SHADOW_LASH`, `OWN_GLEAM`; `hair_keep` in `teacher.py`). Where the face model puts her lash line a few pixels off
+  (one eye of the deep-skin test face), a few remain: placing the lash line from the photo itself is the roadmap's
+  dense face understanding (Phase 3).
+
 - **No edges where the makeup ends.** The face model's mesh stops short of her face (mid-forehead, the
   jaw, a turned cheek), and the catalog layers used to stop short of the mesh (at 90 % of the face, where
   the catalog photo's hair and edge spoil them), so the look ended in a line with a stripe of contour
@@ -518,9 +536,22 @@ her lips, a hand on her cheek, a scarf, a phone.
   a rail picture is made only while nothing else is painting, and a painting waits for the rail
   picture being made. A look's files are let go after its rail picture (only the shown look's stay),
   so memory stays as with one look.
-- **Hold to see before.** The eye button on the result shows her photo without the makeup as long as
-  she holds it (or Space / Enter on it); the before/after slider stays where she left it.
-- **Each part's intensity** (the sliders button after «ملایم / طبیعی / پررنگ»): eyes (shadow, liner,
+- **The photo first** (a phone's first screen, 390 x 844, tested): once her photo is up only the salon's name stays
+  above it; her photo is pinned at the top (it stays on screen as she scrolls); under it a bottom sheet with four tabs
+  (looks «سبک‌ها», intensity «شدت», lipstick «رژ لب», photo «عکس»: studio light, sharpening, HD, outlines, the
+  live mirror, another photo), then her two actions (share or save, book). The look rail and the actions are on the
+  first screen. Every control is at least 44 px (WCAG target size; tested in each tab).
+- **Groups and favourites.** The rail's chips filter it by the catalog's nine groups (`LOOK_GROUPS` in
+  `makeup-styles.ts`) or her favourites: the heart on her photo keeps the look on screen in «علاقه‌مندی‌ها» (on her
+  phone only, `localStorage`, gone with the browser's data).
+- **Share and book.** «اشتراک‌گذاری» hands the result to the phone's share sheet (she picks the app and the person;
+  saved as a file where a phone can't share files). «رزرو» gives the look, its intensity (and each part's when she
+  changed them) and her lipstick as text: «ارسال برای سالن» sends it through the share sheet to the chat she uses
+  with the salon, or she copies it. Never her photo; she attaches it herself if she wants.
+- **Hold to see before.** The slider's before is her photo as the makeup went on it: in studio light when that is on
+  (only the makeup differs; its tag says «قبل · نور استودیو»). The eye button shows her photo as she took it, nothing
+  the app did (no studio light, no sharpening), as long as she holds it (or Space / Enter on it); the slider stays.
+- **Each part's intensity** (the «شدت» tab, under «ملایم / طبیعی / پررنگ»): eyes (shadow, liner,
   lashes), skin and cheeks (foundation, concealer, contour, blush, highlight) and lips, each 0–150 %
   of the look at its level (the engine's per-step intensities, `ProductPicks.gain`). Her photo is
   repainted when she lets go of a slider (the last picture stays under the progress meanwhile, not
@@ -765,7 +796,11 @@ Their URLs carry `TINY_V` (`src/lib/tiny-model.ts`), bumped when they are traine
 
 **Live mirror** (`src/lib/live-tryon.ts`): every camera frame is tracked by MediaPipe and painted
 by the graphics-chip engine; her light references (eye whites, skin, lips) are re-measured every
-8 frames and smoothed. Her landmarks are steadied from frame to frame (`src/lib/steady.ts`): the
+8 frames and smoothed. A capture coach under her face says what would make the photo better, from what the mirror
+measures anyway (`COACH`): her face too small or too close (its width over the frame's), her head turned (the near
+cheek's distance to her nose over the far one's) or tilted (more than 12°), too little light (her eye whites, the same
+on any skin), light from one side (one cheek more than 2.2 times the other). «گرفتن عکس» takes five camera frames in
+a row (about a third of a second) and keeps the sharpest (the variance of the Laplacian over her face). Her landmarks are steadied from frame to frame (`src/lib/steady.ts`): the
 tracker's points shimmer by a pixel or two even on a still face, which made a liner or a lip line
 crawl. Her face's motion is split as face-tracking pipelines do: the rigid part (her head turning,
 rolling, coming closer) is fitted to all 478 points at once by least squares (Umeyama) and taken as

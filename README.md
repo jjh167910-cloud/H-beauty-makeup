@@ -3,8 +3,9 @@
 «حنانه بیوتی» (Hananeh Beauty) salon's **makeup try-on**, a Persian (RTL) mobile web app: the customer opens a
 live mirror on her front camera, takes a selfie or picks a photo, and the salon's 42 catalog looks are painted on
 her own face. She can also build her own makeup step by step («میکاپ من»). Everything runs on her phone: no
-server, no API key, offline for previously downloaded looks, and her photo never leaves the phone. «رزرو» gives the
-look (or her recipe) as text to send to the salon.
+server, no API key, offline for previously downloaded looks, and her photo never leaves the phone unless she shares
+it herself (the phone's share sheet). «رزرو» gives the look, its intensity and lipstick (or her recipe) as text to send
+to the salon from her chat app.
 
 `?look=<id>` opens it on a look (ids in `src/data/makeup-styles.ts`), e.g. `/?look=cat-eye`.
 

@@ -267,6 +267,8 @@ def export_cov(look, out_dir: Path):
 BLUSH_SOFT = 0.16   # blush: its placement's shape blurred over this many eye widths
 SHADOW_GLITTER = 0.75   # an eyeshadow's glitter: share of grain cells with a grain (a lipstick's: GLITTER_DENSITY)
 OWN_LIGHT = (0.3, 0.7)  # a look's own eyeshadow finish goes on where the look leaves her lid this bright (of her own) or more
+OWN_GLEAM = 1.25        # a look's own eyeshadow finish: how lit her lid's form may read for its gleam (as makeup-gl.ts)
+SHADOW_LASH = (0.45, 0.8)  # an eyeshadow over a look stays off her lash line: where she (softened) is this much of her broad light
 SHEEN = {'shadow': 1.0, 'blush': 0.6, 'contour': 0.0, 'glow': 1.0}    # how reflective a shimmer finish is per product
 THICK = {'shadow': 0.6, 'blush': 0.08, 'contour': 0.25, 'glow': 0.05}
 SHADE_SIGMA = (0.025, 0.22)   # her shading (form: lid crease, cheekbone), and the broad light, in eye widths
@@ -389,7 +391,9 @@ def apply_pigment(base, E, alpha, pick, thick, finish_terms, sheen=1.0, kind=Non
             cm = np.maximum(Rg.max(-1, keepdims=True), 1e-4); tint = np.sqrt(tint * Rg / cm * (0.5 + 0.5 * cm))
         L = white[None, None] * np.clip(broad, 0.3, 1.5)[..., None]
         # a smooth reflective surface shows the face's form more than skin does: its shading, exaggerated
-        q = np.clip(form / np.maximum(broad, 1e-4), 0.3, 2.0) ** CONTRAST[pick.get('finish', 'matte')]
+        # (a look's own eyeshadow finish: its gleam follows her lid's form at most OWN_GLEAM: between a dense lash line's lashes
+        # her skin is lit next to them, and a metal's contrast there read as pale specks)
+        q = np.clip(form / np.maximum(broad, 1e-4), 0.3, OWN_GLEAM if pick.get('own') else 2.0) ** CONTRAST[pick.get('finish', 'matte')]
         refl = tint * (REFLECT_BASE * L * q[..., None] + L * (k_lit * lit + k_hl * hl + k_pearl * pearl * glint)[..., None])
         if pick.get('finish') == 'glow':    # added light (specular), never a paint
             out = out + tint * L * ((0.06 + k_lit * lit + k_hl * hl + k_pearl * pearl * glint) * sheen * np.clip(alpha, 0, 1))[..., None]
@@ -447,7 +451,7 @@ def paint_custom(look, face, p, level='natural', custom=None, shade=None, finish
           + A[..., 1] * G('contour') * own['contour'] + A[..., 2] * G('blush') * own['blush'] + A[..., 3] * G('glow') * own['glow']))
     base = user * T.foundation(face, user, p, vis, G('base') * k_layer, seg, T.look_tint(look) ** (G('base') * k_layer),
                                float(np.clip(custom.get('finish', 0.0) * G('base') * k_layer, -1, 1))) * T.conceal_gain(face, user, p, G('conceal'))[..., None] \
-        * np.exp(w * (keep * k_layer * RL)[..., None])
+        * np.exp(T.layer_floor(T.hair_light(w, face, p, B[..., 1]) * (keep * k_layer * RL)[..., None]))
     # 2. her products, in the order they go on
     if any(k in custom for k in ('shadow', 'contour', 'blush', 'glow')):
         white = her_light(user, p); form, broad = shading(user, p); E = white[None, None] * form[..., None]
@@ -460,7 +464,10 @@ def paint_custom(look, face, p, level='natural', custom=None, shade=None, finish
         for kind in ('contour', 'blush', 'glow', 'shadow'):
             pick = custom.get(kind)
             if not pick: continue
-            if kind == 'shadow': alpha = warp_cov(placement('shadow', look, pick), 0, p, (H, W))
+            if kind == 'shadow':
+                gy = cv2.GaussianBlur((face.astype(np.float32) @ np.array([0.299, 0.587, 0.114], np.float32)) / 255, (0, 0), max(1.2, ew * 0.042))
+                lash = smoothstep(*SHADOW_LASH, gy ** 2.2 / np.maximum(broad * max(T.skin_lum(user, p) or float(np.median(T.luma(user))), 1e-4), 1e-4))
+                alpha = warp_cov(placement('shadow', look, pick), 0, p, (H, W)) * T.hair_keep(face, p, B[..., 1]) * lash
             elif kind == 'blush':
                 bg = step_geometry(p, placement('blush', look, pick))
                 alpha = cv2.GaussianBlur(_fill((H, W), bg['blush'], bg['side'], T.side_map(p, (H, W))), (0, 0), ew * BLUSH_SOFT)
@@ -478,7 +485,7 @@ def paint_custom(look, face, p, level='natural', custom=None, shade=None, finish
     lips = T.apply_lips(base, user, p, look, k_lip, L)
     out = b2 + (lips - b2) * G('lips')
     # 4. eye detail: liner (upper lid band) and lashes, each at its intensity; the liner in her colour
-    res = T.srgb(out).astype(np.float32)
+    res = T.srgb(T.shoulder(out, user)).astype(np.float32)
     lens = T.lens_sigma(T.photo_blur(face, p), ew)   # her photo's lens (cut off past T.EYE_FLOOR first, as on her face)
     cap = (1 - T.EYE_FLOOR) / max(1e-3, k_eye * max(G('liner'), G('lashes')))
     ru = T.warp_eyes(look, p2, (H, W), p[:, 2])

@@ -4,8 +4,9 @@
  * Every displayed frame MediaPipe tracks the face (VIDEO mode), then:
  * - "gpu" engine: the frame is painted by the makeup engine on the graphics chip
  *   (makeup-gl.ts), the same as a photo, at camera speed. Her light references (eye whites,
- *   skin, lips) are re-measured every few frames and smoothed. Frames are painted at up to 960
- *   pixels (sharp on a phone screen); a phone that can't keep up steps down to 640, a very slow one to 480. Where her face
+ *   skin, lips) are re-measured every few frames and smoothed. The camera is asked for 1080 x 1440 and frames are painted
+ *   at up to 1440 pixels; a phone that can't keep up steps down, by its measured frame time, to 480 at the least. A look
+ *   gets its recipe here too (its eyeshadow's finish, highlighter, liner colour): the mirror is the photo result. Where her face
  *   can be seen (hair, hands, glasses are left alone) is re-segmented every SEGMENT_MS at most, and
  *   her lip colours (for her own lip line) are re-measured every other frame.
  * - her own makeup («میکاپ من», setMine): her recipe instead of a look, its shapes following her face as it moves.
@@ -28,7 +29,7 @@ import {
 } from "./tryon";
 
 /** Painted frame size (longer side): the gpu engine starts sharp and steps down if the phone is slow. */
-const SIDES = { gpu: [960, 800, 640, 480], tiny: [640] };
+const SIDES = { gpu: [1440, 1280, 1080, 960, 800, 640, 480], tiny: [640] };
 /** Average frame work (ms) above which the next smaller size is used: after 30 frames, or 3 when far too slow. */
 const SLOW_MS = 45, VERY_SLOW_MS = SLOW_MS * 8;
 const MEASURE_EVERY = 8;
@@ -38,7 +39,18 @@ const MEASURE_EVERY = 8;
  */
 const SEGMENT_MS = 150;
 
-export type LiveStats = { fps: number; netMs: number; face: boolean; engine: Engine; drawnFrames: number };
+/**
+ * The capture coach: what would make the photo better, from what the mirror measures anyway (null: it's good). Her face too
+ * small or too close in the frame, her head turned or tilted, too little light (her eye whites, whatever her skin), or
+ * light from one side (one cheek much darker than the other).
+ */
+export type Coach = "far" | "near" | "turn" | "tilt" | "dark" | "uneven";
+export type LiveStats = { fps: number; netMs: number; face: boolean; engine: Engine; drawnFrames: number; coach: Coach | null };
+/** The coach's limits: face width over the frame's width, head roll (degrees), the near / far cheek's distance to her
+ * nose, eye-white brightness (linear), and the brighter cheek over the darker one. */
+const COACH = { far: 0.3, near: 0.85, tilt: 12, turn: 0.55, dark: 0.08, uneven: 2.2 };
+/** The capture: this many camera frames, the sharpest kept. */
+const BURST = 5;
 
 export class LiveMirror {
   private stream: MediaStream | null = null;
@@ -89,6 +101,10 @@ export class LiveMirror {
   private lit = false;
   private litParams: StudioParams | null = null;
   private litCount = 0;
+  /** Her landmarks on the last frame (frame pixels) and the frame's scale from the camera picture; her cheeks' brightness. */
+  private lastPoints: ReturnType<typeof toPoints> | null = null;
+  private frameScale = 1;
+  private cheeks: [number, number] = [0, 0];
 
   constructor(private view: HTMLCanvasElement, look: string, level: Level, private onStats?: (stats: LiveStats) => void, lip: LipChoice | null = null,
     picks: ProductPicks | null = null) {
@@ -96,7 +112,7 @@ export class LiveMirror {
     this.picks = picks;
     this.look = look;
     this.level = level;
-    this.stats = { fps: 0, netMs: 0, face: false, engine: engine(), drawnFrames: 0 };
+    this.stats = { fps: 0, netMs: 0, face: false, engine: engine(), drawnFrames: 0, coach: null };
     this.video.muted = true;
     this.video.playsInline = true;
   }
@@ -104,7 +120,7 @@ export class LiveMirror {
   async start() {
     if (!navigator.mediaDevices?.getUserMedia) throw "no-camera" satisfies TryOnError;
     try {
-      this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 960 }, height: { ideal: 1280 } }, audio: false });
+      this.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 1080 }, height: { ideal: 1440 } }, audio: false });
     } catch {
       throw "no-camera" satisfies TryOnError;
     }
@@ -163,9 +179,7 @@ export class LiveMirror {
     const key = `${this.look}|${JSON.stringify(this.picks)}`;
     if (key === this.productsKey) return;
     this.productsKey = key;
-    // (without her picks the look as its layer paints it: its recipe's finishes, highlight and liner colour need passes a
-    // camera frame can't afford; the capture, a photo try-on, has them)
-    if (!this.picks) { this.products = undefined; return; }
+    // (with or without her picks the look's recipe: its finishes, highlight and liner colour, as on her photo)
     productsFor(this.look, this.picks, this.face ?? { sclera: null, skin: null, lipRef: null })
       .then((p) => { if (this.productsKey === key) this.products = p; })
       .catch(() => undefined);
@@ -230,6 +244,65 @@ export class LiveMirror {
     return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject("failed")), "image/jpeg", 0.95));
   }
 
+  /**
+   * The photo try-on's picture: BURST camera frames in a row (about a third of a second), the sharpest kept (a hand or a
+   * head moving blurs some frames): by the variance of the Laplacian over her face, as she was in the last frame.
+   */
+  async burst(): Promise<Blob> {
+    const P = this.lastPoints, vw = this.video.videoWidth, vh = this.video.videoHeight;
+    if (!P || !vw || !vh) return this.snapshot();
+    const k = 1 / this.frameScale;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const [x, y] of P) { x0 = Math.min(x0, x * k); y0 = Math.min(y0, y * k); x1 = Math.max(x1, x * k); y1 = Math.max(y1, y * k); }
+    const box = [Math.max(0, x0), Math.max(0, y0), Math.min(vw, x1) - Math.max(0, x0), Math.min(vh, y1) - Math.max(0, y0)];
+    if (box[2] < 8 || box[3] < 8) return this.snapshot();
+    const probe = canvas(192, 192), pg = ctx2d(probe);
+    let best: HTMLCanvasElement | null = null, bestScore = -1, last = -1;
+    for (let n = 0; n < BURST; n++) {
+      if (n) await new Promise((r) => setTimeout(r, 70));
+      if (this.video.currentTime === last) continue;     // (the same frame again)
+      last = this.video.currentTime;
+      const c = canvas(vw, vh);
+      ctx2d(c).drawImage(this.video, 0, 0);
+      pg.drawImage(c, box[0], box[1], box[2], box[3], 0, 0, 192, 192);
+      const score = sharpness(pg.getImageData(0, 0, 192, 192).data, 192);
+      if (score > bestScore) { bestScore = score; best = c; }
+    }
+    if (!best) return this.snapshot();
+    const shot = best;
+    return new Promise((resolve, reject) => shot.toBlob((b) => (b ? resolve(b) : reject("failed")), "image/jpeg", 0.95));
+  }
+
+  /** What would make the photo better now (COACH), from her landmarks on this frame and the light measured on it. */
+  private coach(P: ReturnType<typeof toPoints>, w: number, h: number): Coach | null {
+    const d = (a: number, b: number) => Math.hypot(P[a][0] - P[b][0], P[a][1] - P[b][1]);
+    const faceW = d(234, 454) / Math.min(w, h);
+    if (faceW < COACH.far) return "far";
+    if (faceW > COACH.near) return "near";
+    const l = d(1, 234), r = d(1, 454);
+    if (Math.min(l, r) / Math.max(l, r, 1e-6) < COACH.turn) return "turn";
+    const roll = Math.abs((Math.atan2(P[263][1] - P[33][1], P[263][0] - P[33][0]) * 180) / Math.PI);
+    if (Math.min(roll, 180 - roll) > COACH.tilt) return "tilt";
+    const white = this.face?.sclera ? (this.face.sclera[0] + this.face.sclera[1] + this.face.sclera[2]) / 3 : null;
+    if (white != null && white < COACH.dark) return "dark";
+    const [a, b] = this.cheeks;
+    if (a > 0 && b > 0 && Math.max(a, b) / Math.min(a, b) > COACH.uneven) return "uneven";
+    return null;
+  }
+
+  /** Her two cheeks' mean brightness (linear) on this frame, for the coach. */
+  private measureCheeks(P: ReturnType<typeof toPoints>) {
+    const g = ctx2d(this.frame), r = Math.max(2, Math.round(eyeWidth(P) * 0.25));
+    this.cheeks = ([50, 280] as const).map((i) => {
+      const x = Math.round(P[i][0] - r / 2), y = Math.round(P[i][1] - r / 2);
+      if (x < 0 || y < 0 || x + r > this.frame.width || y + r > this.frame.height) return 0;
+      const px = g.getImageData(x, y, r, r).data;
+      let sum = 0;
+      for (let k = 0; k < px.length; k += 4) sum += ((0.2126 * px[k] + 0.7152 * px[k + 1] + 0.0722 * px[k + 2]) / 255) ** 2.2;
+      return sum / (px.length / 4);
+    }) as [number, number];
+  }
+
   private draw(landmarker: Awaited<ReturnType<typeof loadFaceModel>>) {
     const vw = this.video.videoWidth, vh = this.video.videoHeight;
     if (!vw || !vh || this.video.currentTime === this.last) return;
@@ -245,10 +318,15 @@ export class LiveMirror {
 
     const face = landmarker.detectForVideo(this.frame, performance.now()).faceLandmarks[0];
     this.stats.face = Boolean(face);
+    this.frameScale = scale;
     let shown = false;
-    if (!face) this.steady.reset();
+    const coachWas = this.stats.coach;
+    if (!face) { this.steady.reset(); this.lastPoints = null; this.stats.coach = null; }
     else {
       const raw = toPoints(face, w, h), points = this.steady.apply(raw, eyeWidth(raw), performance.now());
+      this.lastPoints = points;
+      if (this.count % MEASURE_EVERY === 0) this.measureCheeks(points);
+      this.stats.coach = this.coach(points, w, h);
       if (this.lit && this.stats.engine === "gpu") {
         if (!this.face || this.count % MEASURE_EVERY === 0) this.plainFace = measureFace(this.frame, points);
         this.relight(points);
@@ -261,6 +339,7 @@ export class LiveMirror {
       }
     }
     if (!shown) ctx2d(this.view).drawImage(this.frame, 0, 0);
+    if (this.stats.coach !== coachWas) this.onStats?.({ ...this.stats });
     this.pace(performance.now() - begun, sides);
 
     this.frames++;
@@ -321,8 +400,8 @@ export class LiveMirror {
     }
     const lip = this.lipstick ? lipChoice(files.lip, own ? own.ready.lip : this.lip, this.lipstick.swatch) : files.lip;
     const base = own ? own.ready.products : this.products;
-    // (a catalog look, with or without her picks: its calibrated strength and her brows, from her face as measured now;
-    // its recipe's finishes, highlight and liner colour come only with her picks: passes a camera frame can't afford)
+    // (a catalog look, with or without her picks: its recipe, its calibrated strength and her brows, from her face as
+    // measured now)
     const products = own ? (base && this.lipstick ? { ...base, white: mineLight(this.face, this.lipstick.swatch) } : undefined)
       : this.lipstick ? { ...base, white: productLight(this.face, this.lipstick.swatch), ...lookFinish(this.look, this.face, !this.lip) } : undefined;
     if (own && !products) return false;                      // (her own makeup is all products: never the lash template's look)
@@ -364,4 +443,16 @@ export class LiveMirror {
     addDelta(img, box.x, box.y, align, this.delta, this.level === "soft" ? 0.6 : 1);
     g.putImageData(img, box.x, box.y);
   }
+}
+
+/** How sharp a grey picture is (RGBA bytes, side x side): the variance of its Laplacian. */
+function sharpness(px: Uint8ClampedArray, side: number): number {
+  const g = new Float32Array(side * side);
+  for (let i = 0; i < g.length; i++) g[i] = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
+  let sum = 0, sum2 = 0, n = 0;
+  for (let y = 1; y < side - 1; y++) for (let x = 1; x < side - 1; x++) {
+    const i = y * side + x, l = g[i - 1] + g[i + 1] + g[i - side] + g[i + side] - 4 * g[i];
+    sum += l; sum2 += l * l; n++;
+  }
+  return sum2 / n - (sum / n) ** 2;
 }

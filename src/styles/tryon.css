@@ -29,13 +29,18 @@
     min-height:16rem;touch-action:pan-y;
   }
   .tryon__img {grid-area:1/1;width:100%;max-height:68vh;object-fit:contain;display:block;}
+  /* (the result's photo leaves room for the sheet under it on the first screen, and stays pinned at the top as she scrolls) */
+  .tryon__result .tryon__stage {position:sticky;top:max(.25rem, env(safe-area-inset-top, 0px));z-index:3;}
+  .tryon__result .tryon__img, .tryon__result .tryon__was {max-height:max(17rem, calc(100svh - 28rem));}
+  .tryon__result .tryon__stage--live {max-height:max(17rem, calc(100svh - 22rem));}
   .tryon__img--empty {aspect-ratio:4/5;}
   .tryon__img--after {pointer-events:none;}
+  .tryon__img--orig {pointer-events:none;}
   .tryon__was {grid-area:1/1;width:100%;max-height:68vh;object-fit:contain;display:block;pointer-events:none;}
   .tryon__stage--live {aspect-ratio:3/4;max-height:68vh;}
   .tryon__live {grid-area:1/1;width:100%;height:100%;object-fit:cover;display:block;transform:scaleX(-1);}
   .tryon__hint {
-    position:absolute;inset-inline:1rem;inset-block-end:1rem;padding:.4rem .8rem;border-radius:var(--radius-pill);text-align:center;
+    position:absolute;inset-inline:1rem;inset-block-end:1rem;display:flex;align-items:center;justify-content:center;gap:.35rem;padding:.4rem .8rem;border-radius:var(--radius-pill);text-align:center;
     background:rgb(20 12 16 / .55);color:#fff;font-size:.78rem;font-weight:650;pointer-events:none;
   }
   .tryon__divider {position:absolute;inset-block:0;width:2px;margin-inline-end:-1px;background:#fff;box-shadow:0 0 0 1px rgb(0 0 0 / .15);pointer-events:none;}
@@ -51,6 +56,12 @@
     background:rgb(20 12 16 / .55);color:#fff;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
   }
   .tryon__peek[aria-pressed="true"] {background:var(--color-gold);color:var(--color-on-gold);}
+  /* Her favourite: the look on screen kept in the rail's «علاقه‌مندی‌ها». */
+  .tryon__fav {
+    position:absolute;inset-inline-end:.7rem;inset-block-end:.7rem;display:grid;place-items:center;width:2.75rem;height:2.75rem;border-radius:50%;
+    background:rgb(20 12 16 / .55);color:#fff;
+  }
+  .tryon__fav[aria-pressed="true"] {color:#ff8fab;}
   .tryon__tag {
     position:absolute;inset-block-start:.7rem;padding:.15rem .6rem;border-radius:var(--radius-pill);background:rgb(20 12 16 / .55);
     color:#fff;font-size:.7rem;font-weight:700;pointer-events:none;
@@ -85,22 +96,36 @@
   }
   .tryon__row {display:flex;flex-wrap:wrap;gap:.5rem;}
   .tryon__row > * {flex:1 1 8rem;}
-  .tryon__levels {display:grid;grid-template-columns:auto repeat(3, minmax(0, 1fr)) auto;align-items:center;gap:.45rem;font-size:.8rem;color:var(--color-ink-2);}
-  .tryon__levels .tryon__tune-open {width:2.5rem;padding:0;}
-  .tryon__levels .tryon__tune-open[aria-expanded="true"] {background:var(--color-gold);color:var(--color-on-gold);}
+  .tryon__levels {display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));align-items:center;gap:.45rem;font-size:.8rem;color:var(--color-ink-2);}
   /* Each part of her face's intensity. */
   .tryon__zones {display:grid;gap:.35rem;padding:.6rem .8rem;border-radius:var(--radius-lg);background:var(--color-sunken);font-size:.78rem;color:var(--color-ink-2);}
-  .tryon__zone {display:grid;grid-template-columns:6.5rem minmax(0, 1fr) 2.6rem;align-items:center;gap:.6rem;min-height:2.5rem;}
-  .tryon__zone input {width:100%;accent-color:var(--color-gold);}
+  .tryon__zone {display:grid;grid-template-columns:6.5rem minmax(0, 1fr) 2.6rem;align-items:center;gap:.6rem;min-height:2.75rem;}
+  .tryon__zone input {width:100%;min-height:2.75rem;accent-color:var(--color-gold);}
   .tryon__zone output {font-variant-numeric:tabular-nums;color:var(--color-ink);font-weight:650;text-align:end;}
-  .tryon__zones .chip {justify-self:start;min-height:2.25rem;}
-  .tryon__levels .chip {justify-content:center;padding-inline:.5rem;min-height:2.5rem;}
+  .tryon__zones .chip {justify-self:start;}
+  .tryon__levels .chip {justify-content:center;padding-inline:.5rem;}
   .tryon__levels .chip:disabled {opacity:.55;}
   .tryon__clarity {display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem .6rem;font-size:.78rem;line-height:1.6;color:var(--color-ink-2);}
   .tryon__clarity-chips {display:flex;flex-wrap:wrap;gap:.4rem;margin-inline-start:auto;}
-  .tryon__clarity .chip {flex:none;gap:.3rem;min-height:2.5rem;padding-inline:.75rem;}
+  .tryon__clarity .chip {flex:none;gap:.3rem;padding-inline:.75rem;}
   .tryon__clarity .chip:disabled {opacity:.55;}
   .tryon__fine {font-size:.72rem;line-height:1.8;color:var(--color-ink-3);}
+
+  /* The result's bottom sheet: four tabs (looks, intensity, lipstick, photo), one panel, then her main actions. */
+  .tryon__sheet {display:grid;gap:.6rem;}
+  .tryon__tabs {display:grid;grid-template-columns:repeat(auto-fit, minmax(0, 1fr));gap:.2rem;padding:.2rem;border-radius:var(--radius-lg);background:var(--color-sunken);}
+  .tryon__tabs button {
+    display:flex;align-items:center;justify-content:center;gap:.3rem;min-height:2.75rem;border-radius:calc(var(--radius-lg) - .2rem);
+    font-size:.78rem;font-weight:650;color:var(--color-ink-2);white-space:nowrap;
+  }
+  .tryon__tabs button[aria-selected="true"] {background:var(--color-surface);color:var(--color-ink);box-shadow:var(--shadow-1, 0 1px 3px rgb(0 0 0 / .12));}
+  .tryon__panel {display:grid;gap:.6rem;min-height:9.5rem;align-content:start;}
+  .tryon__groups {display:flex;gap:.4rem;overflow-x:auto;padding:.1rem;scrollbar-width:none;overscroll-behavior-x:contain;}
+  .tryon__groups::-webkit-scrollbar {display:none;}
+  .tryon__groups .chip {gap:.3rem;padding-inline:.8rem;white-space:nowrap;}
+  .tryon__empty {padding:.8rem;border-radius:var(--radius-lg);background:var(--color-sunken);font-size:.78rem;line-height:1.8;color:var(--color-ink-2);text-align:center;}
+  .tryon__photo {display:grid;gap:.7rem;}
+  .tryon__main {position:sticky;bottom:max(.5rem, env(safe-area-inset-bottom, 0px));z-index:2;}
 
   /* Lipstick picker: shade swatches (scroll sideways) and finish chips. */
   .tryon__lips {display:grid;gap:.5rem;}
@@ -125,13 +150,13 @@
   }
   .tryon__swatch:disabled {opacity:.55;}
   .tryon__finishes {display:grid;grid-template-columns:repeat(5, minmax(0, 1fr));gap:.35rem;}
-  .tryon__finishes .chip {justify-content:center;padding-inline:.3rem;min-height:2.5rem;font-size:.74rem;}
+  .tryon__finishes .chip {justify-content:center;padding-inline:.3rem;min-width:0;font-size:.74rem;}
   .tryon__finishes .chip:disabled {opacity:.55;}
 
   /* Result / step-by-step switch. */
   .tryon__modes {display:grid;grid-template-columns:repeat(auto-fit, minmax(0, 1fr));gap:.25rem;padding:.25rem;border-radius:var(--radius-pill);background:var(--color-sunken);}
   .tryon__modes button {
-    display:flex;align-items:center;justify-content:center;gap:.3rem;min-height:2.5rem;border-radius:var(--radius-pill);padding-inline:.3rem;
+    display:flex;align-items:center;justify-content:center;gap:.3rem;min-height:2.75rem;border-radius:var(--radius-pill);padding-inline:.3rem;
     font-size:.78rem;font-weight:650;color:var(--color-ink-2);white-space:nowrap;
   }
   .tryon__modes button[aria-selected="true"] {background:var(--color-surface);color:var(--color-ink);box-shadow:var(--shadow-1, 0 1px 3px rgb(0 0 0 / .12));}
@@ -159,7 +184,7 @@
   .steps__rail::-webkit-scrollbar {display:none;}
   .steps__rail li {flex:none;}
   .steps__rail button {
-    display:flex;align-items:center;gap:.35rem;min-height:2.5rem;padding:.2rem .7rem .2rem .3rem;border-radius:var(--radius-pill);
+    display:flex;align-items:center;gap:.35rem;min-height:2.75rem;padding:.2rem .7rem .2rem .3rem;border-radius:var(--radius-pill);
     background:var(--color-sunken);font-size:.74rem;font-weight:600;color:var(--color-ink-2);white-space:nowrap;
   }
   .steps__dot {
@@ -189,13 +214,13 @@
   .steps__tip {display:flex;gap:.35rem;align-items:flex-start;font-size:.76rem;line-height:1.8;color:var(--color-ink-2);}
   .steps__tip svg {flex:none;margin-top:.3rem;color:var(--color-gold);}
   .steps__note {font-size:.72rem;line-height:1.8;color:var(--color-ink-3);}
-  .steps__replay {justify-self:start;display:flex;align-items:center;gap:.3rem;min-height:2.5rem;padding-inline:.2rem;font-size:.76rem;color:var(--color-ink-2);}
+  .steps__replay {justify-self:start;display:flex;align-items:center;gap:.3rem;min-height:2.75rem;padding-inline:.2rem;font-size:.76rem;color:var(--color-ink-2);}
   .steps__replay:disabled {opacity:.45;}
 
   /* Her own makeup's shade chips and amount slider. */
   .steps__chips {display:flex;gap:.35rem;overflow-x:auto;padding:.1rem .1rem .3rem;scrollbar-width:none;overscroll-behavior-x:contain;}
   .steps__chips::-webkit-scrollbar {display:none;}
-  .steps__chips .chip {flex:none;min-height:2.5rem;padding-inline:.75rem;font-size:.74rem;}
+  .steps__chips .chip {flex:none;min-height:2.75rem;padding-inline:.75rem;font-size:.74rem;}
   .steps__amount {display:grid;grid-template-columns:auto 1fr 3rem;align-items:center;gap:.6rem;font-size:.78rem;color:var(--color-ink-2);}
   .steps__amount input {width:100%;min-height:2.75rem;accent-color:var(--color-gold);}
   .steps__amount output {font-variant-numeric:tabular-nums;text-align:end;color:var(--color-ink);font-weight:650;}
@@ -203,15 +228,15 @@
   /* Her own outlines: a quiet row under the result, a note when the app isn't sure, and the editor. */
   .tryon__outline {display:flex;align-items:center;gap:.45rem;font-size:.78rem;color:var(--color-ink-2);}
   .tryon__outline > span {flex:1;min-width:0;line-height:1.6;}
-  .tryon__outline .chip {flex:none;gap:.3rem;min-height:2.5rem;padding-inline:.75rem;}
+  .tryon__outline .chip {flex:none;gap:.3rem;padding-inline:.75rem;}
   .tryon__doubt {
     display:flex;align-items:center;gap:.55rem;padding:.6rem .7rem;border-radius:var(--radius-lg);font-size:.78rem;line-height:1.7;
     background:var(--color-gold-soft);border:1px solid color-mix(in oklch, var(--color-gold) 45%, var(--color-line));color:var(--color-ink);
   }
   .tryon__doubt > svg {flex:none;color:var(--color-gold-ink, var(--color-ink));}
   .tryon__doubt > span {flex:1;min-width:0;}
-  .tryon__doubt .chip {flex:none;min-height:2.5rem;padding-inline:.85rem;font-weight:700;}
-  .tryon__doubt-close {flex:none;display:grid;place-items:center;width:2.25rem;height:2.25rem;margin-inline-end:-.3rem;border-radius:50%;color:var(--color-ink-2);}
+  .tryon__doubt .chip {flex:none;min-height:2.75rem;padding-inline:.85rem;font-weight:700;}
+  .tryon__doubt-close {flex:none;display:grid;place-items:center;width:2.75rem;height:2.75rem;margin-inline-end:-.5rem;border-radius:50%;color:var(--color-ink-2);}
 
   .contour {display:grid;gap:.7rem;}
   .contour__stage {
@@ -238,7 +263,7 @@
   .contour__tools button:disabled {opacity:.4;}
   .contour__parts {display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));gap:.25rem;padding:.25rem;border-radius:var(--radius-pill);background:var(--color-sunken);}
   .contour__parts button {
-    position:relative;display:flex;align-items:center;justify-content:center;min-height:2.5rem;border-radius:var(--radius-pill);
+    position:relative;display:flex;align-items:center;justify-content:center;min-height:2.75rem;border-radius:var(--radius-pill);
     font-size:.78rem;font-weight:650;color:var(--color-ink-2);white-space:nowrap;
   }
   .contour__parts button[aria-selected="true"] {background:var(--color-surface);color:var(--color-ink);box-shadow:var(--shadow-1, 0 1px 3px rgb(0 0 0 / .12));}
@@ -270,7 +295,7 @@
   .steps__rail button[data-done] .mine__dot {background:var(--swatch);box-shadow:inset 0 0 0 1.5px rgb(255 255 255 / .55);}
   .steps__rail button[aria-current="step"] .mine__dot {background:var(--swatch, var(--color-gold));}
   .mine__card header h3 {flex:1;}
-  .mine__remove {display:flex;align-items:center;gap:.25rem;min-height:2.5rem;padding-inline:.4rem;font-size:.74rem;font-weight:600;color:var(--color-ink-2);}
+  .mine__remove {display:flex;align-items:center;gap:.25rem;min-height:2.75rem;padding-inline:.4rem;font-size:.74rem;font-weight:600;color:var(--color-ink-2);}
   .mine__group {display:grid;gap:.15rem;}
   .mine__group > span {font-size:.74rem;font-weight:700;color:var(--color-ink-2);}
   .mine__group > span small {font-weight:500;color:var(--color-ink-3);margin-inline-start:.35rem;}
@@ -293,6 +318,7 @@
     position:absolute;inset-block-start:-.35rem;inset-inline-end:-.35rem;display:grid;place-items:center;width:2rem;height:2rem;border-radius:50%;
     background:var(--color-surface);color:var(--color-ink-2);box-shadow:var(--shadow-1, 0 1px 3px rgb(0 0 0 / .18));
   }
+  .mine__saved-drop::before {content:"";position:absolute;inset:-.375rem;}   /* (a 44 px touch target around the small button) */
   .mine__name {display:grid;gap:.6rem;}
   .mine__note {font-size:.76rem;color:var(--color-ink-2);}
   .mine__actions > :first-child {flex-basis:100%;}

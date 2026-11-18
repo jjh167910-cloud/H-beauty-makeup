@@ -146,6 +146,41 @@ const BALL_SCALE = [0.95, 0.8], BALL_SOFT = 0.015, FEATHER = 0.35, LIP_VOLUME = 
 const CATALOG_BLUR = 0.68, LENS_OWN = 0.5, LENS_MIN = 0.3;
 /** The eye detail darkens her photo at most to this share of its light (the 0.15 of apply_eyes in teacher.py). */
 const EYE_FLOOR = 0.15;
+/**
+ * Her camera's white (shoulder() in teacher.py): where the makeup brightens a channel past SHOULDER[0] (linear) it rolls
+ * off towards SHOULDER[1] instead of clipping, the other channels with it in proportion (her skin's hue kept: per channel
+ * a lit highlight turned greyish), never below her own pixel there. A highlighter or blush on a lit cheek,
+ * a bright lid, a gloss kept their texture instead of a flat patch at 255 (every look clipped somewhere on the test faces).
+ */
+const SHOULDER = [0.8, 0.995];
+/**
+ * A look's lightening stays off her lashes and brow hairs (hair_light() in teacher.py): where she is HAIR_LIGHT[0..1]
+ * darker than right around her (fine scale), up to HAIR_LIGHT[2] of it is left off. A pale lid shade goes on her skin
+ * under them; it no longer turned a deep lash line's lashes into pale specks.
+ */
+const HAIR_LIGHT = [0.15, 0.45, 0.9];
+/** ...and off her upper lash line (the liner band, zoneB.g), and so does its eyeshadow's finish (a shimmer's mica on her
+ * own lashes between the look's lashes read as pale specks along a deep lash line). */
+const LASH_BAND_LIGHT = 1.0;
+/** A look's own eyeshadow finish: how lit her lid's form may read for its gleam (OWN_GLEAM in products.py). */
+const OWN_GLEAM = 1.25;
+/** An eyeshadow over a look stays off her lash line itself: where she, softened a little, is this much of her broad light
+ * or less (SHADOW_LASH in products.py), fading in by the second. */
+const SHADOW_LASH = [0.45, 0.8];
+/**
+ * A look's layer darkens a colour channel at most towards LAYER_FLOOR of her own (layer_floor() in teacher.py), softly: a
+ * pigment still reflects a few percent of the light, so a saturated blue lid keeps a little red in it instead of a channel
+ * at 0 (and its shading with it).
+ */
+const LAYER_FLOOR = 0.04;
+/** shoulder(): her camera's white (SHOULDER), in the foundation and main passes; never below her own pixel (own). */
+const SHOULDER_GLSL = `vec3 shoulder(vec3 c, vec3 own) {
+  float m = max(c.r, max(c.g, c.b));
+  if (m <= ${SHOULDER[0]}) return c;
+  // (its brightest channel rolls off and the others with it in proportion: her skin's hue kept, not greyed)
+  float s = ${SHOULDER[0]} + ${(SHOULDER[1] - SHOULDER[0]).toFixed(3)} * (1.0 - exp(-(m - ${SHOULDER[0]}) / ${(SHOULDER[1] - SHOULDER[0]).toFixed(3)}));
+  return max(c * (s / m), min(c, own));
+}`;
 /** The lens (Gaussian sigma, px) the look still needs on a photo of blur `blur` whose eye width is `ew` (lens_sigma in teacher.py). */
 export function lensSigma(blur: number, ew: number, canonEw?: number): number {
   const own = Math.max(LENS_OWN, canonEw ? (CATALOG_BLUR * ew) / canonEw : 0.75);
@@ -1195,6 +1230,7 @@ precision highp float; in vec2 v; uniform sampler2D uSrc, uR, uN, uC, uL, uVis, 
 uniform vec3 uVisBox; uniform vec2 uSize; uniform vec4 uWork; uniform float uK, uSkinY; uniform vec3 uFTint; uniform float uFFinish;
 uniform vec4 uNeck; uniform vec2 uNeckW; out vec4 o;
 float luma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
+${SHOULDER_GLSL}
 void main() {
   vec3 src = texture(uSrc, v).rgb;
   vec2 px = v * uSize;
@@ -1231,7 +1267,7 @@ void main() {
       * (1.0 - smoothstep(0.9, 1.1, side));
     lu *= 1.0 + (uFTint - 1.0) * wn;
   }
-  o = vec4(pow(clamp(lu, 0.0, 1.0), vec3(1.0 / 2.2)), 1.0);
+  o = vec4(pow(clamp(shoulder(lu, pow(src, vec3(2.2))), 0.0, 1.0), vec3(1.0 / 2.2)), 1.0);   // (her camera's white)
 }`;
 
 // Bare-face coordinates (pixels, per mesh vertex) as two 16-bit numbers, for the glitter grains.
@@ -1610,7 +1646,9 @@ vec3 pigments(vec3 base, vec3 lu, float cov[6]) {
         res += add;
       }
       else {
-        float q = pow(clamp(form / max(broad, 1e-4), 0.3, 2.0), FCONTRAST[fin]);
+        // (a look's own eyeshadow finish: its gleam follows her lid's form, at most OWN_GLEAM: within a dense lash line the
+        // skin between her lashes is lit next to them, and a metal's contrast on it read as pale specks)
+        float q = pow(clamp(form / max(broad, 1e-4), 0.3, uPigOwn[i] == 1 ? ${OWN_GLEAM.toFixed(2)} : 2.0), FCONTRAST[fin]);
         vec3 refl = tint * (${REFLECT_BASE} * L * q + L * shine);
         if (uMine == 1) {      // (her lit lid: a metal's gleam, not a glare of flat colour; its light a little paler than its body)
           q = min(q, 1.25);
@@ -1654,6 +1692,7 @@ vec3 lightHere(vec3 lu) {
 }
 // Her own makeup's coverage builds up softly where she rubs again and again (1 stays 1): a veil that deepens, never a stamp.
 float sat(float x) { return (1.0 - exp(-1.5 * x)) / ${(1 - Math.exp(-1.5)).toFixed(6)}; }
+${SHOULDER_GLSL}
 // Her eyeshadow's placement (her own makeup) as her tool lays it: as it is (finger), packed on (flat brush: denser,
 // with a crisper edge) or blended out (fluffy brush: softened over 0.06 eye widths); uMineK.y picks.
 float mineShadow() {
@@ -1714,6 +1753,19 @@ void main() {
     float t = smoothstep(0.1, 0.25, max(abs(lr.r), max(abs(lr.g), abs(lr.b))));
     lr *= edge + (1.0 - edge) * t;
   }
+  // her lashes and brow hairs, and her upper lash line: the look's lightening and its eyeshadow's finish stay off them
+  // (HAIR_LIGHT, LASH_BAND_LIGHT; hair_keep in teacher.py)
+  float hairK, lineK;
+  {
+    vec4 G0 = texture(uGrey, v);
+    float dark = clamp(-(dot(src, vec3(0.299, 0.587, 0.114)) - G0.x) / max(G0.y, 20.0 / 255.0), 0.0, 1.0);
+    hairK = (1.0 - ${HAIR_LIGHT[2]} * smoothstep(${HAIR_LIGHT[0]}, ${HAIR_LIGHT[1]}, dark)) * (1.0 - ${LASH_BAND_LIGHT.toFixed(2)} * clamp(ZB.g, 0.0, 1.0));
+    // (an eyeshadow, its mica, stays off her lash line itself: where she is darker, a little softened, than her broad light)
+    vec4 Bd = texture(uShadeB, v);
+    float fB = max(0.0, 0.5 - Bd.y), broadY = (Bd.x + luma(lu) * fB) / (Bd.y + fB);
+    lineK = smoothstep(${SHADOW_LASH[0]}, ${SHADOW_LASH[1]}, pow(G0.y, 2.2) / max(broadY, 1e-4));
+  }
+  lr = min(lr, vec3(0.0)) + max(lr, vec3(0.0)) * hairK;
   if (uSkinY > 0.0) {             // concealer under her eyes (conceal_gain in teacher.py)
     vec2 ax = uConAx.xy, dn = vec2(-ax.y, ax.x);
     float zone = 0.0;
@@ -1759,7 +1811,9 @@ void main() {
     float lighter = step(0.0, ly);
     lrs = ly * mix(RL, 1.0 + (RL - 1.0) * ${LIGHTEN_GAIN}, lighter) + (lr - ly) * mix(RL, 1.0 + (RL - 1.0) * ${CHROMA_GAIN}, lighter);
   } else lrs = lr * RL;
-  vec3 base = lu * exp(lrs * (1.0 - M.r) * (1.0 - M.g) * uK.x);
+  vec3 lex = lrs * (1.0 - M.r) * (1.0 - M.g) * uK.x;
+  lex = mix(lex, ${(-Math.log(LAYER_FLOOR)).toFixed(4)} * (exp(lex / ${(-Math.log(LAYER_FLOOR)).toFixed(4)}) - 1.0), step(lex, vec3(0.0)));   // (LAYER_FLOOR)
+  vec3 base = lu * exp(lex);
   float pigX = 0.0;
   for (int k = 0; k < 6; k++) pigX += uPigX[k];
   if (uZonesOn == 1 && pigX > 0.0) {
@@ -1780,7 +1834,7 @@ void main() {
       cov = float[6](c * lid, sat(max(ZA.g, 0.0)) * rv(6, sw) * keep, sat(max(ZA.b, 0.0)) * rv(7, sw) * keep,
         sat(max(ZA.a, 0.0)) * rv(8, sw) * keep, two * sat(uMineK.z * sh) * k3 * (1.0 - 0.85 * smoothstep(0.3, 0.9, C.g)), light * k3);
     } else {
-      cov = float[6](texture(uCov, v).r * rv(3, sw) * uK.x, ZA.g * rv(6, sw) * uK.x, ZB.b * rv(7, sw) * uK.x, ZA.a * rv(8, sw) * uK.x, 0.0, 0.0);
+      cov = float[6](texture(uCov, v).r * rv(3, sw) * uK.x * hairK * lineK, ZA.g * rv(6, sw) * uK.x, ZB.b * rv(7, sw) * uK.x, ZA.a * rv(8, sw) * uK.x, 0.0, 0.0);
     }
     vec3 pre = base;
     base = pigments(base, lu, cov);
@@ -1857,7 +1911,7 @@ void main() {
   vec3 c = mix(base, cover, clamp(a * uK.y, 0.0, 0.97) * f * RLips);
   if (uFinish == 1) c = mix(c, cover * 0.62, 4.0 * f * (1.0 - f) * f * 0.45 * min(uK.y, 1.0) * RLips);
   if (uLensK.x > 0.0) c = lenses(c, src, M.r, rv(10, sw));
-  vec3 res = pow(clamp(c, 0.0, 1.0), vec3(1.0 / 2.2));
+  vec3 res = pow(clamp(shoulder(c, pow(src, vec3(2.2))), 0.0, 1.0), vec3(1.0 / 2.2));
   vec4 R = texture(uGrey, v);
   float g = dot(src, vec3(0.299, 0.587, 0.114));
   float own = min(0.0, g - R.x) / max(R.y, 20.0 / 255.0);

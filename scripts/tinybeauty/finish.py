@@ -146,9 +146,9 @@ def paint_finished(look, face, p, level='natural'):
     s = A.sum(-1) + B[..., 0]; sc = np.where(s > 1, 1 / np.maximum(s, 1e-6), 1.0)
     RL = np.maximum(0, 1 - s * sc) * g('base') + sc * (A[..., 0] * g('conceal') + B[..., 0] * g('shadow') + A[..., 1] * g('contour')
                                                          + A[..., 2] * g('blush') + A[..., 3] * g('glow'))
-    base = lu * np.exp(strengthen(w * (keep * k_layer)[..., None], RL))
+    base = lu * np.exp(T.layer_floor(strengthen(T.hair_light(w, face, p, B[..., 1]) * (keep * k_layer)[..., None], RL)))
     base = brows(base, ul, face, p, look, brow, k_layer * T.ball_keep((H, W), p, lens))
-    out = T.srgb(T.apply_lips(base, ul, p, look, k_lip * g('lips'), None))
+    out = T.srgb(T.shoulder(T.apply_lips(base, ul, p, look, k_lip * g('lips'), None), ul))
     RD = B[..., 1] * g('liner') + (1 - B[..., 1]) * g('lashes')
     return T.apply_eyes(out, face, p, look, strength=k_eye * RD)
 

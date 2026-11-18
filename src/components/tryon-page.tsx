@@ -1,6 +1,7 @@
 /**
  * This site (H-beauty-makeup): the salon's makeup try-on. Her photo or the live mirror, every look on the rail,
- * «میکاپ من» (her own makeup), all on her phone; «رزرو» gives the look or her recipe as text for the salon.
+ * «میکاپ من» (her own makeup), all on her phone; «رزرو» gives the look (its intensity and lipstick) or her recipe as text
+ * for the salon: sent through the phone's share sheet to the chat she picks, or copied. Her photo is never part of it.
  * `?look=<id>` opens it on that look (ids in src/data/makeup-styles.ts); otherwise on Hollywood glam.
  */
 import { Suspense, lazy, useEffect, useState } from "react";
@@ -32,15 +33,22 @@ export function TryOnPage() {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [copied, setCopied] = useState(false);
 
-  /** «رزرو»: the look (or her own makeup's recipe) as text for the salon; her photo is never part of it. */
-  function onBook(id: string, mine?: { name: string; recipe: MyMakeup }) {
+  /** «رزرو»: the look (with how she set it: `details`) or her own makeup's recipe as text for the salon; never her photo. */
+  function onBook(id: string, mine?: { name: string; recipe: MyMakeup }, details: string[] = []) {
     setCopied(false);
     setBooking(mine ? { title: mine.name === "میکاپ من" ? "میکاپ من" : `میکاپ من: ${mine.name}`, lines: recipeLines(mine.recipe) }
-      : { title: `سبک: ${styleById.get(id)?.title ?? id}`, lines: [] });
+      : { title: `سبک: ${styleById.get(id)?.title ?? id}`, lines: details });
+  }
+  const bookingText = (b: Booking) => ["درخواست نوبت میکاپ · حنانه بیوتی", b.title, ...b.lines].join("\n");
+  /** The phone's share sheet: she picks the salon's chat (nothing is sent by the app itself). */
+  const canSend = typeof navigator.share === "function";
+  async function send() {
+    if (!booking) return;
+    try { await navigator.share({ text: bookingText(booking) }); } catch { /* (she closed the sheet) */ }
   }
   async function copy() {
     if (!booking) return;
-    try { await navigator.clipboard.writeText([booking.title, ...booking.lines].join("\n")); setCopied(true); } catch { setCopied(false); }
+    try { await navigator.clipboard.writeText(bookingText(booking)); setCopied(true); } catch { setCopied(false); }
   }
 
   return (
@@ -59,8 +67,10 @@ export function TryOnPage() {
             <h2>درخواست رزرو</h2>
             <strong>{booking.title}</strong>
             {booking.lines.length ? <ul>{booking.lines.map((line) => <li key={line}>{line}</li>)}</ul> : null}
-            <small>این متن را کپی کنید و هنگام گرفتن نوبت برای سالن بفرستید؛ عکس شما همراهش نیست.</small>
+            <small>{canSend ? "این متن را برای سالن بفرستید (در پیام‌رسانی که با سالن در ارتباطید) یا کپی کنید؛ عکس شما همراهش نیست؛ اگر خواستید خودتان پیوست کنید."
+              : "این متن را کپی کنید و هنگام گرفتن نوبت برای سالن بفرستید؛ عکس شما همراهش نیست."}</small>
             <div className="tp__actions">
+              {canSend ? <Button variant="secondary" icon="share" onClick={() => void send()}>ارسال برای سالن</Button> : null}
               <Button variant="secondary" icon="copy" onClick={copy}>{copied ? "کپی شد" : "کپی متن"}</Button>
               <Button variant="gold" onClick={() => setBooking(null)}>بستن</Button>
             </div>

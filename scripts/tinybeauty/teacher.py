@@ -44,6 +44,20 @@ BROW_LOW_L = [276, 283, 282, 295, 285]
 
 lin = lambda u8: (u8.astype(np.float32) / 255) ** 2.2
 srgb = lambda f: (np.clip(f, 0, 1) ** (1 / 2.2) * 255 + 0.5).astype(np.uint8)
+
+# Her camera's white: where the makeup brightens a channel past SHOULDER[0] (linear) it rolls off towards SHOULDER[1]
+# instead of clipping (a highlighter or blush on a lit cheek, a bright lid kept its texture, not a flat patch of 255),
+# never below her own pixel there.
+SHOULDER = (0.8, 0.995)
+
+def shoulder(c, own):
+    """The makeup's result (linear) through a soft shoulder on its brightest channel, the others with it in proportion
+    (her skin's hue kept); where it brightened her pixel, never below it. As makeup-gl.ts."""
+    k, top = SHOULDER
+    m = c.max(-1, keepdims=True)
+    s = k + (top - k) * (1 - np.exp(-np.maximum(m - k, 0) / (top - k)))
+    rolled = np.maximum(c * (s / np.maximum(m, 1e-6)), np.minimum(c, own))
+    return np.where(m > k, rolled, c).astype(np.float32)
 rgb = lambda path: cv2.cvtColor(cv2.imread(str(path)), cv2.COLOR_BGR2RGB)
 
 
@@ -170,6 +184,36 @@ def ball_keep(shape, p, lens=0.0):
     the lids."""
     ew = eye_width(np.asarray(p)[:, :2])
     return 1 - cv2.GaussianBlur(poly_mask(shape, np.asarray(p)[:, :2], [EYE_R, EYE_L], scale=BALL_SCALE), (0, 0), float(np.hypot(max(1.5, ew * BALL_SOFT), lens)))
+
+HAIR_LIGHT = (0.15, 0.45, 0.9)   # a look's lightening stays off her lashes and brow hairs: where she is this much darker
+                                 # than right around her (her darkness, fine scale), up to this share of it is left off
+
+LAYER_FLOOR = 0.04   # a look's layer darkens a channel at most towards this share of her own, softly (a pigment still
+                     # reflects a few percent of the light: a saturated blue lid keeps a little red, not a channel at 0)
+
+def layer_floor(e):
+    """The layer's log change `e` with its darkening rolled off towards log(LAYER_FLOOR). As makeup-gl.ts."""
+    L = -np.log(LAYER_FLOOR)
+    return np.where(e < 0, L * (np.exp(np.minimum(e, 0) / L) - 1), e).astype(np.float32)
+
+LASH_BAND_LIGHT = 1.0    # ...and off her upper lash line (the liner band): a lid shade isn't pressed into the lash roots
+
+def hair_keep(face, p, band=None):
+    """1 where a look may lighten her or lay its eyeshadow's finish; less on her lashes and brow hairs (much darker than
+    her skin right around them) and, with `band` (the liner band), on her upper lash line. As makeup-gl.ts (hairK)."""
+    ew = eye_width(np.asarray(p)[:, :2])
+    g = (face.astype(np.float32) @ np.array([0.299, 0.587, 0.114], np.float32)) / 255
+    m1 = cv2.GaussianBlur(g, (0, 0), max(0.8, ew * 0.028)); m2 = cv2.GaussianBlur(g, (0, 0), max(1.2, ew * 0.042))
+    dark = np.clip(-(g - m1) / np.maximum(m2, 20 / 255), 0, 1)
+    t = np.clip((dark - HAIR_LIGHT[0]) / (HAIR_LIGHT[1] - HAIR_LIGHT[0]), 0, 1)
+    k = 1 - HAIR_LIGHT[2] * t * t * (3 - 2 * t)
+    if band is not None: k = k * (1 - LASH_BAND_LIGHT * np.clip(band, 0, 1))
+    return k.astype(np.float32)
+
+def hair_light(w, face, p, band=None):
+    """The look's layer `w` (log) with its lightening kept off her lashes and brow hairs (hair_keep): a pale lid shade goes
+    on her skin under them, it doesn't turn them grey. Its darkening stays."""
+    return (np.minimum(w, 0) + np.maximum(w, 0) * hair_keep(face, p, band)[..., None]).astype(np.float32)
 
 @lru_cache(None)
 def feather_weights():
@@ -724,8 +768,8 @@ def apply_layer(user, pu, lr, pl, strength=1.0, edge=None, vis=None, seg=None, t
     w = skin_fade(extend_layer(w, feather_map(pu, (H, W)) * cover, pu, (H, W)), edge)
     R = regions((H, W), pu[:, :2])
     keep = ball_keep((H, W), pu) * (1 - cv2.GaussianBlur(R['mouth'], (0, 0), 1.5))
-    w *= keep[..., None] * strength
-    return srgb(ul * np.exp(w))
+    w = hair_light(w, user, pu) * (keep[..., None] * strength)
+    return srgb(shoulder(ul * np.exp(layer_floor(w)), lin(user)))
 
 
 # --------------------------------------------------------------- eye detail
@@ -1303,7 +1347,7 @@ def paint(look, face, p, level='natural', shade=None, finish=None, edge=None, vi
     k_layer, k_lip, k_eye = LEVELS[level]
     base = lin(apply_layer(face, p, *make_layer(look), strength=k_layer, edge=edge, vis=vis, seg=seg, tint=look_tint(look)))
     L = lip_choice(look, shade, finish) if (shade or finish) else None
-    return apply_eyes(srgb(apply_lips(base, lin(face), p, look, k_lip, L)), face, p, look, strength=k_eye)
+    return apply_eyes(srgb(shoulder(apply_lips(base, lin(face), p, look, k_lip, L), lin(face))), face, p, look, strength=k_eye)
 
 def catalog_looks():
     return sorted(f.stem for f in LOOKS.glob('*.webp'))

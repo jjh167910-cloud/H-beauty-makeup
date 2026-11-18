@@ -25,6 +25,12 @@ async function openTryOn(page: Page, title: string, megabytes = "۱۴") {
   await expect(page.getByRole("button", { name: "انتخاب از گالری" })).toBeVisible();
 }
 
+/** The result screen's bottom sheet: open one of its tabs (سبک‌ها, شدت, رژ لب, عکس). */
+async function sheet(page: Page, name: string) {
+  await page.getByRole("tab", { name, exact: true }).click();
+  await expect(page.getByRole("tab", { name, exact: true })).toHaveAttribute("aria-selected", "true");
+}
+
 test("try-on downloads the AI once and paints the look on the customer's photo on the device", async ({ page }) => {
   test.setTimeout(300_000);
   const external: string[] = [];
@@ -45,6 +51,7 @@ test("try-on downloads the AI once and paints the look on the customer's photo o
   await expect(page.locator(".tryon__img--after")).toBeVisible({ timeout: 240_000 });
   await expect(page.locator(".tryon__stage")).toHaveAttribute("data-engine", "gpu");
   await expect(page.getByRole("slider", { name: "مقایسه قبل و بعد" })).toBeAttached();
+  await sheet(page, "شدت");
   const levels = page.getByRole("group", { name: "شدت میکاپ" });
   await expect(levels.getByRole("button", { name: "طبیعی" })).toHaveAttribute("aria-pressed", "true");
 
@@ -100,7 +107,7 @@ test("the try-on screen shows her own face in each look, the photo before while 
 
   // Each part's intensity: lips off leaves her own lips (less of her face changed); back to the look as it was.
   const natural = await changedShare(page);
-  await page.getByRole("button", { name: "تنظیم هر بخش صورت" }).click();
+  await sheet(page, "شدت");
   const zones = page.getByRole("group", { name: "شدت هر بخش صورت" });
   await zones.getByRole("slider", { name: "لب" }).focus();
   await page.keyboard.press("Home");
@@ -165,6 +172,7 @@ test("a soft photo is sharpened on the device before the makeup, and that can be
   expect(sharp.width).toBeGreaterThan(360);
   expect((await changedShare(page)).changed).toBeGreaterThan(0.002);
 
+  await sheet(page, "عکس");
   const clarity = page.getByRole("group", { name: "کیفیت عکس" }).getByRole("button", { name: "وضوح بیشتر" });
   await expect(clarity).toHaveAttribute("aria-pressed", "true");
   await clarity.click();
@@ -191,6 +199,8 @@ test("a phone too slow to sharpen in time paints the photo as it is", async ({ p
   await page.locator(".tryon input[type=file]:not([capture])").setInputFiles({ name: "soft.jpg", mimeType: "image/jpeg", buffer: Buffer.from(soft, "base64") });
   await expect(page.locator(".tryon__img--after")).toBeVisible({ timeout: 240_000 });
   await expect(page.locator(".tryon__stage")).not.toHaveAttribute("data-sharp");
+  await sheet(page, "عکس");
+  await expect(page.getByRole("group", { name: "کیفیت عکس" })).toBeVisible();
   await expect(page.getByRole("button", { name: "وضوح بیشتر" })).toHaveCount(0);
   expect((await changedShare(page)).changed).toBeGreaterThan(0.002);
 });
@@ -258,6 +268,32 @@ test("studio light: her photo lit like a studio portrait, her skin's brightness,
   await expect(stage).toHaveAttribute("data-studio", "");
   expect((await changedShare(page)).outside).toBeLessThan(0.002);               // (the makeup alone differs between before and after)
   const lit = await page.locator(".tryon__img--after").getAttribute("src");
+  // (the slider's before is in studio light too, and says so; held, the eye shows her photo as she took it)
+  await expect(page.locator(".tryon__tag--before")).toHaveText("قبل · نور استودیو");
+  const peek = page.getByRole("button", { name: "نگه دارید: عکس بدون میکاپ" });
+  const pb = (await peek.boundingBox())!;
+  await page.mouse.move(pb.x + pb.width / 2, pb.y + pb.height / 2);
+  await page.mouse.down();
+  await expect(page.locator(".tryon__img--orig")).toBeVisible();
+  await expect(page.locator(".tryon__tag--before")).toHaveText("عکس اصلی شما");
+  const shown = await page.evaluate(async () => {
+    const pixels = async (img: HTMLImageElement) => {
+      await img.decode();
+      const c = document.createElement("canvas"); c.width = img.naturalWidth; c.height = img.naturalHeight;
+      const g = c.getContext("2d")!; g.drawImage(img, 0, 0); return g.getImageData(0, 0, c.width, c.height).data;
+    };
+    const orig = await pixels(document.querySelector<HTMLImageElement>(".tryon__img--orig")!);
+    const before = await pixels(document.querySelector<HTMLImageElement>(".tryon__img:not(.tryon__img--after):not(.tryon__img--orig)")!);
+    const own = new Image(); own.src = "/makeup/looks/no-makeup.webp"; const mine = await pixels(own);
+    let toOwn = 0, toLit = 0;
+    for (let i = 0; i < orig.length; i += 4) for (let c = 0; c < 3; c++) { toOwn += Math.abs(orig[i + c] - mine[i + c]); toLit += Math.abs(orig[i + c] - before[i + c]); }
+    return { toOwn: toOwn / (orig.length * 0.75), toLit: toLit / (orig.length * 0.75) };
+  });
+  expect(shown.toOwn).toBeLessThan(2.5);                                         // her photo as she gave it
+  expect(shown.toLit).toBeGreaterThan(shown.toOwn + 1);                          // not the studio-lit one
+  await page.mouse.up();
+  await expect(page.locator(".tryon__img--orig")).toHaveCount(0);
+  await sheet(page, "عکس");
   const chip = page.getByRole("group", { name: "کیفیت عکس" }).getByRole("button", { name: "نور و پوست استودیویی" });
   await expect(chip).toHaveAttribute("aria-pressed", "true");
   await chip.click();
@@ -398,6 +434,7 @@ test("HD face: a soft face is redrawn in HD on the phone, her face's shape and c
   await expect(page.locator(".tryon__img--after")).toBeVisible({ timeout: 900_000 });
   expect(Number(await stage.getAttribute("data-hd-ms"))).toBeGreaterThan(0);
   await expect(stage).toHaveAttribute("data-sharp", "");
+  await sheet(page, "عکس");
   await expect(page.getByText("چهره شما روی گوشی HD شد")).toBeVisible();
   const chip = page.getByRole("group", { name: "کیفیت عکس" }).getByRole("button", { name: "وضوح بیشتر" });
   await chip.click();
@@ -413,6 +450,7 @@ test("her own lipstick: any shade and finish on top of a look, and back to the l
   await expect(after).toBeVisible({ timeout: 240_000 });
   const own = await after.getAttribute("src");
   const lookLips = await lipStats(page);
+  await sheet(page, "رژ لب");
   const shades = page.getByRole("group", { name: "رنگ رژ لب" });
   await expect(shades.getByRole("button", { name: "همین سبک" })).toHaveAttribute("aria-pressed", "true");
 
@@ -512,13 +550,16 @@ test("live mirror paints the look on the camera picture and a capture becomes a 
   // Switching looks and intensity keeps the camera running.
   await page.getByRole("button", { name: /غروب/ }).first().click();
   await expect(page.getByText("زنده · غروب")).toBeVisible();
+  await sheet(page, "شدت");
   await page.getByRole("group", { name: "شدت میکاپ" }).getByRole("button", { name: "پررنگ" }).click();
   await expect(page.getByRole("button", { name: "پررنگ" })).toHaveAttribute("aria-pressed", "true");
+  await sheet(page, "رژ لب");
   const red = page.getByRole("group", { name: "رنگ رژ لب" }).getByRole("button", { name: "قرمز کلاسیک" });
   await red.click();
   await expect(red).toHaveAttribute("aria-pressed", "true");
   await expect.poll(() => liveLipRedness(page), { timeout: 30_000 }).toBeGreaterThan(20);
   // Studio light is on in the mirror too, and can be switched off and on with the camera running.
+  await sheet(page, "عکس");
   const light = page.getByRole("group", { name: "کیفیت عکس" }).getByRole("button", { name: "نور و پوست استودیویی" });
   await expect(light).toHaveAttribute("aria-pressed", "true");
   await light.click();
@@ -946,6 +987,97 @@ test("on a soft photo the makeup is as soft as the photo: painting it equals the
 });
 
 /**
+ * Her camera's white and black: the makeup never pushes a colour channel of her photo to the end of its range where it
+ * wasn't (a highlighter or blush on a brightly lit cheek, a bold blue lid, a dewy finish clipped to flat patches at 255; a
+ * saturated lid lost its red to 0): it rolls off towards them, her skin's texture kept (SHOULDER, LAYER_FLOOR).
+ */
+test("the makeup never clips a colour channel of her photo: a lit cheek's highlighter, a bold blue lid, deep skin", async ({ page }) => {
+  test.setTimeout(600_000);
+  await openTryOn(page, "گلم هالیوودی");
+  const r = await page.evaluate(async (faces) => {
+    const m = await import("/src/lib/tryon.ts");
+    const out: Record<string, { hi: number; lo: number; changed: number }> = {};
+    for (const url of faces) {
+      const shot = (await m.preparePhoto(await (await fetch(url)).blob())).plain;
+      const W = shot.photo.width, H = shot.photo.height;
+      const before = m.ctx2d(shot.photo).getImageData(0, 0, W, H).data;
+      for (const look of ["sunset", "clean-girl", "electric-blue", "hollywood"]) {
+        const c = m.canvas(W, H);
+        m.ctx2d(c).drawImage(await m.paintGpu(shot.photo, shot.points, look, "bold", shot.face), 0, 0);
+        const after = m.ctx2d(c).getImageData(0, 0, W, H).data;
+        let hi = 0, lo = 0, changed = 0;
+        for (let i = 0; i < after.length; i += 4) {
+          let d = 0, h = false, l = false;
+          for (let ch = 0; ch < 3; ch++) {
+            d = Math.max(d, Math.abs(after[i + ch] - before[i + ch]));
+            if (after[i + ch] === 255 && before[i + ch] < 245) h = true;
+            if (after[i + ch] === 0 && before[i + ch] > 10) l = true;
+          }
+          if (d > 6) { changed++; if (h) hi++; if (l) lo++; }
+        }
+        out[`${url.split("/").pop()} ${look}`] = { hi, lo, changed };
+      }
+    }
+    return out;
+  }, [FIXTURE("lit-cheek.jpg"), FIXTURE("deep-skin.jpg")]);
+  for (const [key, { hi, lo, changed }] of Object.entries(r)) {
+    expect(changed, key).toBeGreaterThan(1000);           // (the look is on her face)
+    expect(hi, key).toBe(0);
+    expect(lo, key).toBe(0);
+  }
+});
+
+/**
+ * The result screen on a phone (390 x 844): her photo pinned at the top, the bottom sheet's tabs, the look rail with its
+ * groups and her main actions all on the first screen; every control at least 44 px; a favourite look kept in its group;
+ * the booking says how she set the look.
+ */
+test("the result screen on a phone: photo, looks and actions on one screen, 44 px controls, groups, favourites, and a booking with her settings", async ({ page }) => {
+  test.setTimeout(300_000);
+  await openTryOn(page, "گلم هالیوودی");
+  await page.locator(".tryon input[type=file]:not([capture])").setInputFiles(CUSTOMER);
+  await expect(page.locator(".tryon__img--after")).toBeVisible({ timeout: 240_000 });
+  const rail = page.getByRole("group", { name: "امتحان سبک‌های دیگر" });
+  for (const part of [page.locator(".tryon__stage"), page.getByRole("tablist", { name: "تنظیمات میکاپ" }), rail,
+    page.getByRole("button", { name: "رزرو همین میکاپ" })]) {
+    const box = (await part.boundingBox())!;
+    expect(box.y + box.height).toBeLessThanOrEqual(844);            // on the first screen, without scrolling
+  }
+  // every control on screen is at least 44 px (WCAG's target size), in each tab
+  for (const tab of ["سبک‌ها", "شدت", "رژ لب", "عکس"]) {
+    await sheet(page, tab);
+    const small = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>("button, [role=tab], input:not([type=file]):not(.tryon__slider)")]
+      .filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && (r.width < 43.5 || r.height < 43.5); })
+      .map((e) => e.getAttribute("aria-label") ?? e.textContent));
+    expect(small, tab).toEqual([]);
+  }
+  // groups: only that group's looks; a favourite: kept in «علاقه‌مندی‌ها», on this phone
+  await sheet(page, "سبک‌ها");
+  const groups = page.getByRole("group", { name: "دسته‌ی سبک‌ها" });
+  await groups.getByRole("button", { name: "رنگی" }).click();
+  await expect(rail.getByRole("button")).toHaveCount(6);
+  await expect(rail.getByRole("button", { name: "آبی ادیتوریال" })).toBeVisible();
+  await page.getByRole("button", { name: "افزودن «گلم هالیوودی» به علاقه‌مندی‌ها" }).click();
+  await groups.getByRole("button", { name: /علاقه‌مندی‌ها/ }).click();
+  await expect(rail.getByRole("button")).toHaveCount(1);
+  await expect(rail.getByRole("button", { name: "گلم هالیوودی" })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem("hb-tryon-favs"))).toBe('["hollywood"]');
+  // the booking: the look, its intensity and her lipstick (never her photo)
+  await sheet(page, "شدت");
+  await page.getByRole("group", { name: "شدت میکاپ" }).getByRole("button", { name: "پررنگ" }).click();
+  await expect(page.locator(".tryon__img--after")).toHaveAttribute("data-level", "bold", { timeout: 60_000 });
+  await sheet(page, "رژ لب");
+  await page.getByRole("group", { name: "رنگ رژ لب" }).getByRole("button", { name: "قرمز کلاسیک" }).click();
+  await expect(page.getByText("قرمز کلاسیک · مات")).toBeVisible({ timeout: 60_000 });
+  await page.getByRole("button", { name: "رزرو همین میکاپ" }).click();
+  const dialog = page.getByRole("dialog", { name: "درخواست رزرو" });
+  await expect(dialog).toContainText("سبک: گلم هالیوودی");
+  await expect(dialog).toContainText("شدت: پررنگ");
+  await expect(dialog).toContainText("رژ لب: قرمز کلاسیک");
+  await expect(dialog.locator("img, canvas")).toHaveCount(0);
+});
+
+/**
  * Makeup only where her face can be seen: nothing is painted over hair falling across her eye,
  * sunglasses, or a hand in front of her mouth (the segmenter marks her face skin, a guided filter
  * moves its edges onto the photo's own).
@@ -1043,6 +1175,7 @@ test("her own outlines: the app suggests checking a face in profile, a moved lip
   await expect(page.locator(".contour__loupe")).toBeVisible();
   await page.mouse.up();
   await page.getByRole("button", { name: "اعمال" }).click();
+  await sheet(page, "عکس");
   await expect(page.locator(".tryon__outline")).toContainText("خودتان تنظیم کرده‌اید", { timeout: 240_000 });
   await expect.poll(async () => (await afterPixels(page)).src !== first.src, { timeout: 120_000 }).toBe(true);
   const edited = await afterPixels(page);
@@ -1347,6 +1480,7 @@ test.describe("on a phone", () => {
     expect(f2.dots[5].slice(0, 2)).toEqual(f1.dots[5].slice(0, 2));
     // applied, then opened again: her moves are there and another point moves
     await page.getByRole("button", { name: "اعمال" }).tap();
+    await page.getByRole("tab", { name: "عکس", exact: true }).tap();
     await expect(page.locator(".tryon__outline")).toContainText("خودتان تنظیم کرده‌اید", { timeout: 240_000 });
     await page.locator(".tryon__outline").getByRole("button", { name: "ویرایش" }).tap();
     await page.getByRole("tab", { name: "دور صورت" }).tap();

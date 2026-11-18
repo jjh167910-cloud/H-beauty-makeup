@@ -2,16 +2,16 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type
 import { persian } from "@/lib/persian";
 import { lookPhoto } from "@/data/makeup-photos";
 import { FINISHES, LIPSTICKS, lipstickById } from "@/data/lipsticks";
-import { styleById, variedLooks, type MakeupStyle } from "@/data/makeup-styles";
+import { LOOK_GROUPS, groupOf, styleById, variedLooks, type MakeupStyle } from "@/data/makeup-styles";
 import { loadDraft, minePicks, saveDraft, type MyMakeup } from "@/data/my-makeup";
 import {
   downloadMB, downloadModels, downloadHdModels, fetchLook, hdDownloadAvailable, hdModelsReady, HD_DOWNLOAD_MB, engine, errorText, faceShot, modelsReady, paintLook, paintThumb, preparePhoto, relight, studio, warmUp, withPoints,
   type Finish, type Level, type LipChoice, type Prepared, type ProductPicks, type Pt, type Shot, type StepKey,
 } from "@/lib/tryon";
-import { LiveMirror, type LiveStats } from "@/lib/live-tryon";
+import { LiveMirror, type Coach, type LiveStats } from "@/lib/live-tryon";
 import { editedParts, outlineDoubt, withOffsets, type Doubt, type Offsets, type Part } from "@/lib/outline";
 import OutlineEditor from "./tryon-outline";
-import { Icon } from "./icons";
+import { Icon, type IconName } from "./icons";
 import { Button, Media, haptic } from "./ui";
 
 const TryOnMine = lazy(() => import("./tryon-mine"));
@@ -56,13 +56,39 @@ function lipFor(pick: LipPick): LipChoice | null {
   return { shade: shade?.hex ?? null, finish: pick.finish ?? shade?.finish ?? null };
 }
 
+/** The live mirror's capture coach (LiveMirror's Coach): what would make her photo better. */
+const COACH_TIPS: Record<Coach, string> = {
+  far: "کمی نزدیک‌تر بیایید", near: "کمی دورتر بروید", turn: "روبه‌روی دوربین باشید", tilt: "سر را صاف نگه دارید",
+  dark: "نور کم است؛ جای روشن‌تری بروید", uneven: "رو به نور بایستید؛ نور از یک طرف است",
+};
+
+/** The result screen's bottom sheet: the looks, the intensity, the lipstick, the photo. */
+type SheetTab = "looks" | "level" | "lips" | "photo";
+const TABS: Array<[SheetTab, string, IconName]> = [["looks", "سبک‌ها", "magic"], ["level", "شدت", "tune"], ["lips", "رژ لب", "palette"], ["photo", "عکس", "gallery"]];
+
+/** Her favourite looks, on this phone only (a convenience: gone with the browser's data). */
+const FAVS_KEY = "hb-tryon-favs";
+function loadFavs(): string[] {
+  try {
+    const ids: unknown = JSON.parse(localStorage.getItem(FAVS_KEY) ?? "[]");
+    return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === "string" && styleById.has(id)) : [];
+  } catch { return []; }
+}
+function saveFavs(ids: string[]) {
+  try { localStorage.setItem(FAVS_KEY, JSON.stringify(ids)); } catch { /* (no storage here: kept for this visit) */ }
+}
+/** The phone can hand a picture to its share sheet (else the result is saved as a file). */
+function canShareFiles(): boolean {
+  try { return typeof navigator.canShare === "function" && navigator.canShare({ files: [new File([""], "x.jpg", { type: "image/jpeg" })] }); } catch { return false; }
+}
+
 /** While the connection is down: the download waits and goes on from where it was. */
 const OFFLINE_WAIT = "اینترنت قطع است؛ با وصل شدن، دانلود از همان‌جا ادامه پیدا می‌کند.";
 
 export default function TryOnView({ style, onBook }: {
   style: MakeupStyle;
-  /** Book the look she's trying, or her own makeup (`mine`: its name and recipe). */
-  onBook: (id: string, mine?: { name: string; recipe: MyMakeup }) => void;
+  /** Book the look she's trying (`details`: its intensity and lipstick as she set them), or her own makeup (`mine`). */
+  onBook: (id: string, mine?: { name: string; recipe: MyMakeup }, details?: string[]) => void;
 }) {
   const [phase, setPhase] = useState<Phase>("check");
   /** The AI files for her look are on the phone. Until then, what she taps (her photo, the live mirror) waits for the
@@ -129,7 +155,13 @@ export default function TryOnView({ style, onBook }: {
   const [zones, setZones] = useState<Zones>(ZONES_AS_LOOK);
   /** Where her finger has a slider while she moves it (painted when she lets go). */
   const [zoneDraft, setZoneDraft] = useState<Zones | null>(null);
-  const [tuning, setTuning] = useState(false);
+  /** The bottom sheet's tab, the look rail's group ("all", "fav" or a LOOK_GROUPS id), her favourite looks. */
+  const [tab, setTab] = useState<SheetTab>("looks");
+  const [group, setGroup] = useState("all");
+  const [favs, setFavs] = useState<string[]>(loadFavs);
+  const [canShare] = useState(canShareFiles);
+  /** The live mirror is picking its sharpest frame. */
+  const [capturing, setCapturing] = useState(false);
   /** Her photo without the makeup, while she holds the eye button. */
   const [peek, setPeek] = useState(false);
   /** The look rail: her own face in each look ("id:level:photo"), made one at a time while the phone is free. */
@@ -373,6 +405,38 @@ export default function TryOnView({ style, onBook }: {
     link.click();
   }
 
+  /** The result through the phone's share sheet (she picks the app and the person); saved as a file where it can't. */
+  async function share(url: string) {
+    haptic();
+    if (canShare) {
+      try {
+        const file = new File([await (await fetch(url)).blob()], `h-beauty-${look}.jpg`, { type: "image/jpeg" });
+        const title = styleById.get(look)?.title ?? look;
+        await navigator.share({ files: [file], title, text: `«${title}» · حنانه بیوتی` });
+        return;
+      } catch (reason) {
+        if ((reason as { name?: string })?.name === "AbortError") return;     // (she closed the sheet)
+      }
+    }
+    save(url);
+  }
+
+  /** The look rail's group. */
+  function pickGroup(next: string) {
+    haptic();
+    setGroup(next);
+  }
+
+  /** The look on screen in her favourites, or out of them. */
+  function toggleFav(id: string) {
+    haptic();
+    setFavs((was) => {
+      const next = was.includes(id) ? was.filter((x) => x !== id) : [...was, id];
+      saveFavs(next);
+      return next;
+    });
+  }
+
   /** Soft / natural / bold: repaints the photo (or the running mirror) at that intensity. */
   function changeLevel(next: Level) {
     if (next === level) return;
@@ -460,11 +524,14 @@ export default function TryOnView({ style, onBook }: {
     else setPhase("pick");
   }
 
+  /** The live mirror's photo: the sharpest of a short burst of camera frames (LiveMirror.burst). */
   async function capture() {
     const m = mirror.current;
-    if (!m) return;
+    if (!m || capturing) return;
     haptic();
-    const shot = await m.snapshot().catch(() => null);
+    setCapturing(true);
+    const shot = await m.burst().catch(() => null);
+    setCapturing(false);
     if (shot) await takePhoto(shot);
   }
 
@@ -495,6 +562,19 @@ export default function TryOnView({ style, onBook }: {
   const canSharp = !!prep?.sharp && phase !== "live";
   const canLight = phase === "live" ? kind === "gpu" && !!studio() : !!prep?.studio;
   const outlineOn = !own && !editing && phase === "done" && !!result;
+  /** The sheet's tabs here (no intensity or lipstick with her own makeup in the mirror; the lipstick needs the graphics engine). */
+  const tabs = TABS.filter(([key]) => !(liveMine && (key === "level" || key === "lips")) && (key !== "lips" || kind === "gpu"));
+  const sheetTab = tabs.some(([key]) => key === tab) ? tab : "looks";
+  /** The intensity and lipstick controls work now (a picture or the mirror is up). */
+  const controlsOn = !liveMine && ((!!result && phase === "done") || phase === "live" || phase === "paint");
+  const railLooks = group === "all" ? others : group === "fav" ? others.filter((item) => favs.includes(item.id)) : others.filter((item) => groupOf.get(item.id) === group);
+  const fav = favs.includes(look);
+  /** The booking's lines for the look as she set it: its intensity, each part's own, her lipstick. */
+  const bookDetails = [
+    `شدت: ${LEVELS.find(([key]) => key === level)?.[1] ?? ""}`,
+    ...(zonesKey(zones) !== zonesKey(ZONES_AS_LOOK) ? [`شدت هر بخش: ${ZONES.map(([zone, label]) => `${label} ${persian(zones[zone])}٪`).join("، ")}`] : []),
+    ...(lip.shade || lip.finish ? [`رژ لب: ${lipLabel}`] : []),
+  ];
 
   /** The rail's looks on screen or about two ahead (as she scrolls it): only theirs are fetched and painted. */
   const [near, setNear] = useState<ReadonlySet<string>>(() => new Set());
@@ -628,12 +708,15 @@ export default function TryOnView({ style, onBook }: {
               <canvas ref={liveView} className="tryon__live" aria-label={liveMine ? "آینه زنده با میکاپ خودتان" : `آینه زنده با میکاپ ${current.title}`}
                 data-fps={live?.fps ?? 0} data-drawn-frames={live?.drawnFrames ?? 0} data-net-ms={live?.netMs ?? 0} data-face={live?.face ? "" : undefined} data-engine={kind} data-mine={liveMine ? "" : undefined} />
               {!live ? <div className="tryon__busy" role="status"><strong>در حال روشن کردن دوربین…</strong></div> : null}
-              {live && !live.face ? <span className="tryon__hint">صورت را روبه‌روی دوربین بگیرید</span> : null}
+              {live && !live.face ? <span className="tryon__hint">صورت را روبه‌روی دوربین بگیرید</span>
+                : live?.coach ? <span className="tryon__hint" role="status" data-coach={live.coach}><Icon name="frame" size={16} /> {COACH_TIPS[live.coach]}</span> : null}
               {live ? <span className="tryon__tag tryon__tag--after">زنده · {liveMine ? "میکاپ من" : current.title}</span> : null}
             </div>
           ) : (
           <div className="tryon__stage" data-busy={busy ? "" : undefined} data-engine={kind} data-sharp={which.startsWith("s") ? "" : undefined} data-studio={which.endsWith("t") ? "" : undefined}
             data-blur={prep ? prep.blur.toFixed(2) : undefined} data-sharp-ms={prep?.sharp ? prep.sharpMs : undefined} data-hd-ms={prep?.hdMs}>
+            {/* (the slider's before: her photo as the makeup went on it, in studio light when that is on, so only the makeup
+                differs; held, the eye shows her photo as she took it: nothing the app did) */}
             {before[which] ? <img className="tryon__img" src={before[which]} alt="عکس شما بدون میکاپ" /> : <div className="tryon__img tryon__img--empty" />}
             {was ? <img className="tryon__was" src={was.url} alt="" aria-hidden="true" style={{ clipPath: `inset(0 ${100 - cut}% 0 0)` }} /> : null}
             {result && phase === "done" ? (
@@ -642,7 +725,8 @@ export default function TryOnView({ style, onBook }: {
                   style={{ clipPath: `inset(0 ${peek ? 100 : 100 - cut}% 0 0)` }} />
                 {peek ? null : <span className="tryon__divider" style={{ insetInlineEnd: `${cut}%` }} aria-hidden="true" />}
                 {peek ? null : <span className="tryon__tag tryon__tag--after">بعد</span>}
-                <span className="tryon__tag tryon__tag--before">قبل</span>
+                {peek && before.p ? <img className="tryon__img tryon__img--orig" src={before.p} alt="عکس اصلی شما، همان‌طور که گرفته شده" /> : null}
+                <span className="tryon__tag tryon__tag--before">{peek ? "عکس اصلی شما" : which.endsWith("t") ? "قبل · نور استودیو" : "قبل"}</span>
                 <input className="tryon__slider" type="range" min={0} max={100} value={cut} dir="ltr"
                   aria-label="مقایسه قبل و بعد" onChange={(event) => setCut(Number(event.target.value))} />
                 <button type="button" className="tryon__peek" aria-label="نگه دارید: عکس بدون میکاپ" aria-pressed={peek}
@@ -651,6 +735,10 @@ export default function TryOnView({ style, onBook }: {
                   onKeyDown={(event) => { if (event.key === " " || event.key === "Enter") setPeek(true); }} onKeyUp={() => setPeek(false)}
                   onContextMenu={(event) => event.preventDefault()}>
                   <Icon name="peek" size={20} />
+                </button>
+                <button type="button" className="tryon__fav" aria-pressed={fav} aria-label={fav ? `«${current.title}» در علاقه‌مندی‌ها` : `افزودن «${current.title}» به علاقه‌مندی‌ها`}
+                  onClick={() => toggleFav(look)}>
+                  <Icon name="heart" size={20} weight={fav ? "fill" : "regular"} />
                 </button>
               </>
             ) : null}
@@ -680,128 +768,158 @@ export default function TryOnView({ style, onBook }: {
               <button type="button" className="tryon__doubt-close" aria-label="بستن" onClick={() => setDoubt(null)}><Icon name="close" size={16} /></button>
             </div>
           ) : null}
-          {!own && !liveMine && !editing && ((result && phase === "done") || phase === "live" || phase === "paint") ? (
-            <div className="tryon__levels" role="group" aria-label="شدت میکاپ">
-              <span>شدت میکاپ</span>
-              {LEVELS.map(([key, label]) => (
-                <button key={key} type="button" className="chip" aria-pressed={key === level} disabled={phase === "paint"} onClick={() => changeLevel(key)}>{label}</button>
-              ))}
-              <button type="button" className="chip tryon__tune-open" aria-expanded={tuning} aria-label="تنظیم هر بخش صورت"
-                onClick={() => { haptic(); setTuning((on) => !on); }}><Icon name="tune" size={16} weight={tuning ? "fill" : "regular"} /></button>
-            </div>
-          ) : null}
-          {tuning && !own && !liveMine && !editing && ((result && phase === "done") || phase === "live" || phase === "paint") ? (
-            <div className="tryon__zones" role="group" aria-label="شدت هر بخش صورت">
-              {ZONES.map(([zone, label]) => (
-                <label key={zone} className="tryon__zone">
-                  <span>{label}</span>
-                  <input type="range" min={0} max={150} step={10} value={tuned[zone]}
-                    onChange={(event) => changeZone(zone, Number(event.target.value), false)}
-                    onPointerUp={(event) => changeZone(zone, Number(event.currentTarget.value), true)}
-                    onKeyUp={(event) => changeZone(zone, Number(event.currentTarget.value), true)} />
-                  <output>{persian(tuned[zone])}٪</output>
-                </label>
-              ))}
-              {zonesKey(tuned) !== zonesKey(ZONES_AS_LOOK) ? <button type="button" className="chip" onClick={resetZones}>مثل خود سبک</button> : null}
-            </div>
-          ) : null}
-          {kind === "gpu" && !own && !liveMine && !editing && ((result && phase === "done") || phase === "live" || phase === "paint") ? (
-            <div className="tryon__lips">
-              <div className="tryon__lips-head"><span>رژ لب</span><small aria-live="polite">{lipLabel}</small></div>
-              <div className="tryon__swatches" role="group" aria-label="رنگ رژ لب">
-                <button type="button" className="tryon__swatch tryon__swatch--look" aria-pressed={!lip.shade} disabled={phase === "paint"}
-                  onClick={() => changeLip(LOOK_LIP)}>همین سبک</button>
-                {LIPSTICKS.map((item) => (
-                  <button key={item.id} type="button" className="tryon__swatch" data-finish={item.finish} aria-label={item.name} title={item.name}
-                    aria-pressed={lip.shade === item.id} disabled={phase === "paint"} style={{ "--swatch": item.hex } as CSSProperties}
-                    onClick={() => changeLip({ shade: item.id, finish: null })} />
+          {!own && !editing ? (
+            <div className="tryon__sheet">
+              <div className="tryon__tabs" role="tablist" aria-label="تنظیمات میکاپ">
+                {tabs.map(([key, label, icon]) => (
+                  <button key={key} type="button" role="tab" id={`tryon-tab-${key}`} aria-controls="tryon-panel" aria-selected={sheetTab === key}
+                    onClick={() => { haptic(); setTab(key); }}>
+                    <Icon name={icon} size={18} weight={sheetTab === key ? "fill" : "regular"} /> {label}
+                  </button>
                 ))}
               </div>
-              <div className="tryon__finishes" role="group" aria-label="بافت رژ لب">
-                {FINISHES.map(([key, label]) => (
-                  <button key={key} type="button" className="chip" aria-pressed={finish === key} disabled={phase === "paint"}
-                    onClick={() => changeLip({ ...lip, finish: key })}>{label}</button>
-                ))}
+              <div className="tryon__panel" role="tabpanel" id="tryon-panel" aria-labelledby={`tryon-tab-${sheetTab}`}>
+                {sheetTab === "looks" ? (
+                  <>
+                    <div className="tryon__groups" role="group" aria-label="دسته‌ی سبک‌ها">
+                      <button type="button" className="chip" aria-pressed={group === "all"} onClick={() => pickGroup("all")}>همه</button>
+                      <button type="button" className="chip" aria-pressed={group === "fav"} onClick={() => pickGroup("fav")}>
+                        <Icon name="heart" size={15} weight={group === "fav" ? "fill" : "regular"} /> علاقه‌مندی‌ها{favs.length ? ` ${persian(favs.length)}` : ""}
+                      </button>
+                      {LOOK_GROUPS.map((item) => (
+                        <button key={item.id} type="button" className="chip" aria-pressed={group === item.id} onClick={() => pickGroup(item.id)}>{item.title}</button>
+                      ))}
+                    </div>
+                    {railLooks.length ? (
+                      <div key={group} ref={railRef} className="tryon__looks" role="group" aria-label="امتحان سبک‌های دیگر">
+                        {railLooks.map((item) => (
+                          <button key={item.id} type="button" data-look={item.id} aria-pressed={!liveMine && item.id === look} disabled={phase === "live" ? false : !prepared.current || busy}
+                            onClick={() => {
+                              haptic();
+                              if (liveMine) { setLiveMine(null); mirror.current?.setMine(null); setMode("result"); }
+                              if (phase === "live") setLook(item.id); else paint(item.id);
+                            }}>
+                            {thumbs[`${item.id}:${level}:${which}`]
+                              ? <span className="media block tryon__her" data-loaded=""><img src={thumbs[`${item.id}:${level}:${which}`]} alt="" decoding="async" /></span>
+                              : <Media src={lookPhoto(item.id, "sm")} alt="" loading="lazy" />}
+                            <span>{item.title}</span>
+                            {!liveMine && item.id === look ? <i aria-hidden="true"><Icon name="check" size={10} weight="bold" /></i> : null}
+                          </button>
+                        ))}
+                      </div>
+                    ) : <p className="tryon__empty">با دکمه‌ی قلب روی عکس، سبک‌هایی را که دوست دارید اینجا نگه دارید.</p>}
+                  </>
+                ) : sheetTab === "level" ? (
+                  controlsOn ? (
+                    <>
+                      <div className="tryon__levels" role="group" aria-label="شدت میکاپ">
+                        {LEVELS.map(([key, label]) => (
+                          <button key={key} type="button" className="chip" aria-pressed={key === level} disabled={phase === "paint"} onClick={() => changeLevel(key)}>{label}</button>
+                        ))}
+                      </div>
+                      <div className="tryon__zones" role="group" aria-label="شدت هر بخش صورت">
+                        {ZONES.map(([zone, label]) => (
+                          <label key={zone} className="tryon__zone">
+                            <span>{label}</span>
+                            <input type="range" min={0} max={150} step={10} value={tuned[zone]}
+                              onChange={(event) => changeZone(zone, Number(event.target.value), false)}
+                              onPointerUp={(event) => changeZone(zone, Number(event.currentTarget.value), true)}
+                              onKeyUp={(event) => changeZone(zone, Number(event.currentTarget.value), true)} />
+                            <output>{persian(tuned[zone])}٪</output>
+                          </label>
+                        ))}
+                        {zonesKey(tuned) !== zonesKey(ZONES_AS_LOOK) ? <button type="button" className="chip" onClick={resetZones}>مثل خود سبک</button> : null}
+                      </div>
+                    </>
+                  ) : <p className="tryon__empty">پس از آماده شدن عکس، شدت میکاپ را اینجا تنظیم کنید.</p>
+                ) : sheetTab === "lips" ? (
+                  controlsOn ? (
+                    <div className="tryon__lips">
+                      <div className="tryon__lips-head"><span>رژ لب</span><small aria-live="polite">{lipLabel}</small></div>
+                      <div className="tryon__swatches" role="group" aria-label="رنگ رژ لب">
+                        <button type="button" className="tryon__swatch tryon__swatch--look" aria-pressed={!lip.shade} disabled={phase === "paint"}
+                          onClick={() => changeLip(LOOK_LIP)}>همین سبک</button>
+                        {LIPSTICKS.map((item) => (
+                          <button key={item.id} type="button" className="tryon__swatch" data-finish={item.finish} aria-label={item.name} title={item.name}
+                            aria-pressed={lip.shade === item.id} disabled={phase === "paint"} style={{ "--swatch": item.hex } as CSSProperties}
+                            onClick={() => changeLip({ shade: item.id, finish: null })} />
+                        ))}
+                      </div>
+                      <div className="tryon__finishes" role="group" aria-label="بافت رژ لب">
+                        {FINISHES.map(([key, label]) => (
+                          <button key={key} type="button" className="chip" aria-pressed={finish === key} disabled={phase === "paint"}
+                            onClick={() => changeLip({ ...lip, finish: key })}>{label}</button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : <p className="tryon__empty">پس از آماده شدن عکس، رنگ رژ را اینجا عوض کنید.</p>
+                ) : (
+                  <div className="tryon__photo">
+                    {(canSharp || canLight) && (controlsOn || liveMine) ? (
+                      <div className="tryon__clarity" role="group" aria-label="کیفیت عکس">
+                        <span>{canSharp ? (prep?.hdMs ? "چهره شما روی گوشی HD شد" : "عکس شما نرم بود؛ روی گوشی واضح‌تر شد") : "نور و پوست مثل عکس آتلیه"}</span>
+                        <div className="tryon__clarity-chips">
+                          {canLight ? (
+                            <button type="button" className="chip" aria-pressed={lit} disabled={phase === "paint"} onClick={toggleLit}>
+                              <Icon name="light" size={14} weight={lit ? "fill" : "regular"} /> نور و پوست استودیویی
+                            </button>
+                          ) : null}
+                          {canSharp ? (
+                            <button type="button" className="chip" aria-pressed={clear} disabled={phase === "paint"} onClick={toggleClear}>
+                              <Icon name="magic" size={14} weight={clear ? "fill" : "regular"} /> وضوح بیشتر
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    ) : null}
+                    {outlineOn && !doubt ? (
+                      <div className="tryon__outline" role="group" aria-label="خطوط صورت">
+                        <span>{edited ? "خطوط صورت را خودتان تنظیم کرده‌اید" : "میکاپ جای دقیقش نیست؟"}</span>
+                        <button type="button" className="chip" onClick={() => { haptic(); setEditing("lips"); }}>
+                          <Icon name="outline" size={15} /> {edited ? "ویرایش" : "تنظیم خطوط"}
+                        </button>
+                        {edited ? <button type="button" className="chip" onClick={() => { haptic(); applyOutline({}); }}>خودکار</button> : null}
+                      </div>
+                    ) : null}
+                    {kind === "gpu" && phase === "done" && hdStatus !== "unavailable" ? (
+                      <div className="tryon__get" role="group" aria-label="افزایش کیفیت HD">
+                        {hdStatus === "available" ? (
+                          <Button variant="secondary" icon="download" onClick={enableHd}>افزایش کیفیت چهره HD · دانلود اختیاری {persian(HD_DOWNLOAD_MB)} مگابایت</Button>
+                        ) : hdStatus === "downloading" ? (
+                          <div role="status" style={{ width: "100%" }}>
+                            <div className="tryon__bar"><span style={{ width: `${Math.round(hdProgress * 100)}%` }} /></div>
+                            <small>دریافت اختیاری HD… {persian(Math.round(hdProgress * 100))}٪</small>
+                            {netWait ? <strong>{OFFLINE_WAIT}</strong> : null}
+                            <Button variant="secondary" icon="close" onClick={() => hdAbort.current?.abort()}>توقف دانلود HD</Button>
+                            <small>بخش‌های کامل ذخیره می‌شوند؛ بعداً می‌توانید ادامه دهید.</small>
+                          </div>
+                        ) : hdStatus === "ready" ? <small>بسته HD روی گوشی ذخیره شده است؛ در صورت نیاز برای عکس‌های تار استفاده می‌شود.</small> : null}
+                        {hdStatus === "available" ? <small>مخصوص عکس‌های تار؛ برای استفاده عادی لازم نیست.</small> : null}
+                        {hdError ? <small role="alert">{hdError}</small> : null}
+                      </div>
+                    ) : null}
+                    <div className="tryon__row">
+                      {phase !== "live" ? <Button variant="secondary" icon="live" onClick={() => { setMode("result"); startLive(); }}>آینه زنده</Button> : null}
+                      <Button variant="secondary" icon="gallery" onClick={() => gallery.current?.click()}>عکس دیگر</Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : null}
-          {outlineOn && !doubt ? (
-            <div className="tryon__outline" role="group" aria-label="خطوط صورت">
-              <span>{edited ? "خطوط صورت را خودتان تنظیم کرده‌اید" : "میکاپ جای دقیقش نیست؟"}</span>
-              <button type="button" className="chip" onClick={() => { haptic(); setEditing("lips"); }}>
-                <Icon name="outline" size={15} /> {edited ? "ویرایش" : "تنظیم خطوط"}
-              </button>
-              {edited ? <button type="button" className="chip" onClick={() => { haptic(); applyOutline({}); }}>خودکار</button> : null}
-            </div>
-          ) : null}
-          {(canSharp || canLight) && !own && !editing && ((result && phase === "done") || phase === "paint" || phase === "live") ? (
-            <div className="tryon__clarity" role="group" aria-label="کیفیت عکس">
-              <span>{canSharp ? (prep?.hdMs ? "چهره شما روی گوشی HD شد" : "عکس شما نرم بود؛ روی گوشی واضح‌تر شد") : "نور و پوست مثل عکس آتلیه"}</span>
-              <div className="tryon__clarity-chips">
-                {canLight ? (
-                  <button type="button" className="chip" aria-pressed={lit} disabled={phase === "paint"} onClick={toggleLit}>
-                    <Icon name="light" size={14} weight={lit ? "fill" : "regular"} /> نور و پوست استودیویی
-                  </button>
-                ) : null}
-                {canSharp ? (
-                  <button type="button" className="chip" aria-pressed={clear} disabled={phase === "paint"} onClick={toggleClear}>
-                    <Icon name="magic" size={14} weight={clear ? "fill" : "regular"} /> وضوح بیشتر
-                  </button>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
-
-          {!own && !editing && kind === "gpu" && phase === "done" && hdStatus !== "unavailable" ? (
-            <div className="tryon__get" role="group" aria-label="افزایش کیفیت HD">
-              {hdStatus === "available" ? (
-                <Button variant="secondary" icon="download" onClick={enableHd}>افزایش کیفیت چهره HD · دانلود اختیاری {persian(HD_DOWNLOAD_MB)} مگابایت</Button>
-              ) : hdStatus === "downloading" ? (
-                <div role="status" style={{ width: "100%" }}>
-                  <div className="tryon__bar"><span style={{ width: `${Math.round(hdProgress * 100)}%` }} /></div>
-                  <small>دریافت اختیاری HD… {persian(Math.round(hdProgress * 100))}٪</small>
-                  {netWait ? <strong>{OFFLINE_WAIT}</strong> : null}
-                  <Button variant="secondary" icon="close" onClick={() => hdAbort.current?.abort()}>توقف دانلود HD</Button>
-                  <small>بخش‌های کامل ذخیره می‌شوند؛ بعداً می‌توانید ادامه دهید.</small>
-                </div>
-              ) : hdStatus === "ready" ? <small>بسته HD روی گوشی ذخیره شده است؛ در صورت نیاز برای عکس‌های تار استفاده می‌شود.</small> : null}
-              {hdStatus === "available" ? <small>مخصوص عکس‌های تار؛ برای استفاده عادی لازم نیست.</small> : null}
-              {hdError ? <small role="alert">{hdError}</small> : null}
-            </div>
-          ) : null}
-          {own ? null : <div className="tryon__looks-head">
-            <span>{kind === "gpu" && prep && phase !== "live" ? "سبک‌ها روی چهره شما" : "سبک‌های دیگر"}</span>
-          </div>}
-          {own ? null : <div ref={railRef} className="tryon__looks" role="group" aria-label="امتحان سبک‌های دیگر">
-            {others.map((item) => (
-              <button key={item.id} type="button" data-look={item.id} aria-pressed={!liveMine && item.id === look} disabled={phase === "live" ? false : !prepared.current || busy}
-                onClick={() => {
-                  haptic();
-                  if (liveMine) { setLiveMine(null); mirror.current?.setMine(null); setMode("result"); }
-                  if (phase === "live") setLook(item.id); else paint(item.id);
-                }}>
-                {thumbs[`${item.id}:${level}:${which}`]
-                  ? <span className="media block tryon__her" data-loaded=""><img src={thumbs[`${item.id}:${level}:${which}`]} alt="" decoding="async" /></span>
-                  : <Media src={lookPhoto(item.id, "sm")} alt="" loading="lazy" />}
-                <span>{item.title}</span>
-                {!liveMine && item.id === look ? <i aria-hidden="true"><Icon name="check" size={10} weight="bold" /></i> : null}
-              </button>
-            ))}
-          </div>}
 
           {phase === "live" ? (
-            <div className="tryon__row">
-              <Button variant="gold" icon="capture" onClick={capture} disabled={!live?.face}>گرفتن عکس</Button>
+            <div className="tryon__row tryon__main">
+              <Button variant="gold" icon="capture" onClick={capture} disabled={!live?.face || capturing}>{capturing ? "در حال گرفتن…" : "گرفتن عکس"}</Button>
               <Button variant="secondary" icon="close" onClick={closeLive}>{liveMine ? "بازگشت به میکاپ من" : "بستن آینه"}</Button>
             </div>
-          ) : null}
-          <div className="tryon__row">
-            {phase !== "live" ? <Button variant="secondary" icon="live" onClick={() => { setMode("result"); startLive(); }}>آینه زنده</Button> : null}
-            <Button variant="secondary" icon="gallery" onClick={() => gallery.current?.click()}>عکس دیگر</Button>
-            {result && phase === "done" && !own ? <Button variant="tonal" icon="download" onClick={() => save(result)}>ذخیره عکس</Button> : null}
-            {own ? null : liveMine ? <Button variant="gold" icon="book" onClick={() => onBook(look, { name: "میکاپ من", recipe: liveMine })}>رزرو با این میکاپ</Button>
-              : <Button variant="gold" icon="book" onClick={() => onBook(look)}>رزرو همین میکاپ</Button>}
-          </div>
+          ) : own ? null : (
+            <div className="tryon__row tryon__main">
+              {result && phase === "done" ? <Button variant="tonal" icon={canShare ? "share" : "download"} onClick={() => void share(result)}>{canShare ? "اشتراک‌گذاری" : "ذخیره عکس"}</Button> : null}
+              {liveMine ? <Button variant="gold" icon="book" onClick={() => onBook(look, { name: "میکاپ من", recipe: liveMine })}>رزرو با این میکاپ</Button>
+                : <Button variant="gold" icon="book" onClick={() => onBook(look, undefined, bookDetails)}>رزرو همین میکاپ</Button>}
+            </div>
+          )}
           {own ? null : <p className="tryon__fine">تصویر با هوش مصنوعی ساخته شده و تقریبی است؛ آرتیست سالن رنگ‌ها را با پوست و فرم چهره شما تنظیم می‌کند.</p>}
         </section>
       )}

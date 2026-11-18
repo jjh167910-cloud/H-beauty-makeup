@@ -11,8 +11,10 @@ import {
   Copy,
   DownloadSimple,
   Eye,
+  Export,
   Faders,
   FloppyDisk,
+  Heart,
   ImageSquare,
   MagnifyingGlassMinus,
   PaintBrush,
@@ -25,6 +27,7 @@ import {
   Sun,
   Swatches,
   Trash,
+  UserFocus,
   VideoCamera,
   X,
   type IconProps,
@@ -78,6 +81,12 @@ const ICONS = {
   tune: Faders,
   brush: PaintBrush,
   save: FloppyDisk,
+  /** Send the picture through the phone's share sheet. */
+  share: Export,
+  /** A favourite look. */
+  heart: Heart,
+  /** The capture coach (framing her face). */
+  frame: UserFocus,
 } as const;
 
 export type IconName = keyof typeof ICONS;

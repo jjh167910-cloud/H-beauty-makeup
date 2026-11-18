@@ -147,6 +147,21 @@ export const MAKEUP_STYLES: MakeupStyle[] = [
 
 export const styleById = new Map(MAKEUP_STYLES.map((item) => [item.id, item]));
 
+/** The catalog's groups (as the list above is laid out): the try-on's filter chips over its look rail. */
+export const LOOK_GROUPS: Array<{ id: string; title: string; looks: string[] }> = [
+  { id: "everyday", title: "روزمره", looks: ["no-makeup", "clean-girl", "sun-kissed", "cold-girl"] },
+  { id: "soft", title: "گلم ملایم", looks: ["soft-glam", "latte", "strawberry"] },
+  { id: "glam", title: "گلم کامل", looks: ["full-glam", "hollywood", "arabic-glam", "bronzed-goddess", "golden-hour", "bold-glam", "cut-crease"] },
+  { id: "smoky", title: "دودی و شب", looks: ["classic-smokey", "brown-smokey", "plum-smokey", "emerald-night", "navy-smokey", "siren-eyes"] },
+  { id: "liner", title: "خط چشم", looks: ["cat-eye", "fox-eye", "graphic-liner", "colour-liner"] },
+  { id: "bridal", title: "عروس و مراسم", looks: ["classic-bride", "persian-bride", "romantic-bride", "boho-bride", "aqd", "henna-night"] },
+  { id: "colour", title: "رنگی", looks: ["sunset", "pastel", "monochrome", "glitter-party", "rhinestone", "electric-blue"] },
+  { id: "retro", title: "رترو", looks: ["pin-up", "mod-60s", "nineties", "twenties"] },
+  { id: "asian", title: "آسیایی", looks: ["k-beauty", "douyin"] },
+];
+/** Each look's group id. */
+export const groupOf = new Map(LOOK_GROUPS.flatMap((group) => group.looks.map((id) => [id, group.id] as const)));
+
 /**
  * The looks in an order that shows the catalog's range (the try-on's look rail): `first`, then each time the look most
  * unlike all those before it, by each look's signature (its catalog photo's change on her lids, past her eyes, cheeks,

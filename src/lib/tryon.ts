@@ -102,7 +102,12 @@ const OLD_DATA = (ids: string[]) => [
   `${BASE}face-hd/gfpgan-1.4-q8.0.bin`, `${BASE}face-hd/gfpgan-1.4-q8.1.bin`,
 ];
 const SIZE = 256;
-const MAX_SIDE = 1600;
+/**
+ * Her photo's longest side on the phone: 2048 px where the phone says it has the memory for it (Chrome's deviceMemory, 6 GB
+ * or more: the engine's float targets at that size take a few hundred MB), else 1600 (Safari doesn't say; its canvas memory
+ * is limited).
+ */
+const MAX_SIDE = ((navigator as { deviceMemory?: number }).deviceMemory ?? 0) >= 6 ? 2048 : 1600;
 /** How much of the full-resolution catalog lash/liner detail to add on top of the tiny network. */
 const EYE_DETAIL = 0.6;
 
