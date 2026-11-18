@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import * as fs from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { assertPrivateImageContainer } from "../scripts/quality/private_image_audit.mjs";
+import { assertPrivateImageContainer, inspectPrivateImageDimensions } from "../scripts/quality/private_image_audit.mjs";
 import { packStudy } from "../scripts/quality/blind_photo_study.mjs";
 
 const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lJ8AAAAASUVORK5CYII=", "base64");
@@ -21,7 +21,9 @@ function riff(...chunks) {
   const header=Buffer.alloc(8); header.write("RIFF"); header.writeUInt32LE(body.length,4);
   return Buffer.concat([header,body]);
 }
-const webp=riff(chunk("VP8 ",[0,0,0,0]));
+const webp=Buffer.from("UklGRi4AAABXRUJQVlA4ICIAAABwAQCdASoBAAEAAUAmJZQCdAFAAAD+/DeBV/fU6D4r4AAA","base64");
+const webpWide=Buffer.from("UklGRi4AAABXRUJQVlA4ICIAAABwAQCdASoCAAEAAUAmJZQCdAFAAAD+/DeBV/fU6D4r4AAA","base64");
+const pngWide=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAIAAAB7QOjdAAAAD0lEQVR4nGPkEpFjYGAAAAEmAD5j+GBZAAAAAElFTkSuQmCC","base64");
 function injectPngText() {
   const payload=Buffer.from("Author\u0000sensitive-location-here");
   const head=Buffer.alloc(8),crc=Buffer.alloc(4);
@@ -81,5 +83,45 @@ test("pack refuses source photo containing EXIF without leaving partial reviewer
   }finally{
     await fs.rm(dir,{recursive:true,force:true});
     await fs.rm(output,{recursive:true,force:true});
+  }
+});
+
+
+test("reads size from audited PNG JPEG and WebP without decoding image pixels",()=>{
+  assert.deepEqual(inspectPrivateImageDimensions(png,".png"),{width:1,height:1});
+  assert.deepEqual(inspectPrivateImageDimensions(pngWide,".png"),{width:2,height:1});
+  assert.deepEqual(inspectPrivateImageDimensions(jpeg,".jpeg"),{width:1,height:1});
+  assert.deepEqual(inspectPrivateImageDimensions(webp,".webp"),{width:1,height:1});
+  assert.deepEqual(inspectPrivateImageDimensions(webpWide,".webp"),{width:2,height:1});
+  assert.throws(()=>inspectPrivateImageDimensions(riff(chunk("VP8 ",[0,0,0,0])),".webp"),/frame header invalid/);
+});
+
+test("study refuses unmatched A/B dimensions and same-subject cross-look dimensions",async()=>{
+  const dir=await fs.mkdtemp(join(tmpdir(),"hbeauty-dimension-gate-"));
+  const out=join(tmpdir(),"hbeauty-dimension-out-"+Date.now()+"-"+Math.random().toString(16).slice(2));
+  try {
+    await fs.writeFile(join(dir,"A.png"),png);
+    await fs.writeFile(join(dir,"B.png"),pngWide);
+    await fs.writeFile(join(dir,"A2.png"),pngWide);
+    await fs.writeFile(join(dir,"B2.png"),pngWide);
+    const looks=["hollywood","electric-blue","rhinestone"];
+    const pairs=looks.map(look_id=>({
+      sample_id:"S001",skin_group:"light",look_id,
+      candidate_file:"A.png",comparator_file:"B.png",consent_confirmed:true
+    }));
+    const manifest=join(dir,"manifest.json");
+    await fs.writeFile(manifest,JSON.stringify({schema_version:1,trials:pairs}));
+    await assert.rejects(()=>packStudy(manifest,out,"private-test-seed-not-for-production"),
+      /A\/B image dimension mismatch/);
+    const cross=pairs.map((x,i)=>i===1?{
+      ...x,candidate_file:"A2.png",comparator_file:"B2.png"
+    }:{...x,comparator_file:"A.png"});
+    await fs.writeFile(manifest,JSON.stringify({schema_version:1,trials:cross}));
+    await assert.rejects(()=>packStudy(manifest,out,"private-test-seed-not-for-production"),
+      /Inconsistent source-photo dimensions/);
+    await assert.rejects(()=>fs.stat(out),{code:"ENOENT"});
+  }finally {
+    await fs.rm(dir,{recursive:true,force:true});
+    await fs.rm(out,{recursive:true,force:true});
   }
 });
