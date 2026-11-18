@@ -83,3 +83,39 @@ test("unblinding reports real candidate-minus-comparator score and honest small-
   assert.equal(scored.photo_realism_analysis.overall.independent_subjects,3);
   assert.throws(()=>unblindScores(key,[sheet,sheet.map((x,i)=>i===0?{...x,score_a:6}:x)]),/Invalid/);
 });
+
+
+test("hard-case summaries are private, grouped by subject and not overclaimed",()=>{
+  const source=cases(12).map(c=>({
+    ...c,challenge_tags:Number(c.sample_id.slice(1))%2===0?
+      ["hooded","glasses"]:["profile","low_light"]
+  }));
+  const report=analyzeBlindScores(source);
+  assert.equal(report.annotated_subjects,12);
+  assert.equal(report.by_challenge.hooded.independent_subjects,6);
+  assert.equal(report.by_challenge.glasses.paired_cases,18);
+  assert.equal(report.by_challenge.profile.independent_subjects,6);
+  assert.equal(report.by_challenge.hair_occlusion,null);
+  assert.equal(report.by_challenge.hooded.subject_cluster_ci95,null);
+  assert.equal(report.annotation_warning,null);
+  assert.throws(()=>analyzeBlindScores(source.map((x,i)=>i===0?
+    {...x,challenge_tags:["unknown_condition"]}:x)),/Invalid/);
+  assert.throws(()=>analyzeBlindScores(source.map((x,i)=>i===1?
+    {...x,challenge_tags:["profile"]}:x)),/Inconsistent/);
+});
+
+test("matched blind study demands consistent challenge annotations per subject",()=>{
+  const entries=Array.from({length:2},(_,n)=>looks.map(look=>({
+    sample_id:"S"+n,skin_group:skins[n],look_id:look,
+    candidate_file:"A.png",comparator_file:"B.png",consent_confirmed:true,
+    challenge_tags:n===0?["glasses","hair_occlusion"]:["monolid"]
+  }))).flat();
+  const a=makeBlindAssignments(entries,"test-seed-not-private-123456789");
+  assert.equal(a.filter(x=>x.challenge_tags.includes("glasses")).length,3);
+  assert.throws(()=>makeBlindAssignments(entries.map((x,i)=>i===0?
+    {...x,challenge_tags:["glasses","nonsense"]}:x),
+    "test-seed-not-private-123456789"),/Invalid/);
+  assert.throws(()=>makeBlindAssignments(entries.map((x,i)=>i===1?
+    {...x,challenge_tags:["glasses"]}:x),
+    "test-seed-not-private-123456789"),/Inconsistent/);
+});
