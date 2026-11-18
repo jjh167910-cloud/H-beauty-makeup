@@ -69,7 +69,7 @@ test("CSV input disallows missing grades, unknown choices and duplicate trial re
 test("generated reviewer pack hides candidate labels, leaves images local and refuses overwrite",async()=>{
   const dir=await fs.mkdtemp(join(tmpdir(),"hbeauty-private-study-"));
   try{
-    const image=Buffer.from([137,80,78,71,13,10,26,10,1,2,3,4]);
+    const image=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lJ8AAAAASUVORK5CYII=","base64");
     await fs.writeFile(join(dir,"candidate.png"),image);
     await fs.writeFile(join(dir,"comparator.png"),image);
     const manifest=join(dir,"manifest.json"),output=join(tmpdir(),"hbeauty-blind-"+Date.now()+"-"+Math.floor(Math.random()*1e8));
@@ -80,6 +80,10 @@ test("generated reviewer pack hides candidate labels, leaves images local and re
     const key=JSON.parse(await fs.readFile(join(output,"private","answer-key.json"),"utf8"));
     assert.equal(shown.trials.length,3);
     assert.equal(key.assignments.length,3);
+    if (process.platform !== "win32") {
+      assert.equal((await fs.stat(join(output,"reviewer","assets"))).mode & 0o777, 0o700);
+      assert.equal((await fs.stat(join(output,"private","answer-key.json"))).mode & 0o777, 0o600);
+    }
     assert.ok(!JSON.stringify(shown).includes("candidate_file"));
     assert.ok(!JSON.stringify(shown).includes("subject-0"));
     assert.ok(!JSON.stringify(shown).includes("hollywood"));
