@@ -641,3 +641,34 @@ Only real consented matched photographs with audited original-pixel invariants,
 blinded independent artists, challenge-condition coverage and low/mid/high
 physical Android performance measurements can support a real-world quality
 claim. Test fixtures alone do not establish renderer realism.
+
+### Consistent photo-guided eye occlusion (2026-11-18, research-only)
+
+The saved-photo native eye-material shader previously sampled only the
+red channel of the **raw** segmentation probability texture, even when
+the main MakeupGL renderer had already calculated its edge-aware guided
+visibility model for the same source selfie. This could leave eyeliner,
+lashes or pigment crossing hair, glasses, or other partially occluding
+material despite the default renderer treating it as hidden.
+
+The opt-in native eye pass now binds the main renderer's existing `visTex`
+and passes its actual `visMode`. Mode 1 uses the regular coarse visibility
+probability, including the existing face-oval preprocessing; mode 2 uses
+the fitted affine model `clamp(dot(A.rgb, originalPhoto.rgb - 0.5) + A.a, 0, 1)`
+from the SAME local photo in the SAME GPU context. The existing conservative
+visibility feather and fail-closed outside-box check remain. There is no
+new model download, server processing, stored selfie, CPU readback or change
+to default/live production.
+
+Actual WebGL2 regression coverage verifies that hidden eye pixels retain
+their full previous RGBA bytes, while the other eye still receives makeup;
+mode 1 on a guided-only coefficient texture must not create makeup.
+An additional source-light/deep synthetic test checks that the guided
+affine coefficients really depend on original camera RGB, rather than
+mistakenly treating them as a red-channel mask. Saved-photo integration
+checks that `MakeupGL` uploads the visibility mode produced by its existing
+guided filter. These checks do not demonstrate real-person occlusion
+segmentation accuracy, and extra per-pixel source-photo samples may affect
+Android GPU p50/p95. Measure physical low/mid/high devices and review
+consented real photographs with hair strands, glasses, and hands before
+any release or superiority claim.
