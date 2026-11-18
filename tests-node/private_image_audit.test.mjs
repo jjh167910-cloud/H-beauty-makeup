@@ -101,6 +101,7 @@ test("study refuses unmatched A/B dimensions and same-subject cross-look dimensi
   const out=join(tmpdir(),"hbeauty-dimension-out-"+Date.now()+"-"+Math.random().toString(16).slice(2));
   try {
     await fs.writeFile(join(dir,"A.png"),png);
+    await fs.writeFile(join(dir,"A_clone.png"),png);
     await fs.writeFile(join(dir,"B.png"),pngWide);
     await fs.writeFile(join(dir,"A2.png"),pngWide);
     await fs.writeFile(join(dir,"B2.png"),pngWide);
@@ -115,7 +116,7 @@ test("study refuses unmatched A/B dimensions and same-subject cross-look dimensi
       /A\/B image dimension mismatch/);
     const cross=pairs.map((x,i)=>i===1?{
       ...x,candidate_file:"A2.png",comparator_file:"B2.png"
-    }:{...x,comparator_file:"A.png"});
+    }:{...x,comparator_file:"A_clone.png"});
     await fs.writeFile(manifest,JSON.stringify({schema_version:1,trials:cross}));
     await assert.rejects(()=>packStudy(manifest,out,"private-test-seed-not-for-production"),
       /Inconsistent source-photo dimensions/);
