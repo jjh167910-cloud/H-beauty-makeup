@@ -565,3 +565,22 @@ and the independently validated eye-skin reference. A dark hair edge cannot
 turn ordinary skin into a false specular point, while a true source highlight
 can still survive pigment overlay. Both glint fidelity and hair-edge safety
 GPU tests are mandatory; no new source texture reads are introduced.
+
+### Avoiding needless skin-light and grain calculations on opaque native ink (2026-11-18)
+
+The shader formerly ran its five source-photo lighting probes when any
+cosmetic line or lash crossed an eye pixel, even when no skin-opacity material
+used that photometry. It now requests the eye-light estimate only when actual
+pigment wash, shimmer, or a gemstone contributes; opaque liner/wing/lash
+regions no longer choose an unrelated illumination estimate. Sparse mica
+grain computation is also conditional on active, visible shimmer. The actual
+material and original-image preservation formulas are unchanged; no additional
+GPU textures, model assets or network operations are introduced.
+
+The GPU test disables pigment, mica and stones, renders real native liner,
+then replaces **every original-photo source texel** with a dramatically
+different synthetic colour. It asserts that the actual liner rendering
+remains *bitwise identical* in all RGBA channels and nonempty. It restores
+the source texture and retains all existing protected-pixel, glint, wing,
+lash and natural-texture tests. This reduction in theoretical shader work
+requires physical Android A/B timing evidence before any latency claim.

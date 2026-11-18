@@ -109,6 +109,31 @@ test("native eye wing does not transmit legacy catalog-color ghost under new ink
       return flip(read);
     };
     const reference=draw(image,1);
+    // Pure native ink should not use the five-eye-sample skin-light estimate
+    // or mica grain: change the entire original photo lighting while keeping
+    // the previous framebuffer untouched, and require exact RGBA parity.
+    gl.uniform1f(uniform("uAmount"),0);
+    gl.uniform1f(uniform("uShimmer"),0);
+    gl.uniform1f(uniform("uRhinestones"),0);
+    const inkOnly=draw(image,0);
+    const drasticallyRelit=new Uint8Array(image.length);
+    for(let k=0;k<drasticallyRelit.length;k+=4)
+      drasticallyRelit.set([249,22,246,255],k);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D,textures[1]);
+    gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,W,H,gl.RGBA,
+      gl.UNSIGNED_BYTE,drasticallyRelit);
+    const relitInk=draw(image,0);
+    let inkOnlyChanged=0,inkLightDrift=0;
+    for(let k=0;k<image.length;k++){
+      if(inkOnly[k]!==image[k]) inkOnlyChanged++;
+      if(inkOnly[k]!==relitInk[k]) inkLightDrift++;
+    }
+    gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,W,H,gl.RGBA,
+      gl.UNSIGNED_BYTE,image);
+    gl.uniform1f(uniform("uAmount"),mat.amount);
+    gl.uniform1f(uniform("uShimmer"),0);
+    gl.uniform1f(uniform("uRhinestones"),0);
     gl.uniform1f(uniform("uWingLength"),0);
     const wingless=draw(image,1);
     gl.uniform1f(uniform("uWingLength"),mat.wingLength);
@@ -283,7 +308,8 @@ test("native eye wing does not transmit legacy catalog-color ghost under new ink
       wingRootScore,wingTipScore,wingOutside,glintCases,highlightRecovery:mat.highlightRecovery,
       lashChanged,lashOutside,outerLashes,innerLashes,
       seamImproved,seamProtected,seamSclera,
-      noCosmeticsDelta,nearBefore,nearAfter,farDelta};
+      noCosmeticsDelta,nearBefore,nearAfter,farDelta,
+      inkOnlyChanged,inkLightDrift};
   });
   test.skip(!!r.unavailable,"WebGL2 not available");
   expect(r.invalid).not.toBe(true);
@@ -291,6 +317,8 @@ test("native eye wing does not transmit legacy catalog-color ghost under new ink
   expect(r.legacyDifference).toBeGreaterThan(100);
   expect(r.cleanedDifference).toBeLessThan(r.legacyDifference*0.75);
   expect(r.protectedDifference).toBe(0);
+  expect(r.inkOnlyChanged).toBeGreaterThan(10);
+  expect(r.inkLightDrift).toBe(0);
   expect(r.wingRootScore).toBeGreaterThan(30);
   expect(r.wingTipScore).toBeLessThan(r.wingRootScore * 0.8);
   expect(r.wingOutside).toBe(0);
