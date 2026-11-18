@@ -9,6 +9,7 @@ import { createHash } from "node:crypto";
 
 const LOOKS = ["hollywood", "electric-blue", "rhinestone"];
 const SKINS = ["light", "medium", "deep"];
+export const CHALLENGE_TAGS = ["hooded", "monolid", "profile", "glasses", "hair_occlusion", "low_light"];
 const finite = n => typeof n === "number" && Number.isFinite(n);
 const round = x => Math.round(x * 1e6) / 1e6;
 const mean = a => a.reduce((s,x)=>s+x,0)/a.length;
@@ -71,7 +72,7 @@ function sliceReport(cases,label) {
 export function analyzeBlindScores(cases) {
   if(!Array.isArray(cases)||cases.length===0)
     throw new Error("Nonempty unblinded paired cases required");
-  const pairs=new Set(), subjectSkin=new Map();
+  const pairs=new Set(), subjectSkin=new Map(), subjectChallenge=new Map();
   for(const c of cases){
     if(!c||typeof c.sample_id!=="string"||!/^[A-Za-z0-9_-]{1,64}$/.test(c.sample_id)||
       !LOOKS.includes(c.look_id)||!SKINS.includes(c.skin_group)||
@@ -80,7 +81,11 @@ export function analyzeBlindScores(cases) {
       c.artist_score<1||c.artist_score>5||
       c.comparator_artist_score<1||c.comparator_artist_score>5||
       !finite(c.paired_artist_delta)||
-      Math.abs(c.paired_artist_delta-(c.artist_score-c.comparator_artist_score))>1e-8)
+      Math.abs(c.paired_artist_delta-(c.artist_score-c.comparator_artist_score))>1e-8 ||
+      (c.challenge_tags!==undefined &&
+       (!Array.isArray(c.challenge_tags) ||
+        c.challenge_tags.some(tag=>!CHALLENGE_TAGS.includes(tag)) ||
+        new Set(c.challenge_tags).size!==c.challenge_tags.length)))
       throw new Error("Invalid private paired artist rating or group");
     const pair=c.sample_id+":"+c.look_id;
     if(pairs.has(pair))throw new Error("Duplicate subject/look paired rating");
@@ -88,8 +93,13 @@ export function analyzeBlindScores(cases) {
     const earlier=subjectSkin.get(c.sample_id);
     if(earlier && earlier!==c.skin_group)throw new Error("Inconsistent subject skin group");
     subjectSkin.set(c.sample_id,c.skin_group);
+    const tags=[...(c.challenge_tags ?? [])].sort().join(",");
+    if(subjectChallenge.has(c.sample_id) && subjectChallenge.get(c.sample_id)!==tags)
+      throw new Error("Inconsistent subject challenge tags across looks");
+    subjectChallenge.set(c.sample_id,tags);
   }
-  const reports={ overall:sliceReport(cases,"overall"), by_look:{},by_skin:{},by_look_skin:{} };
+  const reports={ overall:sliceReport(cases,"overall"), by_look:{},
+    by_skin:{},by_look_skin:{},by_challenge:{} };
   for(const look of LOOKS){
     const lookCases=cases.filter(c=>c.look_id===look);
     reports.by_look[look]=lookCases.length?sliceReport(lookCases,"look:"+look):null;
@@ -104,8 +114,16 @@ export function analyzeBlindScores(cases) {
     const group=cases.filter(c=>c.skin_group===skin);
     reports.by_skin[skin]=group.length?sliceReport(group,"skin:"+skin):null;
   }
+  for(const tag of CHALLENGE_TAGS){
+    const group=cases.filter(c=>(c.challenge_tags ?? []).includes(tag));
+    reports.by_challenge[tag]=group.length?sliceReport(group,"challenge:"+tag):null;
+  }
+  const annotatedSubjects=new Set(cases.filter(c=>(c.challenge_tags??[]).length).map(c=>c.sample_id));
   return {
     schema_version:1,
+    annotated_subjects:annotatedSubjects.size,
+    annotation_warning:annotatedSubjects.size===0?
+      "No challenge annotations: hard-case realism cannot be assessed":null,
     ...reports,
     inference_warning:"Descriptive subject-cluster bootstrap is exploratory; biased recruitment, repeated raters, photographic leakage and unverified consent can invalidate conclusions. Not proof of photorealism or a release certificate.",
   };
