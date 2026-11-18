@@ -622,3 +622,22 @@ makeup. It requires every RGBA byte to be identical and meaningful nonzero
 material effects to remain, including rhinestone material. This verifies
 semantic output parity, not a physical Android speedup; measured p50/p95 and
 thermal trials remain mandatory before performance claims.
+
+### Honest A/B study inputs: matched canvases and true no-effect cases (2026-11-18)
+
+Private blind-study packaging now inspects source PNG/JPEG/WebP width and height
+without decoding or uploading photos. Each candidate/comparator pair must have
+identical dimensions and the same person must use one set of canvas dimensions
+across the three pilot makeup looks. This prevents a trivial comparison bias;
+it does **not** prove matched crop, colour management, skin lighting or pose.
+
+The private study answer key records byte-identical A/B images instead of
+excluding them from the statistical denominator. In the pre-release
+`benchmark_v2.mjs` gate, a purported non-tie win or unequal realism
+ratings on byte-identical image bytes is flagged as a study-quality failure.
+The genuine tie remains part of all decisions, never a manufactured win.
+
+Only real consented matched photographs with audited original-pixel invariants,
+blinded independent artists, challenge-condition coverage and low/mid/high
+physical Android performance measurements can support a real-world quality
+claim. Test fixtures alone do not establish renderer realism.
