@@ -129,6 +129,11 @@ test("native eye wing does not transmit legacy catalog-color ghost under new ink
       if(inkOnly[k]!==image[k]) inkOnlyChanged++;
       if(inkOnly[k]!==relitInk[k]) inkLightDrift++;
     }
+    // draw() switches activeTexture to TEXTURE0 for the prior FBO.
+    // Restore the photo explicitly on TEXTURE1 or later ghost/skin
+    // comparisons will accidentally overwrite the prior-frame texture.
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D,textures[1]);
     gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,W,H,gl.RGBA,
       gl.UNSIGNED_BYTE,image);
     gl.uniform1f(uniform("uAmount"),mat.amount);
