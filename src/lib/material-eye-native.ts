@@ -506,7 +506,7 @@ export const NATIVE_EYE_FS = [
   "    // carries its own pigment and must not trigger texture probes.",
   "    float opticalCoverage=coverage*step(0.0001,max(uAmount,uShimmer));",
   "    float eyeContribution=max(opticalCoverage,eyeGems);",
-  "    if(eyeContribution>dominantEyeContribution){
+  "    if(eyeContribution>dominantEyeContribution){",
   "      dominantEyeContribution=eyeContribution;",
   "      float sampledLight=robustEyeReference(eye);",
   "      validReference=step(0.0,sampledLight);",

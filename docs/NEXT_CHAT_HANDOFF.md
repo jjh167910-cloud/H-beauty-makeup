@@ -217,6 +217,11 @@ No production release/merge, no private photos, licensing separately.
 - **Verify this exact new SHA:** required review, 3/3 full Playwright shards and independent camera workflow must all report completed SUCCESS; inspect and repair any failure. Real low/mid/high Android GPU p50/p95 timing, memory/thermals and consented blinded makeup-artist real-photo fidelity remain unmeasured.
 - No production deploy or PR merge; default/live customer renderer and `main` unchanged. Licensing separately handled.
 
+### TypeScript source-generation error corrected — 2026-11-18
+
+- `eb9d176` [review 44212023757](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/44212023757) and [camera 44212023684](https://github.com/jjh167910-cloud/H-beauty-makeup/actions/runs/44212023684) failed at **TypeScript parsing**, before rendering tests: `src/lib/material-eye-native.ts:509` omitted the terminating quote/comma on the shader's `if(eyeContribution>dominantEyeContribution){` string literal (TS1002/TS1005). Full shards skipped. This is a source typo, not evidence that rendering test thresholds failed.
+- This follow-up fixes precisely that string literal without changing the optical condition, renderer behavior or tests. Recheck required review, 3/3 browser shards and independent camera on the new exact SHA. Keep production unchanged.
+
 ## Mandatory next-chat operating procedure
 
 1. Fetch PR #23 **current head SHA** and check `Try-on review` plus separate `Live mirror camera frame regression` workflows for **that exact SHA**. Require `review`, **all three** `Full Playwright suite` shards and independent camera **completed success**. If any fail, read GitHub job logs and fix the real problem. Cancelled runs caused by later commits are not “green”.
