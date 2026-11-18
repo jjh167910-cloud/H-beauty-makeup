@@ -142,6 +142,26 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
       const coarseOutput=flip(coarsePixels);
       for(let i=0;i<coarseOutput.length;i++)
         if(coarseOutput[i]!==prior[i])guidedCoarseChanges++;
+      // A guided fit must respond to ORIGINAL camera RGB, not only A.a.
+      // The same signed affine visibility fit yields exposed skin on the
+      // light image, but correctly rejects the deep source in this
+      // deliberate synthetic photometric edge case.
+      const guidedCoefficients=new Uint8Array(256*256*4);
+      for(let i=0;i<256*256;i++){
+        guidedCoefficients[i*4]=255; // A.r = 1
+        guidedCoefficients[i*4+3]=87; // b = 0.341
+      }
+      gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,guidedTex);
+      gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,256,256,gl.RGBA,
+        gl.UNSIGNED_BYTE,guidedCoefficients);
+      gl.uniform1i(visibilityMode,2);
+      gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+      const fittedPixels=new Uint8Array(prior.length);
+      gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,fittedPixels);
+      const fittedOutput=flip(fittedPixels);
+      let guidedSourceSensitiveChanges=0;
+      for(let i=0;i<fittedOutput.length;i++)
+        if(fittedOutput[i]!==prior[i])guidedSourceSensitiveChanges++;
       // Restore native RG8 visibility for all existing strict pixel tests.
       gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,textures[2]);
       gl.uniform1i(visibilityMode,1);
@@ -438,7 +458,8 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
         trueLightResponse, otherEyeCoherentChange,
         hiddenSampleInfluence,visiblePigmentSamples,missingReferenceDifferences,
         edgeHaloMax,edgeCenterPainted,
-        guidedOccludedChanges,guidedVisibleChanges,guidedCoarseChanges});
+        guidedOccludedChanges,guidedVisibleChanges,guidedCoarseChanges,
+        guidedSourceSensitiveChanges});
       textures.forEach(t=>gl.deleteTexture(t));
     }
     return {observations,enabled:[...material.enabled]};
@@ -477,6 +498,10 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
     expect(result.guidedOccludedChanges).toBe(0);
     expect(result.guidedVisibleChanges).toBeGreaterThan(100);
     expect(result.guidedCoarseChanges).toBe(0);
+    if(result.depth==="light")
+      expect(result.guidedSourceSensitiveChanges).toBeGreaterThan(100);
+    else
+      expect(result.guidedSourceSensitiveChanges).toBe(0);
   }
 });
 
