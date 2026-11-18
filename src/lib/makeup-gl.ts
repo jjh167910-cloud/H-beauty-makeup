@@ -23,6 +23,8 @@
  * Everything else stays her own pixels.
  */
 import type { Pt } from "./tryon";
+import { NATIVE_EYE_FS, nativeEyeMaterial, nativeEyeScissor } from "./material-eye-native";
+import { NativeEyeGpuTimer, type NativeEyeGpuMeasurement, type NativeEyeGpuMode, type NativeEyeGpuSummary } from "./native-eye-gpu-timer";
 
 export type Level = "soft" | "natural" | "bold";
 /** (catalog layer, lipstick opacity, eye detail), as LEVELS in teacher.py. */
@@ -1904,12 +1906,65 @@ export class MakeupGL {
   private size = [0, 0];
   private float: boolean;
   private targets: Record<string, Target> = {};
+  /** Allocated only for the opt-in, saved-photo native material research path. */
+  private nativeOutput: Target | null = null;
+  private nativeProgramUnavailable = false;
+  private nativeEyeGpuTimer: NativeEyeGpuTimer | null = null;
   private depth: WebGLRenderbuffer | null = null;
   private smallDepth: WebGLRenderbuffer | null = null;
   private small = [1, 1];
   /** Guided-filter grids (the visible face, her lips; made on first use) and the map each last fitted (the live mirror and the tutorial paint many frames with one map). */
   private grids: Record<string, { n: number; prob: WebGLTexture; t: Record<string, Target>; last: { key: object; w: number; h: number; out: [number, WebGLTexture] } | null }> = {};
   lost = false;
+  /** Observability only; no customer image or landmarks are logged/stored. */
+  lastNativeEye = false;
+  lastNativeEyeMs = 0;
+  /** True iff a same-context baseline blit plus scissored native pass succeeded. */
+  lastNativeEyeFast = false;
+  /** GPU timer is optional, supported only by some WebGL2 drivers. */
+  nativeEyeGpuTimingSupported: boolean | null = null;
+  /** Latest completed GPU query, never CPU submission time. */
+  lastNativeEyeGpuMs: number | null = null;
+  lastNativeEyeGpuMode: NativeEyeGpuMode | null = null;
+
+  /** Polling a query never waits for GPU completion or reads image pixels. */
+  pollNativeEyeGpuTiming(): NativeEyeGpuMeasurement | null {
+    const timer = this.nativeEyeGpuTimer;
+    if (!timer) return null;
+    const latest = timer.poll();
+    this.lastNativeEyeGpuMs = latest?.gpuMs ?? null;
+    this.lastNativeEyeGpuMode = latest?.mode ?? null;
+    return latest;
+  }
+
+  /** Development-only, sampled GPU elapsed-time summary (no uploads). */
+  nativeEyeGpuProfile(): NativeEyeGpuSummary[] {
+    this.pollNativeEyeGpuTiming();
+    return this.nativeEyeGpuTimer?.summarize() ?? [];
+  }
+
+  /** Opt-in research diagnostics only; no pixel data or network calls. */
+  nativeEyeGpuSamples(): NativeEyeGpuMeasurement[] {
+    return this.nativeEyeGpuTimer?.snapshot() ?? [];
+  }
+
+  /** Local-only query backlog and evidence generation; never a GPU stall. */
+  nativeEyeGpuPendingCount(): number {
+    return this.nativeEyeGpuTimer?.pendingCount ?? 0;
+  }
+
+  nativeEyeGpuSampleEpoch(): number {
+    return this.nativeEyeGpuTimer?.sampleEpoch ?? -1;
+  }
+
+  resetNativeEyeGpuSamples(): boolean {
+    const reset = this.nativeEyeGpuTimer?.resetSamples() ?? false;
+    if (reset) {
+      this.lastNativeEyeGpuMs = null;
+      this.lastNativeEyeGpuMode = null;
+    }
+    return reset;
+  }
 
   /** A renderer, or null when the phone has no WebGL2 (the app then uses the tiny networks). */
   static create(): MakeupGL | null {
@@ -1927,7 +1982,14 @@ export class MakeupGL {
     this.canvas = canvas;
     this.gl = gl;
     this.float = Boolean(gl.getExtension("EXT_color_buffer_float") || gl.getExtension("EXT_color_buffer_half_float"));
-    canvas.addEventListener("webglcontextlost", (event) => { event.preventDefault(); this.lost = true; });
+    canvas.addEventListener("webglcontextlost", (event) => {
+      event.preventDefault(); this.lost = true;
+      this.nativeEyeGpuTimer?.dispose();
+      this.nativeEyeGpuTimer = null;
+      this.nativeEyeGpuTimingSupported = null;
+      this.lastNativeEyeGpuMs = null;
+      this.lastNativeEyeGpuMode = null;
+    });
     const make = (vs: string, fs: string) => {
       const p = gl.createProgram()!;
       for (const [type, text] of [[gl.VERTEX_SHADER, vs], [gl.FRAGMENT_SHADER, fs]] as const) {
@@ -1953,6 +2015,47 @@ export class MakeupGL {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     this.src = this.texture();
     this.wbuf = gl.createBuffer()!;
+  }
+
+  /** Lazy shader compile: failure in an experimental pass never disables
+   * the entire production renderer on an older WebGL2 phone.
+   */
+  private nativeEyeProgram(): WebGLProgram | null {
+    if (this.progs.nativeEye) return this.progs.nativeEye;
+    if (this.nativeProgramUnavailable) return null;
+    const gl = this.gl;
+    const vert = gl.createShader(gl.VERTEX_SHADER);
+    const frag = gl.createShader(gl.FRAGMENT_SHADER);
+    const program = gl.createProgram();
+    if (!vert || !frag || !program) {
+      this.nativeProgramUnavailable = true;
+      return null;
+    }
+    try {
+      gl.shaderSource(vert, QUAD_VS);
+      gl.shaderSource(frag, NATIVE_EYE_FS);
+      gl.compileShader(vert);
+      gl.compileShader(frag);
+      if (!gl.getShaderParameter(vert, gl.COMPILE_STATUS) ||
+          !gl.getShaderParameter(frag, gl.COMPILE_STATUS))
+        throw new Error(gl.getShaderInfoLog(frag) || gl.getShaderInfoLog(vert) || "native eye shader");
+      gl.attachShader(program, vert);
+      gl.attachShader(program, frag);
+      gl.bindAttribLocation(program, 0, "aPos");
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS))
+        throw new Error(gl.getProgramInfoLog(program) || "native eye link");
+      this.progs.nativeEye = program;
+      return program;
+    } catch (error) {
+      this.nativeProgramUnavailable = true;
+      gl.deleteProgram(program);
+      console.warn("Experimental native eye shader disabled", error);
+      return null;
+    } finally {
+      gl.deleteShader(vert);
+      gl.deleteShader(frag);
+    }
   }
 
   private texture(): WebGLTexture {
@@ -1985,6 +2088,11 @@ export class MakeupGL {
     if (this.size[0] === w && this.size[1] === h) return;
     const gl = this.gl;
     for (const t of Object.values(this.targets)) { gl.deleteFramebuffer(t.fb); t.tex.forEach((x) => gl.deleteTexture(x)); }
+    if (this.nativeOutput) {
+      gl.deleteFramebuffer(this.nativeOutput.fb);
+      this.nativeOutput.tex.forEach(t => gl.deleteTexture(t));
+      this.nativeOutput = null;
+    }
     if (this.depth) gl.deleteRenderbuffer(this.depth);
     const target = (count: number, float: boolean) => this.target(count, float, w, h);
     this.targets = {
@@ -2254,8 +2362,13 @@ export class MakeupGL {
    * it). The result is on this.canvas (w x h).
    */
   render(source: TexImageSource, w: number, h: number, P: Pt[], look: LookFiles, face: FaceStats, level: Level, tris: number[],
-    lip: LipInfo = look.lip, canon?: Canon, steps?: StepState, products?: Products, vis?: Visibility | null, lips?: LipGrid | null) {
+    lip: LipInfo = look.lip, canon?: Canon, steps?: StepState, products?: Products, vis?: Visibility | null, lips?: LipGrid | null,
+    nativeEyeId?: string, nativeEyeFast = false) {
     const gl = this.gl;
+    this.lastNativeEye = false;
+    this.lastNativeEyeMs = 0;
+    this.lastNativeEyeFast = false;
+    this.pollNativeEyeGpuTiming();
     if (this.canvas.width !== w || this.canvas.height !== h) { this.canvas.width = w; this.canvas.height = h; }
     this.resize(w, h);
     const [kLayer, kLip, kEye] = LEVELS[level];
@@ -2591,9 +2704,28 @@ export class MakeupGL {
       this.drawQuad(p);
     }
 
-    // 4. everything together, onto the canvas
+    // 4. Main makeup composition. In the explicitly opt-in PHOTO pilot,
+    // write it to an RGBA8 framebuffer instead of the default drawingBuffer.
+    // The next material pass runs in this same context, without CPU ROI
+    // readbacks, second WebGL contexts or canvas-to-canvas blits.
+    // Invalid/unsupported geometry leaves the proven default path unchanged.
+    const nativeData = nativeEyeId && vis && !steps && !products?.mine
+      ? nativeEyeMaterial(P, nativeEyeId, level, face.blur ?? 0) : null;
+    const nativeProgram = nativeData ? this.nativeEyeProgram() : null;
+    let nativeOn = Boolean(nativeData && nativeProgram);
+    if (nativeOn && !this.nativeOutput) {
+      this.nativeOutput = this.target(1, false, w, h);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.nativeOutput.fb);
+      if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+        // Fail closed: do not attempt to draw into an incomplete target.
+        gl.deleteFramebuffer(this.nativeOutput.fb);
+        this.nativeOutput.tex.forEach(t => gl.deleteTexture(t));
+        this.nativeOutput = null;
+        nativeOn = false;
+      }
+    }
     gl.disable(gl.SCISSOR_TEST);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, nativeOn ? this.nativeOutput!.fb : null);
     p = this.use("main");
     this.bindTex(p, "uSrc", foundOn ? this.targets.srcF.tex[0] : this.src, 0);
     this.bindTex(p, "uLayer", (soft ? this.targets.detail : extendOn ? this.targets.layerX : this.targets.layer).tex[0], 1);
@@ -2733,9 +2865,101 @@ export class MakeupGL {
       gl.uniform4f(this.uni(p, "uMid"), mid[0], mid[1], dir[0], dir[1]);
     }
     this.drawQuad(p, -1);
+    if (nativeOn && nativeData && nativeProgram) {
+      const nativeStarted = performance.now();
+      // Query instrumentation is opt-in; normal customers never allocate
+      // timer objects or pay the cost of polling.
+      const timingOn = new URLSearchParams(location.search).get("eyeTiming") === "1";
+      if (timingOn && !this.nativeEyeGpuTimer) {
+        this.nativeEyeGpuTimer = new NativeEyeGpuTimer(gl);
+        this.nativeEyeGpuTimingSupported = this.nativeEyeGpuTimer.supported;
+      }
+      const timer = timingOn && this.nativeEyeGpuTimer?.supported ? this.nativeEyeGpuTimer : null;
+      // Time BOTH the GPU framebuffer blit and the shader in native-fast mode.
+      // Mark a fallback to fullscreen native after the result is known.
+      const queryStarted = timer?.begin(nativeEyeFast ? "native-fast" : "native") ?? false;
+      let nativeRect: [number, number, number, number] | null = null;
+      try {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.disable(gl.DEPTH_TEST);
+      gl.disable(gl.BLEND);
+      gl.disable(gl.SCISSOR_TEST);
+      if (nativeEyeFast) {
+        // Copy the already-composed photo in GPU memory, then shade only the
+        // localized eye envelope. All untouched pixels remain bit-exact with
+        // the default renderer; no 2D canvas or gl.readPixels is involved.
+        const rect = nativeEyeScissor(nativeData, w, h);
+        if (rect) {
+          gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.nativeOutput!.fb);
+          gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+          gl.readBuffer(gl.COLOR_ATTACHMENT0);
+          gl.blitFramebuffer(0, 0, w, h, 0, 0, w, h, gl.COLOR_BUFFER_BIT, gl.NEAREST);
+          const blitError = gl.getError();
+          // If a driver rejects the blit, the next fullscreen shader draw
+          // restores the complete photo rather than leaving an empty buffer.
+          if (blitError === gl.NO_ERROR) {
+            nativeRect = rect;
+          } else {
+            console.warn("Eye native scissor blit unavailable", blitError);
+          }
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        }
+      }
+      p = this.use("nativeEye");
+      this.bindTex(p, "uPrevious", this.nativeOutput!.tex[0], 0);
+      this.bindTex(p, "uOriginal", this.src, 1);
+      // Use the same photo-guided face occlusion as the main pass. The raw
+      // segmentation grid is too coarse around hair, glasses and hands;
+      // in guided mode the RGBA texture contains A.rgb and intercept A.a.
+      this.bindTex(p, "uVis", visTex, 2);
+      gl.uniform2f(this.uni(p, "uSize"), w, h);
+      gl.uniform3f(this.uni(p, "uVisBox"), ...vis!.box);
+      gl.uniform1i(this.uni(p, "uVisOn"), 1);
+      gl.uniform1i(this.uni(p, "uVisMode"), visMode);
+      gl.uniform2fv(this.uni(p, "uUpper"), nativeData.upper);
+      gl.uniform2fv(this.uni(p, "uBrows"), nativeData.brows);
+      gl.uniform4fv(this.uni(p, "uFrame"), nativeData.frame);
+      gl.uniform1fv(this.uni(p, "uSpan"), nativeData.span);
+      gl.uniform1iv(this.uni(p, "uEnabled"), nativeData.enabled);
+      gl.uniform3fv(this.uni(p, "uPigmentA"), nativeData.pigmentA);
+      gl.uniform3fv(this.uni(p, "uPigmentB"), nativeData.pigmentB);
+      gl.uniform1f(this.uni(p, "uAmount"), nativeData.amount);
+      gl.uniform1i(this.uni(p, "uMode"), nativeData.mode);
+      gl.uniform2fv(this.uni(p, "uLift"), nativeData.lift);
+      gl.uniform1fv(this.uni(p, "uOpening"), nativeData.opening);
+      gl.uniform3fv(this.uni(p, "uLinerColor"), nativeData.linerColor);
+      gl.uniform1f(this.uni(p, "uLinerWidth"), nativeData.linerWidth);
+      gl.uniform1f(this.uni(p, "uWingLength"), nativeData.wingLength);
+      gl.uniform1f(this.uni(p, "uLashLength"), nativeData.lashLength);
+      gl.uniform1i(this.uni(p, "uLashCount"), nativeData.lashCount);
+      // Use the same capped optical edge that determined scissor padding.
+      // Recomputing blur here used to widen shader ink beyond the ROI.
+      gl.uniform1f(this.uni(p, "uInkSoft"), nativeData.inkSoft);
+      gl.uniform1f(this.uni(p, "uHighlightRecovery"), nativeData.highlightRecovery);
+      // Material-only removal of old catalog wing/eyelash remnants.
+      // This native pass is gated to opt-in prepared photos, never live.
+      gl.uniform1i(this.uni(p, "uCleanLegacy"), 1);
+      gl.uniform1f(this.uni(p, "uShimmer"), nativeData.shimmer);
+      gl.uniform1f(this.uni(p, "uRhinestones"), nativeData.rhinestones);
+      if (nativeRect) {
+        gl.enable(gl.SCISSOR_TEST);
+        gl.scissor(nativeRect[0], nativeRect[1], nativeRect[2], nativeRect[3]);
+      }
+      this.drawQuad(p); // FBO texture -> drawingBuffer, same orientation
+      this.lastNativeEye = true;
+      this.lastNativeEyeFast = nativeRect !== null;
+      this.lastNativeEyeMs = performance.now() - nativeStarted;
+      } finally {
+        // Even shader/driver failures must retire a started query.
+        gl.disable(gl.SCISSOR_TEST);
+        if (queryStarted) timer?.end(nativeRect ? "native-fast" : "native");
+      }
+    }
   }
 
   dispose() {
+    this.nativeEyeGpuTimer?.dispose();
+    this.nativeEyeGpuTimer = null;
     this.gl.getExtension("WEBGL_lose_context")?.loseContext();
   }
 }

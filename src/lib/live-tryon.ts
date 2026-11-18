@@ -46,6 +46,10 @@ export class LiveMirror {
   private frame = canvas(1, 1);
   private scratch = canvas(256, 256);
   private running = false;
+  /** A pending capture gets priority over synthetic/model-heavy mirror frames. */
+  private capturePaused = false;
+  /** Main-thread frame work must yield time for taps and capture actions. */
+  private lastFrameWorkMs = 0;
   private look: string;
   private level: Level;
   private delta: Float32Array | null = null;
@@ -127,8 +131,9 @@ export class LiveMirror {
     let frameFailures = 0;
     const tick = () => {
       if (!this.running) return;
+      const frameStarted = performance.now();
       try {
-        this.draw(landmarker);
+        if (!this.capturePaused) this.draw(landmarker);
         frameFailures = 0;
         // If the camera freezes, a previously measured FPS must not remain
         // displayed as though frames are still arriving.
@@ -143,7 +148,18 @@ export class LiveMirror {
         // camera loop. Subsequent frames can recover without restarting video.
         if (frameFailures++ < 2) console.warn("Live makeup frame skipped", error);
       } finally {
-        if (this.running) requestAnimationFrame(tick);
+        // A loaded software renderer can monopolize the main thread with
+        // continuous rAF callbacks. Always leave a small idle window for
+        // pointer events, accessibility controls and the capture button.
+        // On fast phones this remains roughly 30-60 fps; heavy devices
+        // gracefully spend more time idle instead of becoming untappable.
+        const work = performance.now() - frameStarted;
+        this.lastFrameWorkMs = this.lastFrameWorkMs * 0.75 + work * 0.25;
+        const quietMs = this.capturePaused ? 35 :
+          Math.max(9, Math.min(32, 10 + this.lastFrameWorkMs * 0.10));
+        if (this.running) setTimeout(() => {
+          if (this.running) requestAnimationFrame(tick);
+        }, quietMs);
       }
     };
     requestAnimationFrame(tick);
@@ -216,8 +232,13 @@ export class LiveMirror {
     }
   }
 
+  /** Preserve the camera stream but stop expensive live paint for a photo. */
+  pauseForCapture() { this.capturePaused = true; }
+  resumeAfterCapture() { this.capturePaused = false; }
+
   stop() {
     this.running = false;
+    this.capturePaused = false;
     this.stream?.getTracks().forEach((track) => track.stop());
     this.stream = null;
     this.video.srcObject = null;

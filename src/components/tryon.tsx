@@ -464,8 +464,18 @@ export default function TryOnView({ style, onBook }: {
     const m = mirror.current;
     if (!m) return;
     haptic();
-    const shot = await m.snapshot().catch(() => null);
-    if (shot) await takePhoto(shot);
+    // Capturing a high-resolution frame must take priority over the live
+    // shader/segmentation loop. This also prevents the loop from starving
+    // the capture click on slower Android phones and CI software renderers.
+    m.pauseForCapture();
+    try {
+      const shot = await m.snapshot().catch(() => null);
+      if (shot) await takePhoto(shot);
+    } finally {
+      // Snapshot failure leaves the live camera usable; after a successful
+      // capture the phase effect has already disposed the old mirror.
+      m.resumeAfterCapture();
+    }
   }
 
   const current = styleById.get(look) ?? style;

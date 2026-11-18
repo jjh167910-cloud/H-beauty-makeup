@@ -28,6 +28,8 @@ import { PIECE, PIECES } from "virtual:ai-pieces";
 import { hdBackend, hdFace, hdNeeded, hdRunning, hdSession } from "./face-hd";
 import { STUDIO_CRISP, Studio, studioParams } from "./studio-gl";
 import { styleById } from "@/data/makeup-styles";
+import { applyMaterialEyeV2, materialEyePilotEnabled } from "./material-eye-v2";
+import { nativeEyeLegacyFallbackAllowed } from "./material-eye-native";
 import lookGains from "@/data/look-gains.json";
 import {
   LIP_GRID, LIPS_IN, LIPS_OUT, MakeupGL, STEP_KEYS, linHex, VIS_SEG, eyeWidth, lensSigma, linerColour, lipChoice, measureFace, mineLight, pigment, productLight, visCrop,
@@ -103,6 +105,15 @@ const OLD_DATA = (ids: string[]) => [
 ];
 const SIZE = 256;
 const MAX_SIDE = 1600;
+/** HD material-eye research tier. Kept off for normal customers and memory-limited phones.
+ * Large WebGL targets multiply the photo's RAM cost across many rendering passes.
+ * The live mirror and first-install model download are unchanged.
+ */
+export function photoMaxSide(params = new URLSearchParams(location.search)): number {
+  if (params.get("eyePilot") !== "v2" || engine() !== "gpu") return MAX_SIDE;
+  const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 0;
+  return memory >= 8 ? 2048 : MAX_SIDE;
+}
 /** How much of the full-resolution catalog lash/liner detail to add on top of the tiny network. */
 const EYE_DETAIL = 0.6;
 
@@ -957,8 +968,8 @@ export async function productsFor(look: string, picks: ProductPicks | null | und
  * is on the engine's canvas.
  */
 export function paintGpu(source: HTMLCanvasElement, points: Pt[], look: string, level: Level, face?: FaceStats, lip?: LipChoice | null,
-  steps?: StepState, picks?: ProductPicks | null, vis?: Visibility | null, lips?: LipGrid | null): Promise<HTMLCanvasElement> {
-  return myTurn(() => paintGpuNow(source, points, look, level, face, lip, steps, picks, vis, lips));
+  steps?: StepState, picks?: ProductPicks | null, vis?: Visibility | null, lips?: LipGrid | null, nativeEye = false, nativeFast = false): Promise<HTMLCanvasElement> {
+  return myTurn(() => paintGpuNow(source, points, look, level, face, lip, steps, picks, vis, lips, nativeEye, nativeFast));
 }
 
 /**
@@ -980,14 +991,15 @@ async function myTurn<T>(work: () => Promise<T>): Promise<T> {
 }
 
 async function paintGpuNow(source: HTMLCanvasElement, points: Pt[], look: string, level: Level, face?: FaceStats, lip?: LipChoice | null,
-  steps?: StepState, picks?: ProductPicks | null, vis?: Visibility | null, lips?: LipGrid | null): Promise<HTMLCanvasElement> {
+  steps?: StepState, picks?: ProductPicks | null, vis?: Visibility | null, lips?: LipGrid | null, nativeEye = false, nativeFast = false): Promise<HTMLCanvasElement> {
   const r = gpu();
   if (!r) throw "failed" satisfies TryOnError;
   const stats = face ?? measureFace(source, points);
   if (stats.blur == null) stats.blur = photoBlur(source, points);
   const [files, all] = await Promise.all([loadLook(look), meta()]);
   const products = await resolveProducts(look, picks, stats, all, !lip);
-  r.render(source, source.width, source.height, points, files, stats, level, all.tris, lipChoice(files.lip, lip, all.swatch), all.canon, steps, products, vis, lips);
+  r.render(source, source.width, source.height, points, files, stats, level, all.tris, lipChoice(files.lip, lip, all.swatch), all.canon, steps, products, vis, lips,
+    nativeEye && !picks && !steps ? look : undefined, nativeEye && nativeFast);
   return r.canvas;
 }
 
@@ -1205,7 +1217,7 @@ export function alignedBox(m: Affine, width: number, height: number) {
  */
 export async function preparePhoto(file: Blob, onStep?: (step: "sharp" | "hd", done: number) => void): Promise<Prepared> {
   const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-  const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+  const scale = Math.min(1, photoMaxSide() / Math.max(bitmap.width, bitmap.height));
   const photo = canvas(bitmap.width * scale, bitmap.height * scale);
   const c = ctx2d(photo);
   c.imageSmoothingQuality = "high";
@@ -1489,7 +1501,7 @@ async function sharpen(photo: HTMLCanvasElement, plan: { w: number; h: number },
     if (error !== "slow") { sharpener = null; e.dispose(); }
     throw error;
   }
-  const fit = Math.min(1, MAX_SIDE / Math.max(big.width, big.height));
+  const fit = Math.min(1, photoMaxSide() / Math.max(big.width, big.height));
   const out = canvas(big.width * fit, big.height * fit);
   const o = ctx2d(out);
   o.imageSmoothingQuality = "high";
@@ -1675,7 +1687,30 @@ export async function paintLook(prepared: Shot, look: string, level: Level = "na
   if (engine() === "gpu") {
     prepared.face ??= measureFace(photo, points);
     if (prepared.lips === undefined) prepared.lips = lipProb(photo, points);
-    g.drawImage(await paintGpu(photo, points, look, level, prepared.face, lip, undefined, picks, prepared.vis, prepared.lips), 0, 0);
+    const nativeCompute = new URLSearchParams(location.search).get("eyeCompute");
+    const nativeEye = !picks && materialEyePilotEnabled(look) &&
+      (nativeCompute === "native" || nativeCompute === "native-fast");
+    const nativeFast = nativeEye && nativeCompute === "native-fast";
+    g.drawImage(await paintGpu(photo, points, look, level, prepared.face, lip, undefined, picks, prepared.vis, prepared.lips, nativeEye, nativeFast), 0, 0);
+    // Opt-in research preview, isolated to saved photos. The live mirror, tutorial,
+    // look thumbnails and production default remain on the original engine.
+    // Native mode has already rendered a shader in the SAME MakeupGL context.
+    // If a phone cannot compile that optional shader or the eye geometry is
+    // degenerate, preserve the experimental CPU fallback without losing the
+    // user's photo. User-customized makeup is never overwritten.
+    const nativeApplied = nativeEye && gpu()?.lastNativeEye === true;
+    // Do NOT route invalid native landmarks through the legacy CPU overlay.
+    // It has looser geometry checks and could otherwise paint an occluded or
+    // distorted eye. Keep the already-rendered base photo instead.
+    const legacyEyeSafe = !nativeEye || nativeEyeLegacyFallbackAllowed(points, look, level);
+    if (!nativeApplied && legacyEyeSafe && !picks && materialEyePilotEnabled(look)) {
+      try {
+        applyMaterialEyeV2(result, photo, points, look, level, prepared.vis, prepared.face?.blur ?? 0.7);
+      } catch (error) {
+        // This is an experiment, not a reason to lose a successfully rendered photo.
+        console.warn("Material-eye pilot skipped", error);
+      }
+    }
     return result;
   }
   // Eye detail is an extra layer: if its file is missing the look still paints.
