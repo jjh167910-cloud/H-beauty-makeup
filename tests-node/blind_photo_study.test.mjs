@@ -80,6 +80,8 @@ test("generated reviewer pack hides candidate labels, leaves images local and re
     const key=JSON.parse(await fs.readFile(join(output,"private","answer-key.json"),"utf8"));
     assert.equal(shown.trials.length,3);
     assert.equal(key.assignments.length,3);
+    assert.ok(key.assignments.every(x=>x.identical_image_pair === true),
+      "same-byte images must be retained and tagged, not discarded");
     if (process.platform !== "win32") {
       assert.equal((await fs.stat(join(output,"reviewer","assets"))).mode & 0o777, 0o700);
       assert.equal((await fs.stat(join(output,"private","answer-key.json"))).mode & 0o777, 0o600);
