@@ -695,3 +695,34 @@ tone and image-light tests remain strict. This prevents a synthetic
 regression; it does not yet prove natural eyelashes on hooded/monolid
 eyelids or real-world photographic superiority. Physical Android GPU
 timing/thermal and consented artist-blind real portraits remain required.
+
+### Occlusion-aware native lash and wing roots (2026-11-18, opt-in research)
+
+A newly rendered lash or wing can look like a detached black mark if hair,
+eyeglasses or another occluder hides its anatomical root while its tip
+remains visible. Pixel-only visibility at the tip is insufficient to
+establish a physically connected cosmetic mark. The experimental WebGL2
+native eye shader now obtains the already available photo-guided
+visibility at each affected lash root and wing root, and attenuates
+coverage by that root visibility. A fully hidden root contributes zero
+lash/wing pixels; partially visible roots fade naturally. The shader
+only performs the additional source/occlusion lookup on pixels already
+covered by a candidate fiber or wing, avoiding new reads for unrelated
+eyelid and background fragments. It still uses the customer geometry,
+original photograph, same WebGL context and existing face-matte data.
+
+The targeted native WebGL2 pixel regression synthetically covers the
+subject's upper-lid curve while leaving the lashes' distant tips visible.
+It requires zero detached lashes or wing differences with roots covered,
+reports nonzero potential tip coverage in the unoccluded reference, tests
+partially covered roots yield intermediate fiber strength, verifies
+guided RGBA and coarse visibility modes, and requires exact unaffected
+opposite-eye RGBA. Existing protected-pixel, native pigment, glint,
+light/deep skin and camera integration tests remain strict.
+
+**Caveat:** this is an anatomical/occlusion rendering hypothesis, not
+validated hair/glasses segmentation on real people. Additional visibility
+reads may increase GPU work despite fragment-culling optimization.
+Physical low/mid/high Android measurements and consented professional
+blind A/B real-photo comparisons remain mandatory before claiming higher
+realism or shipping. This branch does not alter default/live/public code.
