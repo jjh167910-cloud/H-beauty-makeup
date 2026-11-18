@@ -31,7 +31,17 @@ Reviewers should open each same-ID A/B pair in a local image viewer at equal siz
 
     node scripts/quality/blind_photo_study.mjs score /private/hbeauty-study/private/answer-key.json /private/rater1.csv /private/rater2.csv
 
-Use at least two independent raters, preferably three or more. The command rejects missing/duplicate scores, resolves candidate/comparator preferences through the private key, averages each candidate's artist score and returns one independent observation per subject/look regardless of rater count. Split votes produce a conservative tie. This output is *not* a release certificate. Rejoin with actual no-makeup pixel controls, per-look protected-pixel/clipping audits, consent provenance and required data in benchmark_v2.mjs before assessing the preregistered gate. Do not use synthetic or copied sample scores as real-human evidence.
+Use at least two independent raters, preferably three or more. The command rejects missing/duplicate scores, resolves candidate/comparator preferences through the private key, averages **both** candidate and baseline artists' scores, calculates each candidate-minus-baseline paired difference, and returns one independent observation per subject/look regardless of rater count. Split votes produce a conservative tie. Treat the command's stdout/report as **private**, because it includes the unblinded sample IDs, look IDs and skin-group annotations; do not paste it into public issues, CI logs or GitHub.
+
+### Paired realism diagnostics (research only)
+
+The score JSON includes `photo_realism_analysis` with overall, per-look, per-skin and look × skin tables:
+
+- `candidate_artist_mean`, `comparator_artist_mean` and `paired_artist_delta` (1–5 artist-score difference, candidate minus baseline; positive favors candidate).
+- `candidate_preference`, `comparator_preference`, and `tie_rate` (one consensus result per independent subject/look, not per rater click).
+- `independent_subjects` and `subject_cluster_ci95`. The latter resamples whole **subjects** (not their correlated looks) using a fixed deterministic 2,048-draw percentile bootstrap, and is absent below 10 independent subjects in that slice. Interval estimates for recruited samples are descriptive, not representative-market or randomized-trial claims.
+
+This report is *not* a release certificate. A positive mean delta, preference lead or interval alone cannot certify a production improvement. Independently validate consent, rater independence and attention, camera exposure and matched crops, and inspect hard cases (hooded/monolid/profile eyes, glasses/hair overlap, low light). Rejoin with actual no-makeup controls, protected-pixel/clipping audits and required provenance in `benchmark_v2.mjs` before assessing the preregistered gates. Do not use synthetic or copied scores as real-human evidence.
 
 Practical image preparation: use a trusted offline image editor to normalize EXIF orientation, convert colors into a standard output space such as sRGB and export without EXIF, text, XMP, comments, custom ICC or WebP animation. Confirm the image still looks the same after export. The pack intentionally fails closed on color profiles it cannot safely prove anonymous; it does not silently strip image orientation or color-management data. Do not upload private photos to online metadata-removal websites.
 
