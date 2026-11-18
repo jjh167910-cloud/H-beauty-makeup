@@ -491,3 +491,143 @@ test("native lash geometry disables a collapsed far eye and closed-eye strands",
   expect(checks.lashLength).toBeGreaterThan(0.1);
   expect(checks.lashCount).toBeGreaterThanOrEqual(20);
 });
+
+
+test("vertical native-eye culling has byte-identical shader output for all three material looks", async ({ page }) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const { NATIVE_EYE_FS, nativeEyeMaterial } =
+      await import("/src/lib/material-eye-native.ts");
+    const guard = "if(v<=-0.035 || v>=0.74) continue;";
+    if (NATIVE_EYE_FS.split(guard).length !== 2)
+      throw Error("Expected exactly one conservative v-axis cull guard");
+    const referenceShader=NATIVE_EYE_FS.replace(guard,"if(false) continue;");
+    const W=320,H=240;
+    const P=Array.from({length:478},()=>[0,0,0]);
+    const upper=[33,246,161,160,159,158,157,173,133];
+    const brow=[70,63,105,66,107];
+    upper.forEach((id,i)=>P[id]=[105+10*i,145-10*Math.sin(i*Math.PI/8),0]);
+    brow.forEach((id,i)=>P[id]=[107+19*i,95+3*Math.abs(i-2),0]);
+    P[145]=[145,163,0];
+    const gl=document.createElement("canvas").getContext("webgl2",
+      {preserveDrawingBuffer:true,antialias:false,premultipliedAlpha:false});
+    if(!gl) return {unavailable:true};
+    gl.canvas.width=W;gl.canvas.height=H;gl.viewport(0,0,W,H);
+    gl.disable(gl.DITHER);gl.disable(gl.BLEND);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT,1);
+    const vertex="#version 300 es\nin vec2 aPos;void main(){gl_Position=vec4(aPos,0,1);}";
+    const shader=(type:number,source:string)=>{
+      const sh=gl.createShader(type)!;
+      gl.shaderSource(sh,source);gl.compileShader(sh);
+      if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))
+        throw Error(gl.getShaderInfoLog(sh)||"shader compilation");
+      return sh;
+    };
+    const program=(frag:string)=>{
+      const pr=gl.createProgram()!;
+      gl.attachShader(pr,shader(gl.VERTEX_SHADER,vertex));
+      gl.attachShader(pr,shader(gl.FRAGMENT_SHADER,frag));
+      gl.bindAttribLocation(pr,0,"aPos");gl.linkProgram(pr);
+      if(!gl.getProgramParameter(pr,gl.LINK_STATUS))
+        throw Error(gl.getProgramInfoLog(pr)||"shader link");
+      return pr;
+    };
+    const legacy=program(referenceShader),optimized=program(NATIVE_EYE_FS);
+    const quad=gl.createBuffer()!;
+    gl.bindBuffer(gl.ARRAY_BUFFER,quad);
+    gl.bufferData(gl.ARRAY_BUFFER,
+      new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
+    const flip=(pixels:Uint8Array)=>{
+      const out=new Uint8Array(pixels.length);
+      for(let y=0;y<H;y++)
+        out.set(pixels.subarray(y*W*4,(y+1)*W*4),(H-1-y)*W*4);
+      return out;
+    };
+    const original=new Uint8Array(W*H*4),previous=new Uint8Array(W*H*4);
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+      const off=(y*W+x)*4,grain=(x*11+y*7)%9-4;
+      original.set([158+grain,117+grain,103+grain,255],off);
+      previous.set(x>73&&x<145&&y>108&&y<146
+        ? [229,31,169,255] : [158+grain,117+grain,103+grain,255],off);
+    }
+    const mask=new Uint8Array(256*256*2);
+    for(let i=0;i<mask.length;i+=2)mask[i]=255;
+    const upload=(data:Uint8Array,w:number,h:number,rg=false)=>{
+      const t=gl.createTexture()!;gl.bindTexture(gl.TEXTURE_2D,t);
+      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+      gl.texImage2D(gl.TEXTURE_2D,0,rg?gl.RG8:gl.RGBA8,w,h,0,
+        rg?gl.RG:gl.RGBA,gl.UNSIGNED_BYTE,data);
+      return t;
+    };
+    const textures=[
+      upload(flip(previous),W,H),
+      upload(original,W,H),
+      upload(mask,256,256,true),
+    ];
+    for(let i=0;i<textures.length;i++){
+      gl.activeTexture(gl.TEXTURE0+i);
+      gl.bindTexture(gl.TEXTURE_2D,textures[i]);
+    }
+    const render=(pr:WebGLProgram,mat:NonNullable<ReturnType<typeof nativeEyeMaterial>>)=>{
+      gl.useProgram(pr);
+      const u=(s:string)=>gl.getUniformLocation(pr,s);
+      for(const [i,name] of ["uPrevious","uOriginal","uVis"].entries())
+        gl.uniform1i(u(name),i);
+      gl.uniform2f(u("uSize"),W,H);
+      gl.uniform3f(u("uVisBox"),0,0,W);
+      gl.uniform1i(u("uVisOn"),1);
+      gl.uniform2fv(u("uUpper"),mat.upper);
+      gl.uniform2fv(u("uBrows"),mat.brows);
+      gl.uniform4fv(u("uFrame"),mat.frame);
+      gl.uniform1fv(u("uSpan"),mat.span);
+      gl.uniform1iv(u("uEnabled"),mat.enabled);
+      gl.uniform3fv(u("uPigmentA"),mat.pigmentA);
+      gl.uniform3fv(u("uPigmentB"),mat.pigmentB);
+      gl.uniform1f(u("uAmount"),mat.amount);
+      gl.uniform1i(u("uMode"),mat.mode);
+      gl.uniform2fv(u("uLift"),mat.lift);
+      gl.uniform1fv(u("uOpening"),mat.opening);
+      gl.uniform3fv(u("uLinerColor"),mat.linerColor);
+      gl.uniform1f(u("uLinerWidth"),mat.linerWidth);
+      gl.uniform1f(u("uWingLength"),mat.wingLength);
+      gl.uniform1f(u("uLashLength"),mat.lashLength);
+      gl.uniform1i(u("uLashCount"),mat.lashCount);
+      gl.uniform1f(u("uInkSoft"),mat.inkSoft);
+      gl.uniform1f(u("uHighlightRecovery"),mat.highlightRecovery);
+      gl.uniform1i(u("uCleanLegacy"),1);
+      gl.uniform1f(u("uShimmer"),mat.shimmer);
+      gl.uniform1f(u("uRhinestones"),mat.rhinestones);
+      gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+      const read=new Uint8Array(previous.length);
+      gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,read);
+      return flip(read);
+    };
+    const checks=[];
+    for(const look of ["hollywood","electric-blue","rhinestone"] as const){
+      const mat=nativeEyeMaterial(P,look,"natural");
+      if(!mat||mat.enabled[0]!==1)throw Error("Invalid pilot geometry: "+look);
+      const before=render(legacy,mat),after=render(optimized,mat);
+      let changed=0,diff=0,maxDelta=0;
+      for(let i=0;i<before.length;i++){
+        if(before[i]!==previous[i])changed++;
+        const delta=Math.abs(before[i]-after[i]);
+        if(delta){diff++;maxDelta=Math.max(maxDelta,delta);}
+      }
+      checks.push({look,changed,diff,maxDelta});
+    }
+    textures.forEach(t=>gl.deleteTexture(t));
+    gl.deleteProgram(legacy);gl.deleteProgram(optimized);
+    return {checks};
+  });
+  test.skip(!!result.unavailable,"WebGL2 unavailable");
+  expect(result.checks).toHaveLength(3);
+  for(const item of result.checks){
+    expect(item.changed,item.look).toBeGreaterThan(30);
+    expect(item.diff,item.look).toBe(0);
+    expect(item.maxDelta,item.look).toBe(0);
+  }
+});

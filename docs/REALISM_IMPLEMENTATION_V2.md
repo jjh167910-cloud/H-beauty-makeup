@@ -603,3 +603,22 @@ look strength at the same customer eye pixel. Zero must be byte-identical;
 faint must alter the patch but erase considerably less of it than normal; all
 protected pixels remain exact. Real consented varied skin and eyelid photos,
 artist-blind comparisons and actual Android power/performance remain required.
+
+### Exact-parity vertical culling of no-effect eye fragments (2026-11-18)
+
+The GPU native eye shader already restricts its work horizontally to each
+anatomical eye but previously evaluated vertical stripes of invisible pixels
+far above the brow or below the upper lid. A conservative per-eye guard now
+skips fragment contribution at normalized signed lid-to-brow coordinate
+`v<=-0.035` or `v>=0.74`: pigment coverage is zero at both edges, ink
+requires `-0.012<=v<0.60`, rhinestones require `0.08<v<0.61`, and legacy
+photo-seam cleanup is narrower. No new textures, uniforms or copied image
+pixels are introduced. The saved-photo default and live mirror are unchanged.
+
+A new actual GPU test compiles the same fragment shader twice, one with the
+culling guard and one with that single guard disabled, then renders all three
+native pilot looks against the same original photograph and synthetic previous
+makeup. It requires every RGBA byte to be identical and meaningful nonzero
+material effects to remain, including rhinestone material. This verifies
+semantic output parity, not a physical Android speedup; measured p50/p95 and
+thermal trials remain mandatory before performance claims.
