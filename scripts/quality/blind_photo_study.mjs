@@ -8,6 +8,7 @@ import { createHmac, randomBytes } from "node:crypto";
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { assertPrivateImageContainer } from "./private_image_audit.mjs";
+import { analyzeBlindScores } from "./blind_photo_analysis.mjs";
 
 export const BEAUTY_LOOKS = ["hollywood", "electric-blue", "rhinestone"];
 const SKINS = ["light", "medium", "deep"];
@@ -117,21 +118,31 @@ export function unblindScores(key, raterSheets) {
         !SKINS.includes(item.skin_group) || !["A", "B"].includes(item.candidate_side))
       throw new Error("Invalid private answer key");
     const votes = { candidate: 0, comparator: 0, tie: 0 };
-    let scoreSum = 0;
+    let scoreSum = 0, comparatorScoreSum = 0;
     for (const rating of ratings) {
       const row = rating.get(item.trial_id);
       if (row.preferred === "tie") votes.tie++;
       else if (row.preferred === item.candidate_side) votes.candidate++;
       else votes.comparator++;
+      if (![1,2,3,4,5].includes(row.score_a) ||
+          ![1,2,3,4,5].includes(row.score_b) ||
+          !["A","B","tie"].includes(row.preferred))
+        throw new Error("Invalid private rater grade or preference");
       scoreSum += item.candidate_side === "A" ? row.score_a : row.score_b;
+      comparatorScoreSum += item.candidate_side === "A" ? row.score_b : row.score_a;
     }
     return { sample_id: item.sample_id, skin_group: item.skin_group,
       look_id: item.look_id, paired_preference:
         votes.candidate > votes.comparator ? "candidate" :
         votes.candidate < votes.comparator ? "competitor" : "tie",
-      artist_score: scoreSum / ratings.length, votes, rater_count: ratings.length };
+      artist_score: scoreSum / ratings.length,
+      comparator_artist_score: comparatorScoreSum / ratings.length,
+      paired_artist_delta: (scoreSum - comparatorScoreSum) / ratings.length,
+      votes, rater_count: ratings.length };
   });
+  const photo_realism_analysis = analyzeBlindScores(cases);
   return { schema_version: 1, cases, subjects: new Set(cases.map(c => c.sample_id)).size,
+    photo_realism_analysis,
     certification: "Not certified: combine with no-makeup controls, pixel audits, and consented real-photo provenance",
     requires_pixel_audits: true, requires_artist_signoff: true };
 }
