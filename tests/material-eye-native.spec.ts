@@ -108,6 +108,44 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
       const read=new Uint8Array(prior.length);
       gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,read);
       const display=flip(read);
+      // The production renderer's guided visibility map is RGBA
+      // coefficients (a.rgb * (source.rgb - .5) + a.a), NOT a red
+      // probability channel. Verify occluded LEFT eye preserves previous
+      // pixels exactly while visible RIGHT eye retains actual native ink.
+      const guided=new Uint8Array(256*256*4);
+      for(let y=0;y<256;y++)for(let x=0;x<256;x++)
+        guided[(y*256+x)*4+3]=x<128?0:255;
+      const guidedTex=texture(guided,256,256);
+      gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,guidedTex);
+      const visibilityMode=gl.getUniformLocation(p,"uVisMode");
+      gl.uniform1i(visibilityMode,2);
+      gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+      const guidedPixels=new Uint8Array(prior.length);
+      gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,guidedPixels);
+      const guidedOutput=flip(guidedPixels);
+      let guidedOccludedChanges=0,guidedVisibleChanges=0;
+      for(let y=65;y<240;y++)for(let x=85;x<550;x++){
+        const i=(y*W+x)*4;
+        let diff=false;
+        for(let ch=0;ch<4;ch++)if(guidedOutput[i+ch]!==prior[i+ch])diff=true;
+        if(!diff)continue;
+        if(x<300)guidedOccludedChanges++;
+        if(x>335)guidedVisibleChanges++;
+      }
+      // The same RGBA data in coarse mode has an all-zero red channel.
+      // If the shader incorrectly ignores uVisMode it will hide BOTH eyes.
+      gl.uniform1i(visibilityMode,1);
+      gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+      const coarsePixels=new Uint8Array(prior.length);
+      gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,coarsePixels);
+      let guidedCoarseChanges=0;
+      const coarseOutput=flip(coarsePixels);
+      for(let i=0;i<coarseOutput.length;i++)
+        if(coarseOutput[i]!==prior[i])guidedCoarseChanges++;
+      // Restore native RG8 visibility for all existing strict pixel tests.
+      gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,textures[2]);
+      gl.uniform1i(visibilityMode,1);
+      gl.deleteTexture(guidedTex);
       // Entirely occluded faces must emit the previous framebuffer exactly.
       // This now exercises the preflight visibility fast-path before native
       // lash loops and five-point photometry (RGB and alpha byte equality).
@@ -399,7 +437,8 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
         leftEyeCrossTalk, leftEyePainted, lightProbeMax, lightProbeMean,
         trueLightResponse, otherEyeCoherentChange,
         hiddenSampleInfluence,visiblePigmentSamples,missingReferenceDifferences,
-        edgeHaloMax,edgeCenterPainted});
+        edgeHaloMax,edgeCenterPainted,
+        guidedOccludedChanges,guidedVisibleChanges,guidedCoarseChanges});
       textures.forEach(t=>gl.deleteTexture(t));
     }
     return {observations,enabled:[...material.enabled]};
@@ -435,6 +474,9 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
     expect(result.missingReferenceDifferences).toBe(0);
     expect(result.edgeCenterPainted).toBeGreaterThan(0);
     expect(result.edgeHaloMax).toBeLessThanOrEqual(2);
+    expect(result.guidedOccludedChanges).toBe(0);
+    expect(result.guidedVisibleChanges).toBeGreaterThan(100);
+    expect(result.guidedCoarseChanges).toBe(0);
   }
 });
 
