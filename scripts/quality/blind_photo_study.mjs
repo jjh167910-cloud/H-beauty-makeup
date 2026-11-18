@@ -7,7 +7,7 @@ import * as fs from "node:fs/promises";
 import { createHmac, randomBytes } from "node:crypto";
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { assertPrivateImageContainer } from "./private_image_audit.mjs";
+import { inspectPrivateImageDimensions } from "./private_image_audit.mjs";
 import { analyzeBlindScores, CHALLENGE_TAGS } from "./blind_photo_analysis.mjs";
 
 export const BEAUTY_LOOKS = ["hollywood", "electric-blue", "rhinestone"];
@@ -141,6 +141,7 @@ export function unblindScores(key, raterSheets) {
     }
     return { sample_id: item.sample_id, skin_group: item.skin_group,
       look_id: item.look_id, challenge_tags: item.challenge_tags ?? [],
+      identical_image_pair: item.identical_image_pair === true,
       paired_preference:
         votes.candidate > votes.comparator ? "candidate" :
         votes.candidate < votes.comparator ? "competitor" : "tie",
@@ -151,6 +152,7 @@ export function unblindScores(key, raterSheets) {
   });
   const photo_realism_analysis = analyzeBlindScores(cases);
   return { schema_version: 1, cases, subjects: new Set(cases.map(c => c.sample_id)).size,
+    identical_image_pairs: cases.filter(c=>c.identical_image_pair).length,
     photo_realism_analysis,
     certification: "Not certified: combine with no-makeup controls, pixel audits, and consented real-photo provenance",
     requires_pixel_audits: true, requires_artist_signoff: true };
@@ -170,8 +172,8 @@ async function safeImage(base, name) {
   // Audit the exact bytes that will enter the reviewer pack. This avoids a
   // check-then-copy race and keeps encoded image pixels unchanged.
   const data = await fs.readFile(real);
-  assertPrivateImageContainer(data, ext);
-  return { data, ext };
+  const { width, height } = inspectPrivateImageDimensions(data, ext);
+  return { data, ext, width, height };
 }
 
 export async function packStudy(manifestFile, outputDir, seed) {
@@ -191,11 +193,20 @@ export async function packStudy(manifestFile, outputDir, seed) {
   const review = join(staging, "reviewer"), assets = join(review, "assets");
   await fs.mkdir(assets, { recursive: true, mode: 0o700 });
   try {
-    const exposed = [], key = [];
+    const exposed = [], key = [], subjectDimensions = new Map();
     for (const a of assignments) {
       const [candidate, comparator] = await Promise.all([
         safeImage(dirname(manifestPath), a.candidate_file),
         safeImage(dirname(manifestPath), a.comparator_file)]);
+      if (candidate.width !== comparator.width ||
+          candidate.height !== comparator.height)
+        throw new Error("Blind A/B image dimension mismatch for subject/look");
+      const dimensionKey = candidate.width + "x" + candidate.height;
+      const previously = subjectDimensions.get(a.sample_id);
+      if (previously && previously !== dimensionKey)
+        throw new Error("Inconsistent source-photo dimensions across three looks");
+      subjectDimensions.set(a.sample_id, dimensionKey);
+      const identicalImagePair = candidate.data.equals(comparator.data);
       const assetA = a.candidate_side === "A" ? candidate : comparator;
       const assetB = a.candidate_side === "B" ? candidate : comparator;
       const fileA = a.trial_id + "-A" + assetA.ext;
@@ -206,7 +217,10 @@ export async function packStudy(manifestFile, outputDir, seed) {
         image_b: "assets/" + fileB });
       key.push({ trial_id: a.trial_id, sample_id: a.sample_id,
         look_id: a.look_id, skin_group: a.skin_group,
-        challenge_tags: a.challenge_tags ?? [], candidate_side: a.candidate_side });
+        challenge_tags: a.challenge_tags ?? [],
+        // Never disclosed to reviewers, and never used to drop weak/no-effect renders.
+        identical_image_pair: identicalImagePair,
+        candidate_side: a.candidate_side });
     }
     const csv = ["trial_id,preferred,score_a,score_b",
       ...exposed.map(x => x.trial_id + ",,,")].join("\n") + "\n";
