@@ -584,3 +584,22 @@ remains *bitwise identical* in all RGBA channels and nonempty. It restores
 the source texture and retains all existing protected-pixel, glint, wing,
 lash and natural-texture tests. This reduction in theoretical shader work
 requires physical Android A/B timing evidence before any latency claim.
+
+### Optical-opacity-coupled legacy underlay restoration (2026-11-18)
+
+A new pigment edge was at risk of a conspicuous erased-looking halo: the
+previous material pass removed the legacy eyeshadow underlay almost completely
+as soon as pigment `uAmount` was positive, regardless of actual translucent
+coverage. This is inconsistent with the identity-preserving transparent-layer
+rendering direction (see Chau et al., WACV 2026). The experimental shader
+now makes the original-customer-photo underlay replacement follow the **actual
+new pigment optical coverage** `eyeMask * uAmount` via a smooth bounded ramp
+from 0.005 to 0.16. It preserves existing visibility/occlusion fail-closed
+behavior and independently constrained upper-lid mascara restoration.
+
+The GPU regression overlays a synthetic inherited eyeshadow patch, disables
+new liner/lashes, and compares no pigment, 0.025 faint pigment, and normal
+look strength at the same customer eye pixel. Zero must be byte-identical;
+faint must alter the patch but erase considerably less of it than normal; all
+protected pixels remain exact. Real consented varied skin and eyelid photos,
+artist-blind comparisons and actual Android power/performance remain required.

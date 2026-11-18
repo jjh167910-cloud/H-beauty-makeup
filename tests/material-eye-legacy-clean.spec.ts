@@ -197,6 +197,42 @@ test("native eye wing does not transmit legacy catalog-color ghost under new ink
          seamUnclean.slice(off,off+4).some((v,i)=>v!==seamRestored[off+i]))
         seamSclera++;
     }
+    // An underlay that is gently recolored must not be abruptly erased.
+    // Probe the very same skin pixel with no, faint, and normal pigment.
+    // This tests *actual WebGL blending* independent of new eyeliner.
+    const tintedPrior=new Uint8Array(image);
+    for(let y=117;y<=134;y++)for(let x=136;x<=154;x++){
+      const off=(y*W+x)*4;
+      tintedPrior.set([237,31,176,255],off);
+    }
+    gl.uniform1f(uniform("uLinerWidth"),0);
+    gl.uniform1f(uniform("uWingLength"),0);
+    gl.uniform1f(uniform("uLashLength"),0);
+    gl.uniform1f(uniform("uAmount"),0);
+    const untreated=draw(tintedPrior,0);
+    gl.uniform1f(uniform("uAmount"),0.025);
+    const faint=draw(tintedPrior,0);
+    gl.uniform1f(uniform("uAmount"),mat.amount);
+    const typical=draw(tintedPrior,0);
+    let zeroOpacityChanges=0, faintProtectedChanges=0;
+    for(let k=0;k<tintedPrior.length;k++)
+      if(untreated[k]!==tintedPrior[k])zeroOpacityChanges++;
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+      if(x>=65&&x<=230&&y>=62&&y<=185)continue;
+      const i=(y*W+x)*4;
+      for(let c=0;c<4;c++)
+        if(faint[i+c]!==tintedPrior[i+c])faintProtectedChanges++;
+    }
+    const pixelDistance=(a:Uint8Array,b:Uint8Array)=>{
+      const pos=(125*W+145)*4;
+      let sum=0;
+      for(let c=0;c<3;c++)sum+=Math.abs(a[pos+c]-b[pos+c]);
+      return sum;
+    };
+    const faintUnderlayChange=pixelDistance(faint,tintedPrior);
+    const typicalUnderlayChange=pixelDistance(typical,tintedPrior);
+    gl.uniform1f(uniform("uLinerWidth"),mat.linerWidth);
+    gl.uniform1f(uniform("uWingLength"),mat.wingLength);
     // Anatomic lash fan is evaluated in the actual GPU shader, with
     // eyeshadow held constant and eyeliner/wing disabled for isolation.
     gl.uniform1f(uniform("uLinerWidth"),0);
@@ -314,7 +350,8 @@ test("native eye wing does not transmit legacy catalog-color ghost under new ink
       lashChanged,lashOutside,outerLashes,innerLashes,
       seamImproved,seamProtected,seamSclera,
       noCosmeticsDelta,nearBefore,nearAfter,farDelta,
-      inkOnlyChanged,inkLightDrift};
+      inkOnlyChanged,inkLightDrift,zeroOpacityChanges,
+      faintProtectedChanges,faintUnderlayChange,typicalUnderlayChange};
   });
   test.skip(!!r.unavailable,"WebGL2 not available");
   expect(r.invalid).not.toBe(true);
@@ -324,6 +361,11 @@ test("native eye wing does not transmit legacy catalog-color ghost under new ink
   expect(r.protectedDifference).toBe(0);
   expect(r.inkOnlyChanged).toBeGreaterThan(10);
   expect(r.inkLightDrift).toBe(0);
+  expect(r.zeroOpacityChanges).toBe(0);
+  expect(r.faintProtectedChanges).toBe(0);
+  expect(r.typicalUnderlayChange).toBeGreaterThan(50);
+  expect(r.faintUnderlayChange).toBeGreaterThan(0);
+  expect(r.faintUnderlayChange).toBeLessThan(r.typicalUnderlayChange * 0.4);
   expect(r.wingRootScore).toBeGreaterThan(30);
   expect(r.wingTipScore).toBeLessThan(r.wingRootScore * 0.8);
   expect(r.wingOutside).toBe(0);
