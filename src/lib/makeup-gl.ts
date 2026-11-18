@@ -2908,10 +2908,14 @@ export class MakeupGL {
       p = this.use("nativeEye");
       this.bindTex(p, "uPrevious", this.nativeOutput!.tex[0], 0);
       this.bindTex(p, "uOriginal", this.src, 1);
-      this.bindTex(p, "uVis", this.grids.vis.prob, 2);
+      // Use the same photo-guided face occlusion as the main pass. The raw
+      // segmentation grid is too coarse around hair, glasses and hands;
+      // in guided mode the RGBA texture contains A.rgb and intercept A.a.
+      this.bindTex(p, "uVis", visTex, 2);
       gl.uniform2f(this.uni(p, "uSize"), w, h);
       gl.uniform3f(this.uni(p, "uVisBox"), ...vis!.box);
       gl.uniform1i(this.uni(p, "uVisOn"), 1);
+      gl.uniform1i(this.uni(p, "uVisMode"), visMode);
       gl.uniform2fv(this.uni(p, "uUpper"), nativeData.upper);
       gl.uniform2fv(this.uni(p, "uBrows"), nativeData.brows);
       gl.uniform4fv(this.uni(p, "uFrame"), nativeData.frame);
