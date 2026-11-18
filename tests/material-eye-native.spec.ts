@@ -166,6 +166,50 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
       gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,textures[2]);
       gl.uniform1i(visibilityMode,1);
       gl.deleteTexture(guidedTex);
+      // Real GPU raster: a barely-open eye must NOT suddenly receive full
+      // long lashes at the near-closed aperture threshold. Isolate fiber
+      // ink from shadow, eyeliner and wing, then vary only LEFT opening.
+      gl.uniform1f(gl.getUniformLocation(p,"uAmount"),0);
+      gl.uniform1f(gl.getUniformLocation(p,"uLinerWidth"),0);
+      gl.uniform1f(gl.getUniformLocation(p,"uWingLength"),0);
+      const openingLoc=gl.getUniformLocation(p,"uOpening");
+      const lashRaster=(opening:number)=>{
+        gl.uniform1fv(openingLoc,new Float32Array([opening,material.opening[1]]));
+        gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+        const raw=new Uint8Array(prior.length);
+        gl.readPixels(0,0,W,H,gl.RGBA,gl.UNSIGNED_BYTE,raw);
+        return flip(raw);
+      };
+      const closedLashes=lashRaster(0.045);
+      const almostClosedLashes=lashRaster(0.046);
+      const openLashes=lashRaster(0.18);
+      const leftInk=(data:Uint8Array)=>{
+        let n=0;
+        for(let y=70;y<220;y++)for(let x=85;x<300;x++){
+          const i=(y*W+x)*4;
+          if(Math.abs(data[i]-prior[i])>2 ||
+             Math.abs(data[i+1]-prior[i+1])>2 ||
+             Math.abs(data[i+2]-prior[i+2])>2)n++;
+        }
+        return n;
+      };
+      let otherEyeLashDrift=0;
+      for(let y=65;y<230;y++)for(let x=335;x<530;x++){
+        const i=(y*W+x)*4;
+        for(let k=0;k<4;k++){
+          if(closedLashes[i+k]!==openLashes[i+k] ||
+             almostClosedLashes[i+k]!==openLashes[i+k])
+            otherEyeLashDrift++;
+        }
+      }
+      const closeEyeLashCount=leftInk(closedLashes);
+      const nearlyClosedLashCount=leftInk(almostClosedLashes);
+      const openEyeLashCount=leftInk(openLashes);
+      // Restore the complete material before all existing raster checks.
+      gl.uniform1fv(openingLoc,material.opening);
+      gl.uniform1f(gl.getUniformLocation(p,"uAmount"),material.amount);
+      gl.uniform1f(gl.getUniformLocation(p,"uLinerWidth"),material.linerWidth);
+      gl.uniform1f(gl.getUniformLocation(p,"uWingLength"),material.wingLength);
       // Entirely occluded faces must emit the previous framebuffer exactly.
       // This now exercises the preflight visibility fast-path before native
       // lash loops and five-point photometry (RGB and alpha byte equality).
@@ -459,7 +503,8 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
         hiddenSampleInfluence,visiblePigmentSamples,missingReferenceDifferences,
         edgeHaloMax,edgeCenterPainted,
         guidedOccludedChanges,guidedVisibleChanges,guidedCoarseChanges,
-        guidedSourceSensitiveChanges});
+        guidedSourceSensitiveChanges,closeEyeLashCount,
+        nearlyClosedLashCount,openEyeLashCount,otherEyeLashDrift});
       textures.forEach(t=>gl.deleteTexture(t));
     }
     return {observations,enabled:[...material.enabled]};
@@ -498,6 +543,10 @@ test("shader-native face-space eyes render in existing WebGL2 pixel coordinates 
     expect(result.guidedOccludedChanges).toBe(0);
     expect(result.guidedVisibleChanges).toBeGreaterThan(100);
     expect(result.guidedCoarseChanges).toBe(0);
+    expect(result.closeEyeLashCount).toBe(0);
+    expect(result.openEyeLashCount).toBeGreaterThan(20);
+    expect(result.nearlyClosedLashCount).toBeLessThan(result.openEyeLashCount * 0.20);
+    expect(result.otherEyeLashDrift).toBe(0);
     if(result.depth==="light")
       expect(result.guidedSourceSensitiveChanges).toBeGreaterThan(100);
     else
