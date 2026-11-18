@@ -672,3 +672,26 @@ segmentation accuracy, and extra per-pixel source-photo samples may affect
 Android GPU p50/p95. Measure physical low/mid/high devices and review
 consented real photographs with hair strands, glasses, and hands before
 any release or superiority claim.
+
+### Continuous native lash response for nearly closed eyelids (2026-11-18)
+
+One opt-in shader artifact remains especially distracting on nearly closed
+eyes: a discontinuity at `uOpening = 0.045` formerly changed lashes from
+completely absent to full-size fibers. The native eye-material shader now
+computes a bounded smooth aperture response using `ramp(0.045, 0.13,
+uOpening[eye])`, modulating each lash's visible coverage and length while
+preserving the existing fully open-eye shape. It uses the subject's own
+upper-lid curve and the same occlusion/visibility mask as other eye materials.
+This is limited to prepared saved photos with `?eyePilot=v2`; no live-camera
+or default-production changes, no new model, no remote image processing.
+
+The existing true-WebGL2 pixel regression isolates lashes by disabling
+eyeshadow/liner/wing, then compares an exactly closed, barely open and fully
+open LEFT eyelid, with RIGHT-eye RGBA invariant. Under the real shader,
+the closed eye must generate zero extra lash pixels; the barely open eye
+must not leap to full-length synthetic fibers; the fully open eye must
+still show visible lashes. Existing eye geometry, protected pixels, skin
+tone and image-light tests remain strict. This prevents a synthetic
+regression; it does not yet prove natural eyelashes on hooded/monolid
+eyelids or real-world photographic superiority. Physical Android GPU
+timing/thermal and consented artist-blind real portraits remain required.
