@@ -143,3 +143,82 @@ export function assertPrivateImageContainer(data, ext) {
   else fail("unsupported image type");
   return true;
 }
+
+
+/**
+ * Check encoded canvas dimensions without decoding pixels. We intentionally
+ * preserve equal compressed inputs: unchanged renders are important negative
+ * evidence, not cases that may be silently removed from a study.
+ *
+ * This inspects headers only; matching dimensions do NOT establish matched
+ * framing, pose, exposure or colour calibration. Inputs already passed the
+ * strict metadata/container allowlist above.
+ */
+export function inspectPrivateImageDimensions(data, ext) {
+  assertPrivateImageContainer(data, ext);
+  let width = 0, height = 0;
+  if (ext === ".png") {
+    width = data.readUInt32BE(16);
+    height = data.readUInt32BE(20);
+  } else if (ext === ".jpg" || ext === ".jpeg") {
+    let offset = 2;
+    while (offset + 4 <= data.length) {
+      if (data[offset] !== 0xff) fail("JPEG frame header marker missing");
+      while (offset < data.length && data[offset] === 0xff) offset++;
+      const marker = data[offset++];
+      if (marker === 0xda || marker === 0xd9) break;
+      if (offset + 2 > data.length) fail("JPEG frame header truncated");
+      const length = data.readUInt16BE(offset);
+      if (length < 2 || offset + length > data.length)
+        fail("JPEG frame header length invalid");
+      if ([0xc0,0xc1,0xc2,0xc3,0xc5,0xc6,0xc7,0xc9,0xca,0xcb,0xcd,0xce,0xcf].includes(marker)) {
+        if (length < 8) fail("JPEG SOF frame header invalid");
+        height = data.readUInt16BE(offset + 3);
+        width = data.readUInt16BE(offset + 5);
+        break;
+      }
+      offset += length;
+    }
+  } else if (ext === ".webp") {
+    let offset = 12, extended = null, coded = null;
+    while (offset + 8 <= data.length) {
+      const name = data.toString("ascii", offset, offset + 4);
+      const length = data.readUInt32LE(offset + 4);
+      const pos = offset + 8;
+      if (name === "VP8X") {
+        if (length !== 10) fail("WebP extended dimensions missing");
+        extended = [
+          1 + data[pos + 4] + (data[pos + 5] << 8) + (data[pos + 6] << 16),
+          1 + data[pos + 7] + (data[pos + 8] << 8) + (data[pos + 9] << 16)
+        ];
+      } else if (name === "VP8 ") {
+        if (length < 10 || data[pos+3] !== 0x9d ||
+            data[pos+4] !== 0x01 || data[pos+5] !== 0x2a)
+          fail("WebP lossy frame header invalid");
+        coded = [
+          data.readUInt16LE(pos+6) & 0x3fff,
+          data.readUInt16LE(pos+8) & 0x3fff
+        ];
+      } else if (name === "VP8L") {
+        if (length < 5 || data[pos] !== 0x2f)
+          fail("WebP lossless frame header invalid");
+        coded = [
+          1 + data[pos+1] + ((data[pos+2] & 0x3f) << 8),
+          1 + (data[pos+2] >> 6) + (data[pos+3] << 2) +
+            ((data[pos+4] & 0x0f) << 10)
+        ];
+      }
+      offset += 8 + length + (length % 2);
+    }
+    if (extended && coded && (extended[0] !== coded[0] || extended[1] !== coded[1]))
+      fail("WebP extended canvas disagrees with encoded frame dimensions");
+    [width, height] = extended ?? coded ?? [0,0];
+  }
+  // No decompression in this tool. Very large encoded dimensions can still
+  // imply excessive memory allocation later in an independent image viewer.
+  if (!Number.isSafeInteger(width) || !Number.isSafeInteger(height) ||
+      width < 1 || height < 1 || width > 20000 || height > 20000 ||
+      width * height > 80000000)
+    fail("missing, unsupported or excessive image dimensions");
+  return { width, height };
+}
