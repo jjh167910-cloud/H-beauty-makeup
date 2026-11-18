@@ -7,6 +7,7 @@ import * as fs from "node:fs/promises";
 import { createHmac, randomBytes } from "node:crypto";
 import { dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { assertPrivateImageContainer } from "./private_image_audit.mjs";
 
 export const BEAUTY_LOOKS = ["hollywood", "electric-blue", "rhinestone"];
 const SKINS = ["light", "medium", "deep"];
@@ -146,24 +147,19 @@ async function safeImage(base, name) {
   const info = await fs.stat(real);
   if (!info.isFile() || info.size < 12 || info.size > 60 * 1024 * 1024)
     throw new Error("Invalid image size or file type");
-  const file = await fs.open(real, "r");
-  let magic;
-  try { magic = Buffer.alloc(12); await file.read(magic, 0, 12, 0); }
-  finally { await file.close(); }
-  const png = magic.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]));
-  const jpg = magic[0] === 255 && magic[1] === 216 && magic[2] === 255;
-  const webp = magic.toString("ascii", 0, 4) === "RIFF" &&
-    magic.toString("ascii", 8, 12) === "WEBP";
-  if ((ext === ".png" && !png) ||
-      ((ext === ".jpg" || ext === ".jpeg") && !jpg) ||
-      (ext === ".webp" && !webp))
-    throw new Error("Invalid image signature: " + ext);
-  return { path: real, ext };
+  // Audit the exact bytes that will enter the reviewer pack. This avoids a
+  // check-then-copy race and keeps encoded image pixels unchanged.
+  const data = await fs.readFile(real);
+  assertPrivateImageContainer(data, ext);
+  return { data, ext };
 }
 
 export async function packStudy(manifestFile, outputDir, seed) {
   const manifestPath = resolve(manifestFile), out = resolve(outputDir);
   privatePath(manifestPath); privatePath(out);
+  // Refuse alias/symlink paths that quietly resolve back into the source repo.
+  privatePath(await fs.realpath(manifestPath));
+  privatePath(await fs.realpath(dirname(out)));
   if (inside(dirname(manifestPath), out) || inside(out, dirname(manifestPath)))
     throw new Error("Put the output in a separate private folder, not inside the input images");
   const doc = JSON.parse(await fs.readFile(manifestPath, "utf8"));
@@ -173,7 +169,7 @@ export async function packStudy(manifestFile, outputDir, seed) {
     throw new Error("Refusing to overwrite an existing private study pack");
   const staging = out + ".partial-" + randomBytes(6).toString("hex");
   const review = join(staging, "reviewer"), assets = join(review, "assets");
-  await fs.mkdir(assets, { recursive: true });
+  await fs.mkdir(assets, { recursive: true, mode: 0o700 });
   try {
     const exposed = [], key = [];
     for (const a of assignments) {
@@ -184,8 +180,8 @@ export async function packStudy(manifestFile, outputDir, seed) {
       const assetB = a.candidate_side === "B" ? candidate : comparator;
       const fileA = a.trial_id + "-A" + assetA.ext;
       const fileB = a.trial_id + "-B" + assetB.ext;
-      await fs.copyFile(assetA.path, join(assets, fileA));
-      await fs.copyFile(assetB.path, join(assets, fileB));
+      await fs.writeFile(join(assets, fileA), assetA.data, { mode: 0o600 });
+      await fs.writeFile(join(assets, fileB), assetB.data, { mode: 0o600 });
       exposed.push({ trial_id: a.trial_id, image_a: "assets/" + fileA,
         image_b: "assets/" + fileB });
       key.push({ trial_id: a.trial_id, sample_id: a.sample_id,
@@ -195,21 +191,21 @@ export async function packStudy(manifestFile, outputDir, seed) {
     const csv = ["trial_id,preferred,score_a,score_b",
       ...exposed.map(x => x.trial_id + ",,,")].join("\n") + "\n";
     await fs.writeFile(join(review, "trials.json"),
-      JSON.stringify({ schema_version: 1, trials: exposed }, null, 2));
-    await fs.writeFile(join(review, "scoring-template.csv"), csv);
+      JSON.stringify({ schema_version: 1, trials: exposed }, null, 2), { mode: 0o600 });
+    await fs.writeFile(join(review, "scoring-template.csv"), csv, { mode: 0o600 });
     await fs.writeFile(join(review, "README.txt"),
       "Private offline study only. Open each assets/...-A and ...-B pair in a local viewer.\n" +
       "Rate realism on each side from 1 to 5, then choose A/B/tie in scoring-template.csv.\n" +
       "Save a separate complete CSV for EACH independent makeup-artist reviewer.\n" +
       "Do not send this folder to public sites or commit it to GitHub.\n" +
-      "Images are copied, NOT re-encoded; they may retain EXIF/photo metadata.\n" +
-      "Remove embedded metadata and secure consent before sharing even privately.\n");
-    await fs.mkdir(join(staging, "private"));
+      "Images are copied only after a fail-closed byte-level metadata gate.\n" +
+      "This is NOT facial anonymization or independent consent verification.\n", { mode: 0o600 });
+    await fs.mkdir(join(staging, "private"), { mode: 0o700 });
     await fs.writeFile(join(staging, "private", "answer-key.json"),
       JSON.stringify({ schema_version: 1, assignments: key }, null, 2), { mode: 0o600 });
     await fs.rename(staging, out);
     return { output: out, trials: key.length,
-      note: "Local-only study pack; image consent and metadata stripping require separate verification" };
+      note: "Local-only study pack; metadata-bearing or unsupported images are refused; visible identity and consent still require independent protection" };
   } catch (e) {
     await fs.rm(staging, { recursive: true, force: true });
     throw e;
