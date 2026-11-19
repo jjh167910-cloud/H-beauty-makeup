@@ -40,6 +40,9 @@ to start with; the salon adds its own and removes any, kept on that phone).
 - The notification keys (VAPID) are made by the server the first time and kept in its database: nobody handles them.
 - Each side sees what the other has read: the server keeps, per chat, the last message each side has opened.
 - The database upgrades itself in place (new columns are added when the Durable Object starts).
+- The artist's bench (`/bench`, signed in as the salon) keeps her scores in the same database: per look, engine and
+  photo, six numbers from 1 to 5 and a short note. A photo is only the first 16 hex digits of its SHA-256: the photo
+  itself stays on her phone. «دور تازه» deletes them all (at most 5000 are kept).
 
 ## Code
 

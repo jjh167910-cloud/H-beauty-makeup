@@ -166,3 +166,25 @@ test("the database of the first release is upgraded in place", async () => {
   migrate(sql);                                                       // (again: nothing to do)
   assert.deepEqual({ ...db.prepare("SELECT salon_seen, customer_seen, cpushed FROM threads").get() }, { salon_seen: 0, customer_seen: 0, cpushed: 0 });
 });
+
+test("the artist's scores (the Phase 2 gate): only the salon, only scores (a photo's hash, never the photo), one per picture", async () => {
+  const s = server();
+  const salon = (await s.call("POST", "/api/salon/login", { body: { passcode: "rose-garden-1405" } })).body.token;
+  const card = { look: "hollywood", photo: "3fa2c09b11d4e5f6", engine: "v2", scores: { placement: 4, colour: 5, edges: 4, skin: 4, eyes: 5, client: 4 }, note: "  خط چشم عالی‮ " };
+  assert.equal((await s.call("POST", "/api/salon/bench", { body: card })).status, 401);                      // (not signed in)
+  assert.equal((await s.call("GET", "/api/salon/bench")).status, 401);
+  assert.equal((await s.call("POST", "/api/salon/bench", { token: salon, body: card })).status, 200);
+  // the same picture scored again replaces it; the old engine's is its own
+  assert.equal((await s.call("POST", "/api/salon/bench", { token: salon, body: { ...card, scores: { ...card.scores, eyes: 3 } } })).status, 200);
+  assert.equal((await s.call("POST", "/api/salon/bench", { token: salon, body: { ...card, engine: "v1", scores: { ...card.scores, eyes: 2 }, note: "" } })).status, 200);
+  const all = (await s.call("GET", "/api/salon/bench", { token: salon })).body.scores;
+  assert.deepEqual(all.map((r) => [r.look, r.engine, r.scores.eyes, r.note]), [["hollywood", "v2", 3, "خط چشم عالی"], ["hollywood", "v1", 2, ""]]);
+  // bad cards are refused
+  for (const bad of [{ ...card, engine: "v3" }, { ...card, photo: "<img>" }, { ...card, look: "../x" }, { ...card, scores: { ...card.scores, eyes: 6 } },
+    { ...card, scores: { ...card.scores, skin: 2.5 } }, { ...card, scores: { placement: 4 } }]) {
+    assert.equal((await s.call("POST", "/api/salon/bench", { token: salon, body: bad })).status, 400);
+  }
+  // a new round
+  assert.equal((await s.call("DELETE", "/api/salon/bench", { token: salon })).status, 200);
+  assert.deepEqual((await s.call("GET", "/api/salon/bench", { token: salon })).body.scores, []);
+});

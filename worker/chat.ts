@@ -25,6 +25,11 @@
  *   GET  /api/salon/push                      -> {key}  (the server's own VAPID public key: made here, kept here)
  *   POST /api/salon/push {endpoint}           -> this phone gets a notification for each new message
  *   DELETE /api/salon/push {endpoint}
+ *   GET  /api/salon/bench                     -> {scores: [{look, photo, engine, scores, note, at}]}  (the artist's scores
+ *                                                of the old and new engines: the roadmap's Phase 2 gate, /bench)
+ *   POST /api/salon/bench {look, photo, engine, scores, note}   (one picture's scores, 1 to 5 per BENCH_LINES; `photo` a
+ *                                                hash of her benchmark photo, which stays on her phone)
+ *   DELETE /api/salon/bench                   -> all scores cleared (a new round)
  *
  * Tokens are 32 random bytes; only their SHA-256 is stored. Notifications carry no content (no payload): the salon's
  * phone shows «پیام تازه» and opens the inbox (public/salon-sw.js), hers «پاسخ سالن» and opens her chat (public/sw.js).
@@ -69,6 +74,8 @@ export function migrate(sql: Sql) {
   sql.exec("CREATE INDEX IF NOT EXISTS hits_key ON hits (key, at)");
   sql.exec("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)");
   sql.exec("CREATE TABLE IF NOT EXISTS csubs (endpoint TEXT PRIMARY KEY, thread TEXT NOT NULL, created INTEGER NOT NULL)");
+  sql.exec(`CREATE TABLE IF NOT EXISTS bench (look TEXT NOT NULL, photo TEXT NOT NULL, engine TEXT NOT NULL, scores TEXT NOT NULL,
+    note TEXT NOT NULL DEFAULT '', at INTEGER NOT NULL, PRIMARY KEY (look, photo, engine))`);
   // (added after the first release: each read's last message, and her last notification)
   for (const column of ["salon_seen", "customer_seen", "cpushed"]) {
     try { sql.exec(`ALTER TABLE threads ADD COLUMN ${column} INTEGER NOT NULL DEFAULT 0`); } catch { /* (there already) */ }
@@ -172,6 +179,7 @@ async function salon(req: Request, path: string, url: URL, sql: Sql, env: ChatEn
     else sql.exec("DELETE FROM subs WHERE endpoint = ?", endpoint);
     return json({ ok: true });
   }
+  if (path === "/api/salon/bench") return bench(req, sql, now);
   const m = /^\/api\/salon\/threads\/([A-Za-z0-9_-]{8,40})(\/send)?$/.exec(path);
   if (m) {
     const thread = sql.exec("SELECT id, name, phone, created, last FROM threads WHERE id = ?", m[1]).toArray()[0];
@@ -195,6 +203,36 @@ async function salon(req: Request, path: string, url: URL, sql: Sql, env: ChatEn
     }
   }
   throw new Bad("not-found", 404);
+}
+
+/** The artist's scoring lines (the roadmap's rubric, and her eyes on their own: the Phase 2 gate needs them). */
+export const BENCH_LINES = ["placement", "colour", "edges", "skin", "eyes", "client"] as const;
+
+/** The artist's scores of each look on her benchmark photos, old engine and new (signed in as the salon). */
+async function bench(req: Request, sql: Sql, now: number): Promise<Response> {
+  if (req.method === "GET") {
+    const scores = sql.exec("SELECT look, photo, engine, scores, note, at FROM bench ORDER BY at LIMIT 5000").toArray()
+      .map((r) => ({ look: r.look, photo: r.photo, engine: r.engine, scores: JSON.parse(String(r.scores)), note: r.note, at: r.at }));
+    return json({ scores });
+  }
+  if (req.method === "DELETE") {
+    sql.exec("DELETE FROM bench");
+    return json({ ok: true });
+  }
+  if (req.method !== "POST") throw new Bad("not-found", 404);
+  const body = await read(req);
+  const look = String(body.look ?? ""), photo = String(body.photo ?? ""), engine = String(body.engine ?? "");
+  if (!/^[a-z0-9-]{1,40}$/.test(look) || !/^[a-f0-9]{8,64}$/.test(photo) || (engine !== "v1" && engine !== "v2")) throw new Bad("bench");
+  const given = (body.scores ?? {}) as Record<string, unknown>, scores: Record<string, number> = {};
+  for (const line of BENCH_LINES) {
+    const v = Number(given[line]);
+    if (!Number.isInteger(v) || v < 1 || v > 5) throw new Bad("bench");
+    scores[line] = v;
+  }
+  if ((Number(sql.exec("SELECT COUNT(*) AS c FROM bench").toArray()[0].c)) >= 5000) throw new Bad("busy", 429);
+  sql.exec("INSERT OR REPLACE INTO bench (look, photo, engine, scores, note, at) VALUES (?, ?, ?, ?, ?, ?)",
+    look, photo, engine, JSON.stringify(scores), clean(body.note, 300, true) ?? "", now);
+  return json({ ok: true });
 }
 
 /** A message in a chat (its counts and last line updated). */

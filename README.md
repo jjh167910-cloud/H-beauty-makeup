@@ -9,9 +9,11 @@ own chat**, with her name and phone, text only; the salon answers from its inbox
 notification on its phone for each new message). The chat is the one part with a server: a Cloudflare Durable Object
 on this Worker ([`docs/SALON_CHAT.md`](docs/SALON_CHAT.md)).
 
-`?look=<id>` opens it on a look (ids in `src/data/makeup-styles.ts`), e.g. `/?look=cat-eye`. `?engine=v2` tries the
-roadmap's Phase 2 engine for that tab (every look painted as its recipe of products, lashes strand by strand;
-`?engine=v1` switches back): see "Phase 2" in [`docs/AI_TRYON.md`](docs/AI_TRYON.md).
+`?look=<id>` opens it on a look (ids in `src/data/makeup-styles.ts`), e.g. `/?look=cat-eye`; `?mine=<recipe>` opens a
+recipe in «میکاپ من» («لینک این میکاپ»). `?engine=v2` tries the roadmap's Phase 2 engine for that tab (every look
+painted as its recipe of products, its eyeshadow drawn from her own eye, lashes strand by strand; `?engine=v1` switches
+back): see "Phase 2" in [`docs/AI_TRYON.md`](docs/AI_TRYON.md). `/bench` is the artist's bench (the salon's passcode):
+she scores both engines, blind, on her own photos, and it shows Phase 2's gate.
 
 How the try-on works (face model, makeup engine, HD face, studio light, live mirror, «میکاپ من»):
 [`docs/AI_TRYON.md`](docs/AI_TRYON.md).
@@ -22,6 +24,7 @@ How the try-on works (face model, makeup engine, HD face, studio light, live mir
 | --- | --- |
 | `src/components/tryon-page.tsx` | The page: header, the try-on, the booking text |
 | `src/components/salon-chat.tsx`, `salon-inbox.tsx`, `src/lib/chat.ts` | The salon's own chat: hers (from «رزرو») and the salon's inbox (`/salon`) |
+| `src/components/artist-bench.tsx`, `src/lib/bench.ts` | The artist's bench (`/bench`): both engines scored blind, and Phase 2's gate |
 | `worker/` | The Worker: the app's files, and `/api/*` to the salon chat's Durable Object (`chat.ts`: the whole API, SQLite) |
 | `src/components/tryon.tsx`, `tryon-mine.tsx`, `tryon-outline.tsx` | The try-on screen, «میکاپ من», her own face outlines |
 | `src/lib/` | The engine: face finding, makeup on the graphics chip (`makeup-gl.ts`), HD face, studio light, live mirror |

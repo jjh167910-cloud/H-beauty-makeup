@@ -109,3 +109,47 @@
   .salon__replies .chip[data-mine] { padding-inline-end: .3rem; }
   .salon__replies .chip i { display: grid; place-items: center; width: 1.6rem; height: 1.6rem; font-style: normal; opacity: .6; }
 }
+
+/* The artist's bench (/bench, src/components/artist-bench.tsx): her photos, a look by both engines, her scores. */
+@layer components {
+  .bench { grid-template-rows: auto minmax(0, 1fr); }
+  .bench__body { display: grid; gap: .8rem; align-content: start; }
+  .bench__photos { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+  .bench__photo { display: grid; justify-items: center; gap: .2rem; padding: .25rem; border-radius: var(--radius-md); border: 2px solid transparent;
+    font-size: .7rem; color: var(--color-ink-2); }
+  .bench__photo[aria-pressed="true"] { border-color: var(--color-gold); }
+  .bench__photo img { width: 3.6rem; height: 3.6rem; object-fit: cover; border-radius: var(--radius-sm); }
+  .bench__looks { display: flex; gap: .4rem; overflow-x: auto; padding-bottom: .3rem; scrollbar-width: thin; }
+  .bench__looks .chip { white-space: nowrap; }
+  .bench__count { font-size: .78rem; color: var(--color-ink-2); }
+  .bench__pair { display: grid; gap: 1rem; }
+  @media (min-width: 40rem) { .bench__pair { grid-template-columns: 1fr 1fr; } }
+  .bench__side { display: grid; gap: .45rem; margin: 0; padding: .6rem; border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-1); }
+  .bench__side figcaption { font-weight: 800; }
+  .bench__shot { display: block; width: 100%; border-radius: var(--radius-md); overflow: hidden; }
+  .bench__shot img { display: block; width: 100%; height: auto; }
+  .bench__line { display: grid; grid-template-columns: minmax(6.5rem, 1fr) repeat(5, 2.75rem); align-items: center; gap: .25rem; border: 0; padding: 0; margin: 0; }
+  .bench__line legend { float: inline-start; font-size: .8rem; font-weight: 650; color: var(--color-ink-2); padding: 0; }
+  .bench__score { min-width: 2.75rem; min-height: 2.75rem; border-radius: var(--radius-sm); border: 1px solid var(--color-line-2); background: var(--color-canvas);
+    font-weight: 750; color: var(--color-ink); }
+  .bench__score[aria-pressed="true"] { background: var(--color-inverse); color: var(--color-on-inverse); border-color: transparent; }
+  .bench__note { display: grid; gap: .25rem; font-size: .75rem; color: var(--color-ink-2); }
+  .bench__note input { width: 100%; min-height: 2.75rem; padding: .5rem .8rem; border-radius: var(--radius-md); border: 1px solid var(--color-line-2);
+    background: var(--color-canvas); color: var(--color-ink); }
+  .bench__result { display: grid; gap: .8rem; }
+  .bench__verdict { font-weight: 800; padding: .7rem .9rem; border-radius: var(--radius-md); background: var(--color-sunken); }
+  .bench__verdict[data-pass] { background: var(--color-gold-soft); color: var(--color-gold-ink); }
+  .bench__table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+  .bench__table th, .bench__table td { padding: .45rem .3rem; border-bottom: 1px solid var(--color-line); text-align: start; }
+  .bench__table tr[data-low] td { color: var(--color-garnet); }
+  .bench__checks { display: grid; gap: .35rem; font-size: .82rem; }
+  .bench__checks li::before { content: "✗ "; color: var(--color-garnet); }
+  .bench__checks li[data-pass]::before { content: "✓ "; color: var(--color-gold); }
+  .bench__looklist { display: grid; gap: .2rem; font-size: .8rem; max-height: 22rem; overflow-y: auto; }
+  .bench__looklist li { display: flex; justify-content: space-between; gap: .5rem; padding: .3rem .1rem; border-bottom: 1px solid var(--color-line); }
+  .bench__looklist li[data-low] b { color: var(--color-garnet); }
+  .bench__zoom { position: fixed; inset: 0; z-index: 80; display: grid; grid-template-rows: auto minmax(0, 1fr); background: rgb(12 8 10 / .92); }
+  .bench__close { justify-self: start; margin: max(.6rem, env(safe-area-inset-top, 0px)) .6rem .4rem; }
+  .bench__zoomed { overflow: auto; overscroll-behavior: contain; }
+  .bench__zoomed img { display: block; max-width: none; width: auto; height: auto; margin: auto; }
+}

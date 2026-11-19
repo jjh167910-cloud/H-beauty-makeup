@@ -123,6 +123,14 @@ export const salonReply = (id: string, text: string) =>
   salonApi<{ message: ChatMessage }>(`/api/salon/threads/${id}/send`, { method: "POST", body: { text } }).then((r) => r.message);
 export const salonDelete = (id: string) => salonApi(`/api/salon/threads/${id}`, { method: "DELETE" });
 
+/* ---------- the artist's scores (/bench: the roadmap's Phase 2 gate) ---------- */
+
+/** One picture's scores: a look on one of her benchmark photos (its hash only), by the old engine or the new. */
+export type BenchCard = { look: string; photo: string; engine: "v1" | "v2"; scores: Record<string, number>; note: string; at: number };
+export const benchScores = () => salonApi<{ scores: BenchCard[] }>("/api/salon/bench").then((r) => r.scores);
+export const benchSave = (card: Omit<BenchCard, "at">) => salonApi("/api/salon/bench", { method: "POST", body: card });
+export const benchClear = () => salonApi("/api/salon/bench", { method: "DELETE" });
+
 /**
  * Notifications, through the browser's own push service, without content. The salon's come through their own service
  * worker (public/salon-sw.js, scope /salon: «پیام تازه», opens the inbox); hers through the app's (public/sw.js:

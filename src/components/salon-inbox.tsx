@@ -119,6 +119,7 @@ function Inbox({ onOut }: { onOut: () => void }) {
           <Button variant="secondary" icon={notifying ? "bell" : "bell-off"} onClick={() => void toggleNotify()} disabled={notifyBusy} aria-pressed={notifying}>
             {notifying ? "اعلان روشن" : "روشن کردن اعلان"}
           </Button>
+          <a className="btn" data-variant="ghost" href="/bench">سنجش آرتیست</a>
           <Button variant="ghost" icon="sign-out" onClick={() => void salonLogout().then(onOut)}>خروج</Button>
         </div>
       </header>
