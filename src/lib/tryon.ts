@@ -843,7 +843,8 @@ export type MinePicks = {
   conceal?: Mine["conceal"];
   /** Contour: her own skin's reflectance times this (deeper, cool / neutral / warm, or a bronzer). */
   contour?: MineZone & { tint: number[] };
-  blush?: MineZone & { hex: string; finish: string };
+  /** Blush; freckles dotted across her nose and cheeks with it (how strong: 1 as an artist dots them). */
+  blush?: MineZone & { hex: string; finish: string; freckles?: number };
   glow?: MineZone & { hex: string; finish: string };
   /** Brows: their colour, or her own brows' (own: measured on her face, a little deeper). */
   brows?: MineZone & { hex: string; thick: number; own?: boolean };
@@ -852,11 +853,14 @@ export type MinePicks = {
    * corner (hex2), and a light for her inner corners.
    */
   shadow?: { hex: string; finish: string; place: string; pack: number; hex2?: string; finish2?: string; inner?: string;
+    /** Her aegyo-sal lit with this (her inner-corner light's colour, or a pearl), as Korean makeup does. */
+    aegyo?: string;
     /** A catalog look whose own eyeshadow places it (where its photo has eyeshadow, when it has enough: else the place's template). */
     from?: string;
     /** Its colours (its inner-corner light too) made deeper on deeper skin, as an artist picks a look's shades for her (RECIPE_SKIN; this power of it). */
     relative?: number };
-  liner?: NonNullable<Mine["liner"]> & { hex: string };
+  /** Liner; rhinestones at her outer eye corners with it (stones: how bright, 1 as they catch her light). */
+  liner?: NonNullable<Mine["liner"]> & { hex: string; stones?: number };
   /** natural, volume or dramatic, drawn strand by strand on her own lash lines (lashStrands in makeup-gl.ts); her lower lashes too. */
   lashes?: { place: string; lower?: boolean };
   /** Lipstick: its colour and finish, or a catalog look's own as measured from its photo (from: the look's id). */
@@ -924,6 +928,7 @@ async function mineProducts(picks: MinePicks, face: FaceStats, all: LooksMeta): 
   if (picks.blush) {
     out.blush = { ...pigment("blush", picks.blush.hex, picks.blush.finish), style: picks.blush.place };
     mine.blush = zone(picks.blush);
+    if (picks.blush.freckles) mine.freckles = picks.blush.freckles;
   }
   if (picks.glow) {        // a highlighter's shimmer is a fine pearl over her skin, never a sheet of metal
     const glow = pigment("glow", picks.glow.hex, picks.glow.finish === "glow" ? "glow" : picks.glow.finish === "glitter" ? "glitter" : "shimmer");
@@ -951,13 +956,16 @@ async function mineProducts(picks: MinePicks, face: FaceStats, all: LooksMeta): 
       const finish = picks.shadow.finish2 ?? picks.shadow.finish;
       out.shadow2 = { ...shade(pigment("shadow", picks.shadow.hex2, finish, Math.max(deep, 0.3))), thick: MINE_SHADOW_THICK, sheen: sheen(finish) };
     }
-    if (picks.shadow.inner) out.inner = { ...shade(pigment("glow", picks.shadow.inner, "shimmer")), thick: 0.13, sheen: 0.6 };
+    const light = picks.shadow.inner ?? picks.shadow.aegyo;
+    if (light) out.inner = { ...shade(pigment("glow", light, "shimmer")), thick: 0.13, sheen: 0.6 };
     // (under her eye: smoky and halo wrap her lower lash line, the others barely touch it)
-    mine.shadow = { pack: picks.shadow.pack, low: MINE_SHADOW_LOW[picks.shadow.place] ?? 0.8 };
+    mine.shadow = { pack: picks.shadow.pack, low: MINE_SHADOW_LOW[picks.shadow.place] ?? 0.8, corners: Boolean(picks.shadow.inner),
+      aegyoSal: Boolean(picks.shadow.aegyo) };
   }
   if (picks.liner) {
     out.liner = linerColour(picks.liner.hex);
     mine.liner = { place: picks.liner.place, lower: picks.liner.lower, soft: picks.liner.soft, opacity: picks.liner.opacity };
+    if (picks.liner.stones) mine.stones = picks.liner.stones;
   }
   if (picks.lashes) mine.lashes = { place: picks.lashes.place, lower: Boolean(picks.lashes.lower) };
   const look = MINE_CARRIER;
@@ -1042,6 +1050,7 @@ export function v2Picks(look: string, level: Level, picks?: ProductPicks | null)
   const out = minePicks(recipe);
   if (!out) return null;
   if (out.shadow) out.shadow.relative = V2_SHADOW_RELATIVE;
+  if (out.blush?.freckles) out.blush.freckles *= V2_LEVEL[level] * (picks?.gain?.blush ?? 1);     // (her level and her blush: fainter or bolder freckles too)
   for (const k of STEP_KEYS) {
     const g = out.gain[k];
     if (g != null) out.gain[k] = g * (V2_OWN_LEVEL.has(k) ? 1 : V2_LEVEL[level]) * (picks?.gain?.[k] ?? 1);

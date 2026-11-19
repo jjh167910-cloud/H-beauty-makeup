@@ -16,6 +16,12 @@ export type MyStep = {
   place?: string;
   /** Liner along her lower lash line too; lashes: her lower lashes too. */
   lower?: boolean;
+  /** Blush: freckles dotted across her nose and cheeks too (a freckle pen). */
+  freckles?: boolean;
+  /** Liner: rhinestones at her outer eye corners too, up and out as her wing goes. */
+  stones?: boolean;
+  /** Eyeshadow: her aegyo-sal lit too (her inner-corner light, or a pearl shimmer, just under her lower lashes). */
+  aegyo?: boolean;
   /** Eyeshadow: a second shade for her crease and outer corner, and a light for her inner corners. */
   shade2?: string;
   inner?: string;
@@ -227,6 +233,9 @@ export function newStep(): MyStep {
  */
 const STRENGTH: Partial<Record<StepKey, number>> = { contour: 0.6, blush: 1.5, glow: 0.5, shadow: 1 };
 
+/** Her aegyo-sal's light when she has no inner-corner light: a pearl shimmer (a champagne one read as a gold stripe). */
+const AEGYO_LIGHT = HIGHLIGHTERS.find((h) => h.id === "pearl")!.hex;
+
 /** Her recipe in the engine's terms (null: nothing on yet). */
 export function minePicks(recipe: MyMakeup): MinePicks | null {
   const gain: MinePicks["gain"] = {};
@@ -246,7 +255,7 @@ export function minePicks(recipe: MyMakeup): MinePicks | null {
         break;
       case "conceal": out.conceal = { ...zone, lift: shade?.lift ?? 1, tint: shade?.tint ?? [1, 1, 1] }; break;
       case "contour": out.contour = { ...zone, tint: shade?.tint ?? [0.62, 0.59, 0.56] }; break;
-      case "blush": out.blush = { ...zone, hex, finish: step.finish ?? "matte" }; break;
+      case "blush": out.blush = { ...zone, hex, finish: step.finish ?? "matte", ...(raw.freckles ? { freckles: 1 } : {}) }; break;
       case "glow": out.glow = { ...zone, hex, finish: step.finish ?? "glow" }; break;
       case "brows": out.brows = { ...zone, hex: shade?.own ? "#4c3328" : hex, thick: t.thick ?? 0.4, ...(shade?.own ? { own: true } : {}) }; break;
       case "shadow": {
@@ -255,12 +264,13 @@ export function minePicks(recipe: MyMakeup): MinePicks | null {
         const hex2 = raw.hex2 ?? second?.hex, light = raw.innerHex ?? inner?.hex;
         out.shadow = { hex, finish: step.finish ?? "matte", place: step.place ?? "wash", pack: t.pack ?? 1,
           ...(hex2 ? { hex2, finish2: raw.hex2 ? step.finish ?? "matte" : second?.finish ?? "matte" } : {}), ...(light ? { inner: light } : {}),
+          ...(raw.aegyo ? { aegyo: light ?? AEGYO_LIGHT } : {}),
           ...(raw.from ? { from: raw.from } : {}) };
         break;
       }
       case "liner":
         out.liner = { hex, place: step.place ?? "wing", lower: Boolean(step.lower), soft: step.place === "smudge" ? Math.max(t.soft, 0.03) : t.soft,
-          opacity: t.opacity ?? 0.95 };
+          opacity: t.opacity ?? 0.95, ...(raw.stones ? { stones: 1 } : {}) };
         break;
       case "lashes": out.lashes = { place: step.place ?? "natural", ...(step.lower ? { lower: true } : {}) }; break;
       case "lips": out.lips = { hex: raw.hex ?? shade?.hex ?? "#b8766d", finish: (step.finish ?? "satin") as Finish, ...(raw.from ? { from: raw.from } : {}) }; break;
@@ -289,6 +299,9 @@ export function recipeLines(recipe: MyMakeup): string[] {
       def.finishes?.find((f) => f.id === step.finish)?.name,
       def.places?.find((p) => p.id === step.place)?.name,
       def.key === "liner" && step.lower ? "خط پایین هم" : def.key === "lashes" && step.lower ? "مژه پایین هم" : undefined,
+      def.key === "blush" && raw.freckles ? "با کک‌مک" : undefined,
+      def.key === "shadow" && raw.aegyo ? "زیر چشم براق (اگیو)" : undefined,
+      def.key === "liner" && raw.stones ? "با نگین گوشه چشم" : undefined,
       def.tools.length > 1 ? def.tools.find((t) => t.id === step.tool)?.name : undefined,
       `شدت ${percent(step.amount)}`,
     ].filter(Boolean);
@@ -315,7 +328,8 @@ const HOW: Partial<Record<StepKey, (s: MyStep) => { how: string; tip?: string }>
     how: s.place === "nose" ? "دو خط باریک کنار تیغه بینی، از ابتدای ابرو تا نزدیک نوک بینی بکشید و با براش کوچک محو کنید."
       : `زیر استخوان گونه، از نزدیک گوش رو به گوشه لب بکشید و فقط تا راستای وسط چشم بیاورید؛ رو به بالا محو کنید.${s.place === "sculpt" ? " کمی هم کنار پیشانی نزدیک خط مو و زیر خط فک بزنید." : ""}`,
   }),
-  blush: (s) => ({ how: BLUSH[(s.place ?? "apples") as keyof typeof BLUSH] ?? BLUSH.apples }),
+  blush: (s) => ({ how: BLUSH[(s.place ?? "apples") as keyof typeof BLUSH] ?? BLUSH.apples,
+    tip: s.freckles ? "کک‌مک: با ماژیک کک‌مک یا مداد ابروی قهوه‌ای روشن، نقطه‌های ریز و نامنظم روی تیغه بینی و بالای گونه‌ها بزنید و هر کدام را با نوک انگشت آرام بزنید تا نرم شود." : undefined }),
   glow: (s) => ({
     how: s.place === "inner" ? "کمی در گوشه داخلی چشم و زیر قوس ابرو بزنید."
       : s.place === "full" ? "روی بالای استخوان گونه، تیغه بینی و بالای لب (کمان) بزنید."
@@ -327,12 +341,16 @@ const HOW: Partial<Record<StepKey, (s: MyStep) => { how: string; tip?: string }>
     return {
       how: s.shade2 ? "رنگ اول را روی پلک متحرک بزنید؛ رنگ دوم را در چین پلک و گوشه بیرونی به شکل V بزنید و مرز دو رنگ را با براش پخش‌کن محو کنید."
         : SHADOW[style].how,
-      tip: s.inner ? "در پایان کمی نور در گوشه داخلی چشم بزنید تا چشم روشن‌تر دیده شود." : undefined,
+      tip: [s.inner ? "در پایان کمی نور در گوشه داخلی چشم بزنید تا چشم روشن‌تر دیده شود." : "",
+        s.aegyo ? "اگیو: با براش کوچک یا نوک انگشت، سایه براق روشن را در نوار باریکی درست زیر مژه‌های پایین، از نزدیک گوشه داخلی تا دو سوم چشم بزنید؛ وقتی لبخند می‌زنید همین برجستگی است." : ""]
+        .filter(Boolean).join(" ") || undefined,
     };
   },
   liner: (s) => {
     const l = LINER[(s.place ?? "wing") as keyof typeof LINER] ?? LINER.wing;
-    return { how: `${l.name}: ${l.how}`, tip: s.lower ? "خط پایین را از گوشه بیرونی تا نیمه چشم، نازک و نزدیک ریشه مژه‌ها بکشید." : undefined };
+    return { how: `${l.name}: ${l.how}`, tip: [s.lower ? "خط پایین را از گوشه بیرونی تا نیمه چشم، نازک و نزدیک ریشه مژه‌ها بکشید." : "",
+      s.stones ? "نگین: سه نگین ریز با چسب مژه (یک نقطه چسب پشت هر نگین، چند ثانیه صبر کنید) از گوشه بیرونی چشم رو به بالا، در امتداد خط چشم بچسبانید؛ وسطی کمی درشت‌تر." : ""]
+      .filter(Boolean).join(" ") || undefined };
   },
   lashes: (s) => ({ how: LASHES[(s.place === "volume" ? "volume" : s.place === "dramatic" ? "dramatic" : "natural") as keyof typeof LASHES].how,
     tip: s.lower ? "مژه‌های پایین را هم با نوک برس ریمل، آرام و از ریشه رو به پایین بزنید." : undefined }),
@@ -389,6 +407,9 @@ export function cleanRecipe(value: unknown): MyMakeup {
     if (t) step.tool = t;
     if (place) step.place = place;
     if (s.lower === true) step.lower = true;
+    if (def.key === "blush" && s.freckles === true) step.freckles = true;
+    if (def.key === "shadow" && s.aegyo === true) step.aegyo = true;
+    if (def.key === "liner" && s.stones === true) step.stones = true;
     const shade2 = pick(s.shade2, def.shades2), inner = pick(s.inner, def.inners);
     if (shade2) step.shade2 = shade2;
     if (inner) step.inner = inner;
@@ -430,3 +451,29 @@ export function removeMakeup(id: string): boolean {
 /** The makeup she's working on, kept between visits. */
 export const loadDraft = (): MyMakeup => cleanRecipe(read<unknown>(DRAFT, {}));
 export const saveDraft = (recipe: MyMakeup) => write(DRAFT, recipe);
+
+/* ------------------------------------------------------------- as a link */
+
+/**
+ * Her recipe as a link: the try-on opened on it in «میکاپ من», on whoever opens it's own face (a catalog look's link is
+ * `?look=<id>`; a look's recipe opens the same way, as her own makeup). Only the recipe, never her photo.
+ */
+export function recipeLink(recipe: MyMakeup, origin = location.origin): string {
+  const bytes = new TextEncoder().encode(JSON.stringify(cleanRecipe(recipe)));
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return `${origin}/?mine=${btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")}`;
+}
+
+/** The recipe a link's `?mine=` holds (null: none, or not a recipe). */
+export function recipeFromLink(search: string): MyMakeup | null {
+  const code = new URLSearchParams(search).get("mine");
+  if (!code || code.length > 8000 || !/^[A-Za-z0-9_-]+$/.test(code)) return null;
+  try {
+    const bin = atob(code.replace(/-/g, "+").replace(/_/g, "/"));
+    const recipe = cleanRecipe(JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)))));
+    return stepCount(recipe) ? recipe : null;
+  } catch {
+    return null;
+  }
+}

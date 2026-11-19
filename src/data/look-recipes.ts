@@ -11,8 +11,8 @@
  * scripts/tinybeauty/fit_recipes.cjs: on synthetic faces, each step as strong and its colour as the old engine paints
  * the photo's change there).
  *
- * What a recipe can't paint yet is listed by recipeGaps (rhinestones, glitter on the face, freckles, aegyo: the
- * roadmap's accents).
+ * Its accents are her own makeup's (freckles with its blush, an aegyo-sal with its eyeshadow, rhinestones with its
+ * liner; glitter is its eyeshadow's finish); recipeGaps lists any a recipe can't paint.
  */
 import type { StepKey } from "@/lib/tryon";
 import fits from "./look-fit.json";
@@ -50,7 +50,7 @@ const LINER_PLACE: Record<Exclude<Liner, "none">, string> = {
 const BLACK_LINER = "#141113";
 
 /** A look's accents the recipe paints (the others are recipeGaps). */
-const PAINTED: ReadonlySet<Accent> = new Set(["shimmer", "contour", "lowerLiner", "bottomLashes"]);
+const PAINTED: ReadonlySet<Accent> = new Set(["shimmer", "contour", "lowerLiner", "bottomLashes", "glitter", "freckles", "aegyo", "rhinestones"]);
 
 /**
  * A look's recipe: its FaceLook as her own makeup's steps (amount 1: as the artist put it on in its catalog photo).
@@ -79,7 +79,8 @@ export function recipeOf(look: FaceLook, id?: string): MyMakeup {
   else if (look.skin === "glow" || look.skin === "matte") out.contour = { shade: "neutral", tool: "fluffy", place: "cheek", amount: 0.45 };
 
   if (look.blush !== "none") {
-    out.blush = { shade: nearestShade(BLUSHES, look.blushColor), hex: look.blushColor, finish: "matte", tool: "fluffy", place: look.blush, amount: 1 };
+    out.blush = { shade: nearestShade(BLUSHES, look.blushColor), hex: look.blushColor, finish: "matte", tool: "fluffy", place: look.blush, amount: 1,
+      ...(acc.has("freckles") ? { freckles: true } : {}) };
   }
 
   // highlight: a glowing skin on her cheekbones, nose and cupid's bow; a bronzed one gold; a dewy one pearl; a
@@ -109,6 +110,7 @@ export function recipeOf(look: FaceLook, id?: string): MyMakeup {
     out.shadow = {
       shade: nearestShade(SHADOWS, look.lid[0]), hex: look.lid[0], shade2: nearestShade(SHADOWS, look.lid[1]), hex2: look.lid[1],
       finish, tool: blended ? "fluffy" : "flat", place: look.shadow, amount: 1, ...(id ? { from: id } : {}),
+      ...(acc.has("aegyo") ? { aegyo: true } : {}),
       // (no inner-corner light: a catalog photo's is a whisper, and at its full amount it read as a white spot)
     };
   }
@@ -116,7 +118,7 @@ export function recipeOf(look: FaceLook, id?: string): MyMakeup {
   if (look.liner !== "none") {
     const hex = look.linerColor ?? BLACK_LINER;
     out.liner = { shade: nearestShade(LINERS, hex), hex, tool: look.liner === "smudge" ? "pencil" : "pen", place: LINER_PLACE[look.liner], amount: 1,
-      ...(acc.has("lowerLiner") || look.liner === "double" ? { lower: true } : {}) };
+      ...(acc.has("lowerLiner") || look.liner === "double" ? { lower: true } : {}), ...(acc.has("rhinestones") ? { stones: true } : {}) };
   } else if (acc.has("lowerLiner")) {
     out.liner = { shade: "black", tool: "pencil", place: "thin", lower: true, amount: 0.6 };
   }
@@ -180,7 +182,7 @@ export function lookRecipe(id: string): MyMakeup | null {
   return style ? fitted(recipeOf(style.look, id), FITS[id]) : null;
 }
 
-/** What a look has that its recipe can't paint yet (its accents beyond shimmer, contour and a lower liner). */
+/** What a look has that its recipe can't paint (its accents not in PAINTED: none now). */
 export function recipeGaps(look: FaceLook): Accent[] {
   return (look.accents ?? []).filter((a) => !PAINTED.has(a));
 }

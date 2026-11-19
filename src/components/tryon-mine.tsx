@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { persian } from "@/lib/persian";
 import {
-  MY_STEPS, filled, minePicks, mySteps, myStep, newStep, recipeLines, removeMakeup, saveMakeup, savedMakeups, stepCount,
+  MY_STEPS, filled, minePicks, mySteps, myStep, newStep, recipeLines, recipeLink, removeMakeup, saveMakeup, savedMakeups, stepCount,
   type MyMakeup, type MyShade, type MyStep, type MyStepDef, type SavedMakeup,
 } from "@/data/my-makeup";
 import type { Step } from "@/data/makeup-steps";
@@ -32,10 +32,12 @@ function tinted(hex: string, tint: [number, number, number] | undefined) {
   return `rgb(${c.map((v, i) => Math.round(Math.min(1, (v ** 2.2 * t[i]) ** (1 / 2.2)) * 255)).join(" ")})`;
 }
 
-export default function TryOnMine({ shot, recipe, onRecipe, onBook, onLive }: {
+export default function TryOnMine({ shot, recipe, onRecipe, onBook, onLive, open, onOpened }: {
   shot: Shot; recipe: MyMakeup; onRecipe: (next: MyMakeup) => void; onBook: (recipe: MyMakeup, name: string) => void;
   /** Wear it in the live mirror (absent: no camera here). */
   onLive?: (recipe: MyMakeup) => void;
+  /** A recipe to open as hers (a catalog look's, to change it): a step she can take back; onOpened once it is. */
+  open?: { recipe: MyMakeup; name: string } | null; onOpened?: () => void;
 }) {
   const small = useMemo(() => tutorialShot(shot), [shot]);
   const skin = useMemo(() => skinTone(small), [small]);
@@ -328,6 +330,15 @@ export default function TryOnMine({ shot, recipe, onRecipe, onBook, onLive }: {
   }
   useEffect(() => { if (tour) endTour(); }, [recipe]);   // (a change of her recipe ends her tutorial)
 
+  useEffect(() => {        // (a catalog look opened as her own makeup: one step back is the makeup she had)
+    if (!open) return;
+    commit(open.recipe);
+    setCurrent(null);
+    setAt(MY_STEPS.find((d) => open.recipe[d.key])?.key ?? "base");
+    setNote(`«${open.name}» حالا میکاپ خودتان است؛ هر قدمش را عوض کنید.`);
+    onOpened?.();
+  }, [open]);
+
   /* -- saving, her saved makeups, booking -- */
 
   function thumb(): string | undefined {
@@ -377,6 +388,18 @@ export default function TryOnMine({ shot, recipe, onRecipe, onBook, onLive }: {
       window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
     } catch {
       setNote("ساختن عکس ممکن نشد.");
+    }
+  }
+  /** Her recipe as a link (only the recipe, never her photo): shared, or copied. */
+  async function shareLink() {
+    const url = recipeLink(recipe), title = current?.name ?? "میکاپ من";
+    haptic();
+    try {
+      if (navigator.share) { await navigator.share({ title: `${title} · حنانه بیوتی`, url }); return; }
+      await navigator.clipboard.writeText(url);
+      setNote("لینک این میکاپ کپی شد؛ هر کس بازش کند، همین میکاپ را روی عکس خودش می‌بیند.");
+    } catch (error) {
+      if ((error as Error)?.name !== "AbortError") setNote(`لینک این میکاپ: ${url}`);
     }
   }
   function startOver() {
@@ -543,6 +566,15 @@ export default function TryOnMine({ shot, recipe, onRecipe, onBook, onLive }: {
                       {def.key === "liner" ? "خط پایین چشم" : "مژه پایین"}
                     </button>
                   ) : null}
+                  {def.key === "blush" ? (
+                    <button type="button" className="chip" aria-pressed={Boolean(step?.freckles)} onClick={() => update({ freckles: !step?.freckles })}>کک‌مک</button>
+                  ) : null}
+                  {def.key === "liner" ? (
+                    <button type="button" className="chip" aria-pressed={Boolean(step?.stones)} onClick={() => update({ stones: !step?.stones })}>نگین گوشه چشم</button>
+                  ) : null}
+                  {def.key === "shadow" ? (
+                    <button type="button" className="chip" aria-pressed={Boolean(step?.aegyo)} onClick={() => update({ aegyo: !step?.aegyo })}>زیر چشم براق (اگیو)</button>
+                  ) : null}
                 </div>
               </div>
             ) : null}
@@ -608,9 +640,10 @@ export default function TryOnMine({ shot, recipe, onRecipe, onBook, onLive }: {
             <Button variant="gold" icon="book" disabled={!count} onClick={() => onBook(recipe, current?.name ?? "میکاپ من")}>رزرو با این میکاپ</Button>
             <Button variant="secondary" icon="save" disabled={!count} onClick={() => setNaming(current?.name ?? "")}>{current ? "ذخیره تغییرات" : "ذخیره میکاپ"}</Button>
             <Button variant="tonal" icon="download" disabled={!count} onClick={download}>ذخیره عکس</Button>
+            <Button variant="tonal" icon="share" disabled={!count} onClick={() => void shareLink()}>لینک این میکاپ</Button>
             <Button variant="ghost" icon="rebook" disabled={!count} onClick={startOver}>از نو</Button>
           </div>
-          <p className="tryon__fine">میکاپ‌ها فقط روی همین گوشی ذخیره می‌شوند. با رزرو، فقط دستور میکاپ (رنگ‌ها، ابزار و شدت هر قدم) برای سالن فرستاده می‌شود، نه عکس شما.</p>
+          <p className="tryon__fine">میکاپ‌ها فقط روی همین گوشی ذخیره می‌شوند. با رزرو یا لینک، فقط دستور میکاپ (رنگ‌ها، ابزار و شدت هر قدم) فرستاده می‌شود، نه عکس شما.</p>
         </>
       )}
     </div>

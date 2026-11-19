@@ -3,12 +3,13 @@
  * «میکاپ من» (her own makeup), all on her phone; «رزرو» gives the look (its intensity and lipstick) or her recipe as text
  * for the salon: sent in the salon's own chat (src/components/salon-chat.tsx: with her name and phone; the salon answers
  * there), or copied. Her photo is never part of it.
- * `?look=<id>` opens it on that look (ids in src/data/makeup-styles.ts); otherwise on Hollywood glam.
+ * `?look=<id>` opens it on that look (ids in src/data/makeup-styles.ts); otherwise on Hollywood glam. `?mine=<recipe>`
+ * (recipeLink in src/data/my-makeup.ts) opens a recipe in «میکاپ من»: her own makeup's, or a look's she changed.
  */
 import { Suspense, lazy, useEffect, useState } from "react";
 import { hasChat, unreadReplies } from "@/lib/chat";
 import { styleById, MAKEUP_STYLES } from "@/data/makeup-styles";
-import { recipeLines, type MyMakeup } from "@/data/my-makeup";
+import { recipeLines, recipeLink, type MyMakeup } from "@/data/my-makeup";
 import { Button } from "@/components/ui";
 import { Icon } from "@/components/icons";
 
@@ -51,7 +52,8 @@ export function TryOnPage() {
   /** «رزرو»: the look (with how she set it: `details`) or her own makeup's recipe as text for the salon; never her photo. */
   function onBook(id: string, mine?: { name: string; recipe: MyMakeup }, details: string[] = []) {
     setCopied(false);
-    setBooking(mine ? { title: mine.name === "میکاپ من" ? "میکاپ من" : `میکاپ من: ${mine.name}`, lines: recipeLines(mine.recipe) }
+    // (her recipe with its link: the artist opens it as it is, on her own photo)
+    setBooking(mine ? { title: mine.name === "میکاپ من" ? "میکاپ من" : `میکاپ من: ${mine.name}`, lines: [...recipeLines(mine.recipe), `لینک: ${recipeLink(mine.recipe)}`] }
       : { title: `سبک: ${styleById.get(id)?.title ?? id}`, lines: details });
   }
   const bookingText = (b: Booking) => ["درخواست نوبت میکاپ · حنانه بیوتی", b.title, ...b.lines].join("\n");

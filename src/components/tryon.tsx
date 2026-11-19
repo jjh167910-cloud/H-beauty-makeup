@@ -3,7 +3,8 @@ import { persian } from "@/lib/persian";
 import { lookPhoto } from "@/data/makeup-photos";
 import { FINISHES, LIPSTICKS, lipstickById } from "@/data/lipsticks";
 import { LOOK_GROUPS, groupOf, styleById, variedLooks, type MakeupStyle } from "@/data/makeup-styles";
-import { loadDraft, minePicks, saveDraft, type MyMakeup } from "@/data/my-makeup";
+import { lookRecipe } from "@/data/look-recipes";
+import { loadDraft, minePicks, recipeFromLink, saveDraft, type MyMakeup } from "@/data/my-makeup";
 import {
   downloadMB, downloadModels, lookV2, downloadHdModels, fetchLook, hdDownloadAvailable, hdModelsReady, HD_DOWNLOAD_MB, engine, errorText, faceShot, modelsReady, paintLook, paintThumb, preparePhoto, relight, studio, warmUp, withPoints,
   type Finish, type Level, type LipChoice, type Prepared, type ProductPicks, type Pt, type Shot, type StepKey,
@@ -125,9 +126,19 @@ export default function TryOnView({ style, onBook }: {
   const [sharpStep, setSharpStep] = useState<"sharp" | "hd">("sharp");
   const [kind] = useState(engine);
   /** The finished look (with before / after), or her own makeup («میکاپ من»). */
-  const [mode, setMode] = useState<"result" | "mine">("result");
+  // (a recipe's link, ?mine=, opens it in «میکاپ من»)
+  const [linked] = useState(() => recipeFromLink(location.search));
+  const [mode, setMode] = useState<"result" | "mine">(linked ? "mine" : "result");
   /** Her own makeup, kept on her phone between visits. */
-  const [myMakeup, setMyMakeup] = useState<MyMakeup>(loadDraft);
+  const [myMakeup, setMyMakeup] = useState<MyMakeup>(() => linked ?? loadDraft());
+  useEffect(() => {          // (opened: her changes are hers from here, kept as her draft, not undone by a reload)
+    if (!linked) return;
+    const url = new URL(location.href);
+    url.searchParams.delete("mine");
+    history.replaceState(history.state, "", url);
+  }, [linked]);
+  /** A recipe being opened in «میکاپ من» (a catalog look's, to change it), as a step she can take back. */
+  const [opening, setOpening] = useState<{ recipe: MyMakeup; name: string } | null>(null);
   useEffect(() => { saveDraft(myMakeup); }, [myMakeup]);
   const prepared = useRef<Prepared | null>(null);
   const camera = useRef<HTMLInputElement>(null);
@@ -697,6 +708,7 @@ export default function TryOnView({ style, onBook }: {
           {own && prep ? (
             <Suspense fallback={<div className="tryon__stage"><div className="tryon__img tryon__img--empty" /></div>}>
               <TryOnMine key={`${which}:${outlineVer}`} shot={shotFor(prep, clear)[0]} recipe={myMakeup} onRecipe={setMyMakeup}
+                open={opening} onOpened={() => setOpening(null)}
                 onBook={(recipe, name) => onBook(look, { name, recipe })}
                 onLive={(recipe) => startLive(recipe)} />
             </Suspense>
@@ -918,6 +930,13 @@ export default function TryOnView({ style, onBook }: {
               {result && phase === "done" ? <Button variant="tonal" icon={canShare ? "share" : "download"} onClick={() => void share(result)}>{canShare ? "اشتراک‌گذاری" : "ذخیره عکس"}</Button> : null}
               {liveMine ? <Button variant="gold" icon="book" onClick={() => onBook(look, { name: "میکاپ من", recipe: liveMine })}>رزرو با این میکاپ</Button>
                 : <Button variant="gold" icon="book" onClick={() => onBook(look, undefined, bookDetails)}>رزرو همین میکاپ</Button>}
+              {/* (the new engine: a look is a recipe, so she can change it step by step as her own makeup) */}
+              {!liveMine && canMine && lookV2() && lookRecipe(look) ? (
+                <Button variant="secondary" icon="brush" onClick={() => {
+                  setOpening({ recipe: lookRecipe(look)!, name: styleById.get(look)?.title ?? "این میکاپ" });
+                  showMode("mine");
+                }}>تغییر در میکاپ من</Button>
+              ) : null}
             </div>
           )}
           {own ? null : <p className="tryon__fine">تصویر با هوش مصنوعی ساخته شده و تقریبی است؛ آرتیست سالن رنگ‌ها را با پوست و فرم چهره شما تنظیم می‌کند.</p>}

@@ -34,7 +34,7 @@ test("every catalog look is a recipe her own makeup can hold, step by step", asy
       if (style.look.shadow !== "none" && recipe.shadow?.hex !== undefined && !/^#[0-9a-f]{6}$/i.test(recipe.shadow.hex)) problems.push(`${style.id}: shadow colour`);
       if (!minePicks(recipe)) problems.push(`${style.id}: nothing to paint`);
       if (recipeLines(recipe).length < 5) problems.push(`${style.id}: recipe text`);
-      if (recipeGaps(style.look).some((a) => ["shimmer", "contour", "lowerLiner", "bottomLashes"].includes(a))) problems.push(`${style.id}: gaps`);
+      if (recipeGaps(style.look).length) problems.push(`${style.id}: can't paint ${recipeGaps(style.look).join(", ")}`);
     }
     const hollywood = lookRecipe("hollywood")!;
     return { problems, count: MAKEUP_STYLES.length, hollywood, lines: recipeLines(hollywood) };
@@ -47,6 +47,14 @@ test("every catalog look is a recipe her own makeup can hold, step by step", asy
   expect(report.hollywood.lips).toMatchObject({ finish: "matte", from: "hollywood" });
   expect(report.hollywood.brows).toMatchObject({ shade: "own", place: "full" });
   expect(report.lines.join("\n")).toContain("خط چشم");
+  // (its accents: freckles with its blush, aegyo-sal with its eyeshadow, rhinestones with its liner)
+  const accents = await page.evaluate(async () => {
+    const { lookRecipe } = await import("/src/data/look-recipes.ts");
+    return { sun: lookRecipe("sun-kissed")!.blush, k: lookRecipe("k-beauty")!.shadow, stones: lookRecipe("rhinestone")!.liner };
+  });
+  expect(accents.sun).toMatchObject({ freckles: true });
+  expect(accents.k).toMatchObject({ aegyo: true });
+  expect(accents.stones).toMatchObject({ stones: true });
 });
 
 test("?engine=v2 paints a look as its recipe (kept for the tab, ?engine=v1 turns it off), lashes strand by strand", async ({ page }) => {
@@ -118,4 +126,82 @@ test("?engine=v2 paints a look as its recipe (kept for the tab, ?engine=v1 turns
   expect(out.lashes[0]).toBeLessThan(out.bareLash);
   expect(out.lashes[1]).toBeLessThan(out.lashes[0]);
   expect(out.lashes[2]).toBeLessThan(out.lashes[1]);
+});
+
+test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a lit aegyo-sal, rhinestones that sparkle", async ({ page }) => {
+  test.setTimeout(300_000);
+  await page.goto("/");
+  const photo = readFileSync(join(process.cwd(), "tests/fixtures/lit-cheek.jpg")).toString("base64");   // (a synthetic face)
+  const out = await page.evaluate(async (b64) => {
+    const m = await import("/src/lib/tryon.ts");
+    await m.downloadModels(["no-makeup"], () => {});
+    const shot = (await m.preparePhoto(await (await fetch(`data:image/jpeg;base64,${b64}`)).blob())).plain;
+    const P = shot.points, w = shot.photo.width;
+    const pixels = (c: HTMLCanvasElement) => {
+      const t = document.createElement("canvas"); t.width = c.width; t.height = c.height;
+      const g = t.getContext("2d")!; g.drawImage(c, 0, 0);
+      return g.getImageData(0, 0, c.width, c.height).data;
+    };
+    const ew = Math.hypot(P[263][0] - P[362][0], P[263][1] - P[362][1]);
+    const lum = (d: Uint8ClampedArray, x: number, y: number) => { const i = (Math.round(y) * w + Math.round(x)) * 4; return (d[i] + d[i + 1] + d[i + 2]) / 3; };
+    const each = (box: number[], f: (x: number, y: number) => void) => { for (let y = Math.round(box[1]); y < box[3]; y++) for (let x = Math.round(box[0]); x < box[2]; x++) f(x, y); };
+    const around = (ids: number[], pad = 0) => {
+      const xs = ids.map((i) => P[i][0]), ys = ids.map((i) => P[i][1]);
+      return [Math.min(...xs) - pad, Math.min(...ys) - pad, Math.max(...xs) + pad, Math.max(...ys) + pad];
+    };
+    // freckles: her blush step (none of the blush itself) with them and without: little darker dots on her cheek
+    const zone = { place: "apples", soft: 0.17, size: 1.25 };
+    const blush = { ...zone, hex: "#e3876f", finish: "matte" };
+    const plain = pixels(await m.paintMine(shot, { gain: { blush: 0 }, blush }));
+    const dotted = pixels(await m.paintMine(shot, { gain: { blush: 0 }, blush: { ...blush, freckles: 1 } }));
+    let dots = 0, lighter = 0;
+    each(around([350, 346, 280, 429]), (x, y) => { const d = lum(plain, x, y) - lum(dotted, x, y); if (d > 6) dots++; if (d < -2) lighter++; });
+    // aegyo-sal: her eyeshadow with it and without: the narrow band under her lower lashes lighter, her lid the same
+    const shadow = { hex: "#e0a497", finish: "shimmer", place: "wash", pack: 1 };
+    const lid = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow }));
+    const lit = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow: { ...shadow, aegyo: "#f4ece6" } }));
+    const down = [-(P[263][1] - P[362][1]) / ew, (P[263][0] - P[362][0]) / ew];
+    const band = (d: Uint8ClampedArray) => [374, 380, 373].reduce((s, i) => s + lum(d, P[i][0] + down[0] * ew * 0.075, P[i][1] + down[1] * ew * 0.075), 0) / 3;
+    const upper = (d: Uint8ClampedArray) => [386, 387, 385].reduce((s, i) => s + lum(d, P[i][0] - down[0] * ew * 0.12, P[i][1] - down[1] * ew * 0.12), 0) / 3;
+    // rhinestones: her liner with them and without: bright crystals past her outer corner
+    const liner = { hex: "#141113", place: "wing", lower: false, soft: 0.004, opacity: 0.95 };
+    const lined = pixels(await m.paintMine(shot, { gain: { liner: 1 }, liner }));
+    const stones = pixels(await m.paintMine(shot, { gain: { liner: 1 }, liner: { ...liner, stones: 1 } }));
+    let brightest = 0, before = 0;
+    each([P[263][0] + ew * 0.02, P[263][1] - ew * 0.4, P[263][0] + ew * 0.45, P[263][1] + ew * 0.05], (x, y) => {   // (past her outer corner)
+      brightest = Math.max(brightest, lum(stones, x, y)); before = Math.max(before, lum(lined, x, y));
+    });
+    return { dots, lighter, band: [band(lid), band(lit)], upper: [upper(lid), upper(lit)], brightest, before };
+  }, photo);
+  expect(out.dots).toBeGreaterThan(15);                       // dotted on
+  expect(out.lighter).toBe(0);                               // (and nothing else on her cheek)
+  expect(out.band[1]).toBeGreaterThan(out.band[0] + 2);      // her aegyo-sal lit
+  expect(Math.abs(out.upper[1] - out.upper[0])).toBeLessThan(1.5);   // her lid as it was
+  expect(out.brightest).toBeGreaterThan(Math.min(250, out.before + 25));   // a crystal catching her light
+});
+
+test("one recipe link opens either: her own makeup or a look's recipe, in «میکاپ من» on whoever opens it (never a photo)", async ({ page }) => {
+  await page.goto("/");
+  const links = await page.evaluate(async () => {
+    const { lookRecipe } = await import("/src/data/look-recipes.ts");
+    const { cleanRecipe, recipeFromLink, recipeLink } = await import("/src/data/my-makeup.ts");
+    const look = lookRecipe("rhinestone")!, mine = { lips: { shade: "classic-red", amount: 1 }, blush: { shade: "berry", amount: 0.8, freckles: true } };
+    const back = (r: object) => recipeFromLink(new URL(recipeLink(r as never)).search);
+    return {
+      look: JSON.stringify(back(look)) === JSON.stringify(cleanRecipe(look)), mine: JSON.stringify(back(mine)) === JSON.stringify(cleanRecipe(mine)),
+      link: recipeLink(look), junk: [recipeFromLink("?mine=%%%"), recipeFromLink("?mine=e30"), recipeFromLink("?look=hollywood")],
+    };
+  });
+  expect(links.look).toBe(true);
+  expect(links.mine).toBe(true);
+  expect(links.link).toMatch(/\/\?mine=[A-Za-z0-9_-]+$/);
+  expect(links.link.length).toBeLessThan(2000);
+  expect(links.junk).toEqual([null, null, null]);              // (not a recipe, an empty one, no recipe)
+  // opened: it is her makeup from here (her draft), and the address no longer reopens it
+  await page.goto(links.link.replace(/^https?:\/\/[^/]+/, ""));
+  await expect(page.getByText("امتحان میکاپ روی چهره خودتان")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => location.search)).toBe("");
+  const draft = await page.evaluate(() => JSON.parse(localStorage.getItem("hb-my-makeup-draft-v1") ?? "{}"));
+  expect(draft.liner).toMatchObject({ stones: true });
+  expect(Object.keys(draft).length).toBeGreaterThanOrEqual(8);
 });

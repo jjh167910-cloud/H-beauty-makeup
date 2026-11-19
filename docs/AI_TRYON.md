@@ -781,6 +781,20 @@ out. Each strand's edge fades over a pixel (as sharp as her photo: softened with
 soft), they fade with an eye that is hardly seen or closing, and each is a dark hair over whatever
 is on her lid (never lighter than she is there). Brows can be her own brows' colour («هم‌رنگ ابروی خودتان», the first brow shade): her
 brow hairs as measured on her face, a little deeper.
+
+Three accents go with a step (a chip each, November 2026): **freckles** with her blush («کک‌مک»: a
+freckle pen's dots across her nose and the tops of her cheeks, `freckleSpots` in `makeup-gl.ts`: a
+fixed pattern on patches between landmarks, so they bend and turn with her face and stay put from
+frame to frame; each a soft dot, mostly small, crowding towards her nose, her skin times a warm
+brown of itself where one is fully on, as sharp as her photo; with her blush step in the tutorial,
+as strong as her level, not as her blush's amount); her **aegyo-sal** with her eyeshadow («زیر چشم
+براق (اگیو)»: her inner-corner light, or a pearl shimmer, in a narrow band just under her lower
+lashes from near her inner corner to two thirds out, fullest under her iris, her lash line kept dark;
+a champagne one read as a gold stripe); and **rhinestones** with her liner («نگین گوشه چشم»: three
+flat-backed crystals in a line up and out from her outer corners as a wing goes, the middle one
+bigger, drawn last over everything: a bright table, facets that catch her light or not with a little
+play of colour, a darker edge, a star of light; as bright as her light and as soft as her photo).
+The tutorial says how to put each on.
 Nothing goes on her eyeballs or inside her mouth, and nothing over hair, hands or glasses.
 
 Her makeups are saved on her phone only (`localStorage`, with a small thumbnail of her face that
@@ -808,8 +822,9 @@ nothing changes.
   look's own photo has eyeshadow), liner (its style and colour, the lower lash line too), lashes
   strand by strand, and its own lipstick as measured from its photo (colour, finish, ombre). Each
   step keeps the look's exact colours and is named by the shop's nearest shade, so a look can be
-  saved, opened and changed as her own makeup. `recipeGaps` lists what a recipe can't paint yet
-  (rhinestones, glitter on the face, freckles, aegyo-sal).
+  saved, opened and changed as her own makeup. Its accents are her own makeup's: freckles with its
+  blush, an aegyo-sal with its eyeshadow, rhinestones with its liner (see above); glitter is its
+  eyeshadow's finish. `recipeGaps` lists any a recipe can't paint (none now).
 - **Fitted to its photo** (`scripts/tinybeauty/fit_recipes.cjs` → `src/data/look-fit.json`): on a
   few synthetic faces the old engine paints the look as its photo's change of colour; each recipe
   step's amount is fitted to it (least squares on the colour change, a few rounds), and how light
@@ -827,8 +842,8 @@ nothing changes.
   as much deeper as her skin is than light skin, to the power 0.5 (a pale champagne lid on deep skin
   read as ash), half of it as a richer shade of the same colour (more pigment: each channel to one
   power) and half as a deeper one, so a pale pink becomes a dusty rose and a champagne a soft gold
-  (deepened with black alone they were a grey mauve and a grey film; richer alone, a neon). A look with rhinestones has glitter on its lids (as its photo shows; the stones
-  themselves are still to come).
+  (deepened with black alone they were a grey mauve and a grey film; richer alone, a neon). A look
+  with rhinestones has glitter on its lids too, as its photo shows.
 - **Lashes** are drawn strand by strand (see her own makeup) as dark hairs over whatever is on her
   lid, never lighter than her own lash line; around her eyes, whatever is far darker than her skin
   (her own lashes, in a dense fringe or on deep skin) stays over the eyeshadow laid under it; a dark
@@ -838,7 +853,7 @@ nothing changes.
   as on the old engine. The photo, the look rail's pictures, the tutorial and the live mirror all
   paint it.
 - **What is left for Phase 2** (the roadmap): eyeshadow patterns drawn from her landmarks (lash
-  line, crease, brow) instead of a catalog look's coverage map; the accents; authoring at 2048 px;
+  line, crease, brow) instead of a catalog look's coverage map; authoring at 2048 px;
   the GPU teacher's pictures and mask extraction; the artist's scores (every look ≥ 4/5, eyes +1.0
   over the old engine on the benchmark) before the old engine and its files go.
 

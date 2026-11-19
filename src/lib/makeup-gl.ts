@@ -90,6 +90,22 @@ const MINE_LASH_DARK = [0.12, 0.3];
 /** Her contour and blush on the deepest skin: this much more product for the same amount. */
 const MINE_DEEP_RICH = 2.4;
 /**
+ * Freckles (a freckle pen, dotted on): her skin times this colour where one is fully on (a warm brown of her own skin,
+ * as a freckle is), and how soft their edges are (eye widths: dots, not a smudge).
+ */
+const FRECKLE_TINT = [0.7, 0.58, 0.5], FRECKLE_SOFT = 0.006;
+/**
+ * Her inner-corner and aegyo light: as strong as her eyeshadow's amount within these (a look whose eyeshadow is a
+ * whisper still has its aegyo-sal lit; a bold one doesn't make it a white stripe).
+ */
+const MINE_LIGHT_GAIN = ["0.6", "1.2"];
+/**
+ * Rhinestones (stones): three crystals in a line up and out from her outer eye corner, as the wing goes: how far out
+ * along it each sits and its radius (eye widths), the line's angle up from straight out (degrees), and how much brighter
+ * than a white under her light a crystal's lit facets are.
+ */
+const STONES = [[0.03, 0.032], [0.145, 0.048], [0.26, 0.032]], STONE_TILT = 40, STONE_LIGHT = 1.25;
+/**
  * The foundation's shade down her neck (neck_weight in teacher.py): from TINT_NECK[0] to [1] eye widths above her chin
  * (along her face's down) coming in, gone by [2] below it.
  */
@@ -524,12 +540,20 @@ export type Mine = {
   glow?: MineZone;
   /** Brows: natural / full / defined. */
   brows?: MineZone;
-  /** Eyeshadow: its placement is a catalog coverage map (Products.shadow.cov); as it is (0), packed on (1) or blended out (2). */
-  shadow?: { pack: number; low?: number };
+  /**
+   * Eyeshadow: its placement is a catalog coverage map (Products.shadow.cov); as it is (0), packed on (1) or blended out
+   * (2); her light (Products.inner) at her inner corners (corners: the default when there is one) and along her
+   * aegyo-sal (aegyoSal).
+   */
+  shadow?: { pack: number; low?: number; corners?: boolean; aegyoSal?: boolean };
   /** Liner: thin / wing / fox / puppy / smudge, along her lower lash line too, its edge's softness and opacity. */
   liner?: { place: string; lower: boolean; soft: number; opacity: number };
   /** Lashes strand by strand (lashStrands): natural / volume / dramatic, her lower lashes too. */
   lashes?: { place: string; lower?: boolean };
+  /** Freckles dotted across her nose and upper cheeks (freckleSpots): how strong (1 = as an artist dots them). */
+  freckles?: number;
+  /** Rhinestones at her outer eye corners (stoneSpots): how bright (1 = as they catch her light). */
+  stones?: number;
 };
 /** Thickness at full coverage and shimmer strength per product, as THICK / SHEEN in products.py. */
 export const PIGMENT_THICK = { shadow: 0.6, blush: 0.08, contour: 0.25, glow: 0.05, brows: 0.45 } as const;
@@ -832,11 +856,12 @@ const NO_ZONE: StepGeo = { polys: [], sweep: { mode: 0, axes: [] } };
 /**
  * Her lid and inner corner for a two-shade eyeshadow (an artist's way): soft spots along the middle of her lid from
  * near her inner corner to two thirds out (her lid shade; her crease and outer corner take her second shade), and one
- * at her inner corner (her inner-corner light). Pixels.
+ * at her inner corner (her inner-corner light); her aegyo-sal, the little roll just under her lower lashes (her light
+ * along it: Korean makeup's "smiling eyes"). Pixels.
  */
-export function lidSpots(P: Pt[]): { lid: Spot[]; inner: Spot[]; low: Spot[] } {
+export function lidSpots(P: Pt[]): { lid: Spot[]; inner: Spot[]; low: Spot[]; aegyo: Spot[] } {
   const { ew, down, sides } = frame(P), up = mul(down, -1);
-  const lid: Spot[] = [], inner: Spot[] = [], low: Spot[] = [];
+  const lid: Spot[] = [], inner: Spot[] = [], low: Spot[] = [], aegyo: Spot[] = [];
   for (const s of sides) {
     const line = s.upper.map((i) => pt(P, i)), browLow = s.browLow.map((i) => pt(P, i));
     // (a spot's sigma is a third of its radius: these overlap into one soft band, solid from her lashes to the middle
@@ -856,6 +881,12 @@ export function lidSpots(P: Pt[]): { lid: Spot[]; inner: Spot[]; low: Spot[] } {
       const [q, n] = along(under, x, down), d = add(q, mul(n, ew * 0.16));
       low.push([d[0], d[1], ew * 0.42, 0.5]);
     }
+    // (her aegyo: a narrow band from near her inner corner to two thirds out, fullest under her iris, a lash line's
+    // width below her lashes so they stay dark)
+    ([[0.1, 0.3], [0.22, 0.55], [0.34, 0.7], [0.46, 0.7], [0.58, 0.55], [0.7, 0.38], [0.8, 0.2]] as const).forEach(([x, a]) => {
+      const [q, n] = along(under, x, down), d = add(q, mul(n, ew * 0.075));
+      aegyo.push([d[0], d[1], ew * 0.13, a]);
+    });
     // and her brow bone, just under her brow: a placement's colour fades out before it (half as firmly)
     const bone = s.browLow.map((i) => pt(P, i));
     for (const x of [0.1, 0.35, 0.6, 0.85]) {
@@ -863,7 +894,54 @@ export function lidSpots(P: Pt[]): { lid: Spot[]; inner: Spot[]; low: Spot[] } {
       low.push([d[0], d[1], ew * 0.38, 0.28]);
     }
   }
-  return { lid, inner, low };
+  return { lid, inner, low, aegyo };
+}
+
+/**
+ * Where freckles go: patches of her face between four landmarks each (inner top, outer top, outer bottom, inner bottom,
+ * so a patch bends and turns with her face): her nose from the middle of its bridge to its tip, and each cheek from
+ * under her eye's inner half to her cheekbone, down to the side of her nose. How many dots each patch gets, and how
+ * they crowd towards its inner top (across her nose and the tops of her cheeks, as sun-kissed freckles do).
+ */
+const FRECKLE_PATCHES: Array<{ at: [number, number, number, number]; n: number; crowd: [number, number] }> = [
+  { at: [196, 419, 275, 45], n: 24, crowd: [0, 0.3] },
+  { at: [121, 117, 50, 209], n: 30, crowd: [0.65, 0.45] },
+  { at: [350, 346, 280, 429], n: 30, crowd: [0.65, 0.45] },
+];
+/** Each freckle: where in its patch (u across, v down), its size (eye widths) and how dark: the same on every face. */
+const FRECKLES: Array<[number, number, number, number, number]> = (() => {
+  let s = 0x2f6b9d1;            // (mulberry32: a fixed pattern, so her freckles stay put frame after frame)
+  const rand = () => { s = (s + 0x6d2b79f5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const out: Array<[number, number, number, number, number]> = [];
+  FRECKLE_PATCHES.forEach((p, k) => {
+    for (let i = 0; i < p.n;) {
+      const u = rand(), v = rand();
+      if (rand() > (1 - p.crowd[0] * u) * (1 - p.crowd[1] * v)) continue;
+      const r = rand();     // (mostly small, a few bigger)
+      out.push([k, u, v, 0.028 + 0.05 * r * r * r, 0.45 + 0.55 * rand()]);
+      i++;
+    }
+  });
+  return out;
+})();
+
+/** Her freckles as soft dots (pixels), on her FRECKLE_PATCHES. */
+export function freckleSpots(P: Pt[]): Spot[] {
+  const ew = eyeWidth(P);
+  return FRECKLES.map(([k, u, v, r, a]) => {
+    const [i0, i1, i2, i3] = FRECKLE_PATCHES[k].at;
+    const top = lerp(pt(P, i0), pt(P, i1), u), bottom = lerp(pt(P, i3), pt(P, i2), u), c = lerp(top, bottom, v);
+    return [c[0], c[1], r * ew, a];
+  });
+}
+
+/** Her rhinestones (pixels: x, y, radius, and a number of its own: how its facets catch the light). */
+export function stoneSpots(P: Pt[]): Spot[] {
+  const { ew, sides, tilt } = frame(P);
+  return sides.flatMap((s, k) => {
+    const d = tilt(s, STONE_TILT), start = add(s.outer, mul(s.out, ew * 0.02));
+    return STONES.map(([x, r], i): Spot => { const c = add(start, mul(d, ew * x)); return [c[0], c[1], ew * r, (k * 3 + i) * 0.137 + 0.05]; });
+  });
 }
 
 /** Her brow fill per style: her hairs' darkness from / to which it is all of her brow, and how much of the zone gets some anyway (browFill). */
@@ -1414,6 +1492,31 @@ void main() {
   o = vec4(0.0, 0.0, 0.0, a * c);
 }`;
 
+// A rhinestone, onto the finished picture: q from the stone's centre (its radius 1; the quad is bigger for its sparkle),
+// a its own number. A flat-backed crystal: a bright table in the middle, facets around it each catching her light (or
+// not) with a little play of colour, a darker edge where its setting is, and a star of light; as soft as her photo
+// (uBlur, pixels), as bright as her light (uWhite), shown as much as her liner step is (uShow). Out: sRGB, premultiplied.
+const STONE_VS = `#version 300 es
+in vec2 aXy; in vec2 aUv; in float aW; uniform vec2 uSize; uniform float uFlip; out vec2 q; out float a;
+void main() { q = aUv; a = aW; vec2 p = aXy / uSize * 2.0 - 1.0; gl_Position = vec4(p.x, p.y * uFlip, 0.0, 1.0); }`;
+const STONE_FS = `#version 300 es
+precision highp float; in vec2 q; in float a; uniform vec3 uWhite; uniform float uBlur, uShow; out vec4 o;
+float hash(float n) { return fract(sin(n * 12.9898 + 4.1414) * 43758.5453); }
+void main() {
+  float r = length(q), px = max(fwidth(r), 1e-4), soft = px * max(1.0, uBlur);
+  float body = 1.0 - smoothstep(1.0 - soft, 1.0 + soft, r);
+  float ang = mod(atan(q.y, q.x) + a * 6.2832, 6.2832), f = floor(ang / 6.2832 * 8.0);
+  float h = hash(f + a * 97.0), h2 = hash(f * 3.1 + a * 41.0);
+  vec3 c = vec3(r < 0.45 ? 0.82 + 0.18 * h : mix(0.28, 1.0, h));
+  c *= 0.84 + 0.16 * cos(6.2832 * (h2 + vec3(0.0, 0.33, 0.67)));
+  c *= mix(1.0, 0.45, smoothstep(0.78, 1.0, r));
+  c = min(c * uWhite * ${STONE_LIGHT.toFixed(2)}, vec3(1.0));
+  vec2 g = q - vec2(-0.3, 0.32);
+  float star = exp(-dot(g, g) * 45.0) + 0.55 * (exp(-abs(g.y) * 30.0 - abs(g.x) * 3.2) + exp(-abs(g.x) * 30.0 - abs(g.y) * 3.2));
+  vec3 glint = min(vec3(star) * uWhite * 1.3, vec3(1.0));
+  o = vec4((pow(c, vec3(1.0 / 2.2)) * body + pow(glint, vec3(1.0 / 2.2)) * (1.0 - 0.5 * body)) * uShow, body * uShow);
+}`;
+
 const FLAT_VS = `#version 300 es
 in vec2 aXy; uniform vec2 uSize; void main() { gl_Position = vec4(aXy / uSize * 2.0 - 1.0, 0.0, 1.0); }`;
 const FLAT_FS = `#version 300 es
@@ -1530,11 +1633,12 @@ uniform vec3 uWhite, uLiner;
 uniform float uSkinRef;
 uniform int uLinerOn;
 // her own makeup on her bare face (Mine): no catalog layer; zoneA is her concealer, contour, blush and highlight, zoneB
-// nothing (r: her eyeshadow is in uCov), her liner, brows, and where the lash template's lashes go (the eye detail);
+// her freckles (r: her eyeshadow is in uCov), her liner, brows, and where the lash template's lashes go (the eye detail);
 // uMineK: her concealer's brightness over her skin's median (x), how her eyeshadow's tool lays it (y: mineShadow)
 // and whether it has a placement (z), her liner's opacity (w); her concealer's colour; her brow colour and its thickness
 uniform int uMine;
 uniform int uStrands;      // her lashes strand by strand (the eye detail is exactly them: not kept to the template's zone)
+uniform float uFreckle;    // her freckles: how strong (0: none)
 const vec3 LASH_COLOUR = vec3(${LASH_COLOUR.map((x) => x.toFixed(4)).join(", ")});
 uniform vec4 uMineK;
 uniform vec3 uConTint, uBrow, uBrowShape;
@@ -1573,10 +1677,9 @@ float sweepT(vec2 x) {
 }
 // A step's share here: in the tutorial, the sweep for the step being applied (and the steps this look doesn't
 // have, which go on with the base) or how much of it is done; times the step's intensity.
-float rv(int k, float sw) {
-  float r = uStepsOn == 1 ? (k == uActive || (uActive == 0 && uFollow[k] > 0.5) ? sw : uReveal[k]) : 1.0;
-  return r * uGain[k];
-}
+// how much of step k is on so far in the guided tutorial (1: all of it, or no tutorial), and that times its amount
+float shown(int k, float sw) { return uStepsOn == 1 ? (k == uActive || (uActive == 0 && uFollow[k] > 0.5) ? sw : uReveal[k]) : 1.0; }
+float rv(int k, float sw) { return shown(k, sw) * uGain[k]; }
 float rl(int k, float sw) { return rv(k, sw) * uLGain[k]; }
 float luma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
 /*
@@ -1954,7 +2057,8 @@ void main() {
       float two = uPigX[4] > 0.0 ? 1.0 : 0.0, lid = mix(1.0, gLid, two), light = smoothstep(0.04, 0.7, C.b);
       float c = sat(uMineK.z * mix(sh, max(sh, lid), two)) * k3;
       cov = float[6](c * lid, sat(max(ZA.g, 0.0)) * rv(6, sw) * keep, sat(max(ZA.b, 0.0)) * rv(7, sw) * keep,
-        sat(max(ZA.a, 0.0)) * rv(8, sw) * keep, two * sat(uMineK.z * sh) * k3 * (1.0 - 0.85 * smoothstep(0.3, 0.9, C.g)), light * k3);
+        sat(max(ZA.a, 0.0)) * rv(8, sw) * keep, two * sat(uMineK.z * sh) * k3 * (1.0 - 0.85 * smoothstep(0.3, 0.9, C.g)),
+        light * k3 / max(uGain[3], 1e-4) * clamp(uGain[3], ${MINE_LIGHT_GAIN[0]}, ${MINE_LIGHT_GAIN[1]}));
     } else {
       cov = float[6](texture(uCov, v).r * rv(3, sw) * uK.x * hairK * lineK, ZA.g * rv(6, sw) * uK.x, ZB.b * rv(7, sw) * uK.x, ZA.a * rv(8, sw) * uK.x, 0.0, 0.0);
     }
@@ -1970,6 +2074,10 @@ void main() {
       float laid = smoothstep(0.0, 0.6, (luma(base) - luma(pre)) / max(luma(pre), 0.01));
       base = mix(base, pre, dark * laid * ${MINE_HAIR} * (1.0 - M.r));
     }
+  }
+  if (uMine == 1 && uFreckle > 0.0) {   // her freckles, dotted on over her skin's products (with her blush)
+    float f = clamp(ZB.r * uFreckle, 0.0, 1.0) * shown(7, sw) * (1.0 - M.r) * (1.0 - M.g);
+    base *= mix(vec3(1.0), vec3(${FRECKLE_TINT.map((x) => x.toFixed(3)).join(", ")}), f);
   }
   if (uMine == 1 && uBrowX > 0.0) base = browFill(base, lu, max(ZB.b, 0.0) * rv(2, sw) * (1.0 - M.r));
   else if (uBrowDef.w > 0.0 && uZonesOn == 1) {
@@ -2131,7 +2239,7 @@ export class MakeupGL {
     this.progs = {
       mesh: make(MESH_VS, COPY_FS), canon: make(MESH_VS, CANON_FS), extend: make(QUAD_VS, EXTEND_FS), foundPrep: make(QUAD_VS, FOUND_PREP_FS), found: make(QUAD_VS, FOUND_FS), flat: make(FLAT_VS, FLAT_FS), prep: make(QUAD_VS, PREP_FS),
       blur: make(QUAD_VS, BLUR_FS), main: make(QUAD_VS, MAIN_FS), visPrep: make(QUAD_VS, VIS_PREP_FS), visFit: make(QUAD_VS, VIS_FIT_FS),
-      side: make(MESH_VS, SIDE_FS), zone: make(FLAT_VS, ZONE_FS), dab: make(DAB_VS, DAB_FS), strand: make(DAB_VS, STRAND_FS),
+      side: make(MESH_VS, SIDE_FS), zone: make(FLAT_VS, ZONE_FS), dab: make(DAB_VS, DAB_FS), strand: make(DAB_VS, STRAND_FS), stone: make(STONE_VS, STONE_FS),
     };
     this.buf = gl.createBuffer()!;
     this.quad = gl.createBuffer()!;
@@ -2298,6 +2406,30 @@ export class MakeupGL {
     gl.disable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
     gl.disableVertexAttribArray(2);
     gl.colorMask(true, true, true, true);
+  }
+
+  /** Her rhinestones (stoneSpots) onto the canvas, over everything (white: her light, linear; blur: her photo's, px). */
+  private stones(list: Spot[], w: number, h: number, white: number[], blur: number, show: number) {
+    if (!list.length || show <= 0) return;
+    const gl = this.gl, p = this.use("stone"), S = 1.8, data = new Float32Array(list.length * 30), corners = [-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1];
+    list.forEach(([x, y, r, a], i) => {
+      for (let k = 0; k < 6; k++) data.set([x + corners[k * 2] * r * S, y + corners[k * 2 + 1] * r * S, corners[k * 2] * S, corners[k * 2 + 1] * S, a], i * 30 + k * 5);
+    });
+    gl.uniform2f(this.uni(p, "uSize"), w, h);
+    gl.uniform1f(this.uni(p, "uFlip"), -1);
+    gl.uniform3f(this.uni(p, "uWhite"), white[0], white[1], white[2]);
+    gl.uniform1f(this.uni(p, "uBlur"), blur);
+    gl.uniform1f(this.uni(p, "uShow"), Math.min(1, show));
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.enable(gl.BLEND); gl.blendEquation(gl.FUNC_ADD); gl.blendFuncSeparate(gl.ONE, gl.ONE_MINUS_SRC_ALPHA, gl.ZERO, gl.ONE);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.buf);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STREAM_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 20, 0);
+    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 20, 8);
+    gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 20, 16);
+    gl.drawArrays(gl.TRIANGLES, 0, data.length / 5);
+    gl.disable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+    gl.disableVertexAttribArray(2);
   }
 
   /** Soft spots (x, y, radius in pixels, amount) added onto one channel of a target. */
@@ -2679,9 +2811,11 @@ export class MakeupGL {
         if (mine.shadow) {
           const m = lidSpots(P);
           this.spots(T.cov, 1, m.lid, w, h);
-          if (prod?.inner) this.spots(T.cov, 2, m.inner, w, h);
+          if (prod?.inner && mine.shadow.corners !== false) this.spots(T.cov, 2, m.inner, w, h);
+          if (prod?.inner && mine.shadow.aegyoSal) this.spots(T.cov, 2, m.aegyo, w, h);
           this.spots(T.cov, 3, m.low, w, h);
         }
+        if (mine.freckles) this.spots(T.zoneB, 0, freckleSpots(P), w, h);     // (zoneB's free channel)
         p = this.use("flat");
       } else {
         if (geo) { zone("zoneA", 0, geo.conceal); zone("zoneA", 1, geo.contour); zone("zoneA", 2, geo.blush); zone("zoneA", 3, geo.glow); }
@@ -2713,7 +2847,7 @@ export class MakeupGL {
     if (mine) {          // her steps' edges as soft as her tools make them, and never crisper than her photo
       const soft = (x: number) => Math.max(0.8, ew * x, 0.9 * (face.blur ?? 0)), T = this.targets;
       const sA = [mine.conceal, mine.contour, mine.blush, mine.glow].map((x) => soft(x?.soft ?? 0.1));
-      const sB = [soft(0.04), soft(mine.liner?.soft ?? 0.01), soft(mine.brows?.soft ?? 0.02), soft(0.05)];
+      const sB = [soft(FRECKLE_SOFT), soft(mine.liner?.soft ?? 0.01), soft(mine.brows?.soft ?? 0.02), soft(0.05)];
       this.blur(T.zoneA.tex[0], T.zoneAB, sA, scissor);
       this.blur(T.zoneB.tex[0], T.zoneBB, sB, scissor);
     } else {
@@ -2906,6 +3040,7 @@ export class MakeupGL {
     gl.uniform3f(this.uni(p, "uLiner"), liner[0], liner[1], liner[2]);
     gl.uniform1i(this.uni(p, "uMine"), mine ? 1 : 0);
     gl.uniform1i(this.uni(p, "uStrands"), mine?.lashes ? 1 : 0);
+    gl.uniform1f(this.uni(p, "uFreckle"), mine?.freckles ?? 0);
     gl.uniform4f(this.uni(p, "uMineK"), mine?.conceal?.lift ?? 1, mine?.shadow?.pack ?? 0, prod?.shadow?.cov ? 1 : 0, mine?.liner?.opacity ?? 1);
     const conTint = mine?.conceal?.tint ?? [1, 1, 1], brow = prod?.brows?.color ?? [0, 0, 0];
     gl.uniform3f(this.uni(p, "uConTint"), conTint[0], conTint[1], conTint[2]);
@@ -2947,6 +3082,10 @@ export class MakeupGL {
       gl.uniform4f(this.uni(p, "uMid"), mid[0], mid[1], dir[0], dir[1]);
     }
     this.drawQuad(p, -1);
+    if (mine?.stones) {          // 5. her rhinestones, on her skin over everything, as far as her liner step is on
+      const show = steps ? (steps.active?.key === "liner" ? steps.active.t : steps.done.liner ?? 0) : 1;
+      this.stones(stoneSpots(P), w, h, white, Math.max(1, face.blur ?? 0), show * mine.stones);
+    }
   }
 
   dispose() {
