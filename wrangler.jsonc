@@ -6,8 +6,18 @@
   "build": {
     "command": "test -d node_modules || npm ci --no-audit --no-fund; npm run build"
   },
+  // The Worker: the app's files as they are, and /api/* to the salon's chat (worker/index.ts).
+  "main": "worker/index.ts",
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
-  }
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  // The salon's chat: one Durable Object with its own SQLite database (worker/chat.ts). Its passcode is the
+  // SALON_PASSCODE secret, set in Cloudflare (Workers & Pages > h-beauty-makeup > Settings > Variables and Secrets).
+  "durable_objects": {
+    "bindings": [{ "name": "CHAT", "class_name": "SalonChat" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SalonChat"] }]
 }

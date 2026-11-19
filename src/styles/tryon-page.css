@@ -4,6 +4,11 @@
     padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 1rem; }
   .tp__head { display: grid; gap: .35rem; }
   .tp__brand { font-size: .74rem; font-weight: 700; color: var(--color-ink-3); letter-spacing: .02em; }
+  .tp__top { display: flex; align-items: center; justify-content: space-between; gap: .5rem; min-height: 2.75rem; }
+  .tp__chat { display: inline-flex; align-items: center; gap: .35rem; min-height: 2.75rem; padding-inline: .8rem; border-radius: var(--radius-pill);
+    background: var(--color-sunken); color: var(--color-ink); font-size: .78rem; font-weight: 650; }
+  .tp__chat b { display: grid; place-items: center; min-width: 1.3rem; height: 1.3rem; padding-inline: .3rem; border-radius: var(--radius-pill);
+    background: var(--color-gold); color: var(--color-on-gold); font-size: .7rem; }
   .tp__head h1 { font-size: 1.35rem; font-weight: 800; line-height: 1.5; color: var(--color-ink); }
   .tp__head p { font-size: .84rem; line-height: 1.9; color: var(--color-ink-2); }
   /* (with her photo up, the screen is hers: only the salon's name stays above it) */

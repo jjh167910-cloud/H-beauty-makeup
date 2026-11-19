@@ -17,5 +17,7 @@ export default defineConfig({
     url: "http://127.0.0.1:4173",
     reuseExistingServer: !process.env.CI,
     timeout: 45_000,
+    // (the salon chat's passcode on the test server: tests/chat.spec.ts signs in with it)
+    env: { SALON_PASSCODE: "test-salon-passcode" },
   },
 });

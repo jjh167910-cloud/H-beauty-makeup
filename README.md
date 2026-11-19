@@ -2,10 +2,12 @@
 
 «حنانه بیوتی» (Hananeh Beauty) salon's **makeup try-on**, a Persian (RTL) mobile web app: the customer opens a
 live mirror on her front camera, takes a selfie or picks a photo, and the salon's 42 catalog looks are painted on
-her own face. She can also build her own makeup step by step («میکاپ من»). Everything runs on her phone: no
-server, no API key, offline for previously downloaded looks, and her photo never leaves the phone unless she shares
-it herself (the phone's share sheet). «رزرو» gives the look, its intensity and lipstick (or her recipe) as text to send
-to the salon from her chat app.
+her own face. She can also build her own makeup step by step («میکاپ من»). The try-on runs on her phone: no API
+key, offline for previously downloaded looks, and her photo never leaves the phone unless she shares it herself (the
+phone's share sheet). «رزرو» sends the look, its intensity and lipstick (or her recipe) to the salon in **the salon's
+own chat**, with her name and phone, text only; the salon answers from its inbox at `/salon` (passcode, and a
+notification on its phone for each new message). The chat is the one part with a server: a Cloudflare Durable Object
+on this Worker ([`docs/SALON_CHAT.md`](docs/SALON_CHAT.md)).
 
 `?look=<id>` opens it on a look (ids in `src/data/makeup-styles.ts`), e.g. `/?look=cat-eye`.
 
@@ -17,6 +19,8 @@ How the try-on works (face model, makeup engine, HD face, studio light, live mir
 | Path | What |
 | --- | --- |
 | `src/components/tryon-page.tsx` | The page: header, the try-on, the booking text |
+| `src/components/salon-chat.tsx`, `salon-inbox.tsx`, `src/lib/chat.ts` | The salon's own chat: hers (from «رزرو») and the salon's inbox (`/salon`) |
+| `worker/` | The Worker: the app's files, and `/api/*` to the salon chat's Durable Object (`chat.ts`: the whole API, SQLite) |
 | `src/components/tryon.tsx`, `tryon-mine.tsx`, `tryon-outline.tsx` | The try-on screen, «میکاپ من», her own face outlines |
 | `src/lib/` | The engine: face finding, makeup on the graphics chip (`makeup-gl.ts`), HD face, studio light, live mirror |
 | `src/data/` | The looks, lipsticks, products and her own makeup's steps |
@@ -25,7 +29,7 @@ How the try-on works (face model, makeup engine, HD face, studio light, live mir
 | `public/makeup/looks/` | The catalog photos (AI-generated model); `sm/` are the look rail's thumbnails |
 | `scripts/tinybeauty/` | The engine's Python reference and the tools that make `public/tryon/` from the catalog photos |
 | `scripts/gpu/` | Experiments with a larger AI as a teacher for the phone model (nothing here goes into the app) |
-| `tests/` | Playwright tests of the try-on (synthetic faces in `tests/fixtures/`); `tests-node/`: the offline service worker |
+| `tests/` | Playwright tests of the try-on and the salon chat (synthetic faces in `tests/fixtures/`); `tests-node/`: the offline service worker and the chat server |
 
 ## Run / build
 

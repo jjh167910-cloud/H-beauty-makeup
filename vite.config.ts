@@ -3,10 +3,12 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { fileURLToPath, URL } from "node:url";
 import aiPieces from "./scripts/vite-ai-pieces";
+import chatApi from "./scripts/vite-chat-api";
 
 export default defineConfig({
   // aiPieces: the big AI files in 1 MiB pieces (a dropped download costs one piece; scripts/vite-ai-pieces.ts).
-  plugins: [react(), tailwindcss(), aiPieces()],
+  // chatApi: the salon's chat API on the dev server (the Worker's code over node:sqlite; scripts/vite-chat-api.ts).
+  plugins: [react(), tailwindcss(), aiPieces(), chatApi()],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),

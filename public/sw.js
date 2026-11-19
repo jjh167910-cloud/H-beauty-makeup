@@ -27,6 +27,8 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const req=event.request;
   if(req.method!=='GET'||new URL(req.url).origin!==self.location.origin) return;
+  // The salon's chat (/api/) always goes to the network, never to a cache.
+  if(new URL(req.url).pathname.startsWith('/api/')) return;
   if(req.mode==='navigate') {
     event.respondWith((async () => {
       try {
@@ -59,5 +61,22 @@ self.addEventListener('fetch', event => {
       catch (error) { console.warn('Could not cache asset',error); }
     }
     return response;
+  })());
+});
+
+/* The salon's notifications: a new customer message (no content comes with it); a tap opens the inbox. */
+self.addEventListener('push', event => {
+  event.waitUntil(self.registration.showNotification('حنانه بیوتی · پیام تازه', {
+    body:'یک مشتری برای سالن پیام فرستاده است.', tag:'salon-chat', renotify:true, lang:'fa', dir:'rtl',
+    icon:'/icons/icon-192.png', badge:'/icons/icon-192.png', data:{url:'/salon'},
+  }));
+});
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil((async () => {
+    const open=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+    const inbox=open.find(c => new URL(c.url).pathname.startsWith('/salon'));
+    if (inbox) return inbox.focus();
+    return self.clients.openWindow('/salon');
   })());
 });

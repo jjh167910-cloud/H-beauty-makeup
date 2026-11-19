@@ -6,7 +6,10 @@ import {
   ArrowUUpLeft,
   ArrowUUpRight,
   BezierCurve,
+  Bell,
+  BellSlash,
   Camera,
+  ChatCircleText,
   Check,
   Copy,
   DownloadSimple,
@@ -15,6 +18,9 @@ import {
   Faders,
   FloppyDisk,
   Heart,
+  PaperPlaneRight,
+  Phone,
+  SignOut,
   ImageSquare,
   MagnifyingGlassMinus,
   PaintBrush,
@@ -62,6 +68,17 @@ const ICONS = {
   trash: Trash,
   rebook: ArrowCounterClockwise,
   copy: Copy,
+  /** The salon's own chat. */
+  chat: ChatCircleText,
+  /** Send a chat message. */
+  send: PaperPlaneRight,
+  /** Call her (the salon's inbox). */
+  phone: Phone,
+  /** The salon's notifications, on and off. */
+  bell: Bell,
+  "bell-off": BellSlash,
+  /** Sign out (the salon's inbox). */
+  "sign-out": SignOut,
   check: Check,
   plus: Plus,
   palette: Swatches,
