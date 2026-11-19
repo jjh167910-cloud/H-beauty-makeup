@@ -19,7 +19,7 @@ import fits from "./look-fit.json";
 import { LIPSTICKS } from "./lipsticks";
 import { styleById, type Accent, type FaceLook, type Liner } from "./makeup-styles";
 import type { MyMakeup, MyStep } from "./my-makeup";
-import { BLUSHES, HIGHLIGHTERS, LINERS, SHADOWS } from "./products";
+import { BLUSHES, LINERS, SHADOWS } from "./products";
 
 const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 /** The palette's shade nearest to a colour (by eye: red counts a little more than blue, green most). */
@@ -109,7 +109,7 @@ export function recipeOf(look: FaceLook, id?: string): MyMakeup {
     out.shadow = {
       shade: nearestShade(SHADOWS, look.lid[0]), hex: look.lid[0], shade2: nearestShade(SHADOWS, look.lid[1]), hex2: look.lid[1],
       finish, tool: blended ? "fluffy" : "flat", place: look.shadow, amount: 1, ...(id ? { from: id } : {}),
-      ...(acc.has("shimmer") || acc.has("glitter") ? { inner: "champagne", innerHex: nearestHex(HIGHLIGHTERS, "champagne") } : {}),
+      // (no inner-corner light: a catalog photo's is a whisper, and at its full amount it read as a white spot)
     };
   }
 
@@ -129,10 +129,6 @@ export function recipeOf(look: FaceLook, id?: string): MyMakeup {
   return out;
 }
 
-function nearestHex(list: ReadonlyArray<{ id: string; hex: string }>, id: string): string {
-  return (list.find((s) => s.id === id) ?? list[0]).hex;
-}
-
 /** A look's recipe fitted to its catalog photo: each step's amount, its blush's and eyeshadow's colours. */
 export type RecipeFit = {
   amount?: Partial<Record<StepKey, number>>;
@@ -142,16 +138,38 @@ export type RecipeFit = {
 };
 const FITS = fits as Record<string, RecipeFit>;
 
+/**
+ * How far a fit may take a look, as an artist would still put it on: at most this much of each step (the old engine
+ * also brightens her whole face, which a highlighter or blush can't match where it goes: past this they read as patches),
+ */
+const FIT_MAX: Partial<Record<StepKey, number>> = { base: 1.3, glow: 1, blush: 1.3, brows: 1.3 };
+/** ...and its colours this much deeper or lighter than the look's own (their hue and chroma always its own). */
+const FIT_LIGHT: [number, number] = [0.5, 1.15];
+
+const lin = (hex: string) => rgb(hex).map((v) => (v / 255) ** 2.2);
+const lum = (c: number[]) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+/** `designed` made as light or deep as `fitted` is (within FIT_LIGHT), in its own hue. */
+function asLight(designed: string, fitted: string): string {
+  const d = lin(designed), k = Math.min(FIT_LIGHT[1], Math.max(FIT_LIGHT[0], lum(lin(fitted)) / Math.max(lum(d), 1e-6)));
+  return `#${d.map((v) => Math.round(255 * Math.min(1, v * k) ** (1 / 2.2)).toString(16).padStart(2, "0")).join("")}`;
+}
+
 function fitted(recipe: MyMakeup, fit: RecipeFit | undefined): MyMakeup {
   if (!fit) return recipe;
   for (const [k, a] of Object.entries(fit.amount ?? {})) {
     const step = recipe[k as StepKey];
-    if (step && typeof a === "number") step.amount = Math.round(Math.min(1.5, Math.max(0, a)) * 1000) / 1000;
+    if (step && typeof a === "number") step.amount = Math.round(Math.min(FIT_MAX[k as StepKey] ?? 1.5, Math.max(0, a)) * 1000) / 1000;
   }
   const { blush, shadow, shadow2 } = fit.hex ?? {};
-  if (blush && recipe.blush) Object.assign(recipe.blush, { hex: blush, shade: nearestShade(BLUSHES, blush) });
-  if (shadow && recipe.shadow) Object.assign(recipe.shadow, { hex: shadow, shade: nearestShade(SHADOWS, shadow) });
-  if (shadow2 && recipe.shadow?.hex2) Object.assign(recipe.shadow, { hex2: shadow2, shade2: nearestShade(SHADOWS, shadow2) });
+  const set = (step: MyStep | undefined, key: "hex" | "hex2", name: "shade" | "shade2", hex: string | undefined, list: typeof SHADOWS) => {
+    const was = step?.[key];
+    if (!step || !hex || !was) return;
+    step[key] = asLight(was, hex);
+    step[name] = nearestShade(list, step[key]!);
+  };
+  set(recipe.blush, "hex", "shade", blush, BLUSHES);
+  set(recipe.shadow, "hex", "shade", shadow, SHADOWS);
+  set(recipe.shadow, "hex2", "shade2", shadow2, SHADOWS);
   return recipe;
 }
 

@@ -854,7 +854,7 @@ export type MinePicks = {
   shadow?: { hex: string; finish: string; place: string; pack: number; hex2?: string; finish2?: string; inner?: string;
     /** A catalog look whose own eyeshadow places it (where its photo has eyeshadow, when it has enough: else the place's template). */
     from?: string;
-    /** Its colours made deeper on deeper skin, as an artist picks a look's shades for her (RECIPE_SKIN; this power of it). */
+    /** Its colours (its inner-corner light too) made deeper on deeper skin, as an artist picks a look's shades for her (RECIPE_SKIN; this power of it). */
     relative?: number };
   liner?: NonNullable<Mine["liner"]> & { hex: string };
   /** natural, volume or dramatic, drawn strand by strand on her own lash lines (lashStrands in makeup-gl.ts); her lower lashes too. */
@@ -939,7 +939,7 @@ async function mineProducts(picks: MinePicks, face: FaceStats, all: LooksMeta): 
       const finish = picks.shadow.finish2 ?? picks.shadow.finish;
       out.shadow2 = { ...shade(pigment("shadow", picks.shadow.hex2, finish, Math.max(deep, 0.3))), thick: MINE_SHADOW_THICK, sheen: sheen(finish) };
     }
-    if (picks.shadow.inner) out.inner = { ...pigment("glow", picks.shadow.inner, "shimmer"), thick: 0.13, sheen: 0.6 };
+    if (picks.shadow.inner) out.inner = { ...shade(pigment("glow", picks.shadow.inner, "shimmer")), thick: 0.13, sheen: 0.6 };
     // (under her eye: smoky and halo wrap her lower lash line, the others barely touch it)
     mine.shadow = { pack: picks.shadow.pack, low: MINE_SHADOW_LOW[picks.shadow.place] ?? 0.8 };
   }

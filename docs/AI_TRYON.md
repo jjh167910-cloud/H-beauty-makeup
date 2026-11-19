@@ -816,8 +816,12 @@ nothing changes.
   or deep the blush's and eyeshadow's colours are (by the ratio of weighted mean luminances where
   each shows; the eyeshadow off her upper lash lines and outer corners, where the old engine's liner
   and lashes are). Their hue and chroma stay the look's own: fitted freely, the old engine's glitter
-  and lashes turned a lilac lid grey. So far the four pilot looks (no-makeup, hollywood,
-  electric-blue, rhinestone).
+  and lashes turned a lilac lid grey. The fit keeps its best round, and the recipe takes it within
+  an artist's limits (`FIT_MAX`, `FIT_LIGHT` in `look-recipes.ts`): a highlighter at most its full
+  amount, blush, brows and base at most 1.3 times (the old engine also brightens her whole face,
+  which a highlighter can't match where it goes: past that it read as a pale patch), colours at
+  most 15 % lighter or half as deep as the look's own. A catalog look has no inner-corner light (at
+  its full amount it read as a white spot).
 - **On deeper skin** a look's eyeshadow colours are deeper, as an artist picks its shades for her:
   as much deeper as her skin is than light skin, to the power 0.5 (a pale champagne lid on deep skin
   read as ash). A look with rhinestones has glitter on its lids (as its photo shows; the stones
