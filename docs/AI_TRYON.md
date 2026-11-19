@@ -818,8 +818,8 @@ nothing changes.
   for a full glam), blush in its placement and colour, highlight (a glowing skin on her
   cheekbones, nose and cupid's bow; gold on a bronzed skin; pearl on a dewy one), brows in her own
   brows' colour (natural, fuller, or defined), eyeshadow (its lid colour on her lid, its deeper
-  colour in her crease and outer corner, in its finish, packed on or blended out, placed where the
-  look's own photo has eyeshadow), liner (its style and colour, the lower lash line too), lashes
+  colour in her crease and outer corner, in its finish, packed on or blended out, in its placement
+  drawn from her own eye, see below), liner (its style and colour, the lower lash line too), lashes
   strand by strand, and its own lipstick as measured from its photo (colour, finish, ombre). Each
   step keeps the look's exact colours and is named by the shop's nearest shade, so a look can be
   saved, opened and changed as her own makeup. Its accents are her own makeup's: freckles with its
@@ -836,14 +836,21 @@ nothing changes.
   amount, blush, brows and base at most 1.3 times (the old engine also brightens her whole face,
   which a highlighter can't match where it goes: past that it read as a pale patch), eyeshadow at
   most its full amount (a pale wash packed past it was a chalky film up to her brows), colours at
-  most 15 % lighter or half as deep as the look's own. A catalog look has no inner-corner light (at
-  its full amount it read as a white spot).
+  most 15 % lighter or half as deep as the look's own; and at least what the look is known for
+  (`FIT_MIN`, `BOLD_SHADOW`): its liner at least 0.6 (a fit on colour alone dropped electric blue's
+  graphic liner, which the old engine's layer drew a little elsewhere), and a vivid lid colour
+  (chroma 0.5 or more, not a smoky eye) at least 1.2, packed past the pale cap (a fit undershoots a
+  colour whose hue the pigments over her skin can't quite reach: electric blue and a sunset were a
+  pale veil). A catalog look has no inner-corner light (at its full amount it read as a white spot).
+  The fit paints the recipe as the new engine does (placements drawn from her eye); with `--teacher`
+  it fits to the GPU teacher's pictures instead of the old engine (scripts/gpu/README.md).
 - **On deeper skin** a look's eyeshadow colours are deeper, as an artist picks its shades for her:
   as much deeper as her skin is than light skin, to the power 0.5 (a pale champagne lid on deep skin
   read as ash), half of it as a richer shade of the same colour (more pigment: each channel to one
   power) and half as a deeper one, so a pale pink becomes a dusty rose and a champagne a soft gold
   (deepened with black alone they were a grey mauve and a grey film; richer alone, a neon). A look
-  with rhinestones has glitter on its lids too, as its photo shows.
+  with rhinestones has glitter on its lids too, as its photo shows; a glitter's grains catch the
+  light 1.6 times as much as a shimmer's sheen (at a shimmer's, a glitter lid read as a flat lilac).
 - **Lashes** are drawn strand by strand (see her own makeup) as dark hairs over whatever is on her
   lid, never lighter than her own lash line; around her eyes, whatever is far darker than her skin
   (her own lashes, in a dense fringe or on deep skin) stays over the eyeshadow laid under it; a dark
@@ -853,8 +860,8 @@ nothing changes.
   as on the old engine. The photo, the look rail's pictures, the tutorial and the live mirror all
   paint it.
 - **Her eyeshadow's placement drawn from her own eye** (`shadowPattern` in `makeup-gl.ts`): with
-  `?engine=v2`, a placement with no look's own map of its own («میکاپ من»'s, and a look whose photo
-  has too little eyeshadow) is drawn over three curves of hers (her upper lash line; her crease,
+  `?engine=v2`, every placement, a catalog look's and her own makeup's, is drawn (no map lifted from
+  a photo: the roadmap's "no more darkening maps") over three curves of hers (her upper lash line; her crease,
   MediaPipe's ring of points around her eye socket; the lower edge of her brow), and under her lower
   lash line: a wash over her lid up to her crease; a crease's band with a V from her outer corner up
   into it and a little on her lid; a smoky lid and crease smoked out above and on out, along her
@@ -863,9 +870,23 @@ nothing changes.
   its placement from its own curves. At its fullest it is a powder's coverage (0.62, as the catalog's
   maps measured from their photos peak: at 1 a lid of it was a flat sticker), blurred as her brush
   lays it (a fluffy brush most, a cut crease's line least) and never crisper than her photo.
-- **What is left for Phase 2** (the roadmap): authoring at 2048 px;
-  the GPU teacher's pictures and mask extraction; the artist's scores (every look ≥ 4/5, eyes +1.0
-  over the old engine on the benchmark) before the old engine and its files go.
+  Drawn from her landmarks, a placement is as sharp as her photo at any size (the roadmap's
+  authoring at 2048 px per face and 1024 per eye is for coverage maps, which the new engine no longer
+  has), as are its liner (polygons from her lash lines) and lashes (strands).
+- **The artist's bench** (`/bench`, `src/components/artist-bench.tsx`, `src/lib/bench.ts`; the
+  salon's passcode): the Phase 2 gate. She adds her benchmark photos (they stay on her phone: only
+  the first 16 hex digits of each one's SHA-256 go with its scores), picks a look and sees it by
+  both engines, «الف» and «ب» in an order of their own per look and photo (she can't tell which is
+  new), each at full size with a tap, and scores each 1 to 5 on the rubric's lines (placement, colour
+  truth, edges, skin texture, "would I show this to a client") and her eyes on their own; the
+  scores are kept by the salon's server (`/api/salon/bench`, worker/chat.ts). «نتیجه» shows the
+  gate: on the pictures scored both ways, the new engine at least as good on every line and 1.0
+  better on eyes, and every catalog look 4 or more; and a summary to send. The salon's inbox links it.
+- **What is left for Phase 2** (the roadmap): the GPU teacher's pictures of every look (the kit is
+  ready, scripts/gpu/README.md: the pilot first, to choose the teacher, then every look; the recipes
+  are then fitted to them, and they can become the catalog's photos); the artist's scores on the
+  bench; then, when the gate passes, `?engine=v2` becomes the default and the old engine, its layers
+  and its per-look files go.
 
 ### Engine 2 — tiny networks (fallback without WebGL2)
 

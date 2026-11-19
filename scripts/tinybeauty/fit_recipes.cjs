@@ -11,15 +11,29 @@
  * The result is merged into src/data/look-fit.json (amounts, colours, and the root-mean-square colour change x1000: the
  * look's own, then the recipe's difference each round, and the best round's, which is the one kept).
  *
+ * With `--teacher <dir>` (the GPU kit's results/teacher, scripts/gpu/pilot.py --keep-pictures) the target is the
+ * teacher's picture of the look on each of its faces (makeup only: the face's own pixels), not the old engine's.
+ *
  * Needs the dev server (npm run dev) and Playwright's Chromium (software WebGL is enough: a few minutes a look).
  *   node scripts/tinybeauty/fit_recipes.cjs --faces a.jpg,b.jpg,c.jpg [--looks all|id,id] [--iters 4] [--url http://127.0.0.1:5173/]
+ *   node scripts/tinybeauty/fit_recipes.cjs --teacher results/teacher [--looks all] ...
  */
 const { chromium } = require("playwright");
 const fs = require("fs");
 const path = require("path");
 const arg = (name, d) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : d; };
 const OUT = path.join(__dirname, "../../src/data/look-fit.json");
-const FACES = (arg("faces", "") || "").split(",").filter(Boolean);
+const TEACHER = arg("teacher", "");
+const FACES = TEACHER && !arg("faces", "")
+  ? fs.readdirSync(path.join(TEACHER, "_faces")).filter((f) => f.endsWith(".jpg")).sort().map((f) => path.join(TEACHER, "_faces", f))
+  : (arg("faces", "") || "").split(",").filter(Boolean);
+/** The teacher's picture of a look on a face (base64), or null. */
+const teacherPicture = (look, face) => {
+  if (!TEACHER) return null;
+  const dir = path.join(TEACHER, look), name = path.basename(face, ".jpg");
+  const file = fs.existsSync(dir) ? fs.readdirSync(dir).find((f) => f.startsWith(`${name}_`) && f.endsWith(".jpg")) : null;
+  return file ? fs.readFileSync(path.join(dir, file)).toString("base64") : null;
+};
 const ITERS = +arg("iters", 4);
 const URL_ = arg("url", "http://127.0.0.1:5173/");
 if (!FACES.length) { console.error("usage: fit_recipes.cjs --faces a.jpg,b.jpg [--looks all] [--iters 4] [--url ...]"); process.exit(2); }
@@ -50,7 +64,9 @@ if (!FACES.length) { console.error("usage: fit_recipes.cjs --faces a.jpg,b.jpg [
   const result = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, "utf8")) : {};
   for (const look of LOOKS) {
     const t0 = Date.now();
-    result[look] = await page.evaluate(async ({ look, iters }) => {
+    const targets = FACES.map((f) => teacherPicture(look, f));
+    if (TEACHER && !targets.some(Boolean)) { console.log(look, "no teacher pictures: skipped"); continue; }
+    result[look] = await page.evaluate(async ({ look, iters, targets }) => {
       const m = await import('/src/lib/tryon.ts');
       const R = await import('/src/data/look-recipes.ts');
       const W = 320, LIN = Float32Array.from({ length: 256 }, (_, i) => (i / 255) ** 2.2);
@@ -70,9 +86,19 @@ if (!FACES.length) { console.error("usage: fit_recipes.cjs --faces a.jpg,b.jpg [
       const only = (k) => ({ done: Object.fromEntries(m.STEP_KEYS.map((s) => [s, s === k ? 1 : 0])), blush: picks.blush?.place ?? 'apples' });
       const shots = window.__shots;
       sessionStorage.setItem('hb-engine', 'v1');
+      // (the target: the teacher's picture where there is one, the old engine's paint of the look otherwise)
       const v1 = [], bare = [];
-      for (const s of shots) { v1.push(grab(await m.paintLook(s.shot, look, 'natural'), s.box)); bare.push(grab(s.shot.photo, s.box)); }
-      sessionStorage.removeItem('hb-engine');
+      for (let f = 0; f < shots.length; f++) {
+        const s = shots[f];
+        if (targets[f]) {
+          const img = await createImageBitmap(await (await fetch(`data:image/jpeg;base64,${targets[f]}`)).blob());
+          const c = document.createElement('canvas'); c.width = s.shot.photo.width; c.height = s.shot.photo.height;
+          const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(img, 0, 0, c.width, c.height);
+          v1.push(grab(c, s.box));
+        } else v1.push(grab(await m.paintLook(s.shot, look, 'natural'), s.box));
+        bare.push(grab(s.shot.photo, s.box));
+      }
+      sessionStorage.setItem('hb-engine', 'v2');          // (the recipe as the new engine paints it: placements drawn from her eye)
       const two = picks.shadow?.hex2 ? true : false;
       // where the eyeshadow is fitted: off her upper lash lines and outer corners (the old engine's liner and lashes)
       const masks = shots.map((s) => {
@@ -162,8 +188,9 @@ if (!FACES.length) { console.error("usage: fit_recipes.cjs --faces a.jpg,b.jpg [
       Object.assign(picks, best.picks);
       const amount = Object.fromEntries(keys.map((k) => [k, +((recipe[k]?.amount ?? 1) * picks.gain[k] / gain0[k]).toFixed(3)]));
       const hex = { ...(picks.blush ? { blush: picks.blush.hex } : {}), ...(picks.shadow ? { shadow: picks.shadow.hex } : {}), ...(two ? { shadow2: picks.shadow.hex2 } : {}) };
+      sessionStorage.removeItem('hb-engine');
       return { amount, hex, rms: [...err, best.e] };
-    }, { look, iters: ITERS });
+    }, { look, iters: ITERS, targets });
     console.log(look, JSON.stringify(result[look]), `${Math.round((Date.now() - t0) / 1000)} s`);
     fs.writeFileSync(OUT, `${JSON.stringify(result, null, 1)}\n`);
   }

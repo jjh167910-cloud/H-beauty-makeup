@@ -146,6 +146,17 @@ const FITS = fits as Record<string, RecipeFit>;
  * a pale eyeshadow packed past full turns into a chalky film up to her brows on a deep skin),
  */
 const FIT_MAX: Partial<Record<StepKey, number>> = { base: 1.3, glow: 1, blush: 1.3, brows: 1.3, shadow: 1 };
+/**
+ * ...and at least this much of what the look is known for: its liner as its spec draws it (a fit on colour alone dropped
+ * a graphic liner the old engine's layer drew a little elsewhere), and a bold colour on its lid (at least BOLD_SHADOW[1]
+ * of its eyeshadow when its lid colour's chroma is BOLD_SHADOW[0] or more and it isn't a smoky eye, whose dark crease is
+ * what it is: a fit undershoots a vivid colour whose hue the pigments over her skin can't quite reach, and electric blue
+ * or a sunset turned into a pale veil).
+ */
+const FIT_MIN: Partial<Record<StepKey, number>> = { liner: 0.6 };
+const BOLD_SHADOW: [number, number] = [0.5, 1.2];
+/** An eyeshadow is pale (FIT_MAX's cap is for it) when its lid colour's linear luminance is more than this. */
+const PALE_SHADOW = 0.35;
 /** ...and its colours this much deeper or lighter than the look's own (their hue and chroma always its own). */
 const FIT_LIGHT: [number, number] = [0.5, 1.15];
 
@@ -157,11 +168,19 @@ function asLight(designed: string, fitted: string): string {
   return `#${d.map((v) => Math.round(255 * Math.min(1, v * k) ** (1 / 2.2)).toString(16).padStart(2, "0")).join("")}`;
 }
 
-function fitted(recipe: MyMakeup, fit: RecipeFit | undefined): MyMakeup {
+function fitted(recipe: MyMakeup, fit: RecipeFit | undefined, look?: FaceLook): MyMakeup {
   if (!fit) return recipe;
+  const chroma = (hex: string) => { const c = rgb(hex); return (Math.max(...c) - Math.min(...c)) / 255; };
+  const bold = Boolean(look && look.shadow !== "smoky" && chroma(look.lid[0]) >= BOLD_SHADOW[0]);
+  const least: Partial<Record<StepKey, number>> = { ...FIT_MIN, ...(bold ? { shadow: BOLD_SHADOW[1] } : {}) };
+  // (the cap on an eyeshadow is for a pale one: a vivid or a deep one packed on is what the look is)
+  const pale = Boolean(look && lum(lin(look.lid[0])) > PALE_SHADOW);
+  const most: Partial<Record<StepKey, number>> = { ...FIT_MAX, ...(pale ? {} : { shadow: undefined }) };
   for (const [k, a] of Object.entries(fit.amount ?? {})) {
     const step = recipe[k as StepKey];
-    if (step && typeof a === "number") step.amount = Math.round(Math.min(FIT_MAX[k as StepKey] ?? 1.5, Math.max(0, a)) * 1000) / 1000;
+    if (step && typeof a === "number") {
+      step.amount = Math.round(Math.min(most[k as StepKey] ?? 1.5, Math.max(least[k as StepKey] ?? 0, a)) * 1000) / 1000;
+    }
   }
   const { blush, shadow, shadow2 } = fit.hex ?? {};
   const set = (step: MyStep | undefined, key: "hex" | "hex2", name: "shade" | "shade2", hex: string | undefined, list: typeof SHADOWS) => {
@@ -179,7 +198,7 @@ function fitted(recipe: MyMakeup, fit: RecipeFit | undefined): MyMakeup {
 /** A catalog look's recipe by its id, fitted to its catalog photo (null: no such look). */
 export function lookRecipe(id: string): MyMakeup | null {
   const style = styleById.get(id);
-  return style ? fitted(recipeOf(style.look, id), FITS[id]) : null;
+  return style ? fitted(recipeOf(style.look, id), FITS[id], style.look) : null;
 }
 
 /** What a look has that its recipe can't paint (its accents not in PAINTED: none now). */

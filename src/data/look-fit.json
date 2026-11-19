@@ -1,15 +1,24 @@
 {
  "no-makeup": {
   "amount": {
-   "base": 1.038,
+   "base": 1.05,
    "conceal": 1.5,
-   "blush": 0.439,
-   "brows": 0.751,
-   "shadow": 0.063
+   "blush": 0.306,
+   "brows": 0.729,
+   "shadow": 0.05
+  },
+  "hex": {
+   "blush": "#e6a697",
+   "shadow": "#bc9a89",
+   "shadow2": "#be9784"
   },
   "rms": [
-   53.56,
-   22.16
+   53.53,
+   22.17,
+   21.96,
+   21.93,
+   21.91,
+   21.91
   ]
  },
  "clean-girl": {
@@ -179,18 +188,27 @@
  },
  "hollywood": {
   "amount": {
-   "base": 0.965,
+   "base": 0.984,
    "conceal": 1.5,
    "contour": 0.05,
-   "blush": 0.878,
+   "blush": 0.523,
    "glow": 1.5,
-   "brows": 1.5,
-   "shadow": 0.231,
-   "liner": 1.371
+   "brows": 1.441,
+   "shadow": 0.315,
+   "liner": 1.421
+  },
+  "hex": {
+   "blush": "#e2988c",
+   "shadow": "#ffeac5",
+   "shadow2": "#ddb48a"
   },
   "rms": [
-   103.01,
-   47.8
+   102.88,
+   48.21,
+   45.52,
+   45.63,
+   45.8,
+   45.52
   ]
  },
  "arabic-glam": {
@@ -799,17 +817,26 @@
  },
  "rhinestone": {
   "amount": {
-   "base": 1.129,
+   "base": 1.145,
    "conceal": 1.5,
    "blush": 1.5,
    "glow": 1.5,
-   "brows": 1.403,
-   "shadow": 0.273,
-   "liner": 1.308
+   "brows": 1.365,
+   "shadow": 0.285,
+   "liner": 0.654
+  },
+  "hex": {
+   "blush": "#f8a7be",
+   "shadow": "#eccbf3",
+   "shadow2": "#c397d5"
   },
   "rms": [
-   89.94,
-   58.4
+   89.73,
+   61.73,
+   60.56,
+   61.01,
+   61.61,
+   60.56
   ]
  },
  "electric-blue": {
@@ -818,12 +845,20 @@
    "conceal": 1.5,
    "contour": 0.05,
    "brows": 1.297,
-   "shadow": 0.691,
-   "liner": 0.063
+   "shadow": 1.2,
+   "liner": 0.6
+  },
+  "hex": {
+   "shadow": "#4aa3f0",
+   "shadow2": "#1d3fb8"
   },
   "rms": [
-   95.67,
-   68.63
+   95.42,
+   65.71,
+   66.98,
+   67.08,
+   67.02,
+   65.71
   ]
  },
  "pin-up": {
