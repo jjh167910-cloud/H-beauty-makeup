@@ -4,8 +4,9 @@
  * Every displayed frame MediaPipe tracks the face (VIDEO mode), then:
  * - "gpu" engine: the frame is painted by the makeup engine on the graphics chip
  *   (makeup-gl.ts), the same as a photo, at camera speed. Her light references (eye whites,
- *   skin, lips) are re-measured every few frames and smoothed. The camera is asked for 1080 x 1440 and frames are painted
- *   at up to 1440 pixels; a phone that can't keep up steps down, by its measured frame time, to 480 at the least. A look
+ *   skin, lips) are re-measured every few frames and smoothed. The camera is asked for 1080 x 1440; frames are painted at
+ *   960 pixels first, then by the measured frame time up to 1440 on a phone that keeps up easily, down to 480 on one that
+ *   doesn't. A look
  *   gets its recipe here too (its eyeshadow's finish, highlighter, liner colour): the mirror is the photo result. Where her face
  *   can be seen (hair, hands, glasses are left alone) is re-segmented every SEGMENT_MS at most, and
  *   her lip colours (for her own lip line) are re-measured every other frame.
@@ -28,10 +29,18 @@ import {
   type MinePicks, type MineReady, type ProductPicks, type TryOnError,
 } from "./tryon";
 
-/** Painted frame size (longer side): the gpu engine starts sharp and steps down if the phone is slow. */
+/**
+ * Painted frame size (longer side): the gpu engine starts at START (960: sharp on a phone's screen, and quick to show on
+ * a slow one), steps up while the phone keeps up easily and down when it doesn't.
+ */
 const SIDES = { gpu: [1440, 1280, 1080, 960, 800, 640, 480], tiny: [640] };
-/** Average frame work (ms) above which the next smaller size is used: after 30 frames, or 3 when far too slow. */
-const SLOW_MS = 45, VERY_SLOW_MS = SLOW_MS * 8;
+const START = 3;
+/**
+ * Average frame work (ms) above which the next smaller size is used (after 30 frames, or 3 when far too slow), and below
+ * which, held for 60 frames, the next larger one is tried (one about 1.3 times the work); never back to a size it left
+ * for being slow.
+ */
+const SLOW_MS = 45, VERY_SLOW_MS = SLOW_MS * 8, FAST_MS = 22;
 const MEASURE_EVERY = 8;
 /**
  * Her visible face is re-segmented every SEGMENT_MS at most (the last map is used in between), and on a phone
@@ -81,7 +90,9 @@ export class LiveMirror {
   private products: Products | undefined;
   private productsKey = "";
   private stats: LiveStats;
-  private size = 0;
+  private size = START;
+  /** The largest size (smallest index) still allowed: one it stepped down from was too slow. */
+  private top = 0;
   private work = 0;
   private sinceResize = 0;
   private vis: Visibility | null = null;
@@ -309,6 +320,7 @@ export class LiveMirror {
     this.last = this.video.currentTime;
     const begun = performance.now();
     const sides = SIDES[this.stats.engine];
+    this.size = Math.min(this.size, sides.length - 1);
     const scale = Math.min(1, sides[this.size] / Math.max(vw, vh));
     const w = Math.round(vw * scale), h = Math.round(vh * scale);
     if (this.frame.width !== w || this.frame.height !== h) { this.frame.width = w; this.frame.height = h; this.steady.reset(); }
@@ -365,12 +377,19 @@ export class LiveMirror {
     }
   }
 
-  /** Step down to a smaller frame when the work per frame stays above SLOW_MS (to one that is really smaller). */
+  /**
+   * Step down to a smaller frame when the work per frame stays above SLOW_MS (to one that is really smaller), up to the
+   * next larger one when it stays under FAST_MS (never back to one that was too slow).
+   */
   private pace(ms: number, sides: number[]) {
     this.work = this.sinceResize++ ? this.work * 0.9 + ms * 0.1 : ms;
+    const now = Math.max(this.frame.width, this.frame.height);
     if (this.work > SLOW_MS && this.sinceResize > (this.work > VERY_SLOW_MS ? 3 : 30) && this.size < sides.length - 1) {
-      const now = Math.max(this.frame.width, this.frame.height);
+      this.top = Math.max(this.top, this.size + 1);
       do this.size++; while (this.size < sides.length - 1 && sides[this.size] >= now);
+      this.sinceResize = 0;
+    } else if (this.work < FAST_MS && this.sinceResize > 60 && this.size > this.top && sides[this.size] <= now) {
+      this.size--;                // (only when the camera gives a frame this size: sides[size] <= now)
       this.sinceResize = 0;
     }
   }

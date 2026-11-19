@@ -529,7 +529,9 @@ test("phones without WebGL2 get the tiny-network engine and still paint on the d
 });
 
 test("live mirror paints the look on the camera picture and a capture becomes a photo try-on", async ({ page }) => {
-  test.setTimeout(300_000);
+  // (software rendering: every camera frame with the look's recipe takes seconds on GitHub's runners, where this took
+  // 4.5 minutes before the recipe; a phone's graphics chip paints one in milliseconds)
+  test.setTimeout(600_000);
   const external: string[] = [];
   page.on("request", (request) => {
     const url = new URL(request.url());

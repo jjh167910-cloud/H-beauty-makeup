@@ -172,9 +172,10 @@ model (`canonical_face_model.obj`, Apache-2.0). Tested: a mirrored photo gives t
 for the look's own makeup and for her own eyeshadow.
 
 It runs at full photo resolution (up to 2048 px on a phone that says it has 6 GB or more, else 1600) in a fraction
-of a second, and on every frame of the live mirror (the camera asked for 1080 x 1440, painted at up to 1440 px,
-stepping down through 1280, 1080, 960, 800 and 640 to 480 on a phone that can't keep up, by its measured frame time;
-a phone far too slow skips straight to a size that is really smaller). The mirror paints each look with its recipe
+of a second, and on every frame of the live mirror (the camera asked for 1080 x 1440, painted at 960 px first, then
+by its measured frame time up through 1080 and 1280 to 1440 on a phone that keeps up easily (under 22 ms a frame for
+60 frames), down through 800 and 640 to 480 on one that can't (over 45 ms), never back up to a size that was too
+slow; a phone far too slow skips straight to a size that is really smaller). The mirror paints each look with its recipe
 too (its eyeshadow's finish, highlighter, liner colour), so it is the photo result, not a lighter version of it. The reference implementation is `scripts/tinybeauty/teacher.py`; the browser
 engine matches it to 45–55 dB on the face.
 
