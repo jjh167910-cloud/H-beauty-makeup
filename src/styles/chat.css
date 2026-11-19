@@ -129,7 +129,12 @@
   .bench__shot { display: block; width: 100%; border-radius: var(--radius-md); overflow: hidden; }
   .bench__shot img { display: block; width: 100%; height: auto; }
   .bench__line { display: grid; grid-template-columns: minmax(6.5rem, 1fr) repeat(5, 2.75rem); align-items: center; gap: .25rem; border: 0; padding: 0; margin: 0; }
-  .bench__line legend { float: inline-start; font-size: .8rem; font-weight: 650; color: var(--color-ink-2); padding: 0; }
+  .bench__line legend { float: inline-start; font-size: .9rem; font-weight: 750; color: var(--color-ink); padding: 0; }
+  .bench__hint { grid-column: 1 / -1; margin: 0 0 .2rem; font-size: .75rem; line-height: 1.6; color: var(--color-ink-2); }
+  .bench__steps { display: grid; gap: .3rem; margin: 0; padding-inline-start: 1.2rem; font-size: .85rem; line-height: 1.8; }
+  .bench__scale { margin: 0; font-size: .8rem; font-weight: 700; color: var(--color-gold-ink); text-align: center; }
+  .bench__explain { margin: 0; font-size: .85rem; line-height: 1.8; color: var(--color-ink-2); }
+  .bench__subhead { margin: .4rem 0 0; font-size: .9rem; font-weight: 800; }
   .bench__score { min-width: 2.75rem; min-height: 2.75rem; border-radius: var(--radius-sm); border: 1px solid var(--color-line-2); background: var(--color-canvas);
     font-weight: 750; color: var(--color-ink); }
   .bench__score[aria-pressed="true"] { background: var(--color-inverse); color: var(--color-on-inverse); border-color: transparent; }

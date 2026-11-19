@@ -42,10 +42,10 @@ test("the artist scores a look by both engines, blind, on her own photo; the gat
 
   // the result: one picture by both engines; each line's means are 3 and 5, one way round or the other
   await page.getByRole("tab", { name: "نتیجه" }).click();
-  await expect(page.getByText("۱ تصویر با هر دو موتور")).toBeVisible();
+  await expect(page.getByText(/تصویر که هر دو نسخه/)).toBeVisible();
   const row = page.getByRole("row", { name: /چشم‌ها/ });
   await expect(row).toContainText(/۳\.۰۰|۵\.۰۰/);
-  await expect(page.getByText("هنوز نه: موتور قدیم می‌ماند.")).toBeVisible();   // (41 looks not scored yet)
+  await expect(page.getByText("هنوز نه: نسخه‌ی قبلی می‌ماند.")).toBeVisible();   // (41 looks not scored yet)
 
   // only scores went to the server: a look, an engine, a 16-digit hash for the photo, never an image
   const cards = sent.filter((s) => s.includes("\"scores\"")).map((s) => JSON.parse(s));

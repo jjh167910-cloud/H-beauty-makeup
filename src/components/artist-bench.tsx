@@ -42,7 +42,7 @@ function Login({ onIn }: { onIn: () => void }) {
     }}>
       <img className="chat__avatar" src="/icons/hananeh-signature.svg" alt="" />
       <h1>سنجش آرتیست · حنانه بیوتی</h1>
-      <p>امتیاز شما به هر میکاپ، با موتور قدیم و جدید، دروازه‌ی رفتن به موتور جدید است. با رمز سالن وارد شوید.</p>
+      <p>شما به هر میکاپ امتیاز می‌دهید. امتیازهای شما تعیین می‌کند که نسخه‌ی جدید میکاپ به اپ برود یا نه. با رمز سالن وارد شوید.</p>
       <label><span>رمز سالن</span>
         <input type="password" value={passcode} onChange={(e) => setPasscode(e.target.value)} autoComplete="current-password" dir="ltr" />
       </label>
@@ -125,6 +125,7 @@ function Bench({ onOut }: { onOut: () => void }) {
   }, [current?.id, current?.shot, look]);
 
   const complete = sides?.every((s) => BENCH_LINES.every((l) => s.scores[l.id]));
+  const missing = sides ? sides.reduce((n, s) => n + BENCH_LINES.filter((l) => !s.scores[l.id]).length, 0) : 0;
   async function save() {
     if (!sides || !current || !complete) return;
     setSaving(true); setProblem(null);
@@ -141,13 +142,13 @@ function Bench({ onOut }: { onOut: () => void }) {
 
   const gate = useMemo(() => benchGate(cards, CATALOG), [cards]);
   const summary = () => [
-    "سنجش آرتیست · حنانه بیوتی (دروازه‌ی فاز ۲)",
+    "سنجش آرتیست · حنانه بیوتی (معیار قبولی موتور جدید)",
     `تصویرهایی که با هر دو موتور امتیاز گرفته‌اند: ${persian(gate.pairs)}`,
     ...gate.lines.map((l) => `${l.name}: قدیم ${fixed(l.v1)} · جدید ${fixed(l.v2)}`),
     `چشم‌ها، جدید منهای قدیم: ${fixed(gate.eyesGain)} (لازم: ${persian(GATE.eyes)})`,
     `میکاپ‌هایی با ${persian(GATE.look)} یا بیشتر: ${persian(gate.looks.filter((l) => (l.v2 ?? 0) >= GATE.look).length)} از ${persian(CATALOG.length)}`,
     ...gate.looks.filter((l) => l.v2 == null || l.v2 < GATE.look).map((l) => `  ${styleById.get(l.look)?.title ?? l.look}: ${l.v2 == null ? "امتیاز نگرفته" : fixed(l.v2)}`),
-    gate.pass.all ? "نتیجه: دروازه باز است ✓" : "نتیجه: هنوز نه",
+    gate.pass.all ? "نتیجه: آماده است ✓" : "نتیجه: هنوز نه",
   ].join("\n");
 
   return (
@@ -176,10 +177,14 @@ function Bench({ onOut }: { onOut: () => void }) {
               <Button variant="secondary" icon="plus" onClick={() => files.current?.click()}>افزودن عکس</Button>
               <input ref={files} type="file" accept="image/*" multiple hidden onChange={(e) => { void add([...(e.target.files ?? [])]); e.target.value = ""; }} />
             </section>
-            <p className="salon__hint">
-              عکس‌های محک فقط روی همین گوشی می‌مانند و جایی فرستاده نمی‌شوند؛ فقط امتیازها (و یک شناسه‌ی بی‌نام از هر عکس) در سالن ذخیره می‌شود.
-              هر میکاپ دو بار کشیده می‌شود، «الف» و «ب»: یکی موتور قدیم، یکی جدید، به ترتیبی که از پیش معلوم نیست.
-            </p>
+            <ol className="bench__steps">
+              <li>یک عکس از چهره‌ی خودتان یا یک مشتری (با اجازه‌ی او) اضافه کنید. عکس روی همین گوشی می‌ماند.</li>
+              <li>یک میکاپ را انتخاب کنید.</li>
+              <li>دو تصویر «الف» و «ب» را ببینید. یکی نسخه‌ی قبلی است و یکی نسخه‌ی جدید؛ معلوم نیست کدام.</li>
+              <li>برای هر خط، به هر تصویر یک نمره بدهید: ۱ خیلی بد، ۳ قابل قبول، ۵ عالی.</li>
+              <li>«ذخیره» را بزنید تا میکاپ بعدی بیاید.</li>
+            </ol>
+            <p className="salon__hint">فقط امتیازها (و یک شناسه‌ی بی‌نام از هر عکس) در سالن ذخیره می‌شود. عکس هرگز فرستاده نمی‌شود.</p>
             {current ? (
               <>
                 <div className="bench__looks" role="listbox" aria-label="میکاپ‌ها">
@@ -192,7 +197,7 @@ function Bench({ onOut }: { onOut: () => void }) {
                 <p className="bench__count" role="status">
                   {persian(CATALOG.filter(scored).length)} از {persian(CATALOG.length)} میکاپ روی {current.name} امتیاز گرفته است.
                 </p>
-                {painting || !sides ? <p className="salon__empty" role="status">در حال کشیدن «{styleById.get(look)?.title}» با دو موتور…</p> : (
+                {painting || !sides ? <p className="salon__empty" role="status">در حال کشیدن «{styleById.get(look)?.title}»…</p> : (
                   <div className="bench__pair">
                     {sides.map((s, i) => (
                       <figure key={s.engine} className="bench__side">
@@ -200,9 +205,11 @@ function Bench({ onOut }: { onOut: () => void }) {
                         <button type="button" className="bench__shot" onClick={() => setZoom(s.url)} aria-label={`تصویر ${i === 0 ? "الف" : "ب"}، بزرگ‌نمایی`}>
                           <img src={s.url} alt={`«${styleById.get(look)?.title}»، تصویر ${i === 0 ? "الف" : "ب"}`} />
                         </button>
+                        <p className="bench__scale" aria-hidden="true">۱ خیلی بد · ۳ قابل قبول · ۵ عالی</p>
                         {BENCH_LINES.map((l) => (
                           <fieldset key={l.id} className="bench__line">
-                            <legend title={l.hint}>{l.name}</legend>
+                            <legend>{l.name}</legend>
+                            <p className="bench__hint">{l.hint}</p>
                             {[1, 2, 3, 4, 5].map((v) => (
                               <button key={v} type="button" className="bench__score" aria-pressed={s.scores[l.id] === v}
                                 aria-label={`${l.name}، تصویر ${i === 0 ? "الف" : "ب"}: ${v}`}
@@ -223,31 +230,32 @@ function Bench({ onOut }: { onOut: () => void }) {
                   </div>
                 )}
                 <Button variant="gold" block disabled={!complete || saving} onClick={() => void save()}>
-                  {saving ? "در حال ذخیره…" : complete ? "ذخیره و میکاپ بعدی" : "به هر خط هر دو تصویر امتیاز دهید"}
+                  {saving ? "در حال ذخیره…" : complete ? "ذخیره و میکاپ بعدی" : `به هر خط هر دو تصویر امتیاز دهید (${persian(missing)} نمره مانده)`}
                 </Button>
               </>
             ) : <p className="salon__empty">اول یک یا چند عکس محک اضافه کنید.</p>}
           </>
         ) : (
           <section className="bench__result" aria-label="نتیجه">
-            <p className="bench__verdict" data-pass={gate.pass.all ? "" : undefined}>{gate.pass.all ? "دروازه باز است: موتور جدید آماده است." : "هنوز نه: موتور قدیم می‌ماند."}</p>
+            <p className="bench__verdict" data-pass={gate.pass.all ? "" : undefined}>{gate.pass.all ? "آماده است: نسخه‌ی جدید میکاپ می‌تواند جای نسخه‌ی قبلی بیاید." : "هنوز نه: نسخه‌ی قبلی می‌ماند."}</p>
+            <p className="bench__explain">نسخه‌ی جدید وقتی جای قبلی را می‌گیرد که هر سه شرط زیر برقرار باشد. اگر یکی‌اش ✗ است، آن را بالا ببرید.</p>
+            <ul className="bench__checks">
+              <li data-pass={gate.pass.lines ? "" : undefined}>در هر خط، نمره‌ی نسخه‌ی جدید دست‌کم برابر نسخه‌ی قبلی باشد. (روی {persian(gate.pairs)} تصویر که هر دو نسخه نمره گرفته‌اند)</li>
+              <li data-pass={gate.pass.eyes ? "" : undefined}>در خط چشم‌ها، نسخه‌ی جدید دست‌کم {persian(GATE.eyes)} نمره از قبلی بهتر باشد. (اکنون: {gate.eyesGain == null ? "هنوز امتیازی نیست" : `${gate.eyesGain >= 0 ? "+" : ""}${fixed(gate.eyesGain)}`})</li>
+              <li data-pass={gate.pass.looks ? "" : undefined}>هر میکاپ در نسخه‌ی جدید میانگین {persian(GATE.look)} یا بیشتر بگیرد. (اکنون {persian(gate.looks.filter((l) => (l.v2 ?? 0) >= GATE.look).length)} از {persian(CATALOG.length)} میکاپ)</li>
+            </ul>
+            <h2 className="bench__subhead">نمره‌ی هر خط</h2>
             <table className="bench__table">
-              <thead><tr><th>خط</th><th>قدیم</th><th>جدید</th></tr></thead>
+              <thead><tr><th>خط</th><th>نسخه‌ی قبلی</th><th>نسخه‌ی جدید</th></tr></thead>
               <tbody>{gate.lines.map((l) => (
                 <tr key={l.id} data-low={l.v1 != null && l.v2 != null && l.v2 < l.v1 ? "" : undefined}><td>{l.name}</td><td>{fixed(l.v1)}</td><td>{fixed(l.v2)}</td></tr>
               ))}</tbody>
             </table>
-            <ul className="bench__checks">
-              <li data-pass={gate.pass.lines ? "" : undefined}>جدید در هر خط دست‌کم به خوبی قدیم ({persian(gate.pairs)} تصویر با هر دو موتور)</li>
-              <li data-pass={gate.pass.eyes ? "" : undefined}>چشم‌ها {persian(GATE.eyes)} امتیاز بهتر (اکنون {fixed(gate.eyesGain)})</li>
-              <li data-pass={gate.pass.looks ? "" : undefined}>
-                هر {persian(CATALOG.length)} میکاپ {persian(GATE.look)} یا بیشتر (اکنون {persian(gate.looks.filter((l) => (l.v2 ?? 0) >= GATE.look).length)})
-              </li>
-            </ul>
+            <h2 className="bench__subhead">میکاپ‌ها، از ضعیف‌ترین به قوی‌ترین (نسخه‌ی جدید)</h2>
             <ol className="bench__looklist">
               {[...gate.looks].sort((a, b) => (a.v2 ?? -1) - (b.v2 ?? -1)).map((l) => (
                 <li key={l.look} data-low={l.v2 == null || l.v2 < GATE.look ? "" : undefined}>
-                  <span>{styleById.get(l.look)?.title ?? l.look}</span><b>{l.v2 == null ? "امتیاز نگرفته" : fixed(l.v2)}</b>
+                  <span>{styleById.get(l.look)?.title ?? l.look}</span><b>{l.v2 == null ? "هنوز امتیاز نگرفته" : fixed(l.v2)}</b>
                 </li>
               ))}
             </ol>
