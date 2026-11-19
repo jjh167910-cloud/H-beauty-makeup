@@ -1,8 +1,18 @@
 # The salon's own chat
 
-A customer sends the salon her booking from the try-on («رزرو» → «ارسال برای سالن»): the look, its intensity and her
-lipstick, as text she can change, with her name and phone number. The salon reads and answers at **`/salon`**, and gets
-a notification on its phone for each new message. Text only: her photo is never sent.
+Any customer can write to the salon from the top of every screen («گفت‌وگو با سالن», with the count of replies she
+hasn't seen), or send her booking from the try-on («رزرو» → «ارسال برای سالن»: the look, its intensity and her
+lipstick, as text she can change). The first time she gives her name and phone number. The salon reads and answers at
+**`/salon`**, and gets a notification on its phone for each new message. Text only: her photo is never sent.
+
+**Her chat** is full screen on a phone, like a messaging app: the salon's name and logo, a welcome, quick topics to
+start from (booking, prices, bridal, a question about a look); messages under their day, a booking as a card with the
+look's catalog photo; her messages sending, sent (one tick), seen by the salon (two), or not sent (send again). The bell
+turns on a notification on her phone when the salon answers. She can delete her chat. Escape closes it.
+
+**The salon's inbox**: its chats newest first with unread counts, a search by name or phone; a chat with her phone one
+tap to call, her bookings as cards, the salon's replies with «دیده شد» once she has read them, and quick replies (four
+to start with; the salon adds its own and removes any, kept on that phone).
 
 ## Setting it up (once)
 
@@ -28,6 +38,8 @@ a notification on its phone for each new message. Text only: her photo is never 
   address (40 an hour in all); names 60 characters, messages 1000, phone numbers 7 to 15 digits (Persian digits too).
   Posts from other sites are refused.
 - The notification keys (VAPID) are made by the server the first time and kept in its database: nobody handles them.
+- Each side sees what the other has read: the server keeps, per chat, the last message each side has opened.
+- The database upgrades itself in place (new columns are added when the Durable Object starts).
 
 ## Code
 
@@ -38,6 +50,8 @@ a notification on its phone for each new message. Text only: her photo is never 
 | `wrangler.jsonc` | The Durable Object's binding and migration, `run_worker_first` for `/api/*` |
 | `src/lib/chat.ts` | The app's side: her chat, the salon's session, notifications |
 | `src/components/salon-chat.tsx`, `salon-inbox.tsx` | Her chat (from the booking), the salon's inbox (`/salon`) |
-| `public/sw.js` | Never caches `/api/`; shows the notification and opens the inbox |
+| `src/components/chat-parts.tsx` | The message list (days, booking cards, message states) and the message box, for both sides |
+| `public/sw.js` | Never caches `/api/`; her notification («پاسخ سالن») opens her chat (`/?chat=1`) |
+| `public/salon-sw.js` | The salon's notifications only (scope `/salon`, its own subscription): «پیام تازه» opens the inbox |
 | `scripts/vite-chat-api.ts` | The same API on the dev server (node:sqlite; passcode from `SALON_PASSCODE`) |
 | `tests-node/chat.test.mjs`, `tests/chat.spec.ts` | The server (tokens, limits, the signed notification), and her chat with the salon end to end |

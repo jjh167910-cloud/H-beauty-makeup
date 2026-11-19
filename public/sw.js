@@ -64,19 +64,20 @@ self.addEventListener('fetch', event => {
   })());
 });
 
-/* The salon's notifications: a new customer message (no content comes with it); a tap opens the inbox. */
+/* Her notification: the salon answered her chat (no content comes with it); a tap opens her chat. The salon's own
+ * notifications come through public/salon-sw.js (scope /salon). */
 self.addEventListener('push', event => {
-  event.waitUntil(self.registration.showNotification('حنانه بیوتی · پیام تازه', {
-    body:'یک مشتری برای سالن پیام فرستاده است.', tag:'salon-chat', renotify:true, lang:'fa', dir:'rtl',
-    icon:'/icons/icon-192.png', badge:'/icons/icon-192.png', data:{url:'/salon'},
+  event.waitUntil(self.registration.showNotification('حنانه بیوتی · پاسخ سالن', {
+    body:'سالن به پیام شما پاسخ داد.', tag:'salon-reply', renotify:true, lang:'fa', dir:'rtl',
+    icon:'/icons/icon-192.png', badge:'/icons/icon-192.png', data:{url:'/?chat=1'},
   }));
 });
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   event.waitUntil((async () => {
     const open=await self.clients.matchAll({type:'window',includeUncontrolled:true});
-    const inbox=open.find(c => new URL(c.url).pathname.startsWith('/salon'));
-    if (inbox) return inbox.focus();
-    return self.clients.openWindow('/salon');
+    const page=open.find(c => !new URL(c.url).pathname.startsWith('/salon'));
+    if (page && 'navigate' in page) { await page.focus(); return page.navigate('/?chat=1'); }
+    return self.clients.openWindow('/?chat=1');
   })());
 });

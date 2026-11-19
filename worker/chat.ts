@@ -8,22 +8,27 @@
  *
  * Customer (her chat's token, on her phone only, as `Authorization: Bearer`):
  *   POST /api/chat/start {name, phone, text}  -> {thread, token, messages}
- *   GET  /api/chat?after=<id>                 -> {name, phone, messages}      (the salon's replies read)
+ *   GET  /api/chat?after=<id>                 -> {name, phone, messages, seen}  (the salon's replies read; `seen`: the
+ *                                                last of her messages the salon has read)
  *   POST /api/chat/send {text}                -> {message}
  *   DELETE /api/chat                          -> her chat and its messages are deleted
+ *   GET  /api/chat/push                       -> {key};  POST / DELETE /api/chat/push {endpoint}: a notification on her
+ *                                                phone when the salon answers
  * Salon (a session from its passcode, `Authorization: Bearer`):
  *   POST /api/salon/login {passcode}          -> {token}   (SALON_PASSCODE, a Cloudflare secret only the salon knows)
  *   POST /api/salon/logout
  *   GET  /api/salon/threads                   -> {threads: [{id, name, phone, last, lastText, unread}]}
- *   GET  /api/salon/threads/<id>?after=<id>   -> {thread, messages}         (her messages read)
+ *   GET  /api/salon/threads/<id>?after=<id>   -> {thread, messages, seen}   (her messages read; `seen`: the last of the
+ *                                                salon's replies she has read)
  *   POST /api/salon/threads/<id>/send {text}  -> {message}
  *   DELETE /api/salon/threads/<id>
  *   GET  /api/salon/push                      -> {key}  (the server's own VAPID public key: made here, kept here)
  *   POST /api/salon/push {endpoint}           -> this phone gets a notification for each new message
  *   DELETE /api/salon/push {endpoint}
  *
- * Tokens are 32 random bytes; only their SHA-256 is stored. Notifications carry no content (no payload): the phone
- * shows «پیام تازه» and opens the inbox. Chats idle for RETAIN_DAYS are deleted.
+ * Tokens are 32 random bytes; only their SHA-256 is stored. Notifications carry no content (no payload): the salon's
+ * phone shows «پیام تازه» and opens the inbox (public/salon-sw.js), hers «پاسخ سالن» and opens her chat (public/sw.js).
+ * Chats idle for RETAIN_DAYS are deleted.
  */
 
 /** The database: Cloudflare's `ctx.storage.sql` (and node:sqlite's, wrapped, in the dev server). */
@@ -63,6 +68,11 @@ export function migrate(sql: Sql) {
   sql.exec("CREATE TABLE IF NOT EXISTS hits (key TEXT NOT NULL, at INTEGER NOT NULL)");
   sql.exec("CREATE INDEX IF NOT EXISTS hits_key ON hits (key, at)");
   sql.exec("CREATE TABLE IF NOT EXISTS kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)");
+  sql.exec("CREATE TABLE IF NOT EXISTS csubs (endpoint TEXT PRIMARY KEY, thread TEXT NOT NULL, created INTEGER NOT NULL)");
+  // (added after the first release: each read's last message, and her last notification)
+  for (const column of ["salon_seen", "customer_seen", "cpushed"]) {
+    try { sql.exec(`ALTER TABLE threads ADD COLUMN ${column} INTEGER NOT NULL DEFAULT 0`); } catch { /* (there already) */ }
+  }
 }
 
 /** Answer one API request. */
@@ -102,12 +112,20 @@ async function customer(req: Request, path: string, url: URL, sql: Sql, io: Chat
       id, await sha(token), name, phone, now, now, text);
     sql.exec("INSERT INTO messages (thread, sender, text, at) VALUES (?, 'customer', ?, ?)", id, text, now);
     notify(sql, url.origin, io, id, now);
-    return json({ thread: id, token, messages: messages(sql, id, 0) });
+    return json({ thread: id, token, messages: messages(sql, id, 0), seen: 0 });
   }
   const thread = await threadOf(req, sql);
   if (path === "/api/chat" && req.method === "GET") {
-    sql.exec("UPDATE threads SET customer_unread = 0 WHERE id = ?", thread.id);
-    return json({ name: thread.name, phone: thread.phone, messages: messages(sql, thread.id, Number(url.searchParams.get("after")) || 0) });
+    sql.exec("UPDATE threads SET customer_unread = 0, customer_seen = (SELECT COALESCE(MAX(id), 0) FROM messages WHERE thread = ?) WHERE id = ?", thread.id, thread.id);
+    const seen = Number(sql.exec("SELECT salon_seen FROM threads WHERE id = ?", thread.id).toArray()[0].salon_seen);
+    return json({ name: thread.name, phone: thread.phone, messages: messages(sql, thread.id, Number(url.searchParams.get("after")) || 0), seen });
+  }
+  if (path === "/api/chat/push" && req.method === "GET") return json({ key: b64url((await vapid(sql)).publicRaw) });
+  if (path === "/api/chat/push" && (req.method === "POST" || req.method === "DELETE")) {
+    const endpoint = endpointOf(await read(req));
+    if (req.method === "POST") sql.exec("INSERT OR REPLACE INTO csubs (endpoint, thread, created) VALUES (?, ?, ?)", endpoint, thread.id, now);
+    else sql.exec("DELETE FROM csubs WHERE endpoint = ? AND thread = ?", endpoint, thread.id);
+    return json({ ok: true });
   }
   if (path === "/api/chat/send" && req.method === "POST") {
     const text = clean((await read(req)).text, LIMITS.text, true);
@@ -149,8 +167,7 @@ async function salon(req: Request, path: string, url: URL, sql: Sql, env: ChatEn
   }
   if (path === "/api/salon/push" && req.method === "GET") return json({ key: b64url((await vapid(sql)).publicRaw) });
   if (path === "/api/salon/push" && (req.method === "POST" || req.method === "DELETE")) {
-    const endpoint = String((await read(req)).endpoint ?? "");
-    if (!/^https:\/\/[^\s]{8,2000}$/.test(endpoint)) throw new Bad("endpoint");
+    const endpoint = endpointOf(await read(req));
     if (req.method === "POST") sql.exec("INSERT OR REPLACE INTO subs (endpoint, created) VALUES (?, ?)", endpoint, now);
     else sql.exec("DELETE FROM subs WHERE endpoint = ?", endpoint);
     return json({ ok: true });
@@ -160,14 +177,17 @@ async function salon(req: Request, path: string, url: URL, sql: Sql, env: ChatEn
     const thread = sql.exec("SELECT id, name, phone, created, last FROM threads WHERE id = ?", m[1]).toArray()[0];
     if (!thread) throw new Bad("thread", 404);
     if (!m[2] && req.method === "GET") {
-      sql.exec("UPDATE threads SET salon_unread = 0 WHERE id = ?", m[1]);
-      return json({ thread, messages: messages(sql, m[1], Number(url.searchParams.get("after")) || 0) });
+      sql.exec("UPDATE threads SET salon_unread = 0, salon_seen = (SELECT COALESCE(MAX(id), 0) FROM messages WHERE thread = ?) WHERE id = ?", m[1], m[1]);
+      const seen = Number(sql.exec("SELECT customer_seen FROM threads WHERE id = ?", m[1]).toArray()[0].customer_seen);
+      return json({ thread, messages: messages(sql, m[1], Number(url.searchParams.get("after")) || 0), seen });
     }
     if (m[2] && req.method === "POST") {
       const text = clean((await read(req)).text, LIMITS.text, true);
       if (!text) throw new Bad("text");
       limit(sql, "salon-send", RATE.salonSend, now);
-      return json({ message: post(sql, m[1], "salon", text, now) });
+      const message = post(sql, m[1], "salon", text, now);
+      notifyHer(sql, url.origin, io, m[1], now);
+      return json({ message });
     }
     if (!m[2] && req.method === "DELETE") {
       drop(sql, m[1]);
@@ -191,6 +211,7 @@ function messages(sql: Sql, thread: string, after: number) {
 }
 
 function drop(sql: Sql, thread: string) {
+  sql.exec("DELETE FROM csubs WHERE thread = ?", thread);
   sql.exec("DELETE FROM messages WHERE thread = ?", thread);
   sql.exec("DELETE FROM threads WHERE id = ?", thread);
 }
@@ -308,17 +329,35 @@ function notify(sql: Sql, origin: string, io: ChatIo, thread: string, now: numbe
   const t = sql.exec("SELECT pushed FROM threads WHERE id = ?", thread).toArray()[0];
   if (t && now - Number(t.pushed) < PUSH_GAP_MS) return;
   sql.exec("UPDATE threads SET pushed = ? WHERE id = ?", now, thread);
-  const subs = sql.exec("SELECT endpoint FROM subs").toArray().map((s) => String(s.endpoint));
-  if (!subs.length) return;
+  push(sql, origin, io, sql.exec("SELECT endpoint FROM subs").toArray().map((s) => String(s.endpoint)), "subs", now);
+}
+
+/** A notification on her phone(s) when the salon answers (no content: «پاسخ سالن»), at most one every PUSH_GAP_MS. */
+function notifyHer(sql: Sql, origin: string, io: ChatIo, thread: string, now: number) {
+  const t = sql.exec("SELECT cpushed FROM threads WHERE id = ?", thread).toArray()[0];
+  if (t && now - Number(t.cpushed) < PUSH_GAP_MS) return;
+  sql.exec("UPDATE threads SET cpushed = ? WHERE id = ?", now, thread);
+  push(sql, origin, io, sql.exec("SELECT endpoint FROM csubs WHERE thread = ?", thread).toArray().map((s) => String(s.endpoint)), "csubs", now);
+}
+
+/** Web Push without content to each endpoint (VAPID-signed); a phone the push service no longer knows is forgotten. */
+function push(sql: Sql, origin: string, io: ChatIo, endpoints: string[], table: "subs" | "csubs", now: number) {
+  if (!endpoints.length) return;
   const subject = origin.startsWith("https://") ? origin : "mailto:salon@example.invalid";
-  const work = Promise.all(subs.map(async (endpoint) => {
+  const work = Promise.all(endpoints.map(async (endpoint) => {
     try {
       const res = await io.fetch(endpoint, {
         method: "POST",
         headers: { authorization: await vapidHeader(sql, endpoint, subject, now), ttl: "86400", urgency: "high", "content-length": "0" },
       });
-      if (res.status === 404 || res.status === 410) sql.exec("DELETE FROM subs WHERE endpoint = ?", endpoint);
-    } catch { /* (a push service down: the inbox still shows the message) */ }
+      if (res.status === 404 || res.status === 410) sql.exec(`DELETE FROM ${table} WHERE endpoint = ?`, endpoint);
+    } catch { /* (a push service down: the message is still in the chat) */ }
   }));
   if (io.waitUntil) io.waitUntil(work);
+}
+
+function endpointOf(body: Record<string, unknown>): string {
+  const endpoint = String(body.endpoint ?? "");
+  if (!/^https:\/\/[^\s]{8,2000}$/.test(endpoint)) throw new Bad("endpoint");
+  return endpoint;
 }

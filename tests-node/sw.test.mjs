@@ -167,25 +167,33 @@ test('a new release drops the files of the earlier AI try-on engine but keeps th
   assert.equal(app.stores.has('hb-ai-models-v2'),true);
 });
 
-test('the salon chat (/api/) is never cached; a push shows a notification and a tap opens the inbox', async () => {
-  const app = simulate();
-  let handled = false;
-  const ev = { request: { method: 'GET', url: 'https://salon.test/api/chat?after=0', mode: 'cors' }, respondWith: () => { handled = true; } };
-  const handlers = [];
-  const source = TEMPLATE;
-  const shown = [], opened = [];
+function pushWorker(source) {
+  const handlers = [], shown = [], opened = [];
   const self = {
     location: { origin: 'https://salon.test' }, addEventListener: (name, h) => handlers.push([name, h]), skipWaiting: async () => {},
     registration: { showNotification: async (title, options) => shown.push([title, options]) },
     clients: { claim: async () => {}, matchAll: async () => [], openWindow: async (url) => opened.push(url) },
   };
   runInNewContext(source, { self, caches: {}, fetch: async () => { throw new Error('no'); }, console, URL, Promise });
-  const on = (name) => handlers.find(([n]) => n === name)[1];
-  on('fetch')(ev);
+  return { on: (name) => handlers.find(([n]) => n === name)?.[1], shown, opened };
+}
+
+test('the salon chat (/api/) is never cached; her notification says the salon answered and opens her chat', async () => {
+  const w = pushWorker(TEMPLATE);
+  let handled = false;
+  w.on('fetch')({ request: { method: 'GET', url: 'https://salon.test/api/chat?after=0', mode: 'cors' }, respondWith: () => { handled = true; } });
   assert.equal(handled, false);                                      // straight to the network
-  let work; on('push')({ waitUntil: (p) => (work = p) }); await work;
-  assert.equal(shown[0][0], 'حنانه بیوتی · پیام تازه');
-  on('notificationclick')({ notification: { close() {} }, waitUntil: (p) => (work = p) }); await work;
-  assert.deepEqual(opened, ['/salon']);
-  void app;
+  let work; w.on('push')({ waitUntil: (p) => (work = p) }); await work;
+  assert.equal(w.shown[0][0], 'حنانه بیوتی · پاسخ سالن');
+  w.on('notificationclick')({ notification: { close() {} }, waitUntil: (p) => (work = p) }); await work;
+  assert.deepEqual(w.opened, ['/?chat=1']);
+});
+
+test("the salon's own service worker: a new message's notification opens the inbox, and it serves nothing", async () => {
+  const w = pushWorker(readFileSync(join(ROOT, 'public/salon-sw.js'), 'utf8'));
+  assert.equal(w.on('fetch'), undefined);
+  let work; w.on('push')({ waitUntil: (p) => (work = p) }); await work;
+  assert.equal(w.shown[0][0], 'حنانه بیوتی · پیام تازه');
+  w.on('notificationclick')({ notification: { close() {} }, waitUntil: (p) => (work = p) }); await work;
+  assert.deepEqual(w.opened, ['/salon']);
 });

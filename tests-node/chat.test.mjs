@@ -132,3 +132,37 @@ test("a new message is a notification on the salon's phone: no content, signed w
   assert.equal(s.pushes.length, 2);
   assert.equal(s.db.prepare("SELECT COUNT(*) AS c FROM subs").get().c, 0);
 });
+
+test("each side sees what the other has read, and she gets a notification when the salon answers", async () => {
+  const s = server();
+  const her = (await s.call("POST", "/api/chat/start", { body: { name: "x", phone: "09121111111", text: "سلام" } })).body;
+  const salon = (await s.call("POST", "/api/salon/login", { body: { passcode: "rose-garden-1405" } })).body.token;
+  assert.equal((await s.call("GET", "/api/chat", { token: her.token })).body.seen, 0);                 // not read yet
+  await s.call("GET", `/api/salon/threads/${her.thread}`, { token: salon });
+  assert.equal((await s.call("GET", "/api/chat", { token: her.token })).body.seen, her.messages[0].id);   // read by the salon
+
+  // her phone asks for a notification of the salon's answer
+  assert.ok((await s.call("GET", "/api/chat/push", { token: her.token })).body.key);
+  const endpoint = "https://web.push.apple.com/QAbc123";
+  assert.equal((await s.call("POST", "/api/chat/push", { token: her.token, body: { endpoint } })).status, 200);
+  const reply = await s.call("POST", `/api/salon/threads/${her.thread}/send`, { token: salon, body: { text: "سلام، بفرمایید" } });
+  await Promise.all(s.pending);
+  assert.deepEqual(s.pushes.map((p) => p.url), [endpoint]);
+  assert.equal(s.pushes[0].init.body, undefined);
+  assert.ok((await s.call("GET", `/api/salon/threads/${her.thread}`, { token: salon })).body.seen < reply.body.message.id);  // not read by her yet
+  await s.call("GET", "/api/chat", { token: her.token });
+  assert.equal((await s.call("GET", `/api/salon/threads/${her.thread}`, { token: salon })).body.seen, reply.body.message.id);
+  // her chat deleted: her phone is no longer notified
+  await s.call("DELETE", "/api/chat", { token: her.token });
+  assert.equal(s.db.prepare("SELECT COUNT(*) AS c FROM csubs").get().c, 0);
+});
+
+test("the database of the first release is upgraded in place", async () => {
+  const db = new DatabaseSync(":memory:");
+  db.exec("CREATE TABLE threads (id TEXT PRIMARY KEY, token TEXT NOT NULL, name TEXT NOT NULL, phone TEXT NOT NULL, created INTEGER NOT NULL, last INTEGER NOT NULL, last_text TEXT NOT NULL, salon_unread INTEGER NOT NULL DEFAULT 0, customer_unread INTEGER NOT NULL DEFAULT 0, pushed INTEGER NOT NULL DEFAULT 0)");
+  db.exec("INSERT INTO threads VALUES ('t1234567890', 'h', 'n', '0912', 1, 1, 'x', 1, 0, 0)");
+  const sql = { exec: (q, ...p) => { const rows = db.prepare(q).all(...p); return { toArray: () => rows }; } };
+  migrate(sql);
+  migrate(sql);                                                       // (again: nothing to do)
+  assert.deepEqual({ ...db.prepare("SELECT salon_seen, customer_seen, cpushed FROM threads").get() }, { salon_seen: 0, customer_seen: 0, cpushed: 0 });
+});

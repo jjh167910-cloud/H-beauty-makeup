@@ -1,5 +1,6 @@
 import {
   Aperture,
+  ArrowClockwise,
   ArrowCounterClockwise,
   ArrowLeft,
   ArrowRight,
@@ -11,6 +12,8 @@ import {
   Camera,
   ChatCircleText,
   Check,
+  Checks,
+  Clock,
   Copy,
   DownloadSimple,
   Eye,
@@ -18,6 +21,7 @@ import {
   Faders,
   FloppyDisk,
   Heart,
+  MagnifyingGlass,
   PaperPlaneRight,
   Phone,
   SignOut,
@@ -79,6 +83,13 @@ const ICONS = {
   "bell-off": BellSlash,
   /** Sign out (the salon's inbox). */
   "sign-out": SignOut,
+  /** A chat message: sent (one tick), seen (two), sending (a clock), and send again. */
+  sent: Check,
+  seen: Checks,
+  sending: Clock,
+  retry: ArrowClockwise,
+  /** Search the salon's chats; add a quick reply. */
+  search: MagnifyingGlass,
   check: Check,
   plus: Plus,
   palette: Swatches,

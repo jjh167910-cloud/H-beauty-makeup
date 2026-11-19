@@ -37,7 +37,8 @@ export function TryOnPage() {
   const [booking, setBooking] = useState<Booking | null>(null);
   const [copied, setCopied] = useState(false);
   /** Her chat with the salon: open (with this draft), and the salon's replies she hasn't seen. */
-  const [chat, setChat] = useState<{ draft?: string } | null>(null);
+  // (/?chat=1, from her notification of the salon's reply, opens it)
+  const [chat, setChat] = useState<{ draft?: string } | null>(() => (new URLSearchParams(location.search).get("chat") ? {} : null));
   const [replies, setReplies] = useState(0);
   useEffect(() => {
     if (chat || !hasChat()) return;
@@ -64,12 +65,10 @@ export function TryOnPage() {
       <header className="tp__head">
         <div className="tp__top">
           <span className="tp__brand">حنانه بیوتی · H-beauty</span>
-          {hasChat() || replies ? (
-            <button type="button" className="tp__chat" onClick={() => { setChat({}); setReplies(0); }}
-              aria-label={replies ? `گفت‌وگو با سالن، ${replies} پیام تازه` : "گفت‌وگو با سالن"}>
-              <Icon name="chat" size={18} /> گفت‌وگو با سالن{replies ? <b>{replies.toLocaleString("fa-IR")}</b> : null}
-            </button>
-          ) : null}
+          <button type="button" className="tp__chat" onClick={() => { setChat({}); setReplies(0); }}
+            aria-label={replies ? `گفت‌وگو با سالن، ${replies} پیام تازه` : "گفت‌وگو با سالن"}>
+            <Icon name="chat" size={18} weight={replies ? "fill" : "regular"} /> گفت‌وگو با سالن{replies ? <b>{replies.toLocaleString("fa-IR")}</b> : null}
+          </button>
         </div>
         <h1>امتحان میکاپ روی چهره خودتان</h1>
         <p>سبک‌های سالن را روی عکس یا دوربین خودتان ببینید، یا با «میکاپ من» میکاپ خودتان را بسازید.</p>

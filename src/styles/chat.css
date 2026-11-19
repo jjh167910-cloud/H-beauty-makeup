@@ -1,26 +1,71 @@
-/* The salon's own chat: her chat (src/components/salon-chat.tsx) and the salon's inbox (src/components/salon-inbox.tsx). */
+/* The salon's own chat: her chat (src/components/salon-chat.tsx), the salon's inbox (src/components/salon-inbox.tsx) and
+ * their message list (src/components/chat-parts.tsx). Full screen on a phone, a panel on a wider screen. */
 @layer components {
-  .chat { position: fixed; inset: 0; z-index: 70; display: grid; align-items: end; background: rgb(20 12 16 / .45); padding-bottom: env(safe-area-inset-bottom, 0px); }
-  .chat__sheet { display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: .7rem; width: 100%; max-width: 34rem; margin-inline: auto;
-    height: min(88dvh, 44rem); padding: 1rem 1rem 1.2rem; border-radius: 1.35rem 1.35rem 0 0; background: var(--color-canvas); color: var(--color-ink);
-    box-shadow: 0 -20px 50px rgb(0 0 0 / .3); }
-  .chat__head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
-  .chat__head h2 { font-size: 1.05rem; font-weight: 800; }
-  .chat__head small { font-size: .72rem; color: var(--color-ink-3); }
-  .chat__list { display: flex; flex-direction: column; gap: .45rem; overflow-y: auto; overscroll-behavior: contain; padding: .2rem; min-height: 0; }
-  .chat__msg { display: grid; gap: .2rem; max-width: 82%; padding: .55rem .8rem; border-radius: 1rem; font-size: .86rem; line-height: 1.85;
-    white-space: pre-wrap; overflow-wrap: anywhere; }
-  .chat__msg small { font-size: .66rem; opacity: .75; }
-  .chat__msg[data-from="customer"] { align-self: flex-start; background: var(--color-gold); color: var(--color-on-gold); border-end-start-radius: .3rem; }
-  .chat__msg[data-from="salon"] { align-self: flex-end; background: var(--color-surface); border: 1px solid var(--color-line); border-end-end-radius: .3rem; }
-  .chat__who { display: grid; gap: .6rem; align-content: start; }
-  .chat__who label, .chat__text { display: grid; gap: .3rem; font-size: .78rem; font-weight: 650; color: var(--color-ink-2); }
-  .chat input, .chat textarea, .salon input, .salon textarea { width: 100%; min-height: 2.75rem; padding: .6rem .8rem; border-radius: var(--radius-md);
-    border: 1px solid var(--color-line-2); background: var(--color-surface); color: var(--color-ink); font: inherit; font-size: 1rem; line-height: 1.7; }
-  .chat textarea, .salon textarea { resize: vertical; }
-  .chat__compose { display: grid; gap: .5rem; }
+  .chat { position: fixed; inset: 0; z-index: 70; display: grid; background: var(--color-canvas); }
+  .chat__sheet { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; width: 100%; height: 100dvh; background: var(--color-canvas); color: var(--color-ink); }
+  @media (min-width: 40rem) {
+    .chat { place-items: center; background: rgb(20 12 16 / .45); }
+    .chat__sheet { max-width: 30rem; height: min(92dvh, 50rem); border-radius: var(--radius-xl); overflow: hidden; box-shadow: 0 30px 80px rgb(0 0 0 / .35); }
+  }
+
+  /* the bar: back, the salon's logo and name, her notification */
+  .chat__bar { display: flex; align-items: center; gap: .55rem; padding: max(.5rem, env(safe-area-inset-top, 0px)) .6rem .5rem;
+    background: var(--color-surface); border-bottom: 1px solid var(--color-line); }
+  .chat__icon { flex: none; display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border-radius: 50%; color: var(--color-ink-2); }
+  .chat__icon:hover { background: var(--color-sunken); }
+  .chat__icon[aria-pressed="true"] { color: var(--color-gold-ink); }
+  .chat__avatar { flex: none; width: 2.6rem; height: 2.6rem; padding: .3rem; border-radius: 50%; background: var(--color-gold-soft); border: 1px solid var(--color-line); }
+  .chat__who-is { flex: 1; min-width: 0; display: grid; }
+  .chat__who-is h2 { font-size: .98rem; font-weight: 800; line-height: 1.5; }
+  .chat__who-is small { font-size: .72rem; color: var(--color-ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* the messages */
+  .chat__list { display: flex; flex-direction: column; gap: .3rem; overflow-y: auto; overscroll-behavior: contain; min-height: 0;
+    padding: .8rem .8rem 1rem; background: color-mix(in oklab, var(--color-sunken) 45%, var(--color-canvas)); }
+  .chat__loading { display: grid; place-items: center; font-size: .82rem; color: var(--color-ink-3); }
+  .chat__day { align-self: center; margin-block: .5rem .2rem; }
+  .chat__day span { padding: .2rem .7rem; border-radius: var(--radius-pill); background: var(--color-surface); border: 1px solid var(--color-line);
+    font-size: .7rem; font-weight: 650; color: var(--color-ink-3); }
+  .chat__msg { display: grid; gap: .15rem; max-width: min(82%, 24rem); padding: .45rem .75rem .35rem; border-radius: 1.1rem; font-size: .88rem; line-height: 1.85;
+    align-self: flex-end; background: var(--color-surface); color: var(--color-ink); border: 1px solid var(--color-line); border-end-end-radius: .3rem;
+    box-shadow: 0 1px 1px rgb(0 0 0 / .04); }
+  .chat__msg[data-own] { align-self: flex-start; background: var(--color-gold); color: var(--color-on-gold); border-color: transparent;
+    border-end-end-radius: 1.1rem; border-end-start-radius: .3rem; }
+  .chat__msg[data-state="failed"] { background: color-mix(in oklab, var(--color-garnet) 18%, var(--color-surface)); color: var(--color-ink); }
+  .chat__text-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .chat__meta { justify-self: end; display: inline-flex; align-items: center; gap: .25rem; font-size: .64rem; opacity: .72; direction: rtl; }
+  .chat__meta > span { display: inline-flex; }
+  .chat__msg[data-own] .chat__meta .chat__seen { opacity: 1; color: #fff; }
+  .chat__msg[data-own] .chat__meta { opacity: .85; }
+  .chat__retry { display: inline-flex; align-items: center; gap: .3rem; min-height: 2.75rem; font-size: .74rem; font-weight: 700; color: var(--color-garnet); }
+  .chat__welcome { max-width: min(88%, 24rem); }
+
+  /* a booking from the try-on: the look's photo and its details */
+  .chat__card { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .6rem; align-items: start; padding-block: .15rem; }
+  .chat__card img { width: 3.6rem; aspect-ratio: 3 / 4; object-fit: cover; border-radius: .6rem; border: 1px solid rgb(255 255 255 / .35); }
+  .chat__card div { display: grid; gap: .05rem; font-size: .8rem; line-height: 1.7; }
+  .chat__card small { font-size: .66rem; font-weight: 700; opacity: .8; }
+  .chat__card strong { font-size: .92rem; font-weight: 800; }
+
+  /* under the messages: topics, her details the first time, the message box */
+  .chat__foot { display: grid; gap: .5rem; padding: .6rem .7rem max(.6rem, env(safe-area-inset-bottom, 0px)); background: var(--color-surface);
+    border-top: 1px solid var(--color-line); }
+  .chat__topics { display: flex; gap: .4rem; overflow-x: auto; scrollbar-width: none; padding: .05rem; }
+  .chat__topics::-webkit-scrollbar { display: none; }
+  .chat__topics .chip { white-space: nowrap; }
+  .chat__details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+  .chat__details label { display: grid; gap: .2rem; font-size: .72rem; font-weight: 650; color: var(--color-ink-2); }
+  .chat input, .salon input, .salon textarea { width: 100%; min-height: 2.75rem; padding: .5rem .8rem; border-radius: var(--radius-md);
+    border: 1px solid var(--color-line-2); background: var(--color-canvas); color: var(--color-ink); font: inherit; font-size: 1rem; line-height: 1.6; }
+  .chat__compose { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: .45rem; }
+  .chat__compose textarea { width: 100%; min-height: 2.75rem; max-height: 12rem; padding: .5rem .95rem; border-radius: 1.4rem; resize: none;
+    border: 1px solid var(--color-line-2); background: var(--color-canvas); color: var(--color-ink); font: inherit; font-size: 1rem; line-height: 1.75; }
+  .chat input:focus-visible, .chat__compose textarea:focus-visible, .salon input:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 1px; }
+  .chat__send { display: grid; place-items: center; width: 2.75rem; height: 2.75rem; border-radius: 50%; background: var(--color-gold); color: var(--color-on-gold); }
+  .chat__send:disabled { opacity: .45; }
+  [dir="rtl"] .chat__send svg { transform: scaleX(-1); }
   .chat__problem { font-size: .78rem; color: var(--color-garnet); }
-  .chat__note { font-size: .72rem; line-height: 1.8; color: var(--color-ink-3); }
+  .chat__fine { font-size: .68rem; line-height: 1.8; color: var(--color-ink-3); }
   .chat__drop { min-height: 2.75rem; padding-inline: .2rem; color: var(--color-garnet); font-weight: 650; text-decoration: underline; }
 
   /* The salon's inbox (/salon). */
@@ -28,27 +73,39 @@
     padding-block: max(1rem, env(safe-area-inset-top, 0px)) max(1rem, env(safe-area-inset-bottom, 0px));
     padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
   .salon__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; }
-  .salon__head h1 { font-size: 1.15rem; font-weight: 800; }
+  .salon__brand { display: flex; align-items: center; gap: .55rem; }
+  .salon__head h1 { font-size: 1.1rem; font-weight: 800; }
   .salon__tools { display: flex; flex-wrap: wrap; gap: .4rem; }
-  .salon__login { display: grid; gap: .7rem; align-content: start; max-width: 24rem; width: 100%; margin-inline: auto; padding-top: 12vh; }
+  .salon__login { display: grid; gap: .7rem; align-content: start; justify-items: stretch; max-width: 24rem; width: 100%; margin-inline: auto; padding-top: 12vh; }
+  .salon__login .chat__avatar { justify-self: center; width: 4rem; height: 4rem; }
+  .salon__login h1 { text-align: center; font-size: 1.15rem; font-weight: 800; }
+  .salon__login label { display: grid; gap: .3rem; font-size: .8rem; font-weight: 650; color: var(--color-ink-2); }
   .salon__login p, .salon__empty, .salon__hint { font-size: .8rem; line-height: 1.9; color: var(--color-ink-2); }
+  .salon__login p { text-align: center; }
   .salon__problem { font-size: .8rem; color: var(--color-garnet); }
-  .salon__threads { display: grid; gap: .4rem; align-content: start; }
-  .salon__thread { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .2rem .6rem; width: 100%; min-height: 3.5rem; padding: .7rem .9rem;
-    border-radius: var(--radius-lg); background: var(--color-surface); border: 1px solid var(--color-line); text-align: start; }
+  .salon__search { position: relative; }
+  .salon__search svg { position: absolute; inset-inline-start: .8rem; top: 50%; translate: 0 -50%; color: var(--color-ink-3); pointer-events: none; }
+  .salon__search input { padding-inline-start: 2.4rem; }
+  .salon__threads { display: grid; gap: .4rem; align-content: start; margin-top: .6rem; }
+  .salon__thread { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: .1rem .7rem; align-items: center; width: 100%; min-height: 3.75rem;
+    padding: .6rem .8rem; border-radius: var(--radius-lg); background: var(--color-surface); border: 1px solid var(--color-line); text-align: start; }
+  .salon__thread > i { grid-row: span 2; display: grid; place-items: center; width: 2.6rem; height: 2.6rem; border-radius: 50%; font-style: normal;
+    background: var(--color-gold-soft); color: var(--color-gold-ink); font-weight: 800; }
   .salon__thread strong { font-size: .92rem; }
-  .salon__thread span { grid-column: 1 / -1; font-size: .8rem; color: var(--color-ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .salon__thread span { grid-column: 2 / -1; font-size: .8rem; color: var(--color-ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .salon__thread small { font-size: .7rem; color: var(--color-ink-3); }
   .salon__thread b { justify-self: end; display: grid; place-items: center; min-width: 1.4rem; height: 1.4rem; padding-inline: .35rem; border-radius: var(--radius-pill);
     background: var(--color-gold); color: var(--color-on-gold); font-size: .72rem; }
   .salon__thread[data-unread] strong { color: var(--color-gold-ink); }
-  .salon__open { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: .6rem; min-height: 0; height: calc(100dvh - 7rem); }
-  .salon__who { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; }
-  .salon__who h2 { font-size: 1rem; font-weight: 800; }
+  .salon__open { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; min-height: 0; height: calc(100dvh - 6.5rem);
+    border: 1px solid var(--color-line); border-radius: var(--radius-xl); overflow: hidden; background: var(--color-surface); }
+  .salon__who { display: flex; align-items: center; gap: .5rem; padding: .4rem .5rem; border-bottom: 1px solid var(--color-line); }
+  .salon__who h2 { flex: 1; min-width: 0; font-size: .98rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .salon__who a { display: inline-flex; align-items: center; gap: .3rem; min-height: 2.75rem; padding-inline: .8rem; border-radius: var(--radius-pill);
-    background: var(--color-sunken); color: var(--color-ink); font-size: .82rem; font-weight: 650; }
-  .salon .chat__msg[data-from="customer"] { align-self: flex-end; background: var(--color-surface); color: var(--color-ink); border: 1px solid var(--color-line);
-    border-end-end-radius: .3rem; border-end-start-radius: 1rem; }
-  .salon .chat__msg[data-from="salon"] { align-self: flex-start; background: var(--color-gold); color: var(--color-on-gold); border: 0;
-    border-end-start-radius: .3rem; border-end-end-radius: 1rem; }
+    background: var(--color-sunken); color: var(--color-ink); font-size: .8rem; font-weight: 650; }
+  .salon__replies { display: flex; gap: .35rem; overflow-x: auto; scrollbar-width: none; padding: .05rem; }
+  .salon__replies::-webkit-scrollbar { display: none; }
+  .salon__replies .chip { white-space: nowrap; max-width: 16rem; overflow: hidden; text-overflow: ellipsis; }
+  .salon__replies .chip[data-mine] { padding-inline-end: .3rem; }
+  .salon__replies .chip i { display: grid; place-items: center; width: 1.6rem; height: 1.6rem; font-style: normal; opacity: .6; }
 }
