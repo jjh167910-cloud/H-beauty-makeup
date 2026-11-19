@@ -13,6 +13,13 @@ broken images it retries in bfloat16. The time per image is measured, to plan th
     python scripts/gpu/free_test.py                   # env HF_TOKEN (FLUX 3 is gated), GEMINI_API_KEY (optional)
     python scripts/gpu/free_test.py --dry-run         # no GPU: the phone engine stands in for both (tests the script)
 
+Phase 2 (the roadmap), once the test has shown FLUX 3 is good enough: every catalog look on the synthetic faces, each
+picture kept (makeup only, full size) in test-results/teacher/<look>/<face>_flux3.jpg, the bare faces in _faces/:
+
+    python scripts/gpu/free_test.py --looks all --faces 6 --teachers flux3 --keep-pictures --max-minutes 660
+
+(--max-minutes stops it in time to write its zip before a free session ends; what is done is kept.)
+
 Writes test-results/ (sheets, pairs, report.json) and test-results.zip next to it.
 """
 from __future__ import annotations
@@ -128,23 +135,31 @@ def main():
     ap.add_argument('--side', type=int, default=1024)
     ap.add_argument('--dry-run', action='store_true')
     ap.add_argument('--out', default=str(Path.cwd() / 'test-results'))
+    ap.add_argument('--teachers', default='flux3,nano', help='flux3, nano (needs GEMINI_API_KEY), or both')
+    ap.add_argument('--keep-pictures', action='store_true', help="Phase 2: keep each teacher picture, makeup only, full size")
+    ap.add_argument('--max-minutes', type=float, default=0, help='stop in time to write the zip (0: no limit)')
     a = ap.parse_args()
     out = Path(a.out); (out / 'pairs').mkdir(parents=True, exist_ok=True)
-    looks = a.looks.split(',')
+    looks = P.catalog() if a.looks == 'all' else a.looks.split(',')
+    wanted = a.teachers.split(',')
     started = time.time()
+    late = lambda: a.max_minutes and (time.time() - started) / 60 > a.max_minutes
     data = []
     for f in sorted((HERE / 'faces').glob('*.jpg'))[:a.faces]:
         u = T.rgb(f); p = T.landmarks3(u)
-        if p is not None: data.append((f.stem, u, p))
+        if p is not None:
+            data.append((f.stem, u, p))
+            if a.keep_pictures: (out / 'teacher/_faces').mkdir(parents=True, exist_ok=True); P.save_jpg(out / 'teacher/_faces' / f'{f.stem}.jpg', u, 95)
     bare = T.rgb(T.LOOKS / 'no-makeup.webp')
     refs = {look: T.rgb(T.LOOKS / f'{look}.webp') for look in looks}
     phone = {(look, n): T.paint(look, u, p, 'natural') for look in looks for n, u, p in data}
     report = {'teachers': {}, 'runs': []}
     results = {}
-    makers = [('flux3', lambda: Stand('FLUX 3', 'flux3', 3) if a.dry_run else Flux3Free(a.side))]
+    makers = [('flux3', lambda: Stand('FLUX 3', 'flux3', 3) if a.dry_run else Flux3Free(a.side))] if 'flux3' in wanted else []
     key = os.environ.get('GEMINI_API_KEY', '').strip()
-    if key or a.dry_run: makers.append(('nano', lambda: Stand('Nano Banana', 'nano', -3) if a.dry_run else NanoBanana(key)))
-    else: print('No GEMINI_API_KEY: skipping the Nano Banana comparison.', flush=True)
+    if 'nano' in wanted:
+        if key or a.dry_run: makers.append(('nano', lambda: Stand('Nano Banana', 'nano', -3) if a.dry_run else NanoBanana(key)))
+        else: print('No GEMINI_API_KEY: skipping the Nano Banana comparison.', flush=True)
     for name_key, make in makers:
         rec = report['teachers'][name_key] = {}
         t0 = time.time()
@@ -154,6 +169,7 @@ def main():
         rec.update(name=ai.name, note=ai.note, load_seconds=round(time.time() - t0))
         print(f'{ai.name} ready in {time.time() - t0:.0f}s ({ai.note})', flush=True)
         for look in looks:
+            if late(): print(f'{a.max_minutes:.0f} minutes: stopping here to write the results ({look} and the looks after it not run).', flush=True); break
             for n, u, p in data:
                 if a.dry_run: ai.look = look
                 t = time.time()
@@ -167,6 +183,8 @@ def main():
                 po = T.landmarks3(o); c = P.checks(u, o, p, po); mo = P.makeup_only(u, o, p, po)
                 results[(name_key, look, n)] = (o, mo, c)
                 for kind, img in (('drawn', o), ('only', mo)): P.save_jpg(out / 'pairs' / f'{look}_{n}_{name_key}_{kind}.jpg', P.face_crop(img, p, 640))
+                if a.keep_pictures:     # (the look's reference picture: the face's own pixels, the teacher's makeup)
+                    (out / 'teacher' / look).mkdir(parents=True, exist_ok=True); P.save_jpg(out / 'teacher' / look / f'{n}_{name_key}.jpg', mo, 95)
                 report['runs'].append({'teacher': name_key, 'look': look, 'face': n, 'seconds': round(secs, 1), **c})
                 print(f'[{len(report["runs"])}] {ai.name} {look} {n}: {secs:.1f}s  drift {c["drift"]:.3f}  skin dE {c["skin_dE"]:.1f}', flush=True)
         runs = [r for r in report['runs'] if r['teacher'] == name_key]

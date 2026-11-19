@@ -72,6 +72,10 @@ reference pictures: the recipes are then fitted to them instead of the old engin
 scripts/tinybeauty/fit_recipes.cjs --teacher results/teacher --looks all`), and they can become the catalog's new photos.
 Without a GPU, `python scripts/gpu/pilot.py --dry-run --looks all --keep-pictures` tests it with the phone engine.
 
+**Free, on Kaggle** (FLUX 3 only): in the notebook's step 2 set `PHASE2 = True` and *Save & Run All* again. It draws
+every look on 6 faces on the free GPU (several hours; it stops by itself before the 12-hour limit and keeps what is
+done, so a second run can finish the rest: `--looks` with the ones left). Download **test-results.zip** and send it.
+
 ## What the numbers mean
 
 - `drift`: how far the AI moved the face, in eye widths. Below ~0.03 is the same face.
