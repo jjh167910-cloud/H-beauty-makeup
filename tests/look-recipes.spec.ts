@@ -205,3 +205,40 @@ test("one recipe link opens either: her own makeup or a look's recipe, in «می
   expect(draft.liner).toMatchObject({ stones: true });
   expect(Object.keys(draft).length).toBeGreaterThanOrEqual(8);
 });
+
+test("?engine=v2 draws her eyeshadow's placement from her own eye: her lid for a wash, her crease for a crease", async ({ page }) => {
+  test.setTimeout(300_000);
+  await page.goto("/?engine=v2");
+  const photo = readFileSync(join(process.cwd(), "tests/fixtures/lit-cheek.jpg")).toString("base64");   // (a synthetic face)
+  const out = await page.evaluate(async (b64) => {
+    const m = await import("/src/lib/tryon.ts");
+    await m.downloadModels(["no-makeup"], () => {});
+    const shot = (await m.preparePhoto(await (await fetch(`data:image/jpeg;base64,${b64}`)).blob())).plain;
+    const P = shot.points, w = shot.photo.width;
+    const pixels = (c: HTMLCanvasElement) => {
+      const t = document.createElement("canvas"); t.width = c.width; t.height = c.height;
+      const g = t.getContext("2d")!; g.drawImage(c, 0, 0);
+      return g.getImageData(0, 0, c.width, c.height).data;
+    };
+    const lum = (d: Uint8ClampedArray, [x, y]: number[]) => {
+      let s = 0;
+      for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) { const k = ((Math.round(y) + j) * w + Math.round(x) + i) * 4; s += d[k] + d[k + 1] + d[k + 2]; }
+      return s / 27;
+    };
+    // (both eyes: the middle of her lid, a third of the way from her lashes to her crease; and her crease)
+    const spots = [[386, 443], [159, 223]].map(([lash, crease]) => ({
+      lid: [P[lash][0] + (P[crease][0] - P[lash][0]) * 0.35, P[lash][1] + (P[crease][1] - P[lash][1]) * 0.35], crease: [P[crease][0], P[crease][1]],
+    }));
+    const bare = pixels(shot.photo);
+    const darker = async (place: string) => {
+      const d = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow: { hex: "#4a2c22", finish: "matte", place, pack: 1 } }));
+      const at = (k: "lid" | "crease") => spots.reduce((s, x) => s + lum(bare, x[k]) - lum(d, x[k]), 0) / spots.length;
+      return { lid: at("lid"), crease: at("crease") };
+    };
+    return { wash: await darker("wash"), crease: await darker("crease") };
+  }, photo);
+  expect(out.wash.lid).toBeGreaterThan(8);                       // a wash: all over her lid, up to her crease
+  expect(out.wash.lid).toBeGreaterThan(out.crease.lid + 8);       // (far more on her lid than a crease placement puts there)
+  expect(out.crease.crease).toBeGreaterThan(out.crease.lid + 10); // a crease: deepest in her own crease
+  expect(out.crease.crease / out.crease.lid).toBeGreaterThan(1.5 * out.wash.crease / out.wash.lid);
+});

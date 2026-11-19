@@ -545,7 +545,9 @@ export type Mine = {
    * (2); her light (Products.inner) at her inner corners (corners: the default when there is one) and along her
    * aegyo-sal (aegyoSal).
    */
-  shadow?: { pack: number; low?: number; corners?: boolean; aegyoSal?: boolean };
+  shadow?: { pack: number; low?: number; corners?: boolean; aegyoSal?: boolean;
+    /** Its placement drawn from her own eye (shadowPattern: her lash line, crease and brow), not a catalog look's map. */
+    drawn?: string };
   /** Liner: thin / wing / fox / puppy / smudge, along her lower lash line too, its edge's softness and opacity. */
   liner?: { place: string; lower: boolean; soft: number; opacity: number };
   /** Lashes strand by strand (lashStrands): natural / volume / dramatic, her lower lashes too. */
@@ -895,6 +897,73 @@ export function lidSpots(P: Pt[]): { lid: Spot[]; inner: Spot[]; low: Spot[]; ae
     }
   }
   return { lid, inner, low, aegyo };
+}
+
+/**
+ * Her eyeshadow's placements drawn from her own eye (the roadmap's Phase 2: anchored to three curves of hers, so a
+ * hooded or a monolid eye gets a placement that suits it): over (s, t), s along her eye from her inner corner (0) to her
+ * outer corner (1) and on out along her wing's way, t from her upper lash line (0) to her crease (1) to her brow (2),
+ * and below her lower lash line (t < 0, to -1 a little way down her cheek). Her crease is MediaPipe's ring of points
+ * around the socket of her eye (upper2), her brow its lower edge. How much of the eyeshadow each placement lays at (s, t).
+ */
+const ss = (a: number, b: number, x: number) => { const k = Math.min(1, Math.max(0, (x - a) / (b - a))); return k * k * (3 - 2 * k); };
+const bump = (c: number, w: number, x: number) => Math.exp(-(((x - c) / w) ** 2));
+const SHADOW_PATTERNS: Record<string, { out: number; f: (s: number, t: number) => number }> = {
+  // her lid to just past her crease, one colour
+  wash: { out: 1.08, f: (s, t) => (t >= 0 ? 1 - ss(0.8, 1.3, t) : 0.12 * (1 - ss(0, 1, -t)) * ss(0.4, 0.9, s)) },
+  // a little on her lid, her crease's band, and a V from her outer corner up into it
+  crease: { out: 1.1, f: (s, t) => (t >= 0 ? Math.max(0.3 * (1 - ss(0.65, 1, t)), bump(1, 0.3, t), 0.95 * ss(0.6, 0.95, s) * (1 - ss(0.95, 1.3, t)))
+    : 0.3 * ss(0.55, 0.95, s) * (1 - ss(0, 1, -t))) },
+  // all of her lid and her crease, smoked out above it and on out, and along her lower lash line
+  smoky: { out: 1.18, f: (s, t) => (t >= 0 ? 1 - ss(0.95, 1.6, t) : 0.85 * (1 - ss(0, 1, -t)) * (0.45 + 0.55 * ss(0.15, 0.55, s))) },
+  // deeper at her inner and outer corners, her lid's middle lighter (the spotlight)
+  halo: { out: 1.1, f: (s, t) => (t >= 0 ? (1 - ss(0.85, 1.35, t)) * (1 - 0.65 * bump(0.5, 0.17, s)) : 0.45 * (1 - ss(0, 1, -t)) * (0.4 + 0.6 * ss(0.45, 0.85, s))) },
+  // a crisp line in her crease (her lid under it left for her lid shade), blended out above it
+  cutcrease: { out: 1.15, f: (s, t) => (t >= 0 ? Math.max(0.12 * (1 - ss(0.75, 0.86, t)), ss(0.8, 0.9, t) * (1 - ss(1.05, 1.45, t)))
+    : 0.3 * ss(0.55, 0.95, s) * (1 - ss(0, 1, -t))) },
+  // from light at her inner corner to deep at her outer corner
+  gradient: { out: 1.1, f: (s, t) => (t >= 0 ? (0.15 + 0.85 * ss(0.1, 0.95, s)) * (1 - ss(0.85, 1.35, t)) : 0.35 * ss(0.5, 1, s) * (1 - ss(0, 1, -t))) },
+};
+/** How soft her drawn eyeshadow's edges are per tool (Mine.shadow.pack: finger, flat brush, fluffy brush), eye widths. */
+const SHADOW_PATTERN_SOFT = [0.075, 0.055, 0.1];
+/**
+ * Her drawn eyeshadow at its fullest (a powder's coverage, as the catalog's maps measured from their photos peak: at 1
+ * a lid of it was a flat sticker), and each placement's softness on that (a cut crease's line is crisp).
+ */
+const SHADOW_PATTERN_PEAK = 0.62, SHADOW_PATTERN_EDGE: Record<string, number> = { cutcrease: 0.55 };
+/** Her crease's ring (inner to outer) per eye: image left, image right (MediaPipe's rightEyeUpper2 / leftEyeUpper2). */
+const CREASE_RING = [[189, 221, 222, 223, 224, 225, 113], [413, 441, 442, 443, 444, 445, 342]];
+/** Her eyeshadow's placement (SHADOW_PATTERNS) as triangles for the "pattern" program: x, y, 0, 0, coverage. */
+export function shadowPattern(P: Pt[], place: string): Float32Array {
+  const pat = SHADOW_PATTERNS[place] ?? SHADOW_PATTERNS.wash;
+  const { ew, down, sides } = frame(P), up = mul(down, -1);
+  const S = 26, ts = [-1, -0.66, -0.33, 0, ...Array.from({ length: 21 }, (_, i) => i * 0.1)];
+  const out: number[] = [];
+  sides.forEach((side, k) => {
+    // (each curve from her inner corner out, on past her outer corner along its own last direction)
+    const curve = (ids: number[]) => {
+      const line = ids.map((i) => pt(P, i)), n = line.length;
+      const len = line.slice(1).reduce((a, b, i) => a + Math.hypot(b[0] - line[i][0], b[1] - line[i][1]), 0);
+      const end = unit(sub(line[n - 1], line[n - 2]));
+      return (s: number): V => (s <= 1 ? along(line, s, up)[0] : add(line[n - 1], mul(end, (s - 1) * len)));
+    };
+    const lash = curve(side.upper), crease = curve(CREASE_RING[k]), brow = curve([...side.browLow].reverse()), low = curve(side.lower);
+    const at = (s: number, t: number): V => {
+      if (t < 0) return add(low(Math.min(s, 1)), mul(down, -t * ew * 0.16));
+      return t <= 1 ? lerp(lash(s), crease(s), t) : lerp(crease(s), brow(s), t - 1);
+    };
+    const value = (s: number, t: number) => SHADOW_PATTERN_PEAK * pat.f(s, t) * ss(-0.04, 0.1, s) * (1 - ss(pat.out - 0.1, pat.out, s));
+    for (let i = 0; i < S; i++) {
+      const s0 = -0.04 + (i / S) * (pat.out + 0.04), s1 = -0.04 + ((i + 1) / S) * (pat.out + 0.04);
+      for (let j = 0; j + 1 < ts.length; j++) {
+        const t0 = ts[j], t1 = ts[j + 1];
+        if (t0 < 0 && t1 > 0) continue;
+        const q = [[s0, t0], [s1, t0], [s1, t1], [s0, t1]].map(([s, t]) => [...at(s, t), 0, 0, value(s, t)]);
+        for (const v of [0, 1, 2, 0, 2, 3]) out.push(...q[v]);
+      }
+    }
+  });
+  return new Float32Array(out);
 }
 
 /**
@@ -1516,6 +1585,11 @@ void main() {
   vec3 glint = min(vec3(star) * uWhite * 1.3, vec3(1.0));
   o = vec4((pow(c, vec3(1.0 / 2.2)) * body + pow(glint, vec3(1.0 / 2.2)) * (1.0 - 0.5 * body)) * uShow, body * uShow);
 }`;
+
+// Her eyeshadow's drawn placement (shadowPattern): each vertex's coverage, onto one channel (uColor picks it).
+const PATTERN_FS = `#version 300 es
+precision highp float; in vec2 q; in float a; uniform vec4 uColor; out vec4 o;
+void main() { o = uColor * clamp(a, 0.0, 1.0); }`;
 
 const FLAT_VS = `#version 300 es
 in vec2 aXy; uniform vec2 uSize; void main() { gl_Position = vec4(aXy / uSize * 2.0 - 1.0, 0.0, 1.0); }`;
@@ -2239,7 +2313,7 @@ export class MakeupGL {
     this.progs = {
       mesh: make(MESH_VS, COPY_FS), canon: make(MESH_VS, CANON_FS), extend: make(QUAD_VS, EXTEND_FS), foundPrep: make(QUAD_VS, FOUND_PREP_FS), found: make(QUAD_VS, FOUND_FS), flat: make(FLAT_VS, FLAT_FS), prep: make(QUAD_VS, PREP_FS),
       blur: make(QUAD_VS, BLUR_FS), main: make(QUAD_VS, MAIN_FS), visPrep: make(QUAD_VS, VIS_PREP_FS), visFit: make(QUAD_VS, VIS_FIT_FS),
-      side: make(MESH_VS, SIDE_FS), zone: make(FLAT_VS, ZONE_FS), dab: make(DAB_VS, DAB_FS), strand: make(DAB_VS, STRAND_FS), stone: make(STONE_VS, STONE_FS),
+      side: make(MESH_VS, SIDE_FS), zone: make(FLAT_VS, ZONE_FS), dab: make(DAB_VS, DAB_FS), strand: make(DAB_VS, STRAND_FS), stone: make(STONE_VS, STONE_FS), pattern: make(DAB_VS, PATTERN_FS),
     };
     this.buf = gl.createBuffer()!;
     this.quad = gl.createBuffer()!;
@@ -2282,7 +2356,7 @@ export class MakeupGL {
     if (this.depth) gl.deleteRenderbuffer(this.depth);
     const target = (count: number, float: boolean) => this.target(count, float, w, h);
     this.targets = {
-      layer: target(1, false), mask: target(1, false), prep: target(3, this.float), cov: target(1, false),
+      layer: target(1, false), mask: target(1, false), prep: target(3, this.float), cov: target(1, false), covB: target(1, false),
       shadeF: target(1, this.float), shadeB: target(1, this.float),
       tmp: target(1, this.float), maskB: target(1, false), lipB: target(1, this.float), greyB: target(1, this.float),
       // (the zones in half-float when the phone has it: her steps' soft edges fade out without 8-bit steps)
@@ -2404,6 +2478,26 @@ export class MakeupGL {
     gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 20, 16);
     gl.drawArrays(gl.TRIANGLES, 0, data.length / 5);
     gl.disable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+    gl.disableVertexAttribArray(2);
+    gl.colorMask(true, true, true, true);
+  }
+
+  /** Her eyeshadow's drawn placement (shadowPattern) onto one channel of a target (the larger of it and what is there). */
+  private pattern(to: Target, channel: number, data: Float32Array, w: number, h: number) {
+    if (!data.length) return;
+    const gl = this.gl, p = this.use("pattern");
+    gl.uniform2f(this.uni(p, "uSize"), w, h);
+    gl.uniform4f(this.uni(p, "uColor"), ...([0, 1, 2, 3].map((c) => (c === channel ? 1 : 0)) as [number, number, number, number]));
+    gl.bindFramebuffer(gl.FRAMEBUFFER, to.fb);
+    gl.colorMask(channel === 0, channel === 1, channel === 2, channel === 3);
+    gl.enable(gl.BLEND); gl.blendEquation(gl.MAX);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.buf);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STREAM_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 20, 0);
+    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 20, 8);
+    gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 20, 16);
+    gl.drawArrays(gl.TRIANGLES, 0, data.length / 5);
+    gl.blendEquation(gl.FUNC_ADD); gl.disable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
     gl.disableVertexAttribArray(2);
     gl.colorMask(true, true, true, true);
   }
@@ -2809,11 +2903,20 @@ export class MakeupGL {
         z.B.forEach((g, c) => zone("zoneB", c, g));
         const T = this.targets;
         if (mine.shadow) {
+          // (drawn from her own eye: as soft as her brush lays it, and never crisper than her photo)
+          let C = T.cov;
+          if (mine.shadow.drawn) {
+            this.pattern(T.cov, 0, shadowPattern(P, mine.shadow.drawn), w, h);
+            const edge = SHADOW_PATTERN_EDGE[mine.shadow.drawn] ?? 1;
+            const sigma = Math.max(0.8, ew * (SHADOW_PATTERN_SOFT[mine.shadow.pack] ?? 0.075) * edge, 0.9 * (face.blur ?? 0));
+            this.blur(T.cov.tex[0], T.covB, [sigma, 0.5, 0.5, 0.5], scissor);
+            C = T.covB;
+          }
           const m = lidSpots(P);
-          this.spots(T.cov, 1, m.lid, w, h);
-          if (prod?.inner && mine.shadow.corners !== false) this.spots(T.cov, 2, m.inner, w, h);
-          if (prod?.inner && mine.shadow.aegyoSal) this.spots(T.cov, 2, m.aegyo, w, h);
-          this.spots(T.cov, 3, m.low, w, h);
+          this.spots(C, 1, m.lid, w, h);
+          if (prod?.inner && mine.shadow.corners !== false) this.spots(C, 2, m.inner, w, h);
+          if (prod?.inner && mine.shadow.aegyoSal) this.spots(C, 2, m.aegyo, w, h);
+          this.spots(C, 3, m.low, w, h);
         }
         if (mine.freckles) this.spots(T.zoneB, 0, freckleSpots(P), w, h);     // (zoneB's free channel)
         p = this.use("flat");
@@ -2990,7 +3093,7 @@ export class MakeupGL {
     gl.uniform1i(this.uni(p, "uZonesOn"), geo ? 1 : 0);
     this.bindTex(p, "uZoneA", this.targets.zoneAB.tex[0], 6);
     this.bindTex(p, "uZoneB", this.targets.zoneBB.tex[0], 7);
-    this.bindTex(p, "uCov", this.targets.cov.tex[0], 8);
+    this.bindTex(p, "uCov", (mine?.shadow?.drawn ? this.targets.covB : this.targets.cov).tex[0], 8);
     this.bindTex(p, "uShadeF", this.targets.shadeF.tex[0], 9);
     this.bindTex(p, "uShadeB", this.targets.shadeB.tex[0], 10);
     this.bindTex(p, "uVis", visTex, 11);
@@ -3041,7 +3144,7 @@ export class MakeupGL {
     gl.uniform1i(this.uni(p, "uMine"), mine ? 1 : 0);
     gl.uniform1i(this.uni(p, "uStrands"), mine?.lashes ? 1 : 0);
     gl.uniform1f(this.uni(p, "uFreckle"), mine?.freckles ?? 0);
-    gl.uniform4f(this.uni(p, "uMineK"), mine?.conceal?.lift ?? 1, mine?.shadow?.pack ?? 0, prod?.shadow?.cov ? 1 : 0, mine?.liner?.opacity ?? 1);
+    gl.uniform4f(this.uni(p, "uMineK"), mine?.conceal?.lift ?? 1, mine?.shadow?.pack ?? 0, prod?.shadow?.cov || mine?.shadow?.drawn ? 1 : 0, mine?.liner?.opacity ?? 1);
     const conTint = mine?.conceal?.tint ?? [1, 1, 1], brow = prod?.brows?.color ?? [0, 0, 0];
     gl.uniform3f(this.uni(p, "uConTint"), conTint[0], conTint[1], conTint[2]);
     gl.uniform3f(this.uni(p, "uBrow"), brow[0], brow[1], brow[2]);

@@ -943,7 +943,9 @@ async function mineProducts(picks: MinePicks, face: FaceStats, all: LooksMeta): 
   if (picks.shadow) {
     const { shadowFrom = {}, shadowMin = 0.3 } = all.products ?? {};
     const from = picks.shadow.from, own = from && (all.looks[from]?.cov?.shadow ?? 0) >= shadowMin ? from : null;
-    const src = own ?? shadowFrom[picks.shadow.place] ?? shadowFrom.wash ?? null;
+    // (the new engine draws a placement from her own eye: her lash line, crease and brow; a look's own map stays its own)
+    const drawn = !own && lookV2() ? picks.shadow.place : null;
+    const src = drawn ? null : own ?? shadowFrom[picks.shadow.place] ?? shadowFrom.wash ?? null;
     const cov = src ? await Promise.all([loadCov(src), loadLook(src)]).then(([image, files]) => ({ id: src, image, uv: files.uv })) : undefined;
     // (her shimmer a sheen over the colour, not a coat of foil: a whole lid of it reads as metal)
     const deep = SHADOW_DEEP[picks.shadow.place] ?? 0, sheen = (finish: string) => (finish === "metallic" ? 0.8 : 0.6);
@@ -959,8 +961,8 @@ async function mineProducts(picks: MinePicks, face: FaceStats, all: LooksMeta): 
     const light = picks.shadow.inner ?? picks.shadow.aegyo;
     if (light) out.inner = { ...shade(pigment("glow", light, "shimmer")), thick: 0.13, sheen: 0.6 };
     // (under her eye: smoky and halo wrap her lower lash line, the others barely touch it)
-    mine.shadow = { pack: picks.shadow.pack, low: MINE_SHADOW_LOW[picks.shadow.place] ?? 0.8, corners: Boolean(picks.shadow.inner),
-      aegyoSal: Boolean(picks.shadow.aegyo) };
+    mine.shadow = { pack: picks.shadow.pack, low: drawn ? 0 : MINE_SHADOW_LOW[picks.shadow.place] ?? 0.8, corners: Boolean(picks.shadow.inner),
+      aegyoSal: Boolean(picks.shadow.aegyo), ...(drawn ? { drawn } : {}) };
   }
   if (picks.liner) {
     out.liner = linerColour(picks.liner.hex);

@@ -852,8 +852,18 @@ nothing changes.
   foundation, lipstick and lashes as before; her part-by-part intensity and her lipstick pick work
   as on the old engine. The photo, the look rail's pictures, the tutorial and the live mirror all
   paint it.
-- **What is left for Phase 2** (the roadmap): eyeshadow patterns drawn from her landmarks (lash
-  line, crease, brow) instead of a catalog look's coverage map; authoring at 2048 px;
+- **Her eyeshadow's placement drawn from her own eye** (`shadowPattern` in `makeup-gl.ts`): with
+  `?engine=v2`, a placement with no look's own map of its own («میکاپ من»'s, and a look whose photo
+  has too little eyeshadow) is drawn over three curves of hers (her upper lash line; her crease,
+  MediaPipe's ring of points around her eye socket; the lower edge of her brow), and under her lower
+  lash line: a wash over her lid up to her crease; a crease's band with a V from her outer corner up
+  into it and a little on her lid; a smoky lid and crease smoked out above and on out, along her
+  lower lash line too; a halo, deeper at her corners; a cut crease's crisp line with her lid left
+  for her lid shade; a gradient from her inner corner to her outer. A hooded or a deep-set eye gets
+  its placement from its own curves. At its fullest it is a powder's coverage (0.62, as the catalog's
+  maps measured from their photos peak: at 1 a lid of it was a flat sticker), blurred as her brush
+  lays it (a fluffy brush most, a cut crease's line least) and never crisper than her photo.
+- **What is left for Phase 2** (the roadmap): authoring at 2048 px;
   the GPU teacher's pictures and mask extraction; the artist's scores (every look ≥ 4/5, eyes +1.0
   over the old engine on the benchmark) before the old engine and its files go.
 
