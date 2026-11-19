@@ -59,6 +59,19 @@ only.) Faces are synthetic (SFHQ-T2I, no real people). One sheet per look:
    *Download*, and send it in the chat. If something fails, send `hb-gpu-kit/pilot.log` instead.
 8. In RunPod: **Stop**, then **Terminate** the pod, so it stops costing money.
 
+## Phase 2: every look by the chosen teacher (after the pilot)
+
+When the pilot's sheets have shown which teacher is best (say FLUX 3), the same pod draws **every** catalog look on
+the synthetic faces and keeps each picture (makeup only: the face's own pixels, the teacher's makeup):
+
+    LOOKS=all KEEP=1 TEACHERS_ONLY=flux3 bash hb-gpu-kit/scripts/gpu/run_pilot.sh
+
+(42 looks x 6 faces; on an A100 roughly the pilot's seconds per image x 252, about an hour.) Download
+**pilot-results.zip** as before and send it in the chat. Its `results/teacher/<look>/<face>_flux3.jpg` are the looks'
+reference pictures: the recipes are then fitted to them instead of the old engine (`node
+scripts/tinybeauty/fit_recipes.cjs --teacher results/teacher --looks all`), and they can become the catalog's new photos.
+Without a GPU, `python scripts/gpu/pilot.py --dry-run --looks all --keep-pictures` tests it with the phone engine.
+
 ## What the numbers mean
 
 - `drift`: how far the AI moved the face, in eye widths. Below ~0.03 is the same face.

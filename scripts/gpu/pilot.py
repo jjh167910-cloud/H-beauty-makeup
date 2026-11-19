@@ -25,6 +25,11 @@ in eye widths) and how much it changed the skin colour (Lab, outside the makeup)
     python scripts/gpu/pilot.py --teachers qwen      # only one
     python scripts/gpu/pilot.py --dry-run            # no GPU: the phone engine stands in for the AI (tests the script)
 
+Phase 2 (the roadmap): once the pilot has chosen the teacher, the same script draws *every* catalog look on the
+synthetic faces (`--looks all --teachers flux3 --keep-pictures`): the teacher's pictures, makeup only and full size,
+go to results/teacher/<look>/<face>_<teacher>.jpg (with the bare faces in results/teacher/_faces/) as the looks'
+reference pictures (the recipes are fitted to them) and their new catalog photos.
+
 Writes results/sheet_<look>.jpg, results/pairs/*.jpg, results/report.json and results.zip.
 """
 from __future__ import annotations
@@ -41,6 +46,12 @@ sys.path.insert(0, str(REPO / 'scripts/tinybeauty'))
 import teacher as T  # noqa: E402
 
 LOOKS = ['soft-glam', 'hollywood', 'classic-smokey', 'persian-bride', 'electric-blue', 'cut-crease', 'clean-girl', 'glitter-party']
+
+
+def catalog() -> list[str]:
+    """Every catalog look, in the app's order (src/data/makeup-styles.ts)."""
+    import re
+    return re.findall(r'style\("([a-z0-9-]+)"', (REPO / 'src/data/makeup-styles.ts').read_text(encoding='utf-8'))
 PROMPT = ('Apply exactly the makeup from the second image to the woman in the first image: the same eyeshadow colours '
           'and placement, eyeliner, lashes, brows, blush, contour, highlight and lipstick. Keep everything else in the '
           'first image exactly the same: her face, identity, skin tone, expression, hair, pose, lighting, background '
@@ -185,15 +196,18 @@ def main():
     ap.add_argument('--slow-faces', type=int, default=4, help='faces for the slow teacher (qwen)')
     ap.add_argument('--dry-run', action='store_true')
     ap.add_argument('--out', default=str(HERE / 'results'))
+    ap.add_argument('--faces-dir', default=str(HERE / 'faces'), help='synthetic faces (never real people)')
+    ap.add_argument('--keep-pictures', action='store_true', help="Phase 2: keep each teacher picture, makeup only, full size")
     a = ap.parse_args()
     out = Path(a.out); (out / 'pairs').mkdir(parents=True, exist_ok=True)
-    looks = a.looks.split(',')
+    looks = catalog() if a.looks == 'all' else a.looks.split(',')
     started = time.time()
     data = []
-    for f in sorted((HERE / 'faces').glob('*.jpg'))[:a.faces]:
+    for f in sorted(Path(a.faces_dir).glob('*.jpg'))[:a.faces]:
         u = T.rgb(f); p = T.landmarks3(u)
         if p is None: print('no face in', f.name); continue
         data.append((f.stem, u, p))
+        if a.keep_pictures: (out / 'teacher/_faces').mkdir(parents=True, exist_ok=True); save_jpg(out / 'teacher/_faces' / f'{f.stem}.jpg', u, 95)
     refs = {look: T.rgb(T.LOOKS / f'{look}.webp') for look in looks}
     phone = {(look, n): T.paint(look, u, p, 'natural') for look in looks for n, u, p in data}
     report = {'teachers': {}, 'runs': []}
@@ -225,6 +239,8 @@ def main():
                 po = T.landmarks3(o); c = checks(u, o, p, po); mo = makeup_only(u, o, p, po)
                 results[(key, look, name)] = (o, mo, c)
                 for kind, img in (('drawn', o), ('only', mo)): save_jpg(out / 'pairs' / f'{look}_{name}_{key}_{kind}.jpg', face_crop(img, p, 640))
+                if a.keep_pictures:     # (the look's reference picture: the face's own pixels, the teacher's makeup)
+                    (out / 'teacher' / look).mkdir(parents=True, exist_ok=True); save_jpg(out / 'teacher' / look / f'{name}_{key}.jpg', mo, 95)
                 report['runs'].append({'teacher': key, 'look': look, 'face': name, 'seconds': round(secs, 1), **c})
                 print(f'[{len(report["runs"])}] {ai.name} {look} {name}: {secs:.1f}s  drift {c["drift"]:.3f}  skin dE {c["skin_dE"]:.1f}', flush=True)
         runs = [r for r in report['runs'] if r['teacher'] == key]

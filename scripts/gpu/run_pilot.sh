@@ -25,6 +25,9 @@ Then run this command again. Or run only the other model:  SKIP_FLUX=1 bash hb-g
 MSG
   exit 1
 fi
-nohup bash -c "python scripts/gpu/pilot.py --teachers $TEACHERS --out '$KIT/results' && cp '$KIT/results.zip' '$KIT/../pilot-results.zip' && echo 'ALL DONE: download pilot-results.zip'" > "$KIT/pilot.log" 2>&1 &
+# (Phase 2, once the pilot has chosen the teacher: LOOKS=all KEEP=1 TEACHERS_ONLY=flux3 draws every look, pictures kept)
+TEACHERS=${TEACHERS_ONLY:-$TEACHERS}
+EXTRA="${LOOKS:+--looks $LOOKS} ${KEEP:+--keep-pictures}"
+nohup bash -c "python scripts/gpu/pilot.py --teachers $TEACHERS $EXTRA --out '$KIT/results' && cp '$KIT/results.zip' '$KIT/../pilot-results.zip' && echo 'ALL DONE: download pilot-results.zip'" > "$KIT/pilot.log" 2>&1 &
 echo "Started ($TEACHERS). Progress below (Ctrl+C or closing the page only stops this view, not the run):"
 sleep 2; tail -f "$KIT/pilot.log"
