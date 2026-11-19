@@ -819,12 +819,15 @@ nothing changes.
   and lashes turned a lilac lid grey. The fit keeps its best round, and the recipe takes it within
   an artist's limits (`FIT_MAX`, `FIT_LIGHT` in `look-recipes.ts`): a highlighter at most its full
   amount, blush, brows and base at most 1.3 times (the old engine also brightens her whole face,
-  which a highlighter can't match where it goes: past that it read as a pale patch), colours at
+  which a highlighter can't match where it goes: past that it read as a pale patch), eyeshadow at
+  most its full amount (a pale wash packed past it was a chalky film up to her brows), colours at
   most 15 % lighter or half as deep as the look's own. A catalog look has no inner-corner light (at
   its full amount it read as a white spot).
 - **On deeper skin** a look's eyeshadow colours are deeper, as an artist picks its shades for her:
   as much deeper as her skin is than light skin, to the power 0.5 (a pale champagne lid on deep skin
-  read as ash). A look with rhinestones has glitter on its lids (as its photo shows; the stones
+  read as ash), half of it as a richer shade of the same colour (more pigment: each channel to one
+  power) and half as a deeper one, so a pale pink becomes a dusty rose and a champagne a soft gold
+  (deepened with black alone they were a grey mauve and a grey film; richer alone, a neon). A look with rhinestones has glitter on its lids (as its photo shows; the stones
   themselves are still to come).
 - **Lashes** are drawn strand by strand (see her own makeup) as dark hairs over whatever is on her
   lid, never lighter than her own lash line; around her eyes, whatever is far darker than her skin

@@ -140,9 +140,10 @@ const FITS = fits as Record<string, RecipeFit>;
 
 /**
  * How far a fit may take a look, as an artist would still put it on: at most this much of each step (the old engine
- * also brightens her whole face, which a highlighter or blush can't match where it goes: past this they read as patches),
+ * also brightens her whole face, which a highlighter or blush can't match where it goes: past this they read as patches;
+ * a pale eyeshadow packed past full turns into a chalky film up to her brows on a deep skin),
  */
-const FIT_MAX: Partial<Record<StepKey, number>> = { base: 1.3, glow: 1, blush: 1.3, brows: 1.3 };
+const FIT_MAX: Partial<Record<StepKey, number>> = { base: 1.3, glow: 1, blush: 1.3, brows: 1.3, shadow: 1 };
 /** ...and its colours this much deeper or lighter than the look's own (their hue and chroma always its own). */
 const FIT_LIGHT: [number, number] = [0.5, 1.15];
 

@@ -889,6 +889,18 @@ const MINE_SHADOW_LOW: Record<string, number> = { smoky: 0.45, halo: 0.5 };
  * reads as ash; an artist takes a deeper gold).
  */
 const RECIPE_SKIN = 0.38;
+/**
+ * `color` (linear reflectance) made `k` times as deep, half of it as a richer shade of its own colourant (the way more
+ * pigment deepens a powder: each channel to the same power), half as a deeper one: a pale pink becomes a dusty rose, a
+ * champagne a soft gold, not the grey mauve that mixing in black alone gives over deep skin, nor a neon.
+ */
+function richer(color: number[], k: number): number[] {
+  const lum = (c: number[]) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  const c = color.map((v) => Math.min(1, Math.max(1e-4, v))), half = Math.sqrt(k), want = lum(c) * half;
+  let lo = 1, hi = 12;
+  for (let i = 0; i < 24; i++) { const g = (lo + hi) / 2; if (lum(c.map((v) => v ** g)) > want) lo = g; else hi = g; }
+  return c.map((v) => v ** ((lo + hi) / 2) * half);
+}
 /** Brows in her own colour: her brow hairs' (measureFace) over her light, this much deeper (a brow product's fill). */
 const BROW_OWN_DEEP = 0.85;
 /** A brow product in her own brows' colour under her light `white` (linear reflectance); null: her brows weren't measured. */
@@ -933,7 +945,7 @@ async function mineProducts(picks: MinePicks, face: FaceStats, all: LooksMeta): 
     // (and laid as thick as a pressed shadow packed on: at full coverage its own colour shows, not a grey veil of powder)
     const y = 0.2126 * out.white[0] + 0.7152 * out.white[1] + 0.0722 * out.white[2];
     const k = picks.shadow.relative && face.skin ? Math.min(1, face.skin / Math.max(y, 1e-4) / RECIPE_SKIN) ** picks.shadow.relative : 1;
-    const shade = (p: Pigment): Pigment => (k === 1 ? p : { ...p, color: p.color.map((c) => c * k) });
+    const shade = (p: Pigment): Pigment => (k === 1 ? p : { ...p, color: richer(p.color, k) });
     out.shadow = { ...shade(pigment("shadow", picks.shadow.hex, picks.shadow.finish, deep)), thick: MINE_SHADOW_THICK, sheen: sheen(picks.shadow.finish), cov };
     if (picks.shadow.hex2) {
       const finish = picks.shadow.finish2 ?? picks.shadow.finish;
