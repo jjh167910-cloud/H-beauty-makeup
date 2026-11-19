@@ -1,0 +1,60 @@
+{
+ "no-makeup": {
+  "amount": {
+   "base": 1.038,
+   "conceal": 1.5,
+   "blush": 0.439,
+   "brows": 0.751,
+   "shadow": 0.063
+  },
+  "rms": [
+   53.56,
+   22.16
+  ]
+ },
+ "hollywood": {
+  "amount": {
+   "base": 0.965,
+   "conceal": 1.5,
+   "contour": 0.05,
+   "blush": 0.878,
+   "glow": 1.5,
+   "brows": 1.5,
+   "shadow": 0.231,
+   "liner": 1.371
+  },
+  "rms": [
+   103.01,
+   47.8
+  ]
+ },
+ "electric-blue": {
+  "amount": {
+   "base": 0.847,
+   "conceal": 1.5,
+   "contour": 0.05,
+   "brows": 1.297,
+   "shadow": 0.691,
+   "liner": 0.063
+  },
+  "rms": [
+   95.67,
+   68.63
+  ]
+ },
+ "rhinestone": {
+  "amount": {
+   "base": 1.129,
+   "conceal": 1.5,
+   "blush": 1.5,
+   "glow": 1.5,
+   "brows": 1.403,
+   "shadow": 0.273,
+   "liner": 1.308
+  },
+  "rms": [
+   89.94,
+   58.4
+  ]
+ }
+}

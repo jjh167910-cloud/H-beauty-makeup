@@ -5,7 +5,7 @@ import { FINISHES, LIPSTICKS, lipstickById } from "@/data/lipsticks";
 import { LOOK_GROUPS, groupOf, styleById, variedLooks, type MakeupStyle } from "@/data/makeup-styles";
 import { loadDraft, minePicks, saveDraft, type MyMakeup } from "@/data/my-makeup";
 import {
-  downloadMB, downloadModels, downloadHdModels, fetchLook, hdDownloadAvailable, hdModelsReady, HD_DOWNLOAD_MB, engine, errorText, faceShot, modelsReady, paintLook, paintThumb, preparePhoto, relight, studio, warmUp, withPoints,
+  downloadMB, downloadModels, lookV2, downloadHdModels, fetchLook, hdDownloadAvailable, hdModelsReady, HD_DOWNLOAD_MB, engine, errorText, faceShot, modelsReady, paintLook, paintThumb, preparePhoto, relight, studio, warmUp, withPoints,
   type Finish, type Level, type LipChoice, type Prepared, type ProductPicks, type Pt, type Shot, type StepKey,
 } from "@/lib/tryon";
 import { LiveMirror, type Coach, type LiveStats } from "@/lib/live-tryon";
@@ -724,7 +724,7 @@ export default function TryOnView({ style, onBook }: {
                 <img className="tryon__img tryon__img--after" src={result} alt={`عکس شما با میکاپ ${current.title}`} data-level={level} data-zones={zonesKey(zones)}
                   style={{ clipPath: `inset(0 ${peek ? 100 : 100 - cut}% 0 0)` }} />
                 {peek ? null : <span className="tryon__divider" style={{ insetInlineEnd: `${cut}%` }} aria-hidden="true" />}
-                {peek ? null : <span className="tryon__tag tryon__tag--after">بعد</span>}
+                {peek ? null : <span className="tryon__tag tryon__tag--after">{lookV2() ? "بعد · موتور ۲" : "بعد"}</span>}
                 {peek && before.p ? <img className="tryon__img tryon__img--orig" src={before.p} alt="عکس اصلی شما، همان‌طور که گرفته شده" /> : null}
                 <span className="tryon__tag tryon__tag--before">{peek ? "عکس اصلی شما" : which.endsWith("t") ? "قبل · نور استودیو" : "قبل"}</span>
                 <input className="tryon__slider" type="range" min={0} max={100} value={cut} dir="ltr"

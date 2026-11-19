@@ -771,8 +771,16 @@ darker skin towards her skin's median (or above it, روشن‌کننده) in it
 dark pigment that fills in between her hairs where her own brow is (her skin there darker than
 her face around) and never lightens a hair. Liner is drawn from her upper lash line (thickness
 growing towards the outer corner, the wing in the direction of her eye, the fox's inner corner
-pulled down); lashes are the eye detail of catalog looks with lashes and at most a fine root line
-(natural: no-makeup, volume: monochrome, dramatic: bronzed-goddess), kept only around her eyes.
+pulled down). Lashes are drawn strand by strand on her own lash lines (`lashStrands` in
+`makeup-gl.ts`, November 2026; they were a catalog look's eye detail before): per style a number of
+strands along each upper lash line (natural 30, volume 44, false lashes 60), each a tapered curve
+from her lash line, short at her inner corner and swept out towards her outer corner, longest from
+the middle out (longer still at the outer corner for volume and false lashes), clumping into points
+(false lashes most); with «مژه پایین» or false lashes, short lower lashes from a quarter of the way
+out. Each strand's edge fades over a pixel (as sharp as her photo: softened with it when it is
+soft), they fade with an eye that is hardly seen or closing, and each is a dark hair over whatever
+is on her lid (never lighter than she is there). Brows can be her own brows' colour («هم‌رنگ ابروی خودتان», the first brow shade): her
+brow hairs as measured on her face, a little deeper.
 Nothing goes on her eyeballs or inside her mouth, and nothing over hair, hands or glasses.
 
 Her makeups are saved on her phone only (`localStorage`, with a small thumbnail of her face that
@@ -781,6 +789,51 @@ shows the recipe as text to copy into her booking message, one line per step (co
 placement, tool, amount), so the artist sees what she made; her photo is not part of it. The tiny-network fallback has no «میکاپ من» (like the tutorial). There is no Python
 reference for this mode yet: the pigments and foundation share their code (and reference) with
 the modes above.
+
+### Phase 2: every look a recipe (`?engine=v2`, side by side with the old engine)
+
+The roadmap's Phase 2 replaces the look format: a catalog look becomes a **recipe of products** —
+the same object as her own makeup («میکاپ من») — painted by the pigment engine above, with no
+catalog layer. While it is being proven, both engines run side by side: `?engine=v2` in the
+address switches a tab to the new one (kept for that tab; `?engine=v1` switches back); without it
+nothing changes.
+
+- **The recipe** (`src/data/look-recipes.ts`, `recipeOf`): each look's FaceLook as an artist's steps
+  — its base (a sheer veil, matte coverage with a brush, dewy / glowing with a damp sponge, a warm
+  shade for a bronzed skin), concealer under the eyes, contour (sculpted, a bronzer, or a soft one
+  for a full glam), blush in its placement and colour, highlight (a glowing skin on her
+  cheekbones, nose and cupid's bow; gold on a bronzed skin; pearl on a dewy one), brows in her own
+  brows' colour (natural, fuller, or defined), eyeshadow (its lid colour on her lid, its deeper
+  colour in her crease and outer corner, in its finish, packed on or blended out, placed where the
+  look's own photo has eyeshadow), liner (its style and colour, the lower lash line too), lashes
+  strand by strand, and its own lipstick as measured from its photo (colour, finish, ombre). Each
+  step keeps the look's exact colours and is named by the shop's nearest shade, so a look can be
+  saved, opened and changed as her own makeup. `recipeGaps` lists what a recipe can't paint yet
+  (rhinestones, glitter on the face, freckles, aegyo-sal).
+- **Fitted to its photo** (`scripts/tinybeauty/fit_recipes.cjs` → `src/data/look-fit.json`): on a
+  few synthetic faces the old engine paints the look as its photo's change of colour; each recipe
+  step's amount is fitted to it (least squares on the colour change, a few rounds), and how light
+  or deep the blush's and eyeshadow's colours are (by the ratio of weighted mean luminances where
+  each shows; the eyeshadow off her upper lash lines and outer corners, where the old engine's liner
+  and lashes are). Their hue and chroma stay the look's own: fitted freely, the old engine's glitter
+  and lashes turned a lilac lid grey. So far the four pilot looks (no-makeup, hollywood,
+  electric-blue, rhinestone).
+- **On deeper skin** a look's eyeshadow colours are deeper, as an artist picks its shades for her:
+  as much deeper as her skin is than light skin, to the power 0.5 (a pale champagne lid on deep skin
+  read as ash). A look with rhinestones has glitter on its lids (as its photo shows; the stones
+  themselves are still to come).
+- **Lashes** are drawn strand by strand (see her own makeup) as dark hairs over whatever is on her
+  lid, never lighter than her own lash line; around her eyes, whatever is far darker than her skin
+  (her own lashes, in a dense fringe or on deep skin) stays over the eyeshadow laid under it; a dark
+  liner never lightens her lash line either.
+- **Her level** («ملایم / طبیعی / پررنگ») scales the recipe's products (0.6 / 1 / 1.3) and her
+  foundation, lipstick and lashes as before; her part-by-part intensity and her lipstick pick work
+  as on the old engine. The photo, the look rail's pictures, the tutorial and the live mirror all
+  paint it.
+- **What is left for Phase 2** (the roadmap): eyeshadow patterns drawn from her landmarks (lash
+  line, crease, brow) instead of a catalog look's coverage map; the accents; authoring at 2048 px;
+  the GPU teacher's pictures and mask extraction; the artist's scores (every look ≥ 4/5, eyes +1.0
+  over the old engine on the benchmark) before the old engine and its files go.
 
 ### Engine 2 — tiny networks (fallback without WebGL2)
 

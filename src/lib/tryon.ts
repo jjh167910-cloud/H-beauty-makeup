@@ -28,10 +28,13 @@ import { PIECE, PIECES } from "virtual:ai-pieces";
 import { hdBackend, hdFace, hdNeeded, hdRunning, hdSession } from "./face-hd";
 import { STUDIO_CRISP, Studio, studioParams } from "./studio-gl";
 import { styleById } from "@/data/makeup-styles";
+import { lookRecipe as recipeById, nearestShade } from "@/data/look-recipes";
+import { minePicks } from "@/data/my-makeup";
+import { BLUSHES, HIGHLIGHTERS, LINERS, SHADOWS } from "@/data/products";
 import lookGains from "@/data/look-gains.json";
 import {
   LIP_GRID, LIPS_IN, LIPS_OUT, MakeupGL, STEP_KEYS, linHex, VIS_SEG, eyeWidth, lensSigma, linerColour, lipChoice, measureFace, mineLight, pigment, productLight, visCrop,
-  type Canon, type EyeFiles, type FaceStats, type Finish, type Level, type LipChoice, type LipGrid, type LipInfo, type LookFiles,
+  type Canon, type EyeFiles, type FaceStats, type Finish, type Level, type LipChoice, type LipGrid, type LipInfo, type LookFiles, type Pigment,
   type Mine, type MineZone, type Products, type StepKey, type StepState, type Swatch, type Visibility,
 } from "./makeup-gl";
 
@@ -842,28 +845,37 @@ export type MinePicks = {
   contour?: MineZone & { tint: number[] };
   blush?: MineZone & { hex: string; finish: string };
   glow?: MineZone & { hex: string; finish: string };
-  brows?: MineZone & { hex: string; thick: number };
+  /** Brows: their colour, or her own brows' (own: measured on her face, a little deeper). */
+  brows?: MineZone & { hex: string; thick: number; own?: boolean };
   /**
    * Eyeshadow in a placement (a catalog look's coverage map, see shadowFrom); a second shade for her crease and outer
    * corner (hex2), and a light for her inner corners.
    */
-  shadow?: { hex: string; finish: string; place: string; pack: number; hex2?: string; finish2?: string; inner?: string };
+  shadow?: { hex: string; finish: string; place: string; pack: number; hex2?: string; finish2?: string; inner?: string;
+    /** A catalog look whose own eyeshadow places it (where its photo has eyeshadow, when it has enough: else the place's template). */
+    from?: string;
+    /** Its colours made deeper on deeper skin, as an artist picks a look's shades for her (RECIPE_SKIN; this power of it). */
+    relative?: number };
   liner?: NonNullable<Mine["liner"]> & { hex: string };
-  /** natural, volume or dramatic: the lashes of a catalog look (LASHES_FROM). */
-  lashes?: { place: string };
-  lips?: { hex: string; finish: Finish };
+  /** natural, volume or dramatic, drawn strand by strand on her own lash lines (lashStrands in makeup-gl.ts); her lower lashes too. */
+  lashes?: { place: string; lower?: boolean };
+  /** Lipstick: its colour and finish, or a catalog look's own as measured from its photo (from: the look's id). */
+  lips?: { hex: string; finish: Finish; from?: string };
   /** Coloured lenses: their colour, covering her iris (opaque) or tinting it. */
   lenses?: { hex: string; opaque: boolean };
 };
 
 /**
- * Lashes for her own makeup: catalog looks whose eye detail is lashes and at most a thin line at their roots (no wing),
- * their eye detail kept only around her eyes (mineZones in makeup-gl.ts).
+ * The catalog look whose files carry her own makeup through the engine (its face mesh; none of its colour, and its eye
+ * detail only when her lashes aren't drawn strand by strand): her lashes were once a catalog look's eye detail.
  */
-export const LASHES_FROM: Record<string, string> = { natural: "no-makeup", volume: "monochrome", dramatic: "bronzed-goddess" };
+const MINE_CARRIER = "no-makeup";
 
-/** Her recipe in the engine's terms: products (no catalog layer), the look that lends its lashes, her lipstick. */
-export type MineReady = { products: Products; look: string; lip: LipChoice | null };
+/**
+ * Her recipe in the engine's terms: products (no catalog layer), the carrier look (MINE_CARRIER), her lipstick (a
+ * shade and finish over `lipInfo`: a catalog look's own lipstick, else the carrier's, unused when she has none on).
+ */
+export type MineReady = { products: Products; look: string; lip: LipChoice | null; lipInfo?: LipInfo };
 /**
  * Her eyeshadow's optical thickness where its powder lies (a catalog look's own shadow, swapped, is a sheerer film: 0.6);
  * how much of her skin the powder covers comes from her coverage (pigments() in makeup-gl.ts).
@@ -871,6 +883,18 @@ export type MineReady = { products: Products; look: string; lip: LipChoice | nul
 const MINE_SHADOW_THICK = 6;
 /** How much of her eyeshadow's placement under her eye is taken away. */
 const MINE_SHADOW_LOW: Record<string, number> = { smoky: 0.45, halo: 0.5 };
+/**
+ * The skin a look's eyeshadow colours are for (linear reflectance: light skin, the most mineLight lets skin reflect):
+ * on her skin, a recipe's (relative) are as much deeper as hers is, to that power (a pale champagne lid on deep skin
+ * reads as ash; an artist takes a deeper gold).
+ */
+const RECIPE_SKIN = 0.38;
+/** Brows in her own colour: her brow hairs' (measureFace) over her light, this much deeper (a brow product's fill). */
+const BROW_OWN_DEEP = 0.85;
+/** A brow product in her own brows' colour under her light `white` (linear reflectance); null: her brows weren't measured. */
+export function ownBrows(face: FaceStats, white: number[]): number[] | null {
+  return face.brow ? face.brow.map((c, i) => Math.min(0.4, (c / Math.max(white[i], 1e-3)) * BROW_OWN_DEEP)) : null;
+}
 
 /** Her recipe resolved for the engine (the live mirror keeps this and refreshes her light each frame). */
 export async function resolveMine(picks: MinePicks, face: FaceStats): Promise<MineReady> {
@@ -894,18 +918,26 @@ async function mineProducts(picks: MinePicks, face: FaceStats, all: LooksMeta): 
     out.glow = picks.glow.finish === "glow" ? glow : { ...glow, sheen: 0.35 };
     mine.glow = zone(picks.glow);
   }
-  if (picks.brows) { out.brows = { ...pigment("brows", picks.brows.hex), thick: picks.brows.thick }; mine.brows = zone(picks.brows); }
+  if (picks.brows) {
+    const own = picks.brows.own ? ownBrows(face, out.white) : null;
+    out.brows = { ...pigment("brows", picks.brows.hex), ...(own ? { color: own } : {}), thick: picks.brows.thick };
+    mine.brows = zone(picks.brows);
+  }
   if (picks.shadow) {
-    const { shadowFrom = {} } = all.products ?? {};
-    const src = shadowFrom[picks.shadow.place] ?? shadowFrom.wash ?? null;
+    const { shadowFrom = {}, shadowMin = 0.3 } = all.products ?? {};
+    const from = picks.shadow.from, own = from && (all.looks[from]?.cov?.shadow ?? 0) >= shadowMin ? from : null;
+    const src = own ?? shadowFrom[picks.shadow.place] ?? shadowFrom.wash ?? null;
     const cov = src ? await Promise.all([loadCov(src), loadLook(src)]).then(([image, files]) => ({ id: src, image, uv: files.uv })) : undefined;
     // (her shimmer a sheen over the colour, not a coat of foil: a whole lid of it reads as metal)
     const deep = SHADOW_DEEP[picks.shadow.place] ?? 0, sheen = (finish: string) => (finish === "metallic" ? 0.8 : 0.6);
     // (and laid as thick as a pressed shadow packed on: at full coverage its own colour shows, not a grey veil of powder)
-    out.shadow = { ...pigment("shadow", picks.shadow.hex, picks.shadow.finish, deep), thick: MINE_SHADOW_THICK, sheen: sheen(picks.shadow.finish), cov };
+    const y = 0.2126 * out.white[0] + 0.7152 * out.white[1] + 0.0722 * out.white[2];
+    const k = picks.shadow.relative && face.skin ? Math.min(1, face.skin / Math.max(y, 1e-4) / RECIPE_SKIN) ** picks.shadow.relative : 1;
+    const shade = (p: Pigment): Pigment => (k === 1 ? p : { ...p, color: p.color.map((c) => c * k) });
+    out.shadow = { ...shade(pigment("shadow", picks.shadow.hex, picks.shadow.finish, deep)), thick: MINE_SHADOW_THICK, sheen: sheen(picks.shadow.finish), cov };
     if (picks.shadow.hex2) {
       const finish = picks.shadow.finish2 ?? picks.shadow.finish;
-      out.shadow2 = { ...pigment("shadow", picks.shadow.hex2, finish, Math.max(deep, 0.3)), thick: MINE_SHADOW_THICK, sheen: sheen(finish) };
+      out.shadow2 = { ...shade(pigment("shadow", picks.shadow.hex2, finish, Math.max(deep, 0.3))), thick: MINE_SHADOW_THICK, sheen: sheen(finish) };
     }
     if (picks.shadow.inner) out.inner = { ...pigment("glow", picks.shadow.inner, "shimmer"), thick: 0.13, sheen: 0.6 };
     // (under her eye: smoky and halo wrap her lower lash line, the others barely touch it)
@@ -915,9 +947,11 @@ async function mineProducts(picks: MinePicks, face: FaceStats, all: LooksMeta): 
     out.liner = linerColour(picks.liner.hex);
     mine.liner = { place: picks.liner.place, lower: picks.liner.lower, soft: picks.liner.soft, opacity: picks.liner.opacity };
   }
-  const look = LASHES_FROM[picks.lashes?.place ?? "natural"] ?? LASHES_FROM.natural;
+  if (picks.lashes) mine.lashes = { place: picks.lashes.place, lower: Boolean(picks.lashes.lower) };
+  const look = MINE_CARRIER;
   if (picks.lenses) out.lenses = { color: linHex(picks.lenses.hex), opaque: picks.lenses.opaque };
-  return { products: out, look, lip: picks.lips ? { shade: picks.lips.hex, finish: picks.lips.finish } : null };
+  const lipInfo = picks.lips?.from ? all.looks[picks.lips.from]?.lip : undefined;
+  return { products: out, look, lip: picks.lips && !lipInfo ? { shade: picks.lips.hex, finish: picks.lips.finish } : null, ...(lipInfo ? { lipInfo } : {}) };
 }
 
 /**
@@ -935,12 +969,72 @@ async function paintMineNow(shot: Shot, picks: MinePicks, steps?: StepState): Pr
   if (shot.face.blur == null) shot.face.blur = photoBlur(shot.photo, shot.points);
   if (shot.vis === undefined) shot.vis = await visibility(shot.photo, shot.points);
   if (shot.lips === undefined) shot.lips = lipProb(shot.photo, shot.points);
+  return renderMine(r, shot.photo, shot.points, shot.face, picks, "natural", null, steps, shot.vis, shot.lips);
+}
+
+/**
+ * Products on her face, with no catalog layer (her own makeup, or a look's recipe: v2Picks): `level` scales her
+ * foundation, lipstick and lashes (a recipe's other steps are scaled in its picks), `lip` is her lipstick pick over it.
+ */
+async function renderMine(r: MakeupGL, source: HTMLCanvasElement, points: Pt[], face: FaceStats, picks: MinePicks, level: Level,
+  lip: LipChoice | null, steps?: StepState, vis?: Visibility | null, lips?: LipGrid | null): Promise<HTMLCanvasElement> {
   const all = await meta();
-  const { products, look, lip } = await mineProducts(picks, shot.face, all);
-  const files = await loadLook(look);
-  r.render(shot.photo, shot.photo.width, shot.photo.height, shot.points, files, shot.face, "natural", all.tris,
-    lipChoice(files.lip, lip, all.swatch), all.canon, steps, products, shot.vis, shot.lips);
+  const ready = await mineProducts(picks, face, all);
+  const files = await loadLook(ready.look);
+  r.render(source, source.width, source.height, points, files, face, level, all.tris,
+    lipChoice(ready.lipInfo ?? files.lip, lip ?? ready.lip, all.swatch), all.canon, steps, ready.products, vis, lips);
   return r.canvas;
+}
+
+/* --------------------------------------------- Phase 2: every look a recipe */
+
+const V2_KEY = "hb-engine";
+/**
+ * The roadmap's Phase 2 engine, side by side with the old one: with ?engine=v2 (kept for this tab; ?engine=v1 turns it
+ * off) every catalog look is painted as its recipe of products (look-recipes.ts), with no catalog layer.
+ */
+export function lookV2(): boolean {
+  try {
+    const q = typeof location === "undefined" ? null : new URLSearchParams(location.search).get("engine");
+    if (q === "v2" || q === "v1") sessionStorage.setItem(V2_KEY, q);
+    return (q ?? sessionStorage.getItem(V2_KEY)) === "v2";
+  } catch {
+    return false;
+  }
+}
+
+/** A look's intensity for its recipe's products (her foundation, lipstick and lashes go by LEVELS in the engine). */
+const V2_LEVEL: Record<Level, number> = { soft: 0.6, natural: 1, bold: 1.3 };
+const V2_OWN_LEVEL: ReadonlySet<StepKey> = new Set(["base", "lips", "lashes"]);
+/** A look's eyeshadow colours on deeper skin (MinePicks.shadow.relative). */
+const V2_SHADOW_RELATIVE = 0.5;
+
+/**
+ * A catalog look as her own makeup's picks: its recipe (look-recipes.ts) at `level`, with her swaps (another eyeshadow,
+ * liner, blush or highlighter colour) and each part's intensity (picks.gain). Null: no such look.
+ */
+export function v2Picks(look: string, level: Level, picks?: ProductPicks | null): MinePicks | null {
+  const recipe = recipeById(look);
+  if (!recipe) return null;
+  if (picks?.shadow) {
+    const was = recipe.shadow;
+    recipe.shadow = { ...(was ?? { amount: 1, tool: "flat" }), shade: nearestShade(SHADOWS, picks.shadow.hex), hex: picks.shadow.hex,
+      finish: picks.shadow.finish, place: picks.shadow.style ?? was?.place ?? "wash", shade2: undefined, hex2: undefined };
+  }
+  if (picks?.liner) recipe.liner = { ...(recipe.liner ?? { amount: 1, tool: "pen", place: "thin" }), shade: nearestShade(LINERS, picks.liner.hex), hex: picks.liner.hex };
+  if (picks?.blush) {
+    recipe.blush = { ...(recipe.blush ?? { amount: 1, tool: "fluffy", finish: "matte" }), shade: nearestShade(BLUSHES, picks.blush.hex), hex: picks.blush.hex,
+      place: picks.blush.style };
+  }
+  if (picks?.glow) recipe.glow = { ...(recipe.glow ?? { amount: 1, tool: "fan", finish: "glow", place: "cheek" }), shade: nearestShade(HIGHLIGHTERS, picks.glow.hex), hex: picks.glow.hex };
+  const out = minePicks(recipe);
+  if (!out) return null;
+  if (out.shadow) out.shadow.relative = V2_SHADOW_RELATIVE;
+  for (const k of STEP_KEYS) {
+    const g = out.gain[k];
+    if (g != null) out.gain[k] = g * (V2_OWN_LEVEL.has(k) ? 1 : V2_LEVEL[level]) * (picks?.gain?.[k] ?? 1);
+  }
+  return out;
 }
 
 /** Her own makeup at full resolution, on a canvas of its own (to save or share). */
@@ -990,6 +1084,8 @@ async function paintGpuNow(source: HTMLCanvasElement, points: Pt[], look: string
   if (!r) throw "failed" satisfies TryOnError;
   const stats = face ?? measureFace(source, points);
   if (stats.blur == null) stats.blur = photoBlur(source, points);
+  const v2 = lookV2() ? v2Picks(look, level, picks) : null;
+  if (v2) return renderMine(r, source, points, stats, v2, level, lip ?? null, steps, vis, lips);
   const [files, all] = await Promise.all([loadLook(look), meta()]);
   const products = await resolveProducts(look, picks, stats, all, !lip);
   r.render(source, source.width, source.height, points, files, stats, level, all.tris, lipChoice(files.lip, lip, all.swatch), all.canon, steps, products, vis, lips);

@@ -9,7 +9,9 @@ own chat**, with her name and phone, text only; the salon answers from its inbox
 notification on its phone for each new message). The chat is the one part with a server: a Cloudflare Durable Object
 on this Worker ([`docs/SALON_CHAT.md`](docs/SALON_CHAT.md)).
 
-`?look=<id>` opens it on a look (ids in `src/data/makeup-styles.ts`), e.g. `/?look=cat-eye`.
+`?look=<id>` opens it on a look (ids in `src/data/makeup-styles.ts`), e.g. `/?look=cat-eye`. `?engine=v2` tries the
+roadmap's Phase 2 engine for that tab (every look painted as its recipe of products, lashes strand by strand;
+`?engine=v1` switches back): see "Phase 2" in [`docs/AI_TRYON.md`](docs/AI_TRYON.md).
 
 How the try-on works (face model, makeup engine, HD face, studio light, live mirror, «میکاپ من»):
 [`docs/AI_TRYON.md`](docs/AI_TRYON.md).
@@ -23,7 +25,7 @@ How the try-on works (face model, makeup engine, HD face, studio light, live mir
 | `worker/` | The Worker: the app's files, and `/api/*` to the salon chat's Durable Object (`chat.ts`: the whole API, SQLite) |
 | `src/components/tryon.tsx`, `tryon-mine.tsx`, `tryon-outline.tsx` | The try-on screen, «میکاپ من», her own face outlines |
 | `src/lib/` | The engine: face finding, makeup on the graphics chip (`makeup-gl.ts`), HD face, studio light, live mirror |
-| `src/data/` | The looks, lipsticks, products and her own makeup's steps |
+| `src/data/` | The looks, lipsticks, products and her own makeup's steps; each look as a recipe of those steps (`look-recipes.ts`, fitted by `look-fit.json`) |
 | `src/styles/` | Tokens (the salon's rose palette, light and dark), base, shared pieces, the try-on |
 | `public/tryon/` | The AI files and the looks' makeup layers (served in 1 MiB pieces, kept on the phone for offline) |
 | `public/makeup/looks/` | The catalog photos (AI-generated model); `sm/` are the look rail's thumbnails |

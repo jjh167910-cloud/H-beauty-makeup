@@ -25,7 +25,8 @@ import { Steady } from "./steady";
 import { studioParams, type StudioParams } from "./studio-gl";
 import {
   addDelta, alignedBox, alignedInput, alignment, canvas, changeOf, ctx2d, engine, gpu, lipstickData, loadFaceModel, loadLook,
-  lipProb, loadSegmenter, lookFinish, meshTriangles, photoBlur, productsFor, resolveMine, runLook, studio, toPoints, visibility, warmUp, type Affine, type Engine,
+  lipProb, loadSegmenter, lookFinish, lookV2, meshTriangles, ownBrows, photoBlur, productsFor, resolveMine, runLook, studio, toPoints, v2Picks, visibility, warmUp,
+  type Affine, type Engine,
   type MinePicks, type MineReady, type ProductPicks, type TryOnError,
 } from "./tryon";
 
@@ -107,6 +108,9 @@ export class LiveMirror {
   private mine: MineReady | null = null;
   private mineFiles: LookFiles | null = null;
   private mineKey = "";
+  /** A catalog look as its recipe of products (?engine=v2: lookV2 in tryon.ts), resolved like her own makeup. */
+  private v2: { picks: MinePicks; ready: MineReady; files: LookFiles } | null = null;
+  private v2Key = "";
   private steady = new Steady();
   /** Studio light on each frame (when the phone can), and its settings, eased from frame to frame. */
   private lit = false;
@@ -179,7 +183,7 @@ export class LiveMirror {
   setLook(look: string) {
     this.look = look;
     if (this.stats.engine !== "gpu") { warmUp(look); return; }
-    loadLook(look).then((files) => { if (this.look === look) this.files = files; }).catch(() => undefined);
+    if (!lookV2()) loadLook(look).then((files) => { if (this.look === look) this.files = files; }).catch(() => undefined);
     this.resolve();
   }
 
@@ -187,6 +191,7 @@ export class LiveMirror {
   setProducts(picks: ProductPicks | null) { this.picks = picks; this.resolve(); }
 
   private resolve() {
+    if (lookV2()) { this.resolveV2(); return; }
     const key = `${this.look}|${JSON.stringify(this.picks)}`;
     if (key === this.productsKey) return;
     this.productsKey = key;
@@ -196,7 +201,25 @@ export class LiveMirror {
       .catch(() => undefined);
   }
 
-  setLevel(level: Level) { this.level = level; }
+  /** The look as its recipe at her level, with her picks (the last one shows until this one is ready). */
+  private resolveV2() {
+    const key = `${this.look}|${this.level}|${JSON.stringify(this.picks)}`;
+    if (key === this.v2Key) return;
+    this.v2Key = key;
+    const picks = v2Picks(this.look, this.level, this.picks);
+    if (!picks) { this.v2 = null; return; }
+    resolveMine(picks, this.face ?? { sclera: null, skin: null, lipRef: null })
+      .then(async (ready) => {
+        const files = await loadLook(ready.look);
+        if (this.v2Key === key) this.v2 = { picks, ready, files };
+      })
+      .catch(() => undefined);
+  }
+
+  setLevel(level: Level) {
+    this.level = level;
+    if (lookV2() && this.stats.engine === "gpu") this.resolveV2();
+  }
 
   /** Her own makeup («میکاپ من») on the camera instead of the look (null: back to the look). */
   setMine(picks: MinePicks | null) {
@@ -397,7 +420,9 @@ export class LiveMirror {
   /** The graphics-chip engine on this frame. Returns false when the look's files aren't loaded yet. */
   private paint(points: ReturnType<typeof toPoints>, w: number, h: number): boolean {
     const r = gpu();
-    const own = this.minePicks ? (this.mine && this.mineFiles ? { ready: this.mine, files: this.mineFiles } : null) : undefined;
+    // (her own makeup, or a look as its recipe: products only)
+    const own = this.minePicks ? (this.mine && this.mineFiles ? { ready: this.mine, files: this.mineFiles, picks: this.minePicks } : null)
+      : this.v2Key ? (this.v2 ? { ready: this.v2.ready, files: this.v2.files, picks: this.v2.picks } : null) : undefined;
     if (!r || !this.tris || own === null) return false;
     const files = own ? own.files : this.files;
     if (!files || (!own && files.id !== this.look)) return false;
@@ -417,12 +442,17 @@ export class LiveMirror {
         brow: old.brow && now.brow ? old.brow.map((v, i) => v * 0.5 + now.brow![i] * 0.5) : now.brow ?? old.brow,
       };
     }
-    const lip = this.lipstick ? lipChoice(files.lip, own ? own.ready.lip : this.lip, this.lipstick.swatch) : files.lip;
+    const ownLip = own?.ready.lipInfo ?? files.lip, herLip = own ? (this.minePicks ? own.ready.lip : this.lip ?? own.ready.lip) : this.lip;
+    const lip = this.lipstick ? lipChoice(ownLip, herLip, this.lipstick.swatch) : ownLip;
     const base = own ? own.ready.products : this.products;
     // (a catalog look, with or without her picks: its recipe, its calibrated strength and her brows, from her face as
-    // measured now)
-    const products = own ? (base && this.lipstick ? { ...base, white: mineLight(this.face, this.lipstick.swatch) } : undefined)
+    // measured now; her own makeup's brows in her own colour, as measured now too)
+    let products = own ? (base && this.lipstick ? { ...base, white: mineLight(this.face, this.lipstick.swatch) } : undefined)
       : this.lipstick ? { ...base, white: productLight(this.face, this.lipstick.swatch), ...lookFinish(this.look, this.face, !this.lip) } : undefined;
+    if (own && products?.brows && own.picks.brows?.own) {
+      const color = ownBrows(this.face, products.white);
+      if (color) products = { ...products, brows: { ...products.brows, color } };
+    }
     if (own && !products) return false;                      // (her own makeup is all products: never the lash template's look)
     const t0 = performance.now();
     if (this.segOn && t0 - this.segAt >= Math.max(SEGMENT_MS, this.segMs * 4)) {
@@ -433,7 +463,7 @@ export class LiveMirror {
     }
     // her lip line, every other frame (the guided filter follows this frame's own edges in between)
     if (this.count % 2 === 0 || !this.lips) this.lips = lipProb(this.frame, points, this.lipScratch);
-    r.render(this.frame, w, h, points, files, this.face, own ? "natural" : this.level, this.tris, lip, this.lipstick?.canon, undefined, products, this.vis, this.lips);
+    r.render(this.frame, w, h, points, files, this.face, this.minePicks ? "natural" : this.level, this.tris, lip, this.lipstick?.canon, undefined, products, this.vis, this.lips);
     ctx2d(this.view).drawImage(r.canvas, 0, 0);
     this.stats.netMs = Math.max(1, Math.round(performance.now() - started));
     return true;

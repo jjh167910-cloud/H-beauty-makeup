@@ -389,7 +389,7 @@ export default function TryOnMine({ shot, recipe, onRecipe, onBook, onLive }: {
 
   const swatch = (d: MyStepDef, s: MyStep | null) => {
     const shade = d.shades.find((x) => x.id === s?.shade) ?? d.shades[0];
-    return shade?.hex ?? (shade?.tint ? tinted(skin, shade.tint) : "#1b1311");
+    return s?.hex ?? shade?.hex ?? (shade?.tint ? tinted(skin, shade.tint) : "#1b1311");
   };
   const keep = { onPointerDown: (event: { stopPropagation: () => void }) => event.stopPropagation() };
   const tourStep = tour && tour.at >= 0 && tour.at < tour.steps.length ? tour.steps[tour.at] : null;
@@ -514,19 +514,19 @@ export default function TryOnMine({ shot, recipe, onRecipe, onBook, onLive }: {
                   {def.shades.map((s) => (
                     <button key={s.id} type="button" className="tryon__swatch" data-finish={s.finish} aria-label={s.name} title={s.name}
                       aria-pressed={step?.shade === s.id} style={{ "--swatch": s.hex ?? tinted(skin, s.tint) } as CSSProperties}
-                      onClick={() => update({ shade: s.id, ...(def.key === "shadow" || def.key === "lips" ? { finish: undefined } : {}) })} />
+                      onClick={() => update({ shade: s.id, hex: undefined, from: undefined, ...(def.key === "shadow" || def.key === "lips" ? { finish: undefined } : {}) })} />
                   ))}
                 </div>
               </div>
             ) : null}
-            {def.shades2 ? optional("رنگ چین پلک و گوشه بیرونی", def.shades2, raw?.shade2, (id) => update({ shade2: id })) : null}
-            {def.inners ? optional("نور گوشه چشم", def.inners, raw?.inner, (id) => update({ inner: id })) : null}
+            {def.shades2 ? optional("رنگ چین پلک و گوشه بیرونی", def.shades2, raw?.shade2, (id) => update({ shade2: id, hex2: undefined })) : null}
+            {def.inners ? optional("نور گوشه چشم", def.inners, raw?.inner, (id) => update({ inner: id, innerHex: undefined })) : null}
             {def.finishes ? (
               <div className="mine__group">
                 <span>بافت</span>
                 <div className="steps__chips" role="group" aria-label={`بافت ${def.title}`}>
                   {def.finishes.map((f) => (
-                    <button key={f.id} type="button" className="chip" aria-pressed={step?.finish === f.id} onClick={() => update({ finish: f.id })}>{f.name}</button>
+                    <button key={f.id} type="button" className="chip" aria-pressed={step?.finish === f.id} onClick={() => update({ finish: f.id, from: undefined })}>{f.name}</button>
                   ))}
                 </div>
               </div>
@@ -536,10 +536,12 @@ export default function TryOnMine({ shot, recipe, onRecipe, onBook, onLive }: {
                 <span>{def.key === "lashes" || def.key === "liner" || def.key === "brows" || def.key === "lenses" ? "مدل" : "جای کار"}</span>
                 <div className="steps__chips" role="group" aria-label={`جای ${def.title}`}>
                   {def.places.map((p) => (
-                    <button key={p.id} type="button" className="chip" aria-pressed={step?.place === p.id} onClick={() => update({ place: p.id })}>{p.name}</button>
+                    <button key={p.id} type="button" className="chip" aria-pressed={step?.place === p.id} onClick={() => update({ place: p.id, from: undefined })}>{p.name}</button>
                   ))}
-                  {def.key === "liner" ? (
-                    <button type="button" className="chip" aria-pressed={Boolean(step?.lower)} onClick={() => update({ lower: !step?.lower })}>خط پایین چشم</button>
+                  {def.key === "liner" || def.key === "lashes" ? (
+                    <button type="button" className="chip" aria-pressed={Boolean(step?.lower)} onClick={() => update({ lower: !step?.lower })}>
+                      {def.key === "liner" ? "خط پایین چشم" : "مژه پایین"}
+                    </button>
                   ) : null}
                 </div>
               </div>

@@ -14,19 +14,31 @@ export type MyStep = {
   finish?: string;
   tool?: string;
   place?: string;
-  /** Liner along her lower lash line too. */
+  /** Liner along her lower lash line too; lashes: her lower lashes too. */
   lower?: boolean;
   /** Eyeshadow: a second shade for her crease and outer corner, and a light for her inner corners. */
   shade2?: string;
   inner?: string;
   /** 0..1.5 (1 = as a makeup artist would put it on). */
   amount: number;
+  /**
+   * Colours of its own over its shades' swatches (a catalog look's exact colours, see look-recipes.ts; the shade still
+   * names it): the step's, its eyeshadow's second shade, its inner-corner light.
+   */
+  hex?: string;
+  hex2?: string;
+  innerHex?: string;
+  /**
+   * A catalog look's own product (look-recipes.ts): its lipstick as measured from its photo (colour, finish and ombre),
+   * its eyeshadow where its photo has it.
+   */
+  from?: string;
 };
 export type MyMakeup = Partial<Record<StepKey, MyStep>>;
 
 type Opt = { id: string; name: string };
 /** A colour of a step: its swatch, or her own skin colour changed by `tint` (foundation, concealer). */
-export type MyShade = Opt & { hex?: string; finish?: string; tint?: [number, number, number]; lift?: number };
+export type MyShade = Opt & { hex?: string; finish?: string; tint?: [number, number, number]; lift?: number; own?: boolean };
 /**
  * A tool: its drawing on the guide, how soft (blur, eye widths) and how big (zone scale) it puts the product on, how
  * much it lays down (k: times the amount) and per-tool extras.
@@ -133,7 +145,9 @@ export const MY_STEPS: MyStepDef[] = [
   },
   {
     key: "brows", title: "ابرو", en: "BROWS", hint: "لابه‌لای موهای ابرو را پر می‌کند؛ ابتدای ابرو کم‌رنگ‌تر می‌ماند.",
+    // (first her own brows' colour, as an artist matches it; its swatch is her skin, much deeper)
     shades: [
+      { id: "own", name: "هم‌رنگ ابروی خودتان", own: true, tint: [0.42, 0.36, 0.33] },
       { id: "blonde", name: "بلوند", hex: "#9c7a5b" }, { id: "taupe", name: "تاپ", hex: "#7a6556" },
       { id: "light-brown", name: "قهوه‌ای روشن", hex: "#6a4a38" }, { id: "brown", name: "قهوه‌ای", hex: "#4c3328" },
       { id: "dark-brown", name: "قهوه‌ای تیره", hex: "#33241f" }, { id: "black", name: "مشکی نرم", hex: "#221c1c" },
@@ -225,7 +239,7 @@ export function minePicks(recipe: MyMakeup): MinePicks | null {
     const step = filled(def, raw), t = def.tools.find((x) => x.id === step.tool)!, shade = def.shades.find((s) => s.id === step.shade);
     gain[def.key] = Math.max(0, step.amount) * t.k * (STRENGTH[def.key] ?? 1);
     const zone = { place: step.place ?? "", soft: t.soft, size: t.size };
-    const hex = shade?.hex ?? "#000000";
+    const hex = raw.hex ?? shade?.hex ?? "#000000";
     switch (def.key) {
       case "base":
         out.base = { tint: shade?.tint ?? [1, 1, 1], finish: step.finish === "matte" ? -1 : step.finish === "dewy" ? 1 : 0 };
@@ -234,19 +248,22 @@ export function minePicks(recipe: MyMakeup): MinePicks | null {
       case "contour": out.contour = { ...zone, tint: shade?.tint ?? [0.62, 0.59, 0.56] }; break;
       case "blush": out.blush = { ...zone, hex, finish: step.finish ?? "matte" }; break;
       case "glow": out.glow = { ...zone, hex, finish: step.finish ?? "glow" }; break;
-      case "brows": out.brows = { ...zone, hex, thick: t.thick ?? 0.4 }; break;
+      case "brows": out.brows = { ...zone, hex: shade?.own ? "#4c3328" : hex, thick: t.thick ?? 0.4, ...(shade?.own ? { own: true } : {}) }; break;
       case "shadow": {
         const second = def.shades2?.find((x) => x.id === raw.shade2), inner = def.inners?.find((x) => x.id === raw.inner);
+        // (a look's own second shade in its own finish; one from the palette in that shade's)
+        const hex2 = raw.hex2 ?? second?.hex, light = raw.innerHex ?? inner?.hex;
         out.shadow = { hex, finish: step.finish ?? "matte", place: step.place ?? "wash", pack: t.pack ?? 1,
-          ...(second?.hex ? { hex2: second.hex, finish2: second.finish ?? "matte" } : {}), ...(inner?.hex ? { inner: inner.hex } : {}) };
+          ...(hex2 ? { hex2, finish2: raw.hex2 ? step.finish ?? "matte" : second?.finish ?? "matte" } : {}), ...(light ? { inner: light } : {}),
+          ...(raw.from ? { from: raw.from } : {}) };
         break;
       }
       case "liner":
         out.liner = { hex, place: step.place ?? "wing", lower: Boolean(step.lower), soft: step.place === "smudge" ? Math.max(t.soft, 0.03) : t.soft,
           opacity: t.opacity ?? 0.95 };
         break;
-      case "lashes": out.lashes = { place: step.place ?? "natural" }; break;
-      case "lips": out.lips = { hex: shade?.hex ?? "#b8766d", finish: (step.finish ?? "satin") as Finish }; break;
+      case "lashes": out.lashes = { place: step.place ?? "natural", ...(step.lower ? { lower: true } : {}) }; break;
+      case "lips": out.lips = { hex: raw.hex ?? shade?.hex ?? "#b8766d", finish: (step.finish ?? "satin") as Finish, ...(raw.from ? { from: raw.from } : {}) }; break;
       case "lenses": out.lenses = { hex, opaque: step.place === "opaque" }; break;
     }
   }
@@ -271,7 +288,7 @@ export function recipeLines(recipe: MyMakeup): string[] {
       def.inners?.find((s) => s.id === raw.inner) ? `نور گوشه چشم ${def.inners.find((s) => s.id === raw.inner)!.name}` : undefined,
       def.finishes?.find((f) => f.id === step.finish)?.name,
       def.places?.find((p) => p.id === step.place)?.name,
-      def.key === "liner" && step.lower ? "خط پایین هم" : undefined,
+      def.key === "liner" && step.lower ? "خط پایین هم" : def.key === "lashes" && step.lower ? "مژه پایین هم" : undefined,
       def.tools.length > 1 ? def.tools.find((t) => t.id === step.tool)?.name : undefined,
       `شدت ${percent(step.amount)}`,
     ].filter(Boolean);
@@ -317,7 +334,8 @@ const HOW: Partial<Record<StepKey, (s: MyStep) => { how: string; tip?: string }>
     const l = LINER[(s.place ?? "wing") as keyof typeof LINER] ?? LINER.wing;
     return { how: `${l.name}: ${l.how}`, tip: s.lower ? "خط پایین را از گوشه بیرونی تا نیمه چشم، نازک و نزدیک ریشه مژه‌ها بکشید." : undefined };
   },
-  lashes: (s) => ({ how: LASHES[(s.place === "volume" ? "volume" : s.place === "dramatic" ? "dramatic" : "natural") as keyof typeof LASHES].how }),
+  lashes: (s) => ({ how: LASHES[(s.place === "volume" ? "volume" : s.place === "dramatic" ? "dramatic" : "natural") as keyof typeof LASHES].how,
+    tip: s.lower ? "مژه‌های پایین را هم با نوک برس ریمل، آرام و از ریشه رو به پایین بزنید." : undefined }),
   lenses: (s) => ({
     how: "دست‌ها را بشویید و خشک کنید؛ لنز را روی نوک انگشت اشاره بگذارید (لبه‌اش رو به بالا، کاسه‌ای شکل). با دست دیگر پلک بالا "
       + "و با انگشت وسط پلک پایین را نگه دارید، به بالا نگاه کنید و لنز را آرام روی سفیدی پایین چشم بگذارید؛ پلک‌ها را رها کنید و چند بار پلک بزنید."
@@ -374,6 +392,9 @@ export function cleanRecipe(value: unknown): MyMakeup {
     const shade2 = pick(s.shade2, def.shades2), inner = pick(s.inner, def.inners);
     if (shade2) step.shade2 = shade2;
     if (inner) step.inner = inner;
+    // (a look's own colours, and its own lipstick by its id)
+    for (const k of ["hex", "hex2", "innerHex"] as const) if (typeof s[k] === "string" && /^#[0-9a-f]{6}$/i.test(s[k] as string)) step[k] = s[k] as string;
+    if ((def.key === "lips" || def.key === "shadow") && typeof s.from === "string" && /^[a-z0-9-]{1,40}$/.test(s.from)) step.from = s.from;
     out[def.key] = step;
   }
   return out;

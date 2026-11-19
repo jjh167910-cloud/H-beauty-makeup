@@ -85,6 +85,8 @@ const MINE_CREASE = 1;
 const MINE_LASH_LINE = 0.035, MINE_LASH_KEEP = 0.6;
 /** Her own makeup: products lit at most this much brighter than her skin's typical light; her own lashes and hairs over them (how much). */
 const MINE_FORM_MAX = 1.15, MINE_HAIR = 0.85;
+/** Around her eyes, her lashes: from this share of her skin's brightness down they are all hair (to the second: none). */
+const MINE_LASH_DARK = [0.12, 0.3];
 /** Her contour and blush on the deepest skin: this much more product for the same amount. */
 const MINE_DEEP_RICH = 2.4;
 /**
@@ -509,7 +511,8 @@ export type MineZone = { place: string; soft: number; size: number };
 /**
  * Her own makeup, built step by step on her bare face (no catalog look): the shapes of her steps and the products that
  * aren't pigments. The pigments themselves (contour, blush, highlight, eyeshadow, liner colour,
- * brows) are Products' own; each step's amount is Products.gain (0 = not used); the lash template is the look's eye detail.
+ * brows) are Products' own; each step's amount is Products.gain (0 = not used); her lashes are drawn strand by strand
+ * (lashes), else the lash template is the look's eye detail.
  */
 export type Mine = {
   /** Foundation, all over her face: its shade as a colour gain; finish -1 matte .. 1 dewy. */
@@ -525,6 +528,8 @@ export type Mine = {
   shadow?: { pack: number; low?: number };
   /** Liner: thin / wing / fox / puppy / smudge, along her lower lash line too, its edge's softness and opacity. */
   liner?: { place: string; lower: boolean; soft: number; opacity: number };
+  /** Lashes strand by strand (lashStrands): natural / volume / dramatic, her lower lashes too. */
+  lashes?: { place: string; lower?: boolean };
 };
 /** Thickness at full coverage and shimmer strength per product, as THICK / SHEEN in products.py. */
 export const PIGMENT_THICK = { shadow: 0.6, blush: 0.08, contour: 0.25, glow: 0.05, brows: 0.45 } as const;
@@ -1019,6 +1024,111 @@ export function mineZones(P: Pt[], m: Mine): { A: StepGeo[]; B: StepGeo[] } {
   return { A: [conceal, contour, blush, glow], B: [NO_ZONE, liner, brows, lashes] };
 }
 
+/* ------------------------------------------------- lashes, strand by strand */
+
+/**
+ * Lashes drawn strand by strand on her own lash lines (Phase 2 of the roadmap: her own makeup's and every look's
+ * lashes, no catalog look's eye detail): per style how many strands along each upper lash line, their length and root
+ * half-width (eye widths), how dark, how much they clump into points, how much longer the outer ones are. A false lash
+ * strip (dramatic) is denser, longer and clumped; mascara (natural) is her own lashes, darker and a little longer.
+ */
+const LASH_STYLES: Record<string, { n: number; len: number; hw: number; dark: number; clump: number; outer: number }> = {
+  natural: { n: 34, len: 0.21, hw: 0.0055, dark: 0.75, clump: 0.15, outer: 0.15 },
+  volume: { n: 52, len: 0.27, hw: 0.0068, dark: 0.9, clump: 0.35, outer: 0.3 },
+  dramatic: { n: 80, len: 0.32, hw: 0.006, dark: 0.95, clump: 0.5, outer: 0.4 },
+};
+/**
+ * Their roots: as many short strands again (a share of each style's length) along her lash line, so the lashes are
+ * dense where they grow (or where a strip is glued) and thin out towards their tips, as lashes do: not a comb of
+ * evenly spaced hairs over her lid.
+ */
+const LASH_ROOTS = 0.28;
+/** Her lower lashes (bottomLashes, or a dramatic look's): from a quarter of the way out, short, pointing down. */
+const LOWER_LASHES = { n: 16, from: 0.25, len: 0.085, hw: 0.004, dark: 0.55 };
+/** A lash's colour (linear reflectance: a black mascara or false lash, a little warm) and how opaque a strand's core is. */
+const LASH_COLOUR = [0.012, 0.0105, 0.01], LASH_OPAQUE = 0.92;
+/** Each strand's points (a quadratic curve) and how much its half-width tapers by its tip. */
+const STRAND_STEPS = 7, STRAND_TAPER = 0.85;
+
+const hash = (a: number, b: number) => { const x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return x - Math.floor(x); };
+const smooth = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+const turn = (v: V, toward: V, deg: number): V => {     // v turned by deg towards `toward` (both unit, about perpendicular)
+  const a = (deg * Math.PI) / 180;
+  return unit(add(mul(v, Math.cos(a)), mul(toward, Math.sin(a))));
+};
+
+/**
+ * Her lashes as strands, triangles in pixels for the "strand" program: per vertex x, y, its distance across the strand
+ * and the strand's half-width there (pixels), how dark. `shown`: how much of each eye is seen (image-left eye, the other).
+ */
+export function lashStrands(P: Pt[], style: string, lower: boolean, shown: [number, number] = [1, 1]): Float32Array {
+  const { ew, down, sides } = frame(P), up = mul(down, -1);
+  const S = LASH_STYLES[style] ?? LASH_STYLES.natural;
+  const out: number[] = [];
+  const strand = (root: V, c: V, tip: V, hw: number, dark: number) => {
+    const pts: Array<[V, number]> = [];
+    for (let k = 0; k <= STRAND_STEPS; k++) {
+      const u = k / STRAND_STEPS, a = (1 - u) * (1 - u), b = 2 * u * (1 - u), d = u * u;
+      pts.push([[a * root[0] + b * c[0] + d * tip[0], a * root[1] + b * c[1] + d * tip[1]], Math.max(0.15, hw * (1 - STRAND_TAPER * u))]);
+    }
+    const edge = pts.map(([q], k) => {
+      const p0 = pts[Math.max(0, k - 1)][0], p1 = pts[Math.min(pts.length - 1, k + 1)][0], t = unit(sub(p1, p0));
+      const n: V = [-t[1], t[0]], w = pts[k][1] + 1;          // (one pixel more on each side: its edge fades over it)
+      return [add(q, mul(n, w)), add(q, mul(n, -w)), w, pts[k][1], dark * (1 - 0.5 * (k / STRAND_STEPS))] as const;
+    });
+    for (let k = 0; k < edge.length - 1; k++) {
+      const [a0, a1, wa, ha, da] = edge[k], [b0, b1, wb, hb, db] = edge[k + 1];
+      out.push(a0[0], a0[1], wa, ha, da, a1[0], a1[1], -wa, ha, da, b0[0], b0[1], wb, hb, db);
+      out.push(a1[0], a1[1], -wa, ha, da, b1[0], b1[1], -wb, hb, db, b0[0], b0[1], wb, hb, db);
+    }
+  };
+  sides.forEach((s, side) => {
+    const seen = shown[side];
+    if (seen < 0.05) return;
+    const lid = s.upper.map((i) => pt(P, i));
+    // (the strands as long as this eye is wide in the photo: a turned head's far eye is narrower)
+    const own = Math.min(ew, Math.hypot(s.outer[0] - s.inner[0], s.outer[1] - s.inner[1]));
+    const tips: V[] = [], roots: Array<[V, V, number, number, V]> = [];
+    for (let j = 0; j < S.n; j++) {
+      const r = (k: number) => hash(j + side * 101, k);
+      const t = 0.04 + 0.95 * ((j + 0.5 + (r(1) - 0.5) * 0.6) / S.n);
+      const [q, n] = along(lid, t, up);
+      // longest from the middle out (longer still at the outer corner for volume and false lashes), short at each end
+      const L = own * S.len * (0.35 + 0.65 * smooth(0, 0.35, t)) * (1 + S.outer * smooth(0.45, 0.92, t)) * (1 - 0.4 * smooth(0.93, 1.02, t)) * (0.85 + 0.3 * r(2));
+      // from up-and-in at her inner corner to swept out at her outer corner, curling back up towards their tips
+      const theta = -12 + 67 * t ** 1.2 + (r(3) - 0.5) * 10;
+      const d0 = turn(n, s.out, theta), d1 = turn(n, s.out, theta * 0.75);
+      const root = add(q, mul(n, -ew * 0.004));
+      roots.push([root, d0, L, S.hw * own * (0.8 + 0.4 * r(4)), d1]);
+      tips.push(add(root, mul(d1, L)));
+    }
+    // (lashes clump into points: each tip pulled towards its group's)
+    const group = 3;
+    for (let j = 0; j < roots.length; j++) {
+      const g0 = Math.floor(j / group) * group, g = tips.slice(g0, g0 + group);
+      const mid = mul(g.reduce<V>((a, b) => add(a, b), [0, 0]), 1 / g.length);
+      const [root, d0, L, hw, d1] = roots[j];
+      strand(root, add(root, mul(d0, L * 0.55)), lerp(tips[j], mid, S.clump), hw, S.dark * seen);
+      // (and a short one beside it, at its root)
+      const [q2, n2] = along(lid, 0.04 + 0.95 * ((j + 0.95) / S.n), up), r2 = add(q2, mul(n2, -ew * 0.004)), l2 = L * LASH_ROOTS;
+      strand(r2, add(r2, mul(d0, l2 * 0.55)), add(r2, mul(d1, l2)), hw, S.dark * seen);
+    }
+    if (lower || style === "dramatic") {
+      const low = s.lower.map((i) => pt(P, i)), K = LOWER_LASHES;
+      for (let j = 0; j < K.n; j++) {
+        const r = (k: number) => hash(j + side * 53 + 7, k);
+        const t = K.from + (1 - K.from - 0.04) * ((j + 0.5) / K.n);
+        const [q, n] = along(low, t, down);
+        const L = own * K.len * (0.6 + 0.4 * smooth(0.2, 0.8, t)) * (0.85 + 0.3 * r(1)) * (lower ? 1 : 0.7);
+        const d = turn(n, s.out, 15 + 30 * t);
+        const root = add(q, mul(n, -ew * 0.003));
+        strand(root, add(root, mul(d, L * 0.5)), add(root, mul(turn(n, s.out, 10 + 25 * t), L)), K.hw * own, K.dark * seen * (lower ? 1 : 0.7));
+      }
+    }
+  });
+  return Float32Array.from(out);
+}
+
 /* ------------------------------------------------------------ face stats */
 
 const LIN = Float32Array.from({ length: 256 }, (_, i) => (i / 255) ** 2.2);
@@ -1295,6 +1405,15 @@ void main() {
   o = uColor * x;
 }`;
 
+// A lash strand (lashStrands): q.x its distance across (pixels), q.y its half-width there; its edge faded over a pixel
+// (a strand thinner than a pixel is that much fainter), as dark as `a`, laid over the strands under it (alpha only).
+const STRAND_FS = `#version 300 es
+precision highp float; in vec2 q; in float a; out vec4 o;
+void main() {
+  float c = clamp(max(q.y, 0.5) - abs(q.x) + 0.5, 0.0, 1.0) * min(1.0, 2.0 * q.y);
+  o = vec4(0.0, 0.0, 0.0, a * c);
+}`;
+
 const FLAT_VS = `#version 300 es
 in vec2 aXy; uniform vec2 uSize; void main() { gl_Position = vec4(aXy / uSize * 2.0 - 1.0, 0.0, 1.0); }`;
 const FLAT_FS = `#version 300 es
@@ -1415,6 +1534,8 @@ uniform int uLinerOn;
 // uMineK: her concealer's brightness over her skin's median (x), how her eyeshadow's tool lays it (y: mineShadow)
 // and whether it has a placement (z), her liner's opacity (w); her concealer's colour; her brow colour and its thickness
 uniform int uMine;
+uniform int uStrands;      // her lashes strand by strand (the eye detail is exactly them: not kept to the template's zone)
+const vec3 LASH_COLOUR = vec3(${LASH_COLOUR.map((x) => x.toFixed(4)).join(", ")});
 uniform vec4 uMineK;
 uniform vec3 uConTint, uBrow, uBrowShape;
 uniform float uBrowX, uMineLow;
@@ -1432,6 +1553,7 @@ uniform sampler2D uVis, uVisEdge;
 uniform vec3 uVisBox;
 // a closing eye: the share of its lashes kept (image-left eye, the other); the side map tells the eyes apart
 uniform float uSkinY;       // her skin's median brightness (linear): the concealer lifts darker under-eyes towards it (0: off)
+uniform float uSkinMed;     // her skin's median brightness (linear; 0: not measured)
 uniform vec4 uConC;         // the concealer ellipses' centres (one under each eye), their axis across the face (uConAx),
 uniform vec4 uConAx;        // radii (uConAx.zw) and how much of each the turned head shows (uConK) (conceal_zone in teacher.py)
 uniform vec2 uConK;
@@ -1841,6 +1963,10 @@ void main() {
     if (uMine == 1) {             // her own lashes and brow hairs stay over the products laid under them
       vec4 G = texture(uGrey, v);
       float dark = clamp(-(dot(src, vec3(0.299, 0.587, 0.114)) - G.x) / max(G.y, 20.0 / 255.0), 0.0, 1.0);
+      // (around her eyes, whatever is far darker than her skin is her lashes: in a dense fringe, or on deep skin, they
+      // hardly stand out from what is around them, and a pale eyeshadow laid over them turned them grey)
+      float rel = luma(pow(src, vec3(2.2))) / max(uSkinMed, 1e-4);
+      if (uSkinMed > 0.0) dark = max(dark, clamp(ZB.a, 0.0, 1.0) * (1.0 - smoothstep(${MINE_LASH_DARK[0]}, ${MINE_LASH_DARK[1]}, rel)));
       float laid = smoothstep(0.0, 0.6, (luma(base) - luma(pre)) / max(luma(pre), 0.01));
       base = mix(base, pre, dark * laid * ${MINE_HAIR} * (1.0 - M.r));
     }
@@ -1920,11 +2046,17 @@ void main() {
     float band = texture(uZoneB, v).g;
     lashK = band + (1.0 - band) * (texture(uSide, v).r < 0.5 ? uOpen.x : uOpen.y);
   }
-  float dk = min(0.0, -texture(uDetail, v).a * lashK * (1.0 - M.r) * (uMine == 1 ? clamp(ZB.a, 0.0, 1.0) : 1.0) - own * 0.6);
-  if (uMine == 1) {               // her liner in its colour, then the lash template's lashes over it
+  float dk = min(0.0, -texture(uDetail, v).a * lashK * (1.0 - M.r) * (uMine == 1 && uStrands == 0 ? clamp(ZB.a, 0.0, 1.0) : 1.0) - own * 0.6);
+  if (uMine == 1) {               // her liner in its colour, then her lashes over it
     float dl = clamp(ZB.g * rv(4, sw) * uMineK.w, 0.0, 1.0) * (1.0 - M.r);
-    res = mix(res, pow(clamp(uLiner * lightHere(lu), 0.0, 1.0), vec3(1.0 / 2.2)), dl);
-    res *= clamp(1.0 + uK.z * rv(5, sw) * dk, 0.15, 1.0);
+    // (a dark liner never lightens her own lash line, already darker than it in her light)
+    vec3 lined = mix(res, pow(clamp(uLiner * lightHere(lu), 0.0, 1.0), vec3(1.0 / 2.2)), dl);
+    res = luma(uLiner) < 0.02 ? min(res, lined) : lined;
+    if (uStrands == 1) {          // strand by strand: dark hairs over whatever is on her lid (a darkening of a pale
+      // eyeshadow would leave grey lashes), as dark as a lash is in her light, never lighter than she is there
+      float la = clamp(uK.z * rv(5, sw) * texture(uDetail, v).a * lashK * (1.0 - M.r), 0.0, ${LASH_OPAQUE.toFixed(2)});
+      res = min(res, mix(res, pow(clamp(LASH_COLOUR * lightHere(lu), 0.0, 1.0), vec3(1.0 / 2.2)), la));
+    } else res *= clamp(1.0 + uK.z * rv(5, sw) * dk, 0.15, 1.0);
   } else if (uLinerOn == 1 && uZonesOn == 1) {          // her liner colour on the upper lid band, the lashes as they are
     float dl = clamp(-uK.z * ZB.g * rv(4, sw) * dk, 0.0, 0.85), dd = clamp(-uK.z * (1.0 - ZB.g) * rv(5, sw) * dk, 0.0, 0.85);
     res *= 1.0 - dd;
@@ -1999,7 +2131,7 @@ export class MakeupGL {
     this.progs = {
       mesh: make(MESH_VS, COPY_FS), canon: make(MESH_VS, CANON_FS), extend: make(QUAD_VS, EXTEND_FS), foundPrep: make(QUAD_VS, FOUND_PREP_FS), found: make(QUAD_VS, FOUND_FS), flat: make(FLAT_VS, FLAT_FS), prep: make(QUAD_VS, PREP_FS),
       blur: make(QUAD_VS, BLUR_FS), main: make(QUAD_VS, MAIN_FS), visPrep: make(QUAD_VS, VIS_PREP_FS), visFit: make(QUAD_VS, VIS_FIT_FS),
-      side: make(MESH_VS, SIDE_FS), zone: make(FLAT_VS, ZONE_FS), dab: make(DAB_VS, DAB_FS),
+      side: make(MESH_VS, SIDE_FS), zone: make(FLAT_VS, ZONE_FS), dab: make(DAB_VS, DAB_FS), strand: make(DAB_VS, STRAND_FS),
     };
     this.buf = gl.createBuffer()!;
     this.quad = gl.createBuffer()!;
@@ -2149,6 +2281,25 @@ export class MakeupGL {
     gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 20, 12);
     gl.drawArrays(gl.TRIANGLES, 0, data.length / 5);
   }
+  /** Lash strands (lashStrands) into the eye detail (the layer's alpha), each over the ones under it. */
+  private strands(data: Float32Array, w: number, h: number) {
+    if (!data.length) return;
+    const gl = this.gl, p = this.use("strand");
+    gl.uniform2f(this.uni(p, "uSize"), w, h);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.targets.layer.fb);
+    gl.colorMask(false, false, false, true);
+    gl.enable(gl.BLEND); gl.blendEquation(gl.FUNC_ADD); gl.blendFuncSeparate(gl.ZERO, gl.ONE, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.buf);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STREAM_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 20, 0);
+    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 20, 8);
+    gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 20, 16);
+    gl.drawArrays(gl.TRIANGLES, 0, data.length / 5);
+    gl.disable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+    gl.disableVertexAttribArray(2);
+    gl.colorMask(true, true, true, true);
+  }
+
   /** Soft spots (x, y, radius in pixels, amount) added onto one channel of a target. */
   private spots(to: Target, channel: number, list: Spot[], w: number, h: number) {
     const gl = this.gl, data = new Float32Array(list.length * 30), corners = [-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1];
@@ -2368,7 +2519,8 @@ export class MakeupGL {
     gl.uniform4f(this.uni(p, "uPick"), 1, 0, 0, 0);
     const weights = fw ? Float32Array.from(tris, (i) => fw![i] ?? 1) : undefined;
     this.drawMesh(mesh, weights);
-    if (look.eyes && tex.eyes) {
+    const lashes = products?.mine?.lashes;
+    if (look.eyes && tex.eyes && !lashes) {
       const e = look.eyes;
       // the far eye's triangles are replaced by the mirror image of the near eye's (eye_triangles in teacher.py);
       // drawn far to near, and only where no nearer part of her face (the mesh just drawn) is in front
@@ -2396,6 +2548,12 @@ export class MakeupGL {
       gl.uniform1f(this.uni(p, "uBias"), 0);
     }
     gl.colorMask(true, true, true, true);
+    if (lashes) {        // her lashes strand by strand, on her own lash lines
+      gl.disable(gl.DEPTH_TEST);
+      this.strands(lashStrands(P, lashes.place, Boolean(lashes.lower), shown), w, h);
+      gl.enable(gl.DEPTH_TEST);
+      p = this.use("mesh");
+    }
     // 1'. the look beyond the face mesh (extend_layer in teacher.py), at 1/EXTEND_SCALE of the size
     const extendOn = Boolean(weights) && !mine;
     if (extendOn) {
@@ -2711,6 +2869,7 @@ export class MakeupGL {
     gl.uniform1i(this.uni(p, "uOpenOn"), openOn ? 1 : 0);
     gl.uniform4f(this.uni(p, "uWork"), scissor[0], scissor[1], scissor[0] + scissor[2], scissor[1] + scissor[3]);
     gl.uniform1f(this.uni(p, "uSkinY"), concealOn ? face.skin! : 0);
+    gl.uniform1f(this.uni(p, "uSkinMed"), face.skin ?? 0);
     if (concealOn) {
       const ax = [P[263][0] - P[33][0], P[263][1] - P[33][1]], an = Math.hypot(ax[0], ax[1]) || 1, a = [ax[0] / an, ax[1] / an], dn = [-a[1], a[0]];
       const centre = (ids: number[], out: number) => {
@@ -2746,6 +2905,7 @@ export class MakeupGL {
     const liner = prod?.liner ?? [0, 0, 0];
     gl.uniform3f(this.uni(p, "uLiner"), liner[0], liner[1], liner[2]);
     gl.uniform1i(this.uni(p, "uMine"), mine ? 1 : 0);
+    gl.uniform1i(this.uni(p, "uStrands"), mine?.lashes ? 1 : 0);
     gl.uniform4f(this.uni(p, "uMineK"), mine?.conceal?.lift ?? 1, mine?.shadow?.pack ?? 0, prod?.shadow?.cov ? 1 : 0, mine?.liner?.opacity ?? 1);
     const conTint = mine?.conceal?.tint ?? [1, 1, 1], brow = prod?.brows?.color ?? [0, 0, 0];
     gl.uniform3f(this.uni(p, "uConTint"), conTint[0], conTint[1], conTint[2]);
