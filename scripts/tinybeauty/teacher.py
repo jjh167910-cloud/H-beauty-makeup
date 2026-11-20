@@ -317,6 +317,16 @@ FOUND_NEAR, FOUND_WIDE = 0.05, 0.6      # her skin's colour softened over these 
 FOUND_UP, FOUND_DOWN, FOUND_OUT, FOUND_SOFT = 0.8, 0.1, 0.35, 0.1   # up her forehead, down onto her neck, past her outline (her visible face decides), edge
 FOUND_DARK = (0.2, 0.4)                 # darker than this share of her skin's brightness (nostrils, lashes, a strand) isn't skin
 FOUND_FACE = (0.6, 0.95)                # the segmenter's face-skin probability from which (to which) shade is lifted
+# Its coverage (makeup-gl.ts COVER_*): her brightness softened over FOUND_FINE over it softened over FOUND_MID evened out by
+# COVER_LIGHT x the coverage where faint, less where strong (COVER_T in log light; darker ones keep COVER_DARK of it), her
+# colour softened over FOUND_FINE brought COVER_COLOUR x the coverage towards it softened over FOUND_NEAR; the coverage is
+# the foundation's strength times the look's (`cover`: its recipe's base), at most COVER_MAX. Her pores stay.
+FOUND_FINE, FOUND_MID = 0.02, 0.1
+COVER_LIGHT, COVER_COLOUR, COVER_T, COVER_DARK, COVER_MAX = 0.85, 0.8, 0.08, 0.35, 0.9
+COVER_BAND = 0.4                        # it covers skin: not a pixel darker than FOUND_DARK of her skin around it (hair, a
+                                        # lash), nor blotches past this (log light: her face's shape, her hairline's shadow)
+COVER_PORE, COVER_PORE_T = 0.45, 0.12   # her finer texture over it softened over FOUND_FINE a little softer where faint; the
+                                        # finish's shine follows her skin softened over FOUND_FINE, not each pore's glint
 FOUND_REACH, FOUND_NEAR_OUT = 0.45, 0.08  # skin going on further past her outline than this is her ear or neck: only this far
 FOUND_LIGHT, FOUND_LIFT, FOUND_WIDE_L = 0.6, 1.6, 0.3   # her skin in shade lifted towards her skin's median brightness:
                                         # how much (in log light), at most how far below it counts, softened over (eye widths)
@@ -373,7 +383,7 @@ def hull(pts):
         hi.append(x)
     return np.array(lo[:-1] + hi[:-1], np.float64)
 
-def foundation(user, user_lin, p, vis=None, amount=1.0, seg=None, tint=None, finish=0.0):
+def foundation(user, user_lin, p, vis=None, amount=1.0, seg=None, tint=None, finish=0.0, cover=1.0):
     """Her foundation as a gain on her light (H, W, 3). Her skin's colour softened a little (FOUND_NEAR) is brought towards
     her face's broad colour (FOUND_WIDE: her skin's average colour, every part of it counted alike, so that evened out her
     face is no cooler or warmer as a whole) at the same brightness, by FOUND_COLOUR: redness and blotches even out; and where
@@ -384,7 +394,8 @@ def foundation(user, user_lin, p, vis=None, amount=1.0, seg=None, tint=None, fin
     `vis`: occlusion.visible (None: all of it); nothing changes where her face isn't seen.
     `seg`: (probs, box) from occlusion.classes (None: unknown): her face skin, where shade is lifted and how far out it goes.
     `tint`: the foundation's shade (a colour gain, look_tint), on all of it. `finish`: her skin's own shine (brighter than
-    her skin softened over FOUND_NEAR) taken down (-1 matte) or brought up (1 dewy)."""
+    her skin softened over FOUND_NEAR) taken down (-1 matte) or brought up (1 dewy). `cover`: the look's coverage per the
+    foundation's strength (COVER_*: blotches of brightness and finer colour even out, her face's shape and pores stay)."""
     H, W = user.shape[:2]; ew = eye_width(np.asarray(p)[:, :2])
     if amount <= 0: return np.ones((H, W, 3), np.float32)
     sw, sh = -(-W // EXTEND_SCALE), -(-H // EXTEND_SCALE); kx, ky = sw / W, sh / H
@@ -407,6 +418,23 @@ def foundation(user, user_lin, p, vis=None, amount=1.0, seg=None, tint=None, fin
     yN, yC = (np.maximum(luma(x[..., :3]), 1e-6) for x in (N, C))
     cg = ((C[..., :3] / yC[..., None]) / np.maximum(N[..., :3] / yN[..., None], 1e-5)) ** (FOUND_COLOUR * amount)
     cg /= np.maximum(luma(cg), 1e-5)[..., None]
+    c = min(COVER_MAX, amount * cover)
+    y_here = luma(user_lin)
+    if c > 0:   # its coverage
+        F, M = (up(soften(A, s * ew * kx)) for s in (FOUND_FINE, FOUND_MID))
+        yF = np.maximum(luma(F[..., :3]), 1e-6)
+        sure = np.clip(F[..., 3] / 0.1, 0, 1) * np.clip(M[..., 3] / 0.1, 0, 1)
+        yFn = yF / np.maximum(F[..., 3], 1e-4)
+        fine = np.log(np.maximum(y_here, 1e-6) / np.maximum(yFn, 1e-6))
+        t = np.clip((np.exp(fine) - FOUND_DARK[0]) / (FOUND_DARK[1] - FOUND_DARK[0]), 0, 1); sure = sure * t * t * (3 - 2 * t)
+        cg = cg * np.exp(-c * sure * COVER_PORE * fine * COVER_PORE_T ** 2 / (COVER_PORE_T ** 2 + fine ** 2))[..., None]
+        y_here = y_here + (yFn - y_here) * sure
+        band = np.clip(np.log((yF / np.maximum(F[..., 3], 1e-4)) / np.maximum(luma(M[..., :3]) / np.maximum(M[..., 3], 1e-4), 1e-6)), -COVER_BAND, COVER_BAND)
+        keep = COVER_T ** 2 / (COVER_T ** 2 + band ** 2)
+        keep = np.where(band < 0, COVER_DARK + (1 - COVER_DARK) * keep, keep)
+        cg = cg * np.exp(-c * sure * COVER_LIGHT * band * keep)[..., None]
+        cc = np.clip((N[..., :3] / yN[..., None]) / np.maximum(F[..., :3] / yF[..., None], 1e-5), 0.6, 1.6) ** (c * sure * COVER_COLOUR)[..., None]
+        cg = cg * cc / np.maximum(luma(cc), 1e-5)[..., None]
     # her skin in shade (the side of her face by her hair, under her jaw) lifted towards her skin's typical brightness,
     # never darkened: the foundation covers all of her face, not just its lit middle
     if ref:
@@ -418,7 +446,7 @@ def foundation(user, user_lin, p, vis=None, amount=1.0, seg=None, tint=None, fin
         cg = cg * (np.clip(ref / np.maximum(yL, 1e-6), 1, FOUND_LIFT) ** k)[..., None]
     if tint is not None: cg = cg * np.asarray(tint, np.float32)
     if finish:
-        hl = luma(user_lin) / np.maximum(yN / np.maximum(N[..., 3], 1e-4), 1e-6)
+        hl = y_here / np.maximum(yN / np.maximum(N[..., 3], 1e-4), 1e-6)
         cg = cg * np.where(hl > 1, np.maximum(hl, 1) ** (finish * (0.75 if finish < 0 else 0.9)), 1.0)[..., None]
     w = R * np.clip(N[..., 3] / 0.1, 0, 1) * (vis if vis is not None else 1)
     gain = 1 + (cg - 1) * w[..., None]
@@ -497,6 +525,14 @@ def look_tone(look):
     """The look's complexion: its skin's typical change over the bare photo's (the median over the skin, the grading
     taken out; at most TONE_MAX), as a log ratio (3,). It goes on her foundation (look_tint), not in the layer."""
     return layer_parts(look)[2]
+
+SKIN_COVER = {'sheer': 0.55, 'matte': 1.2, 'dewy': 0.85, 'glow': 1.0, 'bronzed': 0.9}   # tryon.ts SKIN_COVER
+
+
+def look_cover(look):
+    """The look's foundation's coverage per its strength (its recipe's base: the amount x its tool's k)."""
+    return SKIN_COVER.get(styles().get(look, {}).get('skin', ''), 1.0)
+
 
 def look_tint(look):
     """Her foundation's shade for the look (a colour gain): TONE_KEEP of its complexion's brightness and colour."""

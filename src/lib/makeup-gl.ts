@@ -259,6 +259,23 @@ const FOUND_LIGHT = 0.6, FOUND_LIFT = 1.6, FOUND_WIDE_L = 0.3, FOUND_FACE = [0.6
 /** Her face skin going on further past her outline than FOUND_REACH eye widths is her ear or neck: then only FOUND_NEAR_OUT. */
 const FOUND_REACH = 0.45, FOUND_NEAR_OUT = 0.08;
 const FOUND_UP = 0.8, FOUND_DOWN = 0.1, FOUND_OUT = 0.35, FOUND_SOFT = 0.1, FOUND_DARK = [0.2, 0.4];
+/* Its coverage: a foundation's pigment covers her skin's own colour, so blotches of brightness and colour (redness, a
+ * brown patch, dull spots) fade, while her face's shape (light and shade change her brightness, not her colour) and her
+ * skin's fine texture (pores, finer than FOUND_FINE eye widths) stay. Her brightness softened over FOUND_FINE over it
+ * softened over FOUND_MID is evened out by COVER_LIGHT x the coverage where the difference is faint, less where it is
+ * strong (COVER_T in log light: a fold, the side of her nose; darker ones keep at least COVER_DARK of it: a mark is
+ * covered); her colour softened over FOUND_FINE is brought COVER_COLOUR x the coverage of the way to it softened over
+ * FOUND_NEAR (finer redness than the broad evening above). The coverage is the foundation's strength (a sheer veil
+ * 0.55, a brush's matte 1.2), at most COVER_MAX. */
+const FOUND_FINE = 0.02, FOUND_MID = 0.1, COVER_LIGHT = 0.85, COVER_COLOUR = 0.8, COVER_T = 0.08, COVER_DARK = 0.35, COVER_MAX = 0.9;
+/* And her finer texture (her light over it softened over FOUND_FINE: pores, fine lines) a little softer, COVER_PORE x the
+ * coverage where faint (COVER_PORE_T in log light: a nostril, a lash's shadow, a mole stay); a foundation fills it in, it
+ * doesn't blur it away. Its finish's shine follows her skin softened over FOUND_FINE, not each pore's highlight (a dewy
+ * finish made every pore glint: her texture came out stronger than before her makeup). */
+const COVER_PORE = 0.45, COVER_PORE_T = 0.12;
+/** It covers skin: a pixel darker than FOUND_DARK of her skin around it (a strand of hair, a lash) isn't, and its blotches
+ * are no more than COVER_BAND in log light (past it is her face's shape or her hairline's shadow). */
+const COVER_BAND = 0.4;
 export const LIP_GRID = 192;
 const LIP_SIGMA = 0.025, LIP_EPS = 1e-3;
 /** Her lips refined (lip_prob in teacher.py): the probability on a LIP_GRID x LIP_GRID crop (`box`: x0, y0, side). */
@@ -516,6 +533,8 @@ export type Products = {
   mine?: Mine;
   /** A look's skin finish (its recipe): her skin's own shine taken down (-1 matte) or brought up (1 dewy). */
   finish?: number;
+  /** A look's foundation's coverage per its strength (its recipe's base: a sheer veil 0.55 .. a brush's matte 1.2). */
+  cover?: number;
   /** Coloured contact lenses: their colour (linear reflectance) and whether they cover her iris (else they tint it). */
   lenses?: { color: number[]; opaque: boolean };
 };
@@ -1483,8 +1502,8 @@ void main() {
 // finish (uFFinish: her skin's own shine taken down, -1 matte, or brought up, 1 dewy). The shade is blended a little
 // down her neck (neck_weight in teacher.py: uNeck her chin and her face's down, uNeckW her eye width and half her jaw's).
 const FOUND_FS = `#version 300 es
-precision highp float; in vec2 v; uniform sampler2D uSrc, uR, uN, uC, uL, uVis, uFace; uniform int uVisMode, uFaceOn;
-uniform vec3 uVisBox; uniform vec2 uSize; uniform vec4 uWork; uniform float uK, uSkinY; uniform vec3 uFTint; uniform float uFFinish;
+precision highp float; in vec2 v; uniform sampler2D uSrc, uR, uN, uC, uL, uVis, uFace, uF, uM; uniform int uVisMode, uFaceOn;
+uniform vec3 uVisBox; uniform vec2 uSize; uniform vec4 uWork; uniform float uK, uSkinY; uniform vec3 uFTint; uniform float uFFinish, uCover;
 uniform vec4 uNeck; uniform vec2 uNeckW; out vec4 o;
 float luma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
 ${SHOULDER_GLSL}
@@ -1496,6 +1515,23 @@ void main() {
   float yN = max(luma(N.rgb), 1e-6), yC = max(luma(C.rgb), 1e-6);
   vec3 cg = pow((C.rgb / yC) / max(N.rgb / yN, vec3(1e-5)), vec3(${FOUND_COLOUR} * uK));
   cg /= max(luma(cg), 1e-5);
+  vec3 lu = pow(src, vec3(2.2));
+  float yShine = yN / max(N.a, 1e-4);   // (what her shine is measured against, and at)
+  float yHere = luma(lu);
+  if (uCover > 0.0) {             // its coverage (COVER_*): blotches of brightness and finer colour even out
+    vec4 F = texture(uF, v), M = texture(uM, v);
+    float yF = max(luma(F.rgb), 1e-6), sure = clamp(F.a / 0.1, 0.0, 1.0) * clamp(M.a / 0.1, 0.0, 1.0);
+    float fine = log(max(yHere, 1e-6) / max(yF / max(F.a, 1e-4), 1e-6));
+    sure *= smoothstep(${FOUND_DARK[0]}, ${FOUND_DARK[1]}, exp(fine));
+    cg *= exp(-uCover * sure * ${COVER_PORE} * fine * ${COVER_PORE_T * COVER_PORE_T} / (${COVER_PORE_T * COVER_PORE_T} + fine * fine));
+    yHere = mix(yHere, yF / max(F.a, 1e-4), sure);
+    float band = clamp(log((yF / max(F.a, 1e-4)) / max(luma(M.rgb) / max(M.a, 1e-4), 1e-6)), -${COVER_BAND}, ${COVER_BAND});
+    float keep = ${COVER_T * COVER_T} / (${COVER_T * COVER_T} + band * band);
+    if (band < 0.0) keep = mix(${COVER_DARK}, 1.0, keep);
+    cg *= exp(-uCover * sure * ${COVER_LIGHT} * band * keep);
+    vec3 cc = pow(clamp((N.rgb / yN) / max(F.rgb / yF, vec3(1e-5)), 0.6, 1.6), vec3(uCover * sure * ${COVER_COLOUR}));
+    cg *= cc / max(luma(cc), 1e-5);
+  }
   if (uSkinY > 0.0) {
     vec4 L = texture(uL, v);
     float yL = luma(L.rgb) / max(L.a, 1e-4);
@@ -1503,10 +1539,9 @@ void main() {
     float face = uFaceOn == 1 ? smoothstep(${FOUND_FACE[0]}, ${FOUND_FACE[1]}, texture(uFace, (v * uSize - uVisBox.xy) / uVisBox.z).r) : 1.0;
     cg *= pow(clamp(uSkinY / max(yL, 1e-6), 1.0, ${FOUND_LIFT}), ${FOUND_LIGHT} * uK * face);
   }
-  vec3 lu = pow(src, vec3(2.2));
   cg *= uFTint;
   if (uFFinish != 0.0) {          // her shine over her skin's softened brightness: matte takes it down, dewy brings it up
-    float hl = luma(lu) / max(yN / max(N.a, 1e-4), 1e-6);
+    float hl = yHere / max(yShine, 1e-6);
     cg *= hl > 1.0 ? pow(hl, uFFinish * (uFFinish < 0.0 ? 0.75 : 0.9)) : 1.0;
   }
   float vis = 1.0;
@@ -2367,7 +2402,7 @@ export class MakeupGL {
     const sw = Math.ceil(w / EXTEND_SCALE), sh = Math.ceil(h / EXTEND_SCALE);
     for (const name of ["extA", "extT", "extB", "extN"]) this.targets[name] = this.target(1, this.float, sw, sh);
     // her foundation at the same size (only with half-float targets: her light in 8 bits is too coarse on darker skin)
-    if (this.float) for (const name of ["fndM", "fndR", "fndA", "fndN", "fndC", "fndL"]) this.targets[name] = this.target(1, true, sw, sh);
+    if (this.float) for (const name of ["fndM", "fndR", "fndA", "fndN", "fndC", "fndL", "fndF", "fndB"]) this.targets[name] = this.target(1, true, sw, sh);
     if (this.smallDepth) gl.deleteRenderbuffer(this.smallDepth);
     this.smallDepth = gl.createRenderbuffer()!;
     gl.bindRenderbuffer(gl.RENDERBUFFER, this.smallDepth);
@@ -2995,21 +3030,26 @@ export class MakeupGL {
       gl.uniform3f(this.uni(p, "uVisBox"), ...(vis?.box ?? [0, 0, 1]));
       gl.uniform2f(this.uni(p, "uSize"), w, h);
       gl.uniform1f(this.uni(p, "uSkinY"), face.skin ?? 0);
-      gl.uniform1i(this.uni(p, "uChroma"), 0);
-      this.drawQuad(p);
-      this.blurSmall(T.fndA.tex[0], T.fndN, FOUND_NEAR * ew * k);
-      this.blurSmall(T.fndA.tex[0], T.fndL, FOUND_WIDE_L * ew * k);
       // her face's broad colour: her skin's average colour, not weighted by its brightness (else her lit, paler parts
       // weigh more and evening her skin out cools all of her face)
+      gl.uniform1i(this.uni(p, "uChroma"), 1);
+      this.drawQuad(p);
+      this.blurSmall(T.fndA.tex[0], T.fndC, FOUND_WIDE * ew * k);
       gl.bindFramebuffer(gl.FRAMEBUFFER, T.fndA.fb);
       gl.viewport(0, 0, sw, sh);
       p = this.use("foundPrep");
       this.bindTex(p, "uSrc", this.src, 0);
       this.bindTex(p, "uR", T.fndR.tex[0], 1);
       this.bindTex(p, "uVis", visTex, 2);
-      gl.uniform1i(this.uni(p, "uChroma"), 1);
+      gl.uniform1i(this.uni(p, "uChroma"), 0);
       this.drawQuad(p);
-      this.blurSmall(T.fndA.tex[0], T.fndC, FOUND_WIDE * ew * k);
+      this.blurSmall(T.fndA.tex[0], T.fndN, FOUND_NEAR * ew * k);
+      this.blurSmall(T.fndA.tex[0], T.fndL, FOUND_WIDE_L * ew * k);
+      const cover = Math.min(COVER_MAX, foundK * (mine ? 1 : prod?.cover ?? 1));
+      if (cover > 0) {
+        this.blurSmall(T.fndA.tex[0], T.fndF, FOUND_FINE * ew * k);
+        this.blurSmall(T.fndA.tex[0], T.fndB, FOUND_MID * ew * k);
+      }
       gl.viewport(0, 0, w, h);
       gl.bindFramebuffer(gl.FRAMEBUFFER, T.srcF.fb);
       p = this.use("found");
@@ -3020,6 +3060,9 @@ export class MakeupGL {
       this.bindTex(p, "uL", T.fndL.tex[0], 4);
       this.bindTex(p, "uVis", visTex, 5);
       this.bindTex(p, "uFace", vis ? this.grids.vis.prob : this.src, 6);
+      this.bindTex(p, "uF", T.fndF.tex[0], 7);
+      this.bindTex(p, "uM", T.fndB.tex[0], 8);
+      gl.uniform1f(this.uni(p, "uCover"), Math.min(COVER_MAX, foundK * (mine ? 1 : prod?.cover ?? 1)));
       gl.uniform1i(this.uni(p, "uFaceOn"), vis ? 1 : 0);
       gl.uniform1f(this.uni(p, "uSkinY"), face.skin ?? 0);
       gl.uniform1i(this.uni(p, "uVisMode"), visMode);

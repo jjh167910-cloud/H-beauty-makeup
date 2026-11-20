@@ -448,6 +448,26 @@ her lips, a hand on her cheek, a scarf, a phone.
     local average instead lit up the edge of her face in a light rim; towards her median it doesn't.) The look is painted over that; in the
     tutorial it goes on with the base step. Phones without half-float targets skip it. It has the look's complexion
     as its shade (below), blended a little down her neck.
+  - *Its coverage* (`COVER_*`, November 2026). The evening above only moved her skin's broad colour: on test faces the
+    looks left the blotches of her brightness, her finer redness and her pores as they were (98–104 %, 91–97 % and
+    98–102 % of her bare face's), and a dewy or glowing finish made them stronger: its shine was measured pixel by pixel,
+    so every pore glinted (her fine texture up to 134–148 % on the forehead and chin with میکاپ یخی and سایه یاسی). A
+    foundation's pigment covers her skin's own colour and fills its texture, while light and shade (her face's shape)
+    stay. Now her brightness softened over 0.02 eye widths over it softened over 0.1 is evened out by 0.85 x the
+    coverage where the difference is faint (0.08 in log light), less where it is strong (a fold, the side of her nose;
+    darker ones keep at least 0.35 of it, so a mark is covered), and no more than 0.4 (her hairline's shadow); her colour
+    softened over 0.02 is brought 0.8 x the coverage of the way to it softened over 0.05 (finer redness); her finer
+    texture (her light over it softened over 0.02: pores, fine lines) 0.45 x the coverage softer where faint (0.12 in log
+    light: a nostril, a lash's shadow, a mole stay), and none of it on a pixel darker than 20–40 % of her skin around it
+    (a strand of hair). The finish's shine follows her skin softened over 0.02, not each pore's glint. The coverage is
+    the foundation's strength times its kind (the recipe's base: a sheer veil 0.55, dewy 0.85, glowing 1, bronzed 0.9,
+    a brush's matte 1.2; `SKIN_COVER`), at most 0.9. On the test faces' forehead and chin (light and deep skin, the
+    old engine), with لب شرابی and میکاپ یخی: the blotches of her brightness 86–112 % of her bare face's (were
+    103–123 %), her fine texture 77–86 % (were 83–142 %), her colour's blotches 68–91 % (were 70–110 %); her wrinkles
+    and her face's shading stay (a foundation doesn't take those away; the studio light, on both before and after,
+    does the photographer's retouching). Wider (0.2 eye widths) it began to flatten the shading by her nose and jaw.
+    `foundation()` in teacher.py does the same (its `cover`: `look_cover`). The fallback networks were trained before
+    it, so without WebGL2 a look has no coverage yet.
 - **No strands of the catalog model's hair.** In the catalog photos thin strands of hair fall across the
   model's temple and cheek (in the bare photo too, in other places). The look is the difference between the
   two photos, so a strand became a thin dark line on her face, from her brow's tail down her cheek. In the

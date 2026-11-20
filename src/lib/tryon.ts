@@ -733,6 +733,8 @@ function loadCov(id: string): Promise<ImageBitmap> {
  * eyeshadow's own colour) and its liner's colour. As recipe() in products.py.
  */
 const SKIN_FINISH: Record<string, number> = { matte: -0.6, sheer: 0, dewy: 0.7, glow: 0.5, bronzed: 0.3 };
+/** The look's foundation's coverage: its recipe's base (look-recipes.ts: the amount x its tool's k). */
+const SKIN_COVER: Record<string, number> = { sheer: 0.55, matte: 1.2, dewy: 0.85, glow: 1, bronzed: 0.9 };
 /** The highlighter for a glowing, bronzed or dewy skin, and its sheen; a shimmer look's on a matte or sheer skin. */
 const RECIPE_GLOW: Record<string, [string, number]> = { glow: ["#f3dcb8", 1.6], bronzed: ["#e8c27a", 1.4], dewy: ["#f4ece6", 1.0] };
 const SHIMMER_GLOW: [string, number] = ["#f3dcb8", 1.0];
@@ -779,12 +781,12 @@ export function lookFinish(look: string, face: FaceStats, ownLip = true): Pick<P
   return { layerGain, browDefine };
 }
 
-type Recipe = { finish: number; glow?: [string, number]; shadow?: { hex: string; finish: string; style: string }; liner?: string };
+type Recipe = { finish: number; cover: number; glow?: [string, number]; shadow?: { hex: string; finish: string; style: string }; liner?: string };
 function lookRecipe(look: string): Recipe | null {
   const fl = styleById.get(look)?.look;
   if (!fl) return null;
   const acc = new Set(fl.accents ?? []);
-  const out: Recipe = { finish: SKIN_FINISH[fl.skin] ?? 0 };
+  const out: Recipe = { finish: SKIN_FINISH[fl.skin] ?? 0, cover: SKIN_COVER[fl.skin] ?? 1 };
   out.glow = RECIPE_GLOW[fl.skin] ?? (acc.has("shimmer") ? SHIMMER_GLOW : undefined);
   let fin = acc.has("glitter") || acc.has("rhinestones") ? "glitter" : acc.has("shimmer") ? "shimmer" : null;
   if (fin === "shimmer" && metalTone(fl.lid[0])) fin = "metallic";
@@ -808,7 +810,7 @@ function shadowSource(look: string, style: string | undefined, lookStyle: string
 async function resolveProducts(look: string, picks: ProductPicks | null | undefined, face: FaceStats, all: LooksMeta,
   ownLip = true): Promise<Products | undefined> {
   const rec = lookRecipe(look);
-  const out: Products = { white: productLight(face, all.swatch), gain: picks?.gain, finish: rec?.finish, ...lookFinish(look, face, ownLip) };
+  const out: Products = { white: productLight(face, all.swatch), gain: picks?.gain, finish: rec?.finish, cover: rec?.cover, ...lookFinish(look, face, ownLip) };
   if (picks?.shadow) {
     const { style, src } = shadowSource(look, picks.shadow.style, picks.shadow.lookStyle, all);
     const [image, files] = await Promise.all([loadCov(src), loadLook(src)]);

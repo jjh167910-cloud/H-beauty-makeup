@@ -450,7 +450,7 @@ def paint_custom(look, face, p, level='natural', custom=None, shade=None, finish
     RL = (np.maximum(0, 1 - zsum * sc) * G('base') + sc * (A[..., 0] * G('conceal') + B[..., 0] * G('shadow') * own['shadow']
           + A[..., 1] * G('contour') * own['contour'] + A[..., 2] * G('blush') * own['blush'] + A[..., 3] * G('glow') * own['glow']))
     base = user * T.foundation(face, user, p, vis, G('base') * k_layer, seg, T.look_tint(look) ** (G('base') * k_layer),
-                               float(np.clip(custom.get('finish', 0.0) * G('base') * k_layer, -1, 1))) * T.conceal_gain(face, user, p, G('conceal'))[..., None] \
+                               float(np.clip(custom.get('finish', 0.0) * G('base') * k_layer, -1, 1)), T.look_cover(look)) * T.conceal_gain(face, user, p, G('conceal'))[..., None] \
         * np.exp(T.layer_floor(T.hair_light(w, face, p, B[..., 1]) * (keep * k_layer * RL)[..., None]))
     # 2. her products, in the order they go on
     if any(k in custom for k in ('shadow', 'contour', 'blush', 'glow')):

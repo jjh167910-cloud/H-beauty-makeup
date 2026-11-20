@@ -132,7 +132,7 @@ def paint_finished(look, face, p, level='natural'):
     k_layer, k_lip, k_eye = T.LEVELS[level]; H, W = face.shape[:2]
     lr, pl = T.make_layer(look); tint = T.look_tint(look)
     ul = T.lin(face)
-    lu = ul * T.foundation(face, ul, p, None, k_layer, None, None if tint is None else np.asarray(tint) ** k_layer)
+    lu = ul * T.foundation(face, ul, p, None, k_layer, None, None if tint is None else np.asarray(tint) ** k_layer, cover=T.look_cover(look))
     under, tone, brow = refs(ul, p)
     lu = conceal(lu, face, p, under, tone, CONCEAL_LIGHT.get(look, 1.0) * k_layer)
     w, cover = T.mesh_warp(lr, T.symmetric(pl), p, (H, W), z=p[:, 2])
