@@ -1,3 +1,17 @@
+# New looks' catalog photos (Kaggle, free)
+
+The looks waiting in `src/data/new-looks.json` (autumn/winter 2026 trends: لب شرابی, میکاپ یخی, سایه یاسی, اسموکی گرانج,
+قرمز آتشین, گوتیک زمستانی) have no catalog photo, and the salon can't shoot them. `new_looks.py` has **FLUX 3 Image
+Klein** draw each onto the bare catalog portrait (`public/makeup/looks/no-makeup.webp`) from its written makeup, in 4
+versions; each is checked for how far the face moved (it must stay the same model, same pose and light: the teacher
+divides the look's photo by the bare one). `new_looks_kaggle.ipynb` is the notebook; the steps are those below
+(a Hugging Face token, a Kaggle dataset from `hb-gpu-kit.zip`, T4 x2, Save & Run All), about 1–2 hours. Send back
+**new-looks.zip**. The artist picks one version per look; it becomes `public/makeup/looks/<id>.webp`, the look moves
+into `src/data/makeup-styles.ts`, and `teacher.py layers`, `teacher.py eyes`, `products.py cov`, `train.py <id>` and the
+recipe fit make its files, as for any look (`scripts/tinybeauty/README.md`, "Adding a look").
+
+    python scripts/gpu/new_looks.py --dry-run --variants 2     # no GPU: tests the script
+
 # Free test on Kaggle (start here)
 
 `free_test.py` runs **FLUX 3 Image Klein** on Kaggle's free 16 GB GPU (float16, parts moved on and off

@@ -83,7 +83,8 @@ using the cached ones.
 Work files go to `.tinybeauty/` (git-ignored; set `TINYBEAUTY_WORK` to move them).
 
 **Adding a look:** add its catalog photo to `public/makeup/looks/` as an edit of `no-makeup.webp`
-(same model, same pose and light — the teacher needs that exact before/after pair) and its style
+(same model, same pose and light — the teacher needs that exact before/after pair) (without a shoot: `scripts/gpu/new_looks.py` draws it
+with FLUX 3 from the look's written makeup in `src/data/new-looks.json`) and its style
 (with `lip` finish and `lipColor`) to `src/data/makeup-styles.ts`, then run `teacher.py layers`,
 `teacher.py eyes` and `train.py <look-id>`.
 
