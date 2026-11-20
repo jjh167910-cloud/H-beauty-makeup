@@ -113,6 +113,14 @@ const TINT_NECK = [-0.7, -0.4, 0.5];
 /** Fairest skin relative to the catalog model's (who is fair): bounds how dim her light can be. */
 const FAIREST = 1.15;
 /**
+ * And the deepest: the catalog model's skin reflects at most this many times the light the deepest skin does. Bounds how
+ * bright her light can be: in a dim, moody photo her eye whites still read bright (catchlights, glossy eyes), and her
+ * light taken from them alone turned every dark lipstick bright red on her (on the synthetic faces 7 % read so, by
+ * 1.3x at the median, nearly all deep skin or a dim room). At 8, a very deep skin's own makeup lost its warmth (her
+ * skin then read paler than it is, and a blush on it became a pale veil).
+ */
+const DEEPEST = 12;
+/**
  * A nude shade's brightness over the skin's (in the catalog) below which it is a pigment (a deep brown, a plum): it no
  * longer follows her skin's depth; by NUDE_DEEP[1] it fully does (nude_deep in teacher.py).
  */
@@ -276,6 +284,13 @@ const COVER_PORE = 0.45, COVER_PORE_T = 0.12;
 /** It covers skin: a pixel darker than FOUND_DARK of her skin around it (a strand of hair, a lash) isn't, and its blotches
  * are no more than COVER_BAND in log light (past it is her face's shape or her hairline's shadow). */
 const COVER_BAND = 0.4;
+/**
+ * And her skin perfected (MakeupGL.skin: her photo with only the studio retouch's skin, tryon.ts skinRetouch: faint
+ * blotches softened, pores a little, blemishes healed, the shadow under her eyes lifted) brought in by the coverage
+ * over RETOUCH_FULL: a foundation, a concealer and powder do that, so it is part of the after, not of her photo (her photo
+ * before is in the studio's light only). A sheer veil brings in about three quarters of it, a fuller one all of it.
+ */
+const RETOUCH_FULL = 0.75;
 export const LIP_GRID = 192;
 const LIP_SIGMA = 0.025, LIP_EPS = 1e-3;
 /** Her lips refined (lip_prob in teacher.py): the probability on a LIP_GRID x LIP_GRID crop (`box`: x0, y0, side). */
@@ -1417,7 +1432,8 @@ export function lipTarget(lip: LipInfo, face: FaceStats): { colour: number[]; li
     const mean = (e[0] + e[1] + e[2]) / 3;
     // Small, soft or shaded eyes read too dark: her light can't be dimmer than her skin allows.
     const floor = face.skin && lip.skin ? face.skin / lip.skin / FAIREST : 0;
-    g = Math.min(2, Math.max(0.3, mean, floor)) ** 0.85;
+    const ceiling = face.skin && lip.skin ? (face.skin / lip.skin) * DEEPEST : Infinity;
+    g = Math.min(2, Math.max(0.3, Math.min(mean, ceiling), floor)) ** 0.85;
     // (her eye whites are a rough white: their own tint and reflections mustn't turn every product cold or warm)
     light = e.map((v) => g * Math.min(LIGHT_CAST, Math.max(1 / LIGHT_CAST, v / mean)) ** 0.8);
   }
@@ -1502,8 +1518,8 @@ void main() {
 // finish (uFFinish: her skin's own shine taken down, -1 matte, or brought up, 1 dewy). The shade is blended a little
 // down her neck (neck_weight in teacher.py: uNeck her chin and her face's down, uNeckW her eye width and half her jaw's).
 const FOUND_FS = `#version 300 es
-precision highp float; in vec2 v; uniform sampler2D uSrc, uR, uN, uC, uL, uVis, uFace, uF, uM; uniform int uVisMode, uFaceOn;
-uniform vec3 uVisBox; uniform vec2 uSize; uniform vec4 uWork; uniform float uK, uSkinY; uniform vec3 uFTint; uniform float uFFinish, uCover;
+precision highp float; in vec2 v; uniform sampler2D uSrc, uR, uN, uC, uL, uVis, uFace, uF, uM, uRet; uniform int uVisMode, uFaceOn;
+uniform vec3 uVisBox; uniform vec2 uSize; uniform vec4 uWork; uniform float uK, uSkinY; uniform vec3 uFTint; uniform float uFFinish, uCover, uRetK;
 uniform vec4 uNeck; uniform vec2 uNeckW; out vec4 o;
 float luma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
 ${SHOULDER_GLSL}
@@ -1511,6 +1527,14 @@ void main() {
   vec3 src = texture(uSrc, v).rgb;
   vec2 px = v * uSize;
   if (px.x < uWork.x || px.y < uWork.y || px.x > uWork.z || px.y > uWork.w) { o = vec4(src, 1.0); return; }
+  float vis = 1.0;
+  if (uVisMode > 0) {
+    vec4 A = texture(uVis, (v * uSize - uVisBox.xy) / uVisBox.z);
+    vis = uVisMode == 2 ? clamp(dot(A.rgb, src - 0.5) + A.a, 0.0, 1.0) : A.r;
+  }
+  float shape = clamp(texture(uR, v).g, 0.0, 2.0);
+  // her skin perfected (RETOUCH_FULL), where her face is seen
+  if (uRetK > 0.0) src = mix(src, texture(uRet, v).rgb, uRetK * clamp(shape, 0.0, 1.0) * vis);
   vec4 N = texture(uN, v), C = texture(uC, v);
   float yN = max(luma(N.rgb), 1e-6), yC = max(luma(C.rgb), 1e-6);
   vec3 cg = pow((C.rgb / yC) / max(N.rgb / yN, vec3(1e-5)), vec3(${FOUND_COLOUR} * uK));
@@ -1544,12 +1568,7 @@ void main() {
     float hl = yHere / max(yShine, 1e-6);
     cg *= hl > 1.0 ? pow(hl, uFFinish * (uFFinish < 0.0 ? 0.75 : 0.9)) : 1.0;
   }
-  float vis = 1.0;
-  if (uVisMode > 0) {
-    vec4 A = texture(uVis, (v * uSize - uVisBox.xy) / uVisBox.z);
-    vis = uVisMode == 2 ? clamp(dot(A.rgb, src - 0.5) + A.a, 0.0, 1.0) : A.r;
-  }
-  float shape = clamp(texture(uR, v).g, 0.0, 2.0), w = shape * clamp(N.a / 0.1, 0.0, 1.0) * vis;
+  float w = shape * clamp(N.a / 0.1, 0.0, 1.0) * vis;
   lu *= 1.0 + (cg - 1.0) * w;
   if (uFaceOn == 1 && uNeckW.x > 0.0) {   // her neck: her body skin below her jaw, outside the foundation's shape
     vec2 r = px - uNeck.xy;
@@ -2302,6 +2321,13 @@ export class MakeupGL {
   private wbuf: WebGLBuffer;
   private quad: WebGLBuffer;
   private src: WebGLTexture;
+  /**
+   * Her photo with only her skin perfected (the studio retouch's skin; same size as the photo painted next), or null:
+   * the foundation brings it in by its coverage (RETOUCH_FULL). Set just before render() and cleared after: a live
+   * frame has none.
+   */
+  skin: (TexImageSource & { width: number; height: number }) | null = null;
+  private skinTex: WebGLTexture | null = null;
   private layers = new Map<string, { layer: WebGLTexture; eyes: WebGLTexture | null }>();
   private covs = new Map<string, WebGLTexture>();
   private size = [0, 0];
@@ -2732,6 +2758,14 @@ export class MakeupGL {
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
     gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, source);
+    const skin = this.skin && this.skin.width === w && this.skin.height === h ? this.skin : null;
+    if (skin) {
+      this.skinTex ??= this.texture();
+      gl.bindTexture(gl.TEXTURE_2D, this.skinTex);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, skin);
+    }
 
     // Work only around the face (plus the widest blur), everything else stays her pixels.
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity, z0 = Infinity, z1 = -Infinity;
@@ -3062,7 +3096,9 @@ export class MakeupGL {
       this.bindTex(p, "uFace", vis ? this.grids.vis.prob : this.src, 6);
       this.bindTex(p, "uF", T.fndF.tex[0], 7);
       this.bindTex(p, "uM", T.fndB.tex[0], 8);
-      gl.uniform1f(this.uni(p, "uCover"), Math.min(COVER_MAX, foundK * (mine ? 1 : prod?.cover ?? 1)));
+      this.bindTex(p, "uRet", skin ? this.skinTex! : this.src, 9);
+      gl.uniform1f(this.uni(p, "uCover"), cover);
+      gl.uniform1f(this.uni(p, "uRetK"), skin ? Math.min(1, cover / RETOUCH_FULL) : 0);
       gl.uniform1i(this.uni(p, "uFaceOn"), vis ? 1 : 0);
       gl.uniform1f(this.uni(p, "uSkinY"), face.skin ?? 0);
       gl.uniform1i(this.uni(p, "uVisMode"), visMode);

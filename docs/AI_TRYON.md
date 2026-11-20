@@ -79,6 +79,16 @@ the makeup was right but her picture looked poor, so her photo is retouched the 
 photographer would, on the graphics chip, before the makeup (before and after alike, so the
 comparison stays the makeup's alone). Every step follows her face's 478 points:
 
+*Since November 2026 only its light is on her photo before* (white balance, colour, contrast,
+vignette, face light, glow, eye whites, sharpening: `Studio.apply(…, { skin: 0 })`). Its skin
+(blotches, texture, blemishes, the shadow under her eyes, below) is what a foundation, a concealer
+and powder do, so it comes with the look's foundation (`skinRetouch` in tryon.ts: the photo with
+its skin alone, `{ light: false }`; makeup-gl.ts brings it in by the foundation's coverage over
+`RETOUCH_FULL`, 0.75: a sheer veil about three quarters of it, a fuller one all of it, as the base
+step goes on in the tutorial). With it before and after alike, a look changed her skin by nothing
+to see: her makeup's own skin was, side by side, no skin treatment at all. A live camera frame has
+none (it isn't made per frame).
+
 - **colour**: her skin's hue moved 30 % of the way to a warm studio hue (CIELAB 44°, at most 4°) as
   a white balance that keeps her skin's brightness; flat colour made richer (her skin by up to 25 %,
   never past chroma 30; the rest of the photo by 8 %), as a vibrance: no colour past its own or past
@@ -464,8 +474,9 @@ her lips, a hand on her cheek, a scarf, a phone.
     a brush's matte 1.2; `SKIN_COVER`), at most 0.9. On the test faces' forehead and chin (light and deep skin, the
     old engine), with لب شرابی and میکاپ یخی: the blotches of her brightness 86–112 % of her bare face's (were
     103–123 %), her fine texture 77–86 % (were 83–142 %), her colour's blotches 68–91 % (were 70–110 %); her wrinkles
-    and her face's shading stay (a foundation doesn't take those away; the studio light, on both before and after,
-    does the photographer's retouching). Wider (0.2 eye widths) it began to flatten the shading by her nose and jaw.
+    and her face's shading stay (a foundation doesn't take those away). With the studio retouch's skin brought in by
+    the foundation (Studio light, above), on the forehead and chin: her fine texture 59–82 % of her bare face's,
+    the blotches of her brightness 75–90 % with لب شرابی (her lines softened, her face's shape kept). Wider (0.2 eye widths) it began to flatten the shading by her nose and jaw.
     `foundation()` in teacher.py does the same (its `cover`: `look_cover`). The fallback networks were trained before
     it, so without WebGL2 a look has no coverage yet.
 - **No strands of the catalog model's hair.** In the catalog photos thin strands of hair fall across the
@@ -754,7 +765,18 @@ holds the numbers on a light and a very deep face):
 - *Her light's colour* comes from her eye whites over the catalog's; light-blue and grey irises
   and their catchlights are cut out of that measurement, and the cast is capped (±8 % per channel
   before softening): eye whites are a rough white, and an over-cool estimate turned peach eyeshadow
-  silver-green.
+  silver-green. Its level is bounded by her skin both ways: no dimmer than the fairest skin allows
+  (`FAIREST`), and since November 2026 no brighter than the deepest skin allows (`DEEPEST`, 12: the
+  catalog model's skin reflects at most 12 times the light the deepest skin does). In a dim, moody
+  photo her eye whites still read bright (catchlights, glossy eyes): over 256 synthetic faces 7 %
+  read past that bound, by 1.3x at the median, nearly all deep skin or a dim room, and a dark
+  lipstick taken to her light from her eyes alone came out bright red on her (لب شرابی on the deep
+  test face 35 % brighter than in its photo; now about as dark). At 8 (12 % of the faces) a very
+  deep skin read paler than it is, and her own blush on it turned a cool, pale veil. Fair skin in a dim photo can't be
+  told from deep skin in a bright one by brightness alone, so there a dark lipstick can still read
+  a little bright. And a product made deeper for deeper skin (`richer`: each channel to one power,
+  a colourant packed on) deepens as grey when it has almost no colour (`RICHER_NEUTRAL`: a silver,
+  a white pearl), not as its faint tint made strong.
 - *Eyeshadow is a powder, not a film.* Blended or sheer, fewer grains lie on her skin, each as its
   pan shows it (optical thickness 6), with her skin between them: coverage sets the share of skin
   covered (1 − e^(−3·coverage)), not the thickness of one layer. As a thin film (the first version)

@@ -1032,27 +1032,27 @@
  },
  "icy": {
   "amount": {
-   "base": 1.114,
+   "base": 1.336,
    "conceal": 1.5,
    "blush": 1.5,
    "glow": 1.5,
-   "brows": 1.38,
-   "shadow": 0.762,
+   "brows": 1.5,
+   "shadow": 0.667,
    "liner": 1.5
   },
   "hex": {
-   "blush": "#ffc1db",
-   "shadow": "#e7e8e9",
-   "shadow2": "#fdf7ff"
+   "blush": "#ffb3c4",
+   "shadow": "#fcfcff",
+   "shadow2": "#fdf5ff"
   },
   "rms": [
-   123.49,
-   81.6,
-   79.71,
-   83.03,
-   80.97,
-   72.76,
-   72.76
+   116.05,
+   74.2,
+   72.41,
+   74.2,
+   72.35,
+   71.49,
+   71.49
   ]
  },
  "lilac-eyes": {

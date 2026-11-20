@@ -1052,6 +1052,7 @@ FINISH = {'matte': (0.95, 0.75, 0.0), 'satin': (0.92, 0.9, 0.15), 'lined': (0.92
           'gloss': (0.7, 1.0, 1.0), 'ombre': (0.9, 0.9, 0.2), 'metallic': (0.92, 0.85, 0.0), 'glitter': (0.9, 0.9, 0.1)}
 MATTE_SHINE = 0.3     # how much of her lips' own highlights shows through a matte lipstick
 FAIREST = 1.15        # fairest skin, relative to the catalog model's (who is fair)
+DEEPEST = 12          # the catalog model's skin reflects at most this many times the light the deepest skin does
 LIGHT_CAST = 1.08     # at most this much more (or less) of one colour in her light than the mean (her eye whites' own tint)
 NUDE_DEEP = (0.25, 0.45)   # a nude shade's brightness over the skin's (in the catalog) below which it is a pigment (a
                            # deep brown, a plum): it no longer follows her skin's depth, by NUDE_DEEP[1] it fully does
@@ -1158,7 +1159,9 @@ def lip_target(L, u_sclera, u_skin, rgb=False):
         # Small, soft or shaded eyes read too dark; her light can't be dimmer than her skin's brightness allows
         # (nobody's skin is much fairer than the catalog model's).
         floor = u_skin / L['skin'] / FAIREST if u_skin and L['skin'] else 0.0
-        g = float(np.clip(max(mean, floor), 0.3, 2.0)) ** 0.85
+        # nor brighter than the deepest skin allows (a dim photo's eye whites still read bright: catchlights, gloss)
+        ceiling = u_skin / L['skin'] * DEEPEST if u_skin and L['skin'] else float('inf')
+        g = float(np.clip(max(min(mean, ceiling), floor), 0.3, 2.0)) ** 0.85
         # (her eye whites are a rough white: their own tint and reflections mustn't turn every product cold or warm)
         light = g * np.clip(e / mean, 1 / LIGHT_CAST, LIGHT_CAST) ** 0.8
     if u_skin and L['skin']:

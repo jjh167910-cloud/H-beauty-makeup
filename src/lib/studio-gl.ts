@@ -251,7 +251,7 @@ void main() {
   }
   // light: contrast about her skin's brightness, a soft shoulder, a soft vignette away from her face
   float y = max(luma(x), 1e-5), yc = uPivot * pow(y / uPivot, 1.0 + uContrast);
-  yc = yc < 0.8 ? yc : 0.8 + 0.2 * tanh((yc - 0.8) / 0.2);
+  if (uContrast > 0.0) yc = yc < 0.8 ? yc : 0.8 + 0.2 * tanh((yc - 0.8) / 0.2);
   float rr = length(xy - uFace.xy) / uFace.z;
   yc *= 1.0 - uVignette * pow(clamp((rr - 0.8) / 1.2, 0.0, 1.0), 1.5) * (1.0 - face);
   x *= yc / y;
@@ -274,7 +274,7 @@ void main() {
   x *= 1.0 + uSharp * feat * (b.a > 0.0 ? (y0 - b.a) / max(y0, 1e-3) : 0.0);
   // her brightest colours kept in colour: no channel clipped (a clipped red turns lit skin flat and pale), her brightness kept
   float yg = luma(x), mx = max(x.r, max(x.g, x.b));
-  if (mx > ${GAMUT_KNEE.toFixed(2)} && mx > yg + 1e-4) {
+  if (uContrast > 0.0 && mx > ${GAMUT_KNEE.toFixed(2)} && mx > yg + 1e-4) {
     float m2 = ${GAMUT_KNEE.toFixed(2)} + ${(1 - GAMUT_KNEE).toFixed(2)} * tanh((mx - ${GAMUT_KNEE.toFixed(2)}) / ${(1 - GAMUT_KNEE).toFixed(2)});
     x = vec3(yg) + (x - vec3(yg)) * max(0.0, (m2 - yg) / max(mx - yg, 1e-4));
   }
@@ -382,7 +382,14 @@ export class Studio {
    * Her photo retouched, at its own size; `P` her face's points in its pixels, `params` from studioParams (measured on
    * this photo, or a recent frame of the live mirror). Returns this.canvas.
    */
-  apply(photo: TexImageSource & { width: number; height: number }, P: Pt[], params: StudioParams): HTMLCanvasElement {
+  /**
+   * `parts`: the studio's light (white balance, colour, contrast, vignette, face light, glow, eye whites, sharpening) and
+   * its skin (blotches, texture, blemishes, under her eyes) times `skin`. The try-on shows her photo in studio light only,
+   * before and after alike; her skin perfected comes with the foundation (tryon.ts skinRetouch: the skin alone).
+   */
+  apply(photo: TexImageSource & { width: number; height: number }, P: Pt[], params: StudioParams,
+    parts: { light?: boolean; skin?: number } = {}): HTMLCanvasElement {
+    const lit = parts.light ?? true, sk = parts.skin ?? 1;
     const gl = this.gl, w = photo.width, h = photo.height, T = this.targets(w, h), ew = eyeW(P);
     if (this.canvas.width !== w || this.canvas.height !== h) { this.canvas.width = w; this.canvas.height = h; }
     gl.viewport(0, 0, w, h);
@@ -457,23 +464,24 @@ export class Studio {
     this.tex(p, "uBlur", T.blur.tex, 2);
     this.tex(p, "uMask2", T.m2blur.tex, 3);
     const u = (n: string) => gl.getUniformLocation(p, n);
-    gl.uniform3f(u("uWb"), ...params.wb);
+    const L = lit ? 1 : 0;
+    gl.uniform3f(u("uWb"), ...(lit ? params.wb : [1, 1, 1] as [number, number, number]));
     gl.uniform3f(u("uTint"), ...params.tint);
-    gl.uniform1f(u("uVs"), params.vs);
+    gl.uniform1f(u("uVs"), params.vs * L);
     gl.uniform1f(u("uCs"), params.cs);
-    gl.uniform1f(u("uUnder"), STUDIO.underEye);
-    gl.uniform1f(u("uUnderTint"), STUDIO.underEyeTint);
-    gl.uniform4f(u("uSpot"), SPOT_STEP * ew, SPOT_RING * ew, SPOT_MID * ew, STUDIO.spots);
-    gl.uniform1f(u("uSat"), STUDIO.sat);
+    gl.uniform1f(u("uUnder"), STUDIO.underEye * sk);
+    gl.uniform1f(u("uUnderTint"), STUDIO.underEyeTint * sk);
+    gl.uniform4f(u("uSpot"), SPOT_STEP * ew, SPOT_RING * ew, SPOT_MID * ew, STUDIO.spots * sk);
+    gl.uniform1f(u("uSat"), STUDIO.sat * L);
     gl.uniform1f(u("uPivot"), params.pivot);
-    gl.uniform1f(u("uSmooth"), STUDIO.smooth);
+    gl.uniform1f(u("uSmooth"), STUDIO.smooth * sk);
     gl.uniform1f(u("uEdge"), STUDIO.edge);
-    gl.uniform1f(u("uPore"), STUDIO.pore);
-    gl.uniform1f(u("uContrast"), STUDIO.contrast);
-    gl.uniform1f(u("uVignette"), STUDIO.vignette);
-    gl.uniform1f(u("uGlow"), STUDIO.glow);
-    gl.uniform1f(u("uEyes"), STUDIO.eyes);
-    gl.uniform1f(u("uSharp"), STUDIO.sharp * (params.sharpK ?? 1));
+    gl.uniform1f(u("uPore"), STUDIO.pore * sk);
+    gl.uniform1f(u("uContrast"), STUDIO.contrast * L);
+    gl.uniform1f(u("uVignette"), STUDIO.vignette * L);
+    gl.uniform1f(u("uGlow"), STUDIO.glow * L);
+    gl.uniform1f(u("uEyes"), STUDIO.eyes * L);
+    gl.uniform1f(u("uSharp"), STUDIO.sharp * (params.sharpK ?? 1) * L);
     let cx = 0, cy = 0;
     for (let i = 0; i < 468; i++) { cx += P[i][0] / 468; cy += P[i][1] / 468; }
     gl.uniform4f(u("uFace"), cx, cy, ew * 5.5, ew * 3);
@@ -481,7 +489,7 @@ export class Studio {
     const ux = P[10][0] - P[152][0], uy = P[10][1] - P[152][1], un = Math.max(1e-6, Math.hypot(ux, uy));
     gl.uniform4f(u("uLight"), lx, ly, ux / un, uy / un);
     gl.uniform2f(u("uLightSize"), ew * 1.5, ew * 2);
-    gl.uniform1f(u("uFaceLight"), STUDIO.faceLight);
+    gl.uniform1f(u("uFaceLight"), STUDIO.faceLight * L);
     const iris = [[468, 469, 470, 471, 472], [473, 474, 475, 476, 477]].map(([c, ...ring]) => [P[c]?.[0] ?? -1e4, P[c]?.[1] ?? -1e4,
       P[c] ? ring.reduce((a, j) => a + Math.hypot(P[j][0] - P[c][0], P[j][1] - P[c][1]), 0) / ring.length : 0, 0]);
     gl.uniform4fv(u("uIris"), new Float32Array(iris.flat()));

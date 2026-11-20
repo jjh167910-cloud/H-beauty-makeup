@@ -306,7 +306,7 @@ test("studio light: her photo lit like a studio portrait, her skin's brightness,
   await expect(page.locator(".tryon__img--after")).toHaveAttribute("src", lit!);  // (made once, shown again)
 });
 
-test("studio light heals blemishes on her skin (a spot, a mark) and keeps a mole, a crease, her nose and folds as they are", async ({ page }) => {
+test("her skin perfected comes with the foundation: blemishes (a spot, a mark) healed, a mole, a crease, her nose and folds kept; studio light alone leaves her skin as it is", async ({ page }) => {
   test.setTimeout(300_000);
   await openTryOn(page, "گلم هالیوودی");
   const r = await page.evaluate(async () => {
@@ -342,7 +342,8 @@ test("studio light heals blemishes on her skin (a spot, a mark) and keeps a mole
     g.putImageData(d, 0, 0);
     const prep = await m.preparePhoto(await blob());
     const read = (cv: HTMLCanvasElement) => cv.getContext("2d")!.getImageData(0, 0, cv.width, cv.height).data;
-    const before = read(prep.plain.photo), after = read(prep.studio!.plain.photo);
+    const before = read(prep.plain.photo), after = read(m.skinRetouch(prep.plain.photo, prep.plain.points)!);
+    const lit = read(prep.studio!.plain.photo), painted = read(await m.paintLook(prep.plain, "hollywood"));
     const lin = (v: number) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
     const Y = (px: Uint8ClampedArray, i: number) => 0.2126 * lin(px[i] / 255) + 0.7152 * lin(px[i + 1] / 255) + 0.0722 * lin(px[i + 2] / 255);
     // how much darker a mark is than the skin around it (log light): before, after
@@ -359,8 +360,14 @@ test("studio light heals blemishes on her skin (a spot, a mark) and keeps a mole
     // her nose's side and her nostril's crease (folds, not blemishes): their shading before and after
     const fold = [129, 358].map((i) => { const k = { x: P[i][0], y: P[i][1], r: 0.04 * ew }; return [depth(before, k), depth(after, k)]; });
     const crease = creases.map((k) => [depth(before, k, 1, [3, 4]), depth(after, k, 1, [3, 4])]);
-    return { spots, mole, fold, crease, shade: [depth(before, shade), depth(after, shade)] };
+    // (studio light alone: her blemishes as they were; the look: its foundation brings her skin perfected)
+    const inLight = marks.filter((k) => !k.mole).map((k) => [depth(before, k), depth(lit, k)]);
+    const inLook = marks.filter((k) => !k.mole).map((k) => [depth(before, k), depth(painted, k)]);
+    return { spots, mole, fold, crease, shade: [depth(before, shade), depth(after, shade)], inLight, inLook };
   });
+  const sum = (xs: number[][], j: number) => xs.reduce((s, x) => s + x[j], 0);
+  expect(sum(r.inLight, 1)).toBeGreaterThan(sum(r.inLight, 0) * 0.8);
+  expect(sum(r.inLook, 1), JSON.stringify(r.inLook)).toBeLessThan(sum(r.inLook, 0) * 0.55);
   const healed = r.spots.filter(([b, a]) => a < b * 0.5).length;
   expect(healed).toBeGreaterThanOrEqual(6);                                  // most blemishes at least halved
   expect(r.spots.reduce((s, [b, a]) => s + a, 0)).toBeLessThan(r.spots.reduce((s, [b]) => s + b, 0) * 0.45);
@@ -884,7 +891,7 @@ test("her own makeup reads on every skin tone: eyeshadow and blush show at 100 %
   for (const face of Object.values(r)) {
     expect(face.shadow.p95).toBeGreaterThan(8);                 // an artist's eyeshadow shows
     expect(face.blush.p95).toBeGreaterThan(6);                  // a blush shows,
-    expect(face.blush.da).toBeGreaterThan(3);                   // as a flush
+    expect(face.blush.da, JSON.stringify(r)).toBeGreaterThan(3);  // as a flush
     expect(face.contour.dL).toBeLessThan(-3.5);                 // a contour shades her,
     expect(Math.abs(face.contour.da)).toBeLessThan(3);          // hardly tints her
     expect(Math.abs(face.contour.db)).toBeLessThan(3);

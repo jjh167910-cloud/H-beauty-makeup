@@ -905,8 +905,15 @@ function richer(color: number[], k: number): number[] {
   const c = color.map((v) => Math.min(1, Math.max(1e-4, v))), half = Math.sqrt(k), want = lum(c) * half;
   let lo = 1, hi = 12;
   for (let i = 0; i < 24; i++) { const g = (lo + hi) / 2; if (lum(c.map((v) => v ** g)) > want) lo = g; else hi = g; }
-  return c.map((v) => v ** ((lo + hi) / 2) * half);
+  const rich = c.map((v) => v ** ((lo + hi) / 2) * half);
+  // (a near-neutral shade, a silver or a white pearl, has no colourant to deepen: the power only spread its faint tint,
+  // and an icy silver came out periwinkle; it deepens in its own colour, as grey would)
+  const mx = Math.max(...c), sat = (mx - Math.min(...c)) / mx, t = Math.min(1, Math.max(0, (sat - RICHER_NEUTRAL[0]) / (RICHER_NEUTRAL[1] - RICHER_NEUTRAL[0])));
+  const w = t * t * (3 - 2 * t), flat = lum(rich) / lum(c);
+  return c.map((v, i) => v * flat * (1 - w) + rich[i] * w);
 }
+/** A shade with less colour than RICHER_NEUTRAL[0] ((max - min) / max, linear) deepens as grey; by [1] as its colourant. */
+const RICHER_NEUTRAL = [0.06, 0.25];
 /** Brows in her own colour: her brow hairs' (measureFace) over her light, this much deeper (a brow product's fill). */
 const BROW_OWN_DEEP = 0.85;
 /** A brow product in her own brows' colour under her light `white` (linear reflectance); null: her brows weren't measured. */
@@ -1005,8 +1012,11 @@ async function renderMine(r: MakeupGL, source: HTMLCanvasElement, points: Pt[], 
   const all = await meta();
   const ready = await mineProducts(picks, face, all);
   const files = await loadLook(ready.look);
-  r.render(source, source.width, source.height, points, files, face, level, all.tris,
-    lipChoice(ready.lipInfo ?? files.lip, lip ?? ready.lip, all.swatch), all.canon, steps, ready.products, vis, lips);
+  r.skin = skinRetouch(source, points);
+  try {
+    r.render(source, source.width, source.height, points, files, face, level, all.tris,
+      lipChoice(ready.lipInfo ?? files.lip, lip ?? ready.lip, all.swatch), all.canon, steps, ready.products, vis, lips);
+  } finally { r.skin = null; }
   return r.canvas;
 }
 
@@ -1113,7 +1123,10 @@ async function paintGpuNow(source: HTMLCanvasElement, points: Pt[], look: string
   if (v2) return renderMine(r, source, points, stats, v2, level, lip ?? null, steps, vis, lips);
   const [files, all] = await Promise.all([loadLook(look), meta()]);
   const products = await resolveProducts(look, picks, stats, all, !lip);
-  r.render(source, source.width, source.height, points, files, stats, level, all.tris, lipChoice(files.lip, lip, all.swatch), all.canon, steps, products, vis, lips);
+  r.skin = skinRetouch(source, points);
+  try {
+    r.render(source, source.width, source.height, points, files, stats, level, all.tris, lipChoice(files.lip, lip, all.swatch), all.canon, steps, products, vis, lips);
+  } finally { r.skin = null; }
   return r.canvas;
 }
 
@@ -1515,7 +1528,8 @@ export function studioShot(shot: Shot, crisp = false): Shot | null {
   const s = studio();
   if (!s) return null;
   try {
-    const out = s.apply(shot.photo, shot.points, { ...studioParams(shot.photo, shot.points), ...(crisp ? { sharpK: STUDIO_CRISP } : {}) });
+    // (the studio's light only: her skin perfected comes with the foundation, skinRetouch)
+    const out = s.apply(shot.photo, shot.points, { ...studioParams(shot.photo, shot.points), ...(crisp ? { sharpK: STUDIO_CRISP } : {}) }, { skin: 0 });
     const photo = canvas(out.width, out.height);
     ctx2d(photo).drawImage(out, 0, 0);
     return { photo, points: shot.points, align: shot.align, input: shot.input, face: studioFace(shot, photo), ...(shot.lips === null ? { lips: null } : {}) };
@@ -1523,6 +1537,32 @@ export function studioShot(shot: Shot, crisp = false): Shot | null {
     console.warn("studio retouch failed", error);
     return null;
   }
+}
+
+/** Each still photo's skin perfected (skinRetouch), for the points it was made with. */
+const retouched = new WeakMap<HTMLCanvasElement, { points: Pt[]; skin: HTMLCanvasElement | null }>();
+
+/**
+ * Her photo with only her skin perfected (the studio retouch's skin, none of its light: faint blotches softened, pores a
+ * little, blemishes healed, the shadow under her eyes lifted), for the foundation to bring in by its coverage
+ * (makeup-gl.ts RETOUCH_FULL); null where the phone can't. Made once per photo and points.
+ */
+export function skinRetouch(photo: HTMLCanvasElement, points: Pt[]): HTMLCanvasElement | null {
+  const had = retouched.get(photo);
+  if (had && had.points === points) return had.skin;
+  const s = studio();
+  let skin: HTMLCanvasElement | null = null;
+  if (s) {
+    try {
+      const out = s.apply(photo, points, studioParams(photo, points), { light: false, skin: 1 });
+      skin = canvas(out.width, out.height);
+      ctx2d(skin).drawImage(out, 0, 0);
+    } catch (error) {
+      console.warn("skin retouch failed", error);
+    }
+  }
+  retouched.set(photo, { points, skin });
+  return skin;
 }
 
 function shotOf(photo: HTMLCanvasElement, points: Pt[] | undefined): Shot | null {

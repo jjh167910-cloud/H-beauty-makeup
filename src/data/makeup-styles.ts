@@ -150,7 +150,7 @@ export const MAKEUP_STYLES: MakeupStyle[] = [
   style("wine-lips", "لب شرابی",
     { skin: "matte", shadow: "wash", lid: ["#b08568", "#7d5442"], liner: "thin", lashes: "volume", brow: "natural", blush: "high", blushColor: "#b9786c", lip: "matte", lipColor: "#660811" }, { gpuOnly: true }),
   style("icy", "میکاپ یخی",
-    { skin: "dewy", shadow: "wash", lid: ["#dcdde8", "#b4aed2"], liner: "thin", lashes: "natural", brow: "natural", blush: "nose", blushColor: "#eba3b8", lip: "gloss", lipColor: "#e18590", accents: ["shimmer"] }, { gpuOnly: true }),
+    { skin: "dewy", shadow: "wash", lid: ["#dcd9e0", "#c6bcc8"], liner: "thin", lashes: "natural", brow: "natural", blush: "nose", blushColor: "#e8909f", lip: "gloss", lipColor: "#e18590", accents: ["shimmer"] }, { gpuOnly: true }),
   style("lilac-eyes", "سایه یاسی",
     { skin: "glow", shadow: "crease", lid: ["#c3a6de", "#6e4392"], liner: "thin", lashes: "volume", brow: "natural", blush: "apples", blushColor: "#e3a0b2", lip: "gloss", lipColor: "#c5607a" }, { gpuOnly: true }),
   style("grunge-smokey", "اسموکی گرانج",
