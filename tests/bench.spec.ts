@@ -29,6 +29,21 @@ test("the artist scores a look by both engines, blind, on her own photo; the gat
   await expect(b).toBeVisible();
   // (two different pictures: the old engine's and the new one's)
   expect(await a.getAttribute("src")).not.toEqual(await b.getAttribute("src"));
+  // what she judges against: the guide's question, the look on the catalog model and its products, her photo untouched
+  await expect(page.getByText(/سؤال اصلی برای هر تصویر/)).toBeVisible();
+  await expect(page.getByRole("img", { name: /^مرجع:/ })).toBeVisible();
+  await expect(page.getByRole("region", { name: "این میکاپ قرار است چه باشد" }).getByRole("listitem").first()).toBeVisible();
+  await expect(page.getByRole("img", { name: /، بدون میکاپ$/ })).toBeVisible();
+  // the viewer flicks between them at full size
+  await page.getByRole("button", { name: "تصویر الف، بزرگ‌نمایی" }).click();
+  const viewer = page.getByRole("dialog", { name: "بزرگ‌نمایی" });
+  await expect(viewer.getByRole("img")).toHaveAttribute("alt", /^الف،/);
+  await viewer.getByRole("button", { name: "بدون میکاپ" }).click();
+  await expect(viewer.getByRole("img")).toHaveAttribute("alt", /^بدون میکاپ،/);
+  await viewer.getByRole("button", { name: "مرجع" }).click();
+  await expect(viewer.getByRole("img")).toHaveAttribute("src", /\/makeup\/looks\/[a-z-]+\.webp$/);
+  await viewer.getByRole("button", { name: "بستن" }).click();
+  await expect(viewer).toBeHidden();
   const save = page.getByRole("button", { name: /ذخیره و میکاپ بعدی|به هر خط/ });
   await expect(save).toBeDisabled();
   for (const line of ["جای‌گذاری", "رنگ واقعی", "لبه‌ها", "بافت پوست", "چشم‌ها", "به مشتری نشانش می‌دهم"]) {

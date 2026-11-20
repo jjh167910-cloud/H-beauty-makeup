@@ -875,10 +875,15 @@ nothing changes.
   has), as are its liner (polygons from her lash lines) and lashes (strands).
 - **The artist's bench** (`/bench`, `src/components/artist-bench.tsx`, `src/lib/bench.ts`; the
   salon's passcode): the Phase 2 gate. She adds her benchmark photos (they stay on her phone: only
-  the first 16 hex digits of each one's SHA-256 go with its scores), picks a look and sees it by
-  both engines, «الف» and «ب» in an order of their own per look and photo (she can't tell which is
-  new), each at full size with a tap, and scores each 1 to 5 on the rubric's lines (placement, colour
-  truth, edges, skin texture, "would I show this to a client") and her eyes on their own; the
+  the first 16 hex digits of each one's SHA-256 go with its scores), picks a look and sees what it
+  should be (its catalog photo, «مرجع», and its products, colours and places from its recipe), her
+  photo untouched («بدون میکاپ»), and the look by both engines, «الف» and «ب» in an order of their
+  own per look and photo (she can't tell which is new); a full-size viewer flicks between the four
+  at the same spot. The question she answers is "if I did this look with real products on this
+  face, would the photo look like this?": not a before/after, and not a likeness contest with the
+  catalog model. Each of the rubric's lines (placement, colour truth, edges, skin texture, her eyes,
+  "would I show this to a client") is asked as a question, with what to compare against and what a
+  1 and a 5 mean, and she scores «الف» and «ب» on it side by side, 1 to 5; the
   scores are kept by the salon's server (`/api/salon/bench`, worker/chat.ts). «نتیجه» shows the
   gate: on the pictures scored both ways, the new engine at least as good on every line and 1.0
   better on eyes, and every catalog look 4 or more; and a summary to send. The salon's inbox links it.

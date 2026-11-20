@@ -1,13 +1,17 @@
 /**
  * The artist's bench (/bench): the roadmap's Phase 2 gate (src/lib/bench.ts). Signed in with the salon's passcode, the
- * artist adds her benchmark photos (they stay on this phone: only a hash of each goes with its scores), picks a look,
- * and sees it painted by the old engine and the new one, «الف» and «ب» in an order she can't tell apart, each at full
- * size with a tap; she scores each on the rubric's lines, 1 to 5. «نتیجه» shows the gate: every line, her eyes, every
- * look; and a summary she can send.
+ * artist adds her benchmark photos (they stay on this phone: only a hash of each goes with its scores) and picks a look.
+ * She sees what the look should be (its catalog photo, «مرجع», and its products), her photo untouched («بدون میکاپ»),
+ * and the look painted by the old engine and the new one, «الف» and «ب» in an order she can't tell apart; a viewer
+ * flicks between all four at full size. She answers each of the rubric's questions for both pictures, 1 to 5.
+ * «نتیجه» shows the gate: every line, her eyes, every look; and a summary she can send.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui";
+import { lookRecipe } from "@/data/look-recipes";
+import { lookPhoto } from "@/data/makeup-photos";
 import { MAKEUP_STYLES, styleById } from "@/data/makeup-styles";
+import { mySteps } from "@/data/my-makeup";
 import { BENCH_LINES, GATE, benchGate, newIsFirst, photoId, type BenchLine } from "@/lib/bench";
 import { ChatError, benchClear, benchSave, benchScores, salonLogin, salonSignedIn, type BenchCard } from "@/lib/chat";
 import type { Shot } from "@/lib/tryon";
@@ -16,10 +20,12 @@ const persian = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "۰۱
 const fixed = (v: number | null) => (v == null ? "—" : persian(v.toFixed(2)));
 const CATALOG = MAKEUP_STYLES.map((s) => s.id);
 const ENGINE_KEY = "hb-engine";
+const SIDE = ["الف", "ب"] as const;
 
-type Photo = { id: string; name: string; thumb: string; shot: Shot | null; problem?: string };
+type Photo = { id: string; name: string; thumb: string; shot: Shot | null; bare?: string; problem?: string };
 type Scores = Partial<Record<BenchLine, number>>;
 type Side = { engine: "v1" | "v2"; url: string; scores: Scores; note: string };
+type View = { id: "ref" | "bare" | "a" | "b"; label: string; url: string };
 
 export default function ArtistBench() {
   const [signedIn, setSignedIn] = useState(salonSignedIn);
@@ -52,6 +58,87 @@ function Login({ onIn }: { onIn: () => void }) {
   );
 }
 
+/** What she judges, and against what: shown open until her first scores, then folded away. */
+function Guide({ open }: { open: boolean }) {
+  return (
+    <details className="bench__guide" open={open}>
+      <summary>راهنما: چه چیزی را می‌سنجید؟</summary>
+      <p className="bench__question">
+        سؤال اصلی برای هر تصویر: <b>«اگر همین میکاپ را با محصولات واقعی روی همین صورت اجرا می‌کردم، عکسش همین می‌شد؟»</b>
+      </p>
+      <dl className="bench__terms">
+        <dt>مرجع</dt>
+        <dd>همین میکاپ روی مدل کاتالوگ. نشان می‌دهد میکاپ قرار است چه باشد: کدام محصول، کجای صورت، چه رنگی. صورت و پوست مدل فرق دارد، پس لازم نیست تصویر عین مرجع باشد.</dd>
+        <dt>بدون میکاپ</dt>
+        <dd>همان عکس شما، دست‌نخورده. برای دیدن اینکه پوست، چشم و فرم صورت خود او مانده یا نه.</dd>
+        <dt>الف و ب</dt>
+        <dd>
+          دو نسخه از همین میکاپ روی همین عکس: یکی نسخه‌ی فعلی اپ، یکی نسخه‌ی جدید. ترتیبشان عمداً معلوم نیست.
+          هر کدام را جدا نمره بدهید؛ ممکن است هر دو خوب یا هر دو بد باشند.
+        </dd>
+      </dl>
+      <ol className="bench__steps">
+        <li>یک عکس رو به دوربین، در نور خوب و بدون میکاپ اضافه کنید (از خودتان، یا از مشتری با اجازه‌ی او). عکس روی همین گوشی می‌ماند.</li>
+        <li>یک میکاپ را انتخاب کنید و ببینید قرار است چه باشد.</li>
+        <li>روی هر تصویر بزنید تا بزرگ شود؛ بین مرجع، بدون میکاپ، الف و ب جابه‌جا شوید.</li>
+        <li>به هر سؤال، برای الف و برای ب، نمره‌ای از ۱ تا ۵ بدهید.</li>
+        <li>«ذخیره» را بزنید تا میکاپ بعدی بیاید. هر وقت خسته شدید بس کنید؛ نمره‌ها می‌مانند.</li>
+      </ol>
+      <p className="salon__hint">فقط نمره‌ها (و یک شناسه‌ی بی‌نام از هر عکس) در سالن ذخیره می‌شود. عکس هرگز فرستاده نمی‌شود.</p>
+    </details>
+  );
+}
+
+/** The look as it should be: its catalog photo and its products, colours and places. */
+function Target({ look, onRef }: { look: string; onRef: () => void }) {
+  const title = styleById.get(look)?.title ?? look;
+  const steps = useMemo(() => { const r = lookRecipe(look); return r ? mySteps(r) : []; }, [look]);
+  return (
+    <section className="bench__target" aria-label="این میکاپ قرار است چه باشد">
+      <button type="button" className="bench__ref" onClick={onRef} aria-label="مرجع، بزرگ‌نمایی">
+        <img src={lookPhoto(look, "sm")} alt={`مرجع: «${title}» روی مدل کاتالوگ`} />
+        <span>مرجع</span>
+      </button>
+      <div>
+        <h2>«{title}» قرار است این باشد:</h2>
+        <ul className="bench__recipe">
+          {steps.filter((s) => !s.guideOnly).map((s) => (
+            <li key={s.key}>
+              <b>{s.title}</b>
+              {s.colors.map((c) => <i key={c} className="bench__swatch" style={{ background: c }} aria-hidden="true" />)}
+              <span>{s.product.slice(s.title.length).trim() || "—"}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+/** Full size, one picture at a time, the same place kept as she flicks between them (her photo and «الف» and «ب» are one size). */
+function Viewer({ views, start, onClose }: { views: View[]; start: View["id"]; onClose: () => void }) {
+  const [at, setAt] = useState(start);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = box.current;
+    if (el) requestAnimationFrame(() => { el.scrollLeft = -(el.scrollWidth - el.clientWidth) / 2; el.scrollTop = (el.scrollHeight - el.clientHeight) * 0.35; });
+  }, []);
+  const view = views.find((v) => v.id === at) ?? views[0];
+  return (
+    <div className="bench__zoom" role="dialog" aria-modal="true" aria-label="بزرگ‌نمایی">
+      <div className="bench__zoombar">
+        <div className="bench__views">
+          {views.map((v) => <button key={v.id} type="button" className="chip" aria-pressed={v.id === at} onClick={() => setAt(v.id)}>{v.label}</button>)}
+        </div>
+        <Button variant="secondary" icon="close" onClick={onClose}>بستن</Button>
+      </div>
+      <div className="bench__zoomed" ref={box}>
+        <img src={view.url} alt={`${view.label}، اندازه‌ی واقعی`} />
+      </div>
+    </div>
+  );
+}
+
 function Bench({ onOut }: { onOut: () => void }) {
   const [tab, setTab] = useState<"score" | "result">("score");
   const [cards, setCards] = useState<BenchCard[]>([]);
@@ -62,7 +149,7 @@ function Bench({ onOut }: { onOut: () => void }) {
   const [sides, setSides] = useState<[Side, Side] | null>(null);
   const [painting, setPainting] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [zoom, setZoom] = useState<string | null>(null);
+  const [zoom, setZoom] = useState<View["id"] | null>(null);
   const files = useRef<HTMLInputElement>(null);
 
   const fail = (error: unknown) => {
@@ -74,6 +161,7 @@ function Bench({ onOut }: { onOut: () => void }) {
   const current = photos.find((p) => p.id === photo) ?? null;
   const done = useMemo(() => new Set(cards.filter((c) => c.photo === photo).map((c) => `${c.look}|${c.engine}`)), [cards, photo]);
   const scored = (id: string) => done.has(`${id}|v1`) && done.has(`${id}|v2`);
+  const title = styleById.get(look)?.title ?? look;
 
   // (her benchmark photos: prepared here, on this phone; only their hash is ever sent)
   async function add(list: File[]) {
@@ -86,7 +174,8 @@ function Bench({ onOut }: { onOut: () => void }) {
       setPhotos((was) => [...was, entry]);
       try {
         const prep = await m.preparePhoto(file);
-        setPhotos((was) => was.map((p) => (p.id === id ? { ...p, shot: prep.plain } : p)));
+        const bare = prep.plain.photo.toDataURL("image/jpeg", 0.93);
+        setPhotos((was) => was.map((p) => (p.id === id ? { ...p, shot: prep.plain, bare } : p)));
         setPhoto((was) => was ?? id);
       } catch {
         setPhotos((was) => was.map((p) => (p.id === id ? { ...p, problem: "چهره پیدا نشد" } : p)));
@@ -126,6 +215,8 @@ function Bench({ onOut }: { onOut: () => void }) {
 
   const complete = sides?.every((s) => BENCH_LINES.every((l) => s.scores[l.id]));
   const missing = sides ? sides.reduce((n, s) => n + BENCH_LINES.filter((l) => !s.scores[l.id]).length, 0) : 0;
+  const setSide = (i: number, change: Partial<Side>) =>
+    setSides((was) => was && (was.map((x, j) => (j === i ? { ...x, ...change } : x)) as [Side, Side]));
   async function save() {
     if (!sides || !current || !complete) return;
     setSaving(true); setProblem(null);
@@ -136,9 +227,16 @@ function Bench({ onOut }: { onOut: () => void }) {
       // (on to the next look she hasn't scored on this photo)
       const left = CATALOG.filter((id) => !next.some((c) => c.photo === current.id && c.look === id && c.engine === "v2"));
       if (left.length) setLook(left.find((id) => CATALOG.indexOf(id) > CATALOG.indexOf(look)) ?? left[0]);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) { fail(error); }
     setSaving(false);
   }
+
+  const views: View[] = [
+    { id: "ref", label: "مرجع", url: lookPhoto(look) },
+    ...(current?.bare ? [{ id: "bare", label: "بدون میکاپ", url: current.bare } as View] : []),
+    ...(sides ? sides.map((s, i) => ({ id: i === 0 ? "a" : "b", label: SIDE[i], url: s.url }) as View) : []),
+  ];
 
   const gate = useMemo(() => benchGate(cards, CATALOG), [cards]);
   const summary = () => [
@@ -167,6 +265,7 @@ function Bench({ onOut }: { onOut: () => void }) {
         {problem ? <p className="salon__problem" role="alert">{problem}</p> : null}
         {tab === "score" ? (
           <>
+            <Guide open={cards.length === 0} />
             <section className="bench__photos" aria-label="عکس‌های محک">
               {photos.map((p) => (
                 <button key={p.id} type="button" className="bench__photo" aria-pressed={p.id === photo} disabled={!p.shot} onClick={() => setPhoto(p.id)}>
@@ -177,14 +276,6 @@ function Bench({ onOut }: { onOut: () => void }) {
               <Button variant="secondary" icon="plus" onClick={() => files.current?.click()}>افزودن عکس</Button>
               <input ref={files} type="file" accept="image/*" multiple hidden onChange={(e) => { void add([...(e.target.files ?? [])]); e.target.value = ""; }} />
             </section>
-            <ol className="bench__steps">
-              <li>یک عکس از چهره‌ی خودتان یا یک مشتری (با اجازه‌ی او) اضافه کنید. عکس روی همین گوشی می‌ماند.</li>
-              <li>یک میکاپ را انتخاب کنید.</li>
-              <li>دو تصویر «الف» و «ب» را ببینید. یکی نسخه‌ی قبلی است و یکی نسخه‌ی جدید؛ معلوم نیست کدام.</li>
-              <li>برای هر خط، به هر تصویر یک نمره بدهید: ۱ خیلی بد، ۳ قابل قبول، ۵ عالی.</li>
-              <li>«ذخیره» را بزنید تا میکاپ بعدی بیاید.</li>
-            </ol>
-            <p className="salon__hint">فقط امتیازها (و یک شناسه‌ی بی‌نام از هر عکس) در سالن ذخیره می‌شود. عکس هرگز فرستاده نمی‌شود.</p>
             {current ? (
               <>
                 <div className="bench__looks" role="listbox" aria-label="میکاپ‌ها">
@@ -197,43 +288,66 @@ function Bench({ onOut }: { onOut: () => void }) {
                 <p className="bench__count" role="status">
                   {persian(CATALOG.filter(scored).length)} از {persian(CATALOG.length)} میکاپ روی {current.name} امتیاز گرفته است.
                 </p>
-                {painting || !sides ? <p className="salon__empty" role="status">در حال کشیدن «{styleById.get(look)?.title}»…</p> : (
-                  <div className="bench__pair">
-                    {sides.map((s, i) => (
-                      <figure key={s.engine} className="bench__side">
-                        <figcaption>تصویر {i === 0 ? "الف" : "ب"}</figcaption>
-                        <button type="button" className="bench__shot" onClick={() => setZoom(s.url)} aria-label={`تصویر ${i === 0 ? "الف" : "ب"}، بزرگ‌نمایی`}>
-                          <img src={s.url} alt={`«${styleById.get(look)?.title}»، تصویر ${i === 0 ? "الف" : "ب"}`} />
-                        </button>
-                        <p className="bench__scale" aria-hidden="true">۱ خیلی بد · ۳ قابل قبول · ۵ عالی</p>
-                        {BENCH_LINES.map((l) => (
-                          <fieldset key={l.id} className="bench__line">
-                            <legend>{l.name}</legend>
-                            <p className="bench__hint">{l.hint}</p>
-                            {[1, 2, 3, 4, 5].map((v) => (
-                              <button key={v} type="button" className="bench__score" aria-pressed={s.scores[l.id] === v}
-                                aria-label={`${l.name}، تصویر ${i === 0 ? "الف" : "ب"}: ${v}`}
-                                onClick={() => setSides((was) => was && (was.map((x, j) => (j === i ? { ...x, scores: { ...x.scores, [l.id]: v } } : x)) as [Side, Side]))}>
-                                {persian(v)}
-                              </button>
+                <Target look={look} onRef={() => setZoom("ref")} />
+                {painting || !sides ? <p className="salon__empty" role="status">در حال کشیدن «{title}»…</p> : (
+                  <>
+                    <div className="bench__pair">
+                      {current.bare ? (
+                        <figure className="bench__side bench__side--bare">
+                          <figcaption>بدون میکاپ</figcaption>
+                          <button type="button" className="bench__shot" onClick={() => setZoom("bare")} aria-label="بدون میکاپ، بزرگ‌نمایی">
+                            <img src={current.bare} alt={`${current.name}، بدون میکاپ`} />
+                          </button>
+                        </figure>
+                      ) : null}
+                      {sides.map((s, i) => (
+                        <figure key={s.engine} className="bench__side">
+                          <figcaption>تصویر {SIDE[i]}</figcaption>
+                          <button type="button" className="bench__shot" onClick={() => setZoom(i === 0 ? "a" : "b")} aria-label={`تصویر ${SIDE[i]}، بزرگ‌نمایی`}>
+                            <img src={s.url} alt={`«${title}»، تصویر ${SIDE[i]}`} />
+                          </button>
+                        </figure>
+                      ))}
+                    </div>
+                    <p className="bench__tip">روی هر تصویر بزنید تا بزرگ شود. آنجا با دکمه‌های بالا بین مرجع، بدون میکاپ، الف و ب جابه‌جا شوید تا فرقشان را ببینید.</p>
+                    <ol className="bench__lines">
+                      {BENCH_LINES.map((l, n) => (
+                        <li key={l.id}>
+                          <fieldset className="bench__line">
+                            <legend><span>{persian(n + 1)}.</span> {l.name}</legend>
+                            <p className="bench__ask">{l.ask}</p>
+                            <p className="bench__against">{l.against}</p>
+                            {sides.map((s, i) => (
+                              <div key={s.engine} className="bench__row">
+                                <span>{SIDE[i]}</span>
+                                {[1, 2, 3, 4, 5].map((v) => (
+                                  <button key={v} type="button" className="bench__score" aria-pressed={s.scores[l.id] === v}
+                                    aria-label={`${l.name}، تصویر ${SIDE[i]}: ${v}`}
+                                    onClick={() => setSide(i, { scores: { ...s.scores, [l.id]: v } })}>
+                                    {persian(v)}
+                                  </button>
+                                ))}
+                              </div>
                             ))}
+                            <p className="bench__anchors"><span><b>۱</b> {l.low}</span><span><b>۵</b> {l.high}</span></p>
                           </fieldset>
-                        ))}
-                        <label className="bench__note"><span>یادداشت (اختیاری)</span>
-                          <input value={s.note} maxLength={300} onChange={(e) => {
-                            const note = e.target.value;
-                            setSides((was) => was && (was.map((x, j) => (j === i ? { ...x, note } : x)) as [Side, Side]));
-                          }} />
+                        </li>
+                      ))}
+                    </ol>
+                    <div className="bench__notes">
+                      {sides.map((s, i) => (
+                        <label key={s.engine} className="bench__note"><span>یادداشت برای {SIDE[i]} (اختیاری): چه چیزی درست نبود؟</span>
+                          <input value={s.note} maxLength={300} onChange={(e) => setSide(i, { note: e.target.value })} />
                         </label>
-                      </figure>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  </>
                 )}
                 <Button variant="gold" block disabled={!complete || saving} onClick={() => void save()}>
                   {saving ? "در حال ذخیره…" : complete ? "ذخیره و میکاپ بعدی" : `به هر خط هر دو تصویر امتیاز دهید (${persian(missing)} نمره مانده)`}
                 </Button>
               </>
-            ) : <p className="salon__empty">اول یک یا چند عکس محک اضافه کنید.</p>}
+            ) : <p className="salon__empty">اول یک عکس اضافه کنید.</p>}
           </>
         ) : (
           <section className="bench__result" aria-label="نتیجه">
@@ -273,14 +387,7 @@ function Bench({ onOut }: { onOut: () => void }) {
           </section>
         )}
       </div>
-      {zoom ? (
-        <div className="bench__zoom" role="dialog" aria-modal="true" aria-label="بزرگ‌نمایی">
-          <Button variant="secondary" icon="close" className="bench__close" onClick={() => setZoom(null)}>بستن</Button>
-          <div className="bench__zoomed" ref={(el) => { if (el) requestAnimationFrame(() => { el.scrollLeft = -(el.scrollWidth - el.clientWidth) / 2; el.scrollTop = (el.scrollHeight - el.clientHeight) * 0.35; }); }}>
-            <img src={zoom} alt="بزرگ‌نمایی، اندازه‌ی واقعی" />
-          </div>
-        </div>
-      ) : null}
+      {zoom ? <Viewer views={views} start={zoom} onClose={() => setZoom(null)} /> : null}
     </>
   );
 }
