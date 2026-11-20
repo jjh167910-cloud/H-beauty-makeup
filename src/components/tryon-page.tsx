@@ -34,7 +34,12 @@ type Booking = { title: string; lines: string[] };
 
 export function TryOnPage() {
   useSystemTheme();
-  const [style] = useState(() => styleById.get(new URLSearchParams(location.search).get("look") ?? "") ?? styleById.get("hollywood") ?? MAKEUP_STYLES[0]);
+  const [style] = useState(() => {
+    const asked = styleById.get(new URLSearchParams(location.search).get("look") ?? "");
+    // (a look without a fallback network needs the graphics engine: WebGL2)
+    const can = asked && (!asked.gpuOnly || (() => { try { return !!document.createElement("canvas").getContext("webgl2"); } catch { return false; } })());
+    return (can ? asked : undefined) ?? styleById.get("hollywood") ?? MAKEUP_STYLES[0];
+  });
   const [booking, setBooking] = useState<Booking | null>(null);
   const [copied, setCopied] = useState(false);
   /** Her chat with the salon: open (with this draft), and the salon's replies she hasn't seen. */

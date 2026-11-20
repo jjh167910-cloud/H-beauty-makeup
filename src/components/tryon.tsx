@@ -559,8 +559,9 @@ export default function TryOnView({ style, onBook }: {
   const finish = lip.finish ?? shade?.finish ?? lookFinish;
   const finishName = FINISHES.find(([key]) => key === finish)?.[1];
   const lipLabel = shade ? `${shade.name}${finishName ? ` · ${finishName}` : ""}` : `رژ همین سبک${lip.finish && finishName ? ` · ${finishName}` : ""}`;
-  /** The look rail: her look first, then the looks most unlike those before (variedLooks). */
-  const others = useMemo(() => variedLooks(style), [style]);
+  /** The look rail: her look first, then the looks most unlike those before (variedLooks); without the graphics engine,
+   * only the looks that have a fallback network. */
+  const others = useMemo(() => variedLooks(style).filter((item) => kind === "gpu" || !item.gpuOnly), [style, kind]);
   const intro = phase === "check" || phase === "get" || phase === "download" || phase === "pick" || (phase === "error" && !before.p);
   const busy = phase === "paint" || phase === "face" || phase === "sharp" || phase === "look-download";
   /** Her own makeup needs the phone's graphics engine and a photo. */

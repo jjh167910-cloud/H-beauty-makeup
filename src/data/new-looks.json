@@ -1,54 +1,5 @@
 {
-  "about": "Looks waiting for their catalog photo (autumn/winter 2026 trends; names checked against Persian beauty sites, Nov 2026). scripts/gpu/new_looks.py draws each onto public/makeup/looks/no-makeup.webp with FLUX 3 Image Klein; the chosen picture becomes public/makeup/looks/<id>.webp, the look moves into makeup-styles.ts (group «ترند فصل») and goes through teacher.py, products.py and the fit like any look.",
+  "about": "Looks waiting for their catalog photo, each a FaceLook and its written makeup. scripts/gpu/new_looks.py draws each onto public/makeup/looks/no-makeup.webp with FLUX 3 Image Klein (or paste FRAME there with its makeup into ChatGPT's image editing, with that photo); the chosen picture becomes public/makeup/looks/<id>.webp, the look moves into makeup-styles.ts, and scripts/tinybeauty/add_looks.py makes its files. The season's six trend looks (Nov 2026) went this way: none waits now.",
   "group": "ترند فصل",
-  "looks": [
-    {
-      "id": "wine-lips",
-      "title": "لب شرابی",
-      "en": "Oxblood lips (autumn/winter 2026 shows: Saint Laurent, Elie Saab, Carven)",
-      "look": { "skin": "matte", "shadow": "wash", "lid": ["#b08568", "#7d5442"], "liner": "thin", "lashes": "volume", "brow": "natural",
-        "blush": "high", "blushColor": "#b9786c", "lip": "matte", "lipColor": "#5a1822" },
-      "makeup": "Lips: deep oxblood lipstick, a dark burgundy-brown red, velvet matte, crisply lined and fully filled. Eyes: a soft wash of warm toasted-brown eyeshadow on the lids, a thin black liner along the upper lash line, black mascara, full lashes. Cheeks: a little muted rosy-brown blush high on the cheekbones, softly blended. Skin: even, natural matte foundation. Brows: her own, groomed."
-    },
-    {
-      "id": "icy",
-      "title": "میکاپ یخی",
-      "en": "Icy / first frost (winter 2026: frosted lids, icy pink blush, glossy lips)",
-      "look": { "skin": "dewy", "shadow": "wash", "lid": ["#dcdde8", "#b4aed2"], "liner": "thin", "lashes": "natural", "brow": "natural",
-        "blush": "nose", "blushColor": "#eba3b8", "lip": "gloss", "lipColor": "#d999aa", "accents": ["shimmer"] },
-      "makeup": "Eyes: icy silver and pale lavender metallic shimmer eyeshadow over the whole moving lid, a touch of bright silver at the inner corners, a thin soft dark liner, black mascara. Cheeks: cool icy-pink blush on the cheekbones and lightly across the bridge of the nose, a pearly highlight on the tops of the cheekbones. Lips: sheer cool pink gloss. Skin: luminous, fresh foundation. Brows: her own, groomed."
-    },
-    {
-      "id": "lilac-eyes",
-      "title": "سایه یاسی",
-      "en": "Purple gaze (spring/summer 2027 shows: lavender to amethyst lids)",
-      "look": { "skin": "glow", "shadow": "crease", "lid": ["#c3a6de", "#6e4392"], "liner": "thin", "lashes": "volume", "brow": "natural",
-        "blush": "apples", "blushColor": "#e3a0b2", "lip": "satin", "lipColor": "#b8728a" },
-      "makeup": "Eyes: soft lavender eyeshadow over the whole lid, deepening to amethyst purple in the crease and the outer corner, blended with no hard edges, a thin dark liner, full black lashes. Cheeks: soft cool pink blush on the apples of the cheeks. Lips: mauve-pink satin lipstick. Skin: natural satin foundation. Brows: her own, groomed."
-    },
-    {
-      "id": "grunge-smokey",
-      "title": "اسموکی گرانج",
-      "en": "Messy smoky / 'IDGAF eyes' (autumn/winter 2026 shows: Gucci, Prada, Givenchy)",
-      "look": { "skin": "matte", "shadow": "smoky", "lid": ["#4f4440", "#1c1614"], "liner": "smudge", "linerColor": "#1c1614", "lashes": "natural", "brow": "natural",
-        "blush": "none", "blushColor": "#cf9488", "lip": "satin", "lipColor": "#a6726a", "accents": ["lowerLiner"] },
-      "makeup": "Eyes: a messy, smudged smoky eye in charcoal and espresso brown, smoked out all around the eye including under the lower lashes, deliberately soft and slightly imperfect, like the night after, black kohl along the lower lash line, mascara. Cheeks: no blush. Lips: blurred nude-rose lips with soft edges. Skin: natural and matte, her skin showing through. Brows: her own, brushed up."
-    },
-    {
-      "id": "fiery-red",
-      "title": "قرمز آتشین",
-      "en": "Vermilion lips (autumn/winter 2026 shows: Proenza Schouler, Michael Kors, Jil Sander)",
-      "look": { "skin": "matte", "shadow": "wash", "lid": ["#d9b8a0", "#bf9a85"], "liner": "thin", "lashes": "volume", "brow": "natural",
-        "blush": "high", "blushColor": "#e0907a", "lip": "matte", "lipColor": "#d4321e" },
-      "makeup": "Lips: a bright fiery vermilion lipstick, an orange-red, matte, sharply lined and fully filled. Eyes: clean, a neutral beige wash on the lids, a thin black liner along the upper lash line, black mascara. Cheeks: a soft warm peach blush high on the cheekbones. Skin: fresh matte foundation. Brows: her own, groomed."
-    },
-    {
-      "id": "winter-goth",
-      "title": "گوتیک زمستانی",
-      "en": "Winter whimsigoth (winter 2026: sharp thin wing, blurred dark berry lips, lumi-matte skin)",
-      "look": { "skin": "matte", "shadow": "halo", "lid": ["#d6ccd2", "#7d6b6e"], "liner": "wing", "lashes": "volume", "brow": "natural",
-        "blush": "high", "blushColor": "#b46a7c", "lip": "lined", "lipColor": "#4e1a33", "accents": ["shimmer"] },
-      "makeup": "Eyes: a thin, sharp black winged eyeliner, the upper waterline lined in black, soft taupe eyeshadow at the inner and outer corners with a dab of pale silver shimmer in the centre of the lid, full black lashes. Lips: a dark blackberry-wine lipstick, slightly blurred at the edges but with a clearly defined cupid's bow. Cheeks: a cool berry blush high on the cheekbones. Skin: soft luminous-matte foundation. Brows: her own, groomed."
-    }
-  ]
+  "looks": []
 }

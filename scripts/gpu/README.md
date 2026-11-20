@@ -1,7 +1,8 @@
 # New looks' catalog photos (Kaggle, free)
 
-The looks waiting in `src/data/new-looks.json` (autumn/winter 2026 trends: لب شرابی, میکاپ یخی, سایه یاسی, اسموکی گرانج,
-قرمز آتشین, گوتیک زمستانی) have no catalog photo, and the salon can't shoot them. `new_looks.py` has **FLUX 3 Image
+A look waiting in `src/data/new-looks.json` has no catalog photo, and the salon can't shoot one. (None waits now: the
+season's six trend looks of November 2026 were drawn with ChatGPT's image editing from the same portrait and the same
+written makeup, checked as below, and added with `scripts/tinybeauty/add_looks.py`.) `new_looks.py` has **FLUX 3 Image
 Klein** draw each onto the bare catalog portrait (`public/makeup/looks/no-makeup.webp`) from its written makeup, in 4
 versions; each is checked for how far the face moved (it must stay the same model, same pose and light: the teacher
 divides the look's photo by the bare one). `new_looks_kaggle.ipynb` is the notebook; the steps are those below
@@ -80,7 +81,7 @@ the synthetic faces and keeps each picture (makeup only: the face's own pixels, 
 
     LOOKS=all KEEP=1 TEACHERS_ONLY=flux3 bash hb-gpu-kit/scripts/gpu/run_pilot.sh
 
-(42 looks x 6 faces; on an A100 roughly the pilot's seconds per image x 252, about an hour.) Download
+(48 looks x 6 faces; on an A100 roughly the pilot's seconds per image x 288, about an hour.) Download
 **pilot-results.zip** as before and send it in the chat. Its `results/teacher/<look>/<face>_flux3.jpg` are the looks'
 reference pictures: the recipes are then fitted to them instead of the old engine (`node
 scripts/tinybeauty/fit_recipes.cjs --teacher results/teacher --looks all`), and they can become the catalog's new photos.

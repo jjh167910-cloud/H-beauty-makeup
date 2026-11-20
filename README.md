@@ -1,7 +1,7 @@
 # H-beauty makeup try-on
 
 «حنانه بیوتی» (Hananeh Beauty) salon's **makeup try-on**, a Persian (RTL) mobile web app: the customer opens a
-live mirror on her front camera, takes a selfie or picks a photo, and the salon's 42 catalog looks are painted on
+live mirror on her front camera, takes a selfie or picks a photo, and the salon's 48 catalog looks are painted on
 her own face. She can also build her own makeup step by step («میکاپ من»). The try-on runs on her phone: no API
 key, offline for previously downloaded looks, and her photo never leaves the phone unless she shares it herself (the
 phone's share sheet). «رزرو» sends the look, its intensity and lipstick (or her recipe) to the salon in **the salon's

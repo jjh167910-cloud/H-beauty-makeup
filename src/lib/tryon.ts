@@ -75,13 +75,13 @@ const FACE_FILES = [`${BASE}wasm/vision_wasm_internal.js`, `${BASE}wasm/vision_w
 /** MediaPipe's multi-class selfie segmentation (Apache-2.0), weights in float16: where her face can be seen. */
 const SEGMENT = `${BASE}segment.tflite`;
 /** The eye detail's version: bumped when the eye maps are made again (so phones fetch them instead of the cached ones). */
-const EYES_V = "?v=3";
+const EYES_V = "?v=4";
 const EYES_META = `${BASE}eyes.json${EYES_V}`;
 /**
  * The look data's version: bumped when the layers, coverage maps and looks.json are made again, so phones that
  * downloaded the earlier files fetch these (a few MB) instead of using the cached ones; the old ones are dropped.
  */
-const DATA_V = "?v=8";
+const DATA_V = "?v=9";
 const LOOKS_META = `${BASE}looks.json${DATA_V}`;
 const ENHANCE = `${BASE}enhance-x4.bin`;
 /**
@@ -98,8 +98,8 @@ const lookEyes = (id: string) => `${BASE}eyes/${id}.png${EYES_V}`;
 const lookCov = (id: string) => `${BASE}cov/${id}.webp${DATA_V}`;
 /** The same files as downloaded before this DATA_V (dropped from the cache). */
 const OLD_DATA = (ids: string[]) => [
-  ...["", "?v=2", "?v=3", "?v=4", "?v=5", "?v=6", "?v=7"].flatMap((v) => [`${BASE}looks.json${v}`, ...ids.flatMap((id) => [`${BASE}layers/${id}.webp${v}`, `${BASE}cov/${id}.webp${v}`])]),
-  ...["", "?v=2"].flatMap((v) => [`${BASE}eyes.json${v}`, ...ids.map((id) => `${BASE}eyes/${id}.png${v}`)]),
+  ...["", "?v=2", "?v=3", "?v=4", "?v=5", "?v=6", "?v=7", "?v=8"].flatMap((v) => [`${BASE}looks.json${v}`, ...ids.flatMap((id) => [`${BASE}layers/${id}.webp${v}`, `${BASE}cov/${id}.webp${v}`])]),
+  ...["", "?v=2", "?v=3"].flatMap((v) => [`${BASE}eyes.json${v}`, ...ids.map((id) => `${BASE}eyes/${id}.png${v}`)]),
   ...ids.flatMap(oldTinyModels),
   // (the HD face's network as it was, in two parts)
   `${BASE}face-hd/gfpgan-1.4-q8.0.bin`, `${BASE}face-hd/gfpgan-1.4-q8.1.bin`,

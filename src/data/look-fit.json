@@ -1004,5 +1004,155 @@
    58.53,
    58.53
   ]
+ },
+ "wine-lips": {
+  "amount": {
+   "base": 0.843,
+   "conceal": 1.5,
+   "contour": 0.05,
+   "blush": 0.465,
+   "brows": 1.404,
+   "shadow": 0.265,
+   "liner": 1.411
+  },
+  "hex": {
+   "blush": "#cb8477",
+   "shadow": "#a57d61",
+   "shadow2": "#986651"
+  },
+  "rms": [
+   73.4,
+   43.82,
+   38.83,
+   38.23,
+   38.07,
+   37.96,
+   37.96
+  ]
+ },
+ "icy": {
+  "amount": {
+   "base": 1.114,
+   "conceal": 1.5,
+   "blush": 1.5,
+   "glow": 1.5,
+   "brows": 1.38,
+   "shadow": 0.762,
+   "liner": 1.5
+  },
+  "hex": {
+   "blush": "#ffc1db",
+   "shadow": "#e7e8e9",
+   "shadow2": "#fdf7ff"
+  },
+  "rms": [
+   123.49,
+   81.6,
+   79.71,
+   83.03,
+   80.97,
+   72.76,
+   72.76
+  ]
+ },
+ "lilac-eyes": {
+  "amount": {
+   "base": 0.64,
+   "conceal": 1.5,
+   "contour": 0.191,
+   "blush": 1.287,
+   "glow": 1.409,
+   "brows": 1.381,
+   "shadow": 0.329,
+   "liner": 1.37
+  },
+  "hex": {
+   "blush": "#eaa5b8",
+   "shadow": "#ae94c6",
+   "shadow2": "#814fac"
+  },
+  "rms": [
+   80.51,
+   52.7,
+   50.83,
+   50,
+   50.14,
+   50.57,
+   50
+  ]
+ },
+ "grunge-smokey": {
+  "amount": {
+   "base": 0.789,
+   "conceal": 0.645,
+   "contour": 0.158,
+   "brows": 1.064,
+   "shadow": 0.41,
+   "liner": 0.394
+  },
+  "hex": {
+   "shadow": "#544943",
+   "shadow2": "#241c1a"
+  },
+  "rms": [
+   62.5,
+   38.38,
+   33.84,
+   33.07,
+   33.03,
+   33.07,
+   33.03
+  ]
+ },
+ "fiery-red": {
+  "amount": {
+   "base": 0.885,
+   "conceal": 1.5,
+   "contour": 0.05,
+   "blush": 1.204,
+   "brows": 1.294,
+   "shadow": 0.063,
+   "liner": 0.682
+  },
+  "hex": {
+   "blush": "#f69e87",
+   "shadow": "#c0a28d",
+   "shadow2": "#caa38c"
+  },
+  "rms": [
+   118.68,
+   45.6,
+   43.6,
+   41.54,
+   40.5,
+   39.97,
+   39.97
+  ]
+ },
+ "winter-goth": {
+  "amount": {
+   "base": 0.647,
+   "conceal": 1.5,
+   "contour": 0.05,
+   "blush": 0.174,
+   "glow": 1.5,
+   "brows": 1.475,
+   "shadow": 0.509,
+   "liner": 0.843
+  },
+  "hex": {
+   "blush": "#ffa0bb",
+   "shadow": "#bcb4b8",
+   "shadow2": "#b49a9d"
+  },
+  "rms": [
+   80.67,
+   74.92,
+   66.51,
+   65.07,
+   64.77,
+   63.93,
+   63.93
+  ]
  }
 }

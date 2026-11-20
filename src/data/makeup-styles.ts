@@ -35,10 +35,12 @@ export type MakeupStyle = {
   id: string;
   title: string;
   look: FaceLook;
+  /** No fallback network yet (public/tryon/tiny/, scripts/tinybeauty/train.py): offered only with the graphics engine. */
+  gpuOnly?: boolean;
 };
 
-function style(id: string, title: string, look: FaceLook): MakeupStyle {
-  return { id, title, look };
+function style(id: string, title: string, look: FaceLook, more: Pick<MakeupStyle, "gpuOnly"> = {}): MakeupStyle {
+  return { id, title, look, ...more };
 }
 
 export const MAKEUP_STYLES: MakeupStyle[] = [
@@ -143,12 +145,27 @@ export const MAKEUP_STYLES: MakeupStyle[] = [
     { skin: "dewy", shadow: "wash", lid: ["#f0c2b6", "#e0a497"], liner: "puppy", linerColor: "#6b3f35", lashes: "natural", brow: "natural", blush: "apples", blushColor: "#f2a1a6", lip: "ombre", lipColor: "#d64b63", accents: ["aegyo"] }),
   style("douyin", "دویین",
     { skin: "dewy", shadow: "wash", lid: ["#f2b9c0", "#e08e9d"], liner: "puppy", lashes: "volume", brow: "natural", blush: "under", blushColor: "#f29aa8", lip: "gloss", lipColor: "#d9607a", accents: ["aegyo", "bottomLashes", "glitter"] }),
+  /* ---------- The season's trends (autumn/winter 2026; their photos: ChatGPT edits of no-makeup.webp, lipColor read
+   * from them as teacher.swatch_calibration does) ---------- */
+  style("wine-lips", "لب شرابی",
+    { skin: "matte", shadow: "wash", lid: ["#b08568", "#7d5442"], liner: "thin", lashes: "volume", brow: "natural", blush: "high", blushColor: "#b9786c", lip: "matte", lipColor: "#660811" }, { gpuOnly: true }),
+  style("icy", "میکاپ یخی",
+    { skin: "dewy", shadow: "wash", lid: ["#dcdde8", "#b4aed2"], liner: "thin", lashes: "natural", brow: "natural", blush: "nose", blushColor: "#eba3b8", lip: "gloss", lipColor: "#e18590", accents: ["shimmer"] }, { gpuOnly: true }),
+  style("lilac-eyes", "سایه یاسی",
+    { skin: "glow", shadow: "crease", lid: ["#c3a6de", "#6e4392"], liner: "thin", lashes: "volume", brow: "natural", blush: "apples", blushColor: "#e3a0b2", lip: "gloss", lipColor: "#c5607a" }, { gpuOnly: true }),
+  style("grunge-smokey", "اسموکی گرانج",
+    { skin: "matte", shadow: "smoky", lid: ["#4f4440", "#1c1614"], liner: "smudge", linerColor: "#1c1614", lashes: "natural", brow: "natural", blush: "none", blushColor: "#cf9488", lip: "satin", lipColor: "#c36e67", accents: ["lowerLiner"] }, { gpuOnly: true }),
+  style("fiery-red", "قرمز آتشین",
+    { skin: "matte", shadow: "wash", lid: ["#d9b8a0", "#bf9a85"], liner: "thin", lashes: "volume", brow: "natural", blush: "high", blushColor: "#e0907a", lip: "matte", lipColor: "#dc1a08" }, { gpuOnly: true }),
+  style("winter-goth", "گوتیک زمستانی",
+    { skin: "matte", shadow: "halo", lid: ["#d6ccd2", "#7d6b6e"], liner: "wing", lashes: "volume", brow: "natural", blush: "high", blushColor: "#b46a7c", lip: "lined", lipColor: "#891739", accents: ["shimmer"] }, { gpuOnly: true }),
 ];
 
 export const styleById = new Map(MAKEUP_STYLES.map((item) => [item.id, item]));
 
 /** The catalog's groups (as the list above is laid out): the try-on's filter chips over its look rail. */
 export const LOOK_GROUPS: Array<{ id: string; title: string; looks: string[] }> = [
+  { id: "trend", title: "ترند فصل", looks: ["wine-lips", "icy", "lilac-eyes", "grunge-smokey", "fiery-red", "winter-goth"] },
   { id: "everyday", title: "روزمره", looks: ["no-makeup", "clean-girl", "sun-kissed", "cold-girl"] },
   { id: "soft", title: "گلم ملایم", looks: ["soft-glam", "latte", "strawberry"] },
   { id: "glam", title: "گلم کامل", looks: ["full-glam", "hollywood", "arabic-glam", "bronzed-goddess", "golden-hour", "bold-glam", "cut-crease"] },

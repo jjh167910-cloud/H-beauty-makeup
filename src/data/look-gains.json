@@ -81,6 +81,9 @@
   "blush": 1.17,
   "contour": 1.7
  },
+ "fiery-red": {
+  "contour": 1.48
+ },
  "fox-eye": {
   "liner": 1.3,
   "blush": 1.86,
@@ -109,6 +112,10 @@
   "contour": 2.0,
   "lips": 0.87
  },
+ "grunge-smokey": {
+  "liner": 1.3,
+  "blush": 2.0
+ },
  "henna-night": {
   "liner": 1.3,
   "blush": 1.46,
@@ -121,6 +128,12 @@
   "contour": 1.48,
   "lips": 0.93
  },
+ "icy": {
+  "shadow": 1.44,
+  "liner": 0.5,
+  "blush": 2.0,
+  "contour": 2.0
+ },
  "k-beauty": {
   "shadow": 0.5,
   "liner": 0.5,
@@ -132,6 +145,10 @@
   "blush": 1.75,
   "contour": 1.46,
   "lips": 0.85
+ },
+ "lilac-eyes": {
+  "liner": 1.3,
+  "contour": 2.0
  },
  "mod-60s": {
   "shadow": 1.57,
@@ -217,5 +234,16 @@
   "blush": 1.6,
   "contour": 2.0,
   "lips": 0.97
+ },
+ "wine-lips": {
+  "liner": 1.3,
+  "blush": 1.23
+ },
+ "winter-goth": {
+  "shadow": 0.62,
+  "liner": 1.3,
+  "blush": 1.26,
+  "contour": 2.0,
+  "lips": 0.91
  }
 }

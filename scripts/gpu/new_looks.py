@@ -105,6 +105,7 @@ def main():
     spec = json.loads(NEW.read_text(encoding='utf-8'))
     looks = [x for x in spec['looks'] if a.looks == 'all' or x['id'] in a.looks.split(',')]
     validate(looks)
+    if not looks: print('No look waits in src/data/new-looks.json (or none of --looks).'); return
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     started = time.time()
     late = lambda: a.max_minutes and (time.time() - started) / 60 > a.max_minutes

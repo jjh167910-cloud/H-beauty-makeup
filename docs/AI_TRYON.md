@@ -898,7 +898,9 @@ nothing changes.
 One tiny network per look, following TinyBeauty (Jin et al., *Toward Tiny and High-quality Facial
 Makeup with Data Amplify Learning*, ECCV 2024): ~87K parameters, ~230 KB, in ONNX Runtime Web
 (WebAssembly) in a worker (`src/lib/tryon-worker.ts`), on the face aligned to 256×256; only its
-change is mapped back onto her photo, plus the eye detail. Soft shows it at 60 %. All 42 are trained
+change is mapped back onto her photo, plus the eye detail. Soft shows it at 60 %. The 42 looks before the season's
+trends (below) have one; those six don't yet (`gpuOnly` in `makeup-styles.ts`: without WebGL2 the look rail leaves them
+out, and a link to one opens «گلم هالیوودی»). All 42 are trained
 on the look as the engine finishes it (`finish.py`: the pale-lid and lipstick rebuild, the concealer, brows and
 each look's calibration, through her camera's lens): in the makeup regions of held-out faces they come within
 32.0–35.9 dB of it, 34.3 on average (an unchanged face: 25.1–32.0 dB). Against the graphics-chip engine on four
@@ -936,9 +938,23 @@ python scripts/tinybeauty/occlusion.py show photo.jpg    # where her face can be
 python scripts/tinybeauty/strength.py catalog           # each look painted on the bare catalog face vs its catalog photo
 python scripts/tinybeauty/strength.py renders DIR       # renders of each look on one face (DIR/<look>.png, 0_bare.png, points.json)
 python scripts/tinybeauty/strength.py sig               # each look's signature for the look rail's order (src/data/look-signatures.json)
+python scripts/tinybeauty/add_looks.py id,id            # only these looks' layers, eye maps, coverage maps, json entries and signatures
+node scripts/tinybeauty/render_catalog_face.cjs DIR --looks id,id   # the engine's renders on the bare catalog face (for strength / calibrate)
+python scripts/tinybeauty/calibrate.py DIR              # each look's own gains from those renders (src/data/look-gains.json)
 ```
 
 After `layers`, run `products.py cov` (it adds to looks.json) and bump `DATA_V` in `tryon.ts`.
+
+**Adding looks** (the season's trends, November 2026: «ترند فصل», six looks): the salon can't shoot new catalog
+photos, so each is an edit of `no-makeup.webp` (same model, pose and light: the layer is the photo divided by it) made
+from the look's written makeup, with FLUX 3 on a free GPU (`scripts/gpu/new_looks.py`) or ChatGPT's image editing, and
+checked as the GPU kit checks a teacher (the face moved 0.017–0.029 eye widths, its shape after lining up
+0.013–0.022, the skin's fine texture and the backdrop changed no more than the 42 earlier photos' did). Each look's
+`lipColor` is read from its photo as `swatch_calibration` relates them (`colour = k · swatch · eye-white`, k as it
+was). Then `add_looks.py` (which reproduces the earlier looks' files exactly, and leaves them, the lipstick calibration
+and the mesh as they were), `DATA_V` and `EYES_V` bumped, three rounds of `render_catalog_face.cjs` → `strength.py
+renders` → `calibrate.py` for their gains, and `fit_recipes.cjs` (five synthetic faces) for their recipes. Their
+fallback networks are still to train (`train.py`: the 8,000 SFHQ faces and the base network's checkpoint).
 
 Lipstick finish and the nude-or-bold decision come from each style's `lip` and `lipColor` in
 `src/data/makeup-styles.ts`; the colour itself is measured from the look photo. The tiny fallback

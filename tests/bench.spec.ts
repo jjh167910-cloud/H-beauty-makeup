@@ -52,7 +52,7 @@ test("the artist scores a look by both engines, blind, on her own photo; the gat
   }
   await expect(save).toBeEnabled();
   await save.click();
-  await expect(page.getByRole("status").filter({ hasText: "از ۴۲ میکاپ" })).toContainText("۱ از ۴۲");
+  await expect(page.getByRole("status").filter({ hasText: "از ۴۸ میکاپ" })).toContainText("۱ از ۴۸");
   await expect(page.getByRole("option", { name: /✓/ })).toHaveCount(1);
 
   // the result: one picture by both engines; each line's means are 3 and 5, one way round or the other
