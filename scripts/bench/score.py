@@ -182,6 +182,9 @@ class Face:
             low = p[ids]
             cv2.fillPoly(self.lowlash, [np.int32(np.round(np.vstack([low + dn * ew * LOWLASH[0], (low + dn * ew * LOWLASH[1])[::-1]])))], 1)
         self.lowlash *= 1 - cv2.dilate(self.balls, k(ew * 0.02))
+        # her lower waterline: the tissue between her eyeball and her lower lash roots, inside her eye's contour (where
+        # kohl goes; T.rim_tissue), when her irises were found
+        self.water = T.rim_tissue(T.lin(img), p) if len(p) >= 478 else np.zeros(shape, np.float32)
 
     def hollow(self, img):
         """Her under-eye against her cheek just below it (L*): negative, darker; the shading of her eye's hollow."""
@@ -190,7 +193,7 @@ class Face:
 
     def colours(self, img):
         return dict(lip=mean_lab(img, self.lips), lid=mean_lab(img, self.lids * (1 - self.strands(img))), cheek=mean_lab(img, self.cheeks),
-                    lowlash=mean_lab(img, self.lowlash * (1 - self.strands(img))))
+                    lowlash=mean_lab(img, self.lowlash * (1 - self.strands(img))), water=mean_lab(img, self.water))
 
     def strands(self, img):
         """Lashes and liner strands on her lids: thin lines darker than around them (a black-hat), left out of the lid's
@@ -310,6 +313,7 @@ def score_run(run: Path, resume: bool = False, only: str = '') -> list[dict]:
                         tc = f.colours(truth)
                         for k in ('lip', 'lid', 'cheek'): r[f'cat_{k}'] = de(oc[k], tc[k])
                         r['cat_lowlash'] = de(oc['lowlash'], tc['lowlash'])
+                        if f.water.sum() >= 20: r['cat_water'] = de(oc['water'], tc['water'])
                         dm = de_map(out, truth, max(1.0, f.ew * 0.02))
                         r['cat_face'] = float(dm[f.face > 0.5].mean())
                         r.update({f'cat_{k}': v for k, v in placement(f, bare, out, truth).items()})
@@ -366,6 +370,7 @@ TARGETS = {   # line: (key, direction, target, where it comes from)
     'Placement overlap (eyes, each apart)': ('cat_iou_eyes', 'min', 0.6, 'starting guess'),
     'Placement offset (eyes, each apart, eye widths)': ('cat_shift_eyes', 'max', 0.05, 'starting guess'),
     'Under the lower lashes against the catalog (ΔE)': ('cat_lowlash', 'max', 3.0, 'starting guess'),
+    'Lower waterline against the catalog (ΔE)': ('cat_water', 'max', 3.0, 'starting guess'),
     'Brows against the catalog (ΔE)': ('cat_brow', 'max', 3.0, 'starting guess'),
     'Brow fill past her brow (L* darker)': ('brow_spill', 'max', 1.5, 'starting guess'),
     'Under-eye against the catalog (L*, against her cheek)': ('cat_hollow', 'max', 3.0, 'starting guess'),
@@ -394,7 +399,7 @@ def summarise(rows: list[dict], looks: list[str]) -> dict:
         vals = {}
         vals['cat_colour'] = [r.get(f'cat_{k}') for r in R for k in ('lip', 'lid', 'cheek')]
         vals['light_colour'] = [r.get(f'light_{k}') for r in R for k in ('lip', 'lid', 'cheek')]
-        for k in ('cat_face', 'cat_iou_eyes', 'cat_shift_eyes', 'cat_lowlash', 'cat_brow', 'brow_spill', 'cat_hollow', 'hollow_lift', 'skin_fine', 'skin_shading', 'skin_blotch', 'edge_bleed', 'eye_whites', 'outside', 'clipped', 'drift'):
+        for k in ('cat_face', 'cat_iou_eyes', 'cat_shift_eyes', 'cat_lowlash', 'cat_water', 'cat_brow', 'brow_spill', 'cat_hollow', 'hollow_lift', 'skin_fine', 'skin_shading', 'skin_blotch', 'edge_bleed', 'eye_whites', 'outside', 'clipped', 'drift'):
             vals[k] = [r.get(k) for r in R]
         # fairness: per look, the lipstick hue on light, medium and deep skin (real faces, own light)
         fair = []
@@ -522,7 +527,7 @@ def main():
     sf = run / 'scores.jsonl'
     if a.photos:
         old = [json.loads(l) for l in sf.read_text().splitlines()]
-        rows = [r for r in old if not r['photo'].startswith(a.photos)] + score_run(run, only=a.photos)
+        rows = [r for r in old if not r['photo'].startswith(a.photos)] + score_run(run, a.resume, only=a.photos)
         sf.write_text('\n'.join(json.dumps(r) for r in rows)); (run / f'scores.partial.{a.photos}.jsonl').unlink(missing_ok=True)
     elif sf.exists() and not a.rescore and not a.resume: rows = [json.loads(l) for l in sf.read_text().splitlines()]
     else:

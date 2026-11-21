@@ -161,9 +161,12 @@ def prepare(look, face, p, level='natural'):
     ul = T.lin(face)
     lu = ul * T.foundation(face, ul, p, None, k_layer, None, None if tint is None else np.asarray(tint) ** k_layer, cover=T.look_cover(look))
     under, tone, brow = refs(ul, p)
+    lens = T.lens_sigma(T.photo_blur(face, p), T.eye_width(p[:, :2]))
+    # her lower waterline: the band (on her photo with its foundation, as the phone's) and the look's change along it
+    wm, wt = T.water_mask((H, W), p, T.sclera(ul, p), lu, lens) if len(p) >= 478 else (np.zeros((H, W), np.float32), None)
+    water = (wm, T.water_colour(look, wt) * k_layer) if wt is not None else None
     w, cover = T.mesh_warp(lr, T.symmetric(pl), p, (H, W), z=p[:, 2])
     # through her photo's lens (T.lens_sigma: on a soft photo the look is as soft as the photo), off her eyeballs
-    lens = T.lens_sigma(T.photo_blur(face, p), T.eye_width(p[:, :2]))
     w = T.skin_fade(T.soften(T.extend_layer(w, T.feather_map(p, (H, W)) * cover, p, (H, W)), lens), None)
     R = T.regions((H, W), p[:, :2])
     keep = T.ball_keep((H, W), p, lens) * (1 - cv2.GaussianBlur(R['mouth'], (0, 0), 1.5))
@@ -171,7 +174,7 @@ def prepare(look, face, p, level='natural'):
     w = T.hair_light(w, face, p, B[..., 1]) * (keep * k_layer)[..., None]
     lu = conceal(lu, face, p, under, tone, CONCEAL_LIGHT.get(look, 1.0) * k_layer, w)
     return dict(look=look, face=face, p=p, levels=(k_layer, k_lip, k_eye), ul=ul, lu=lu, brow=brow, w=w, A=A, B=B,
-                browk=k_layer * T.ball_keep((H, W), p, lens))
+                browk=k_layer * T.ball_keep((H, W), p, lens), water=water)
 
 
 def finish_with(st, G):
@@ -180,7 +183,10 @@ def finish_with(st, G):
     s = A.sum(-1) + B[..., 0]; sc = np.where(s > 1, 1 / np.maximum(s, 1e-6), 1.0)
     RL = np.maximum(0, 1 - s * sc) * g('base') + sc * (A[..., 0] * g('conceal') + B[..., 0] * g('shadow') + A[..., 1] * g('contour')
                                                          + A[..., 2] * g('blush') + A[..., 3] * g('glow'))
-    base = st['lu'] * np.exp(T.layer_floor(strengthen(st['w'], RL)))
+    wl = strengthen(st['w'], RL)
+    if st.get('water') is not None:   # her lower waterline: the look's own change there (T.water_mask)
+        wm, wc = st['water']; wl = wl * (1 - wm[..., None]) + wc * wm[..., None]
+    base = st['lu'] * np.exp(T.layer_floor(wl))
     base = brows(base, st['ul'], st['face'], st['p'], st['look'], st['brow'], st['browk'])
     out = T.srgb(T.shoulder(T.apply_lips(base, st['ul'], st['p'], st['look'], k_lip * g('lips'), None), st['ul']))
     RD = B[..., 1] * g('liner') + (1 - B[..., 1]) * g('lashes')

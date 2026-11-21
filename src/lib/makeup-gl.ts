@@ -163,6 +163,18 @@ const SHOWN_LO = 0.35, SHOWN_HI = 0.6;
  */
 const BALL_SCALE = [0.95, 0.8], BALL_SOFT = 0.015, FEATHER = 0.35, LIP_VOLUME = 0.6;
 /**
+ * Kohl on her lower waterline (water_mask in teacher.py). The rim between her eyeball and her lower lash roots lies inside
+ * her eye's contour, where the face mesh has no triangles: the layer never reached it, and her waterline stayed pink under
+ * a smoky eye whose catalog photo has it 3 to 6 times darker. Each look's own change there (looks.json `water`: inner,
+ * middle and outer parts of the rim, WATER_T) goes on a band WATER_BAND eye widths up from her lower contour (at most
+ * WATER_OPEN of her eye's opening there, and WATER_OUT below it, onto her lash roots), off her irises and her eye whites
+ * (WATER_WHITE: at least this share of their light and redder by less than this), its edges WATER_SOFT soft.
+ */
+const WATER_BAND = 0.03, WATER_OPEN = 0.35, WATER_OUT = 0.006, WATER_SOFT = 0.006;
+const WATER_WHITE = [[0.45, 0.75], [0.02, 0.06]], WATER_T = [0.35, 0.6];
+/** Her lower lids' contours, inner corner first (LOWER_LIDS in teacher.py). */
+const LOWER_LIDS = [[133, 155, 154, 153, 145, 144, 163, 7, 33], [362, 382, 381, 380, 374, 373, 390, 249, 263]];
+/**
  * Her camera's lens. Makeup is on her face before the photo is taken, so on a soft photo it is as soft as everything else
  * (painting the soft photo = the lens over the painting of a sharp one): the look's layer, eye detail and liner go through
  * the part of her photo's blur they don't already have. The catalog photos' own softness around the eyes is CATALOG_BLUR
@@ -445,7 +457,11 @@ export function lipChoice(lip: LipInfo, choice: LipChoice | null | undefined, sw
 }
 export type EyeFiles = { ids: number[]; pts: number[]; tris: number[]; w: number; h: number; map: Uint8Array };
 /** A look's files: its layer's mesh coordinates, lipstick, layer, eye map, and its foundation's shade (look_tint in teacher.py). */
-export type LookFiles = { id: string; uv: number[]; lip: LipInfo; layer: ImageBitmap; eyes: EyeFiles | null; tint?: number[] };
+export type LookFiles = {
+  id: string; uv: number[]; lip: LipInfo; layer: ImageBitmap; eyes: EyeFiles | null; tint?: number[];
+  /** Its change on the lower waterline (log RGB): inner, middle, outer (water_profile in teacher.py). */
+  water?: number[][];
+};
 /** Light and colour references measured on her photo (see measureFace). */
 /** Her light references, and how soft her photo is around the eyes (`blur`: Gaussian sigma in pixels, photoBlur in tryon.ts). */
 export type FaceStats = {
@@ -497,6 +513,28 @@ function ring(P: Pt[], ids: number[], sx = 1, sy = sx): [number, number][] {
   let cx = 0, cy = 0;
   for (const i of ids) { cx += P[i][0] / ids.length; cy += P[i][1] / ids.length; }
   return ids.map((i) => [cx + (P[i][0] - cx) * sx, cy + (P[i][1] - cy) * sy]);
+}
+
+/**
+ * Her lower contours as the waterline's band takes them (water_points in teacher.py): per eye its 9 points (pixels), each
+ * one's position along the contour (0 at the inner corner) and the band's height there (px), ordered so that each
+ * segment's left normal points into her eye.
+ */
+export function waterPoints(P: Pt[]): Float32Array {
+  const ew = eyeWidth(P), out: number[] = [];
+  [[EYE_R, LOWER_LIDS[0]], [EYE_L, LOWER_LIDS[1]]].forEach(([ring, low]) => {
+    const q = low.map((i) => [P[i][0], P[i][1]]), s = [0];
+    for (let i = 1; i < q.length; i++) s.push(s[i - 1] + Math.hypot(q[i][0] - q[i - 1][0], q[i][1] - q[i - 1][1]));
+    const len = Math.max(s[s.length - 1], 1e-6), up = ring.filter((i) => !low.includes(i));
+    const h = q.map((x) => Math.min(WATER_BAND * ew, WATER_OPEN * Math.min(...up.map((i) => Math.hypot(P[i][0] - x[0], P[i][1] - x[1])))));
+    let cx = 0, cy = 0;
+    for (const i of ring) { cx += P[i][0] / ring.length; cy += P[i][1] / ring.length; }
+    const a = q[3], b = q[5], n = [-(b[1] - a[1]), b[0] - a[0]];
+    const flip = (cx - (a[0] + b[0]) / 2) * n[0] + (cy - (a[1] + b[1]) / 2) * n[1] < 0;
+    const k = q.map((_, i) => (flip ? q.length - 1 - i : i));
+    for (const i of k) out.push(q[i][0], q[i][1], s[i] / len, h[i]);
+  });
+  return new Float32Array(out);
 }
 
 /* ------------------------------------------------------- step-by-step mode */
@@ -1832,6 +1870,16 @@ uniform vec3 uConTone;      // her skin's colour over its luminance (the conceal
 uniform int uOpenOn;
 uniform vec2 uOpen;
 uniform sampler2D uSide;
+// her lower waterline (waterPoints; WATER_*): per eye 9 points along her lower contour (pixels, the position along it from
+// the inner corner, the band's height there); the look's change there (log RGB: inner, middle, outer); her irises (centre
+// in pixels, radius; the band's softness in .w); her eye whites' colour (linear; w 0: not measured); how much (0: none),
+// and how much of each eye is seen (eyeShown)
+uniform vec4 uWaterP[18];
+uniform vec3 uWaterC[3];
+uniform vec4 uWaterI[2];
+uniform vec4 uWaterW;
+uniform float uWaterK;
+uniform vec2 uWaterE;
 out vec4 o;
 float sweepT(vec2 x) {
   vec4 ax = uAx0;
@@ -1848,6 +1896,37 @@ float shown(int k, float sw) { return uStepsOn == 1 ? (k == uActive || (uActive 
 float rv(int k, float sw) { return shown(k, sw) * uGain[k]; }
 float rl(int k, float sw) { return rv(k, sw) * uLGain[k]; }
 float luma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
+// her waterline band here (0..1) and the look's change there (water_mask, water_colour in teacher.py), from her light lu
+float waterAt(vec2 px, vec3 lu, out vec3 col) {
+  float best = 1e9, sd = 0.0, t = 0.0, hh = 1.0, past = 0.0, seen = 1.0;
+  for (int e = 0; e < 2; e++) {
+    for (int i = 0; i < 8; i++) {
+      vec4 a = uWaterP[e * 9 + i], b = uWaterP[e * 9 + i + 1];
+      vec2 ab = b.xy - a.xy;
+      float L2 = max(dot(ab, ab), 1e-6), L = sqrt(L2), ur = dot(px - a.xy, ab) / L2, u = clamp(ur, 0.0, 1.0);
+      vec2 q = a.xy + ab * u;
+      float d = length(px - q);
+      if (d < best) {
+        best = d; sd = dot(px - q, vec2(-ab.y, ab.x) / L);
+        // (past either corner, along her contour: the band stops there)
+        past = ((i == 0 ? max(0.0, -ur) : 0.0) + (i == 7 ? max(0.0, ur - 1.0) : 0.0)) * L;
+        t = mix(a.z, b.z, u); hh = mix(a.w, b.w, u); seen = e == 0 ? uWaterE.x : uWaterE.y;
+      }
+    }
+  }
+  float soft = uWaterI[0].w, below = ${WATER_OUT.toFixed(4)} * uEw;
+  float m = smoothstep(-below - soft, -below + soft, sd) * (1.0 - smoothstep(hh - soft, hh + soft, sd)) * (1.0 - smoothstep(0.0, 2.0 * soft, past)) * seen;
+  for (int k = 0; k < 2; k++) m *= smoothstep(0.95, 1.1, length(px - uWaterI[k].xy) / max(uWaterI[k].z, 1e-3));
+  if (uWaterW.w > 0.0) {
+    vec3 s = uWaterW.rgb;
+    float bright = smoothstep(${WATER_WHITE[0][0].toFixed(3)}, ${WATER_WHITE[0][1].toFixed(3)}, luma(lu) / max(luma(s), 1e-4));
+    float red = (lu.r - lu.b) / max(lu.r + lu.g + lu.b, 1e-4) - (s.r - s.b) / max(s.r + s.g + s.b, 1e-4);
+    m *= 1.0 - bright * (1.0 - smoothstep(${WATER_WHITE[1][0].toFixed(3)}, ${WATER_WHITE[1][1].toFixed(3)}, red));
+  }
+  float k0 = ${(WATER_T[0] / 2).toFixed(4)}, k1 = ${((WATER_T[0] + WATER_T[1]) / 2).toFixed(4)}, k2 = ${((1 + WATER_T[1]) / 2).toFixed(4)};
+  col = t < k1 ? mix(uWaterC[0], uWaterC[1], clamp((t - k0) / (k1 - k0), 0.0, 1.0)) : mix(uWaterC[1], uWaterC[2], clamp((t - k1) / (k2 - k1), 0.0, 1.0));
+  return m;
+}
 /*
  * Coloured lenses on her irises, only where her eye is open (her eyeball mask): her pupil, her catchlights, her lashes
  * over her iris and her lid's shadow stay hers. A tint keeps her iris (its brightness and pattern) and changes its hue;
@@ -2213,6 +2292,11 @@ void main() {
     lrs = ly * mix(RL, 1.0 + (RL - 1.0) * ${LIGHTEN_GAIN}, lighter) + (lr - ly) * mix(RL, 1.0 + (RL - 1.0) * ${CHROMA_GAIN}, lighter);
   } else lrs = lr * RL;
   vec3 lex = lrs * (1.0 - M.r) * (1.0 - M.g) * uK.x;
+  if (uWaterK > 0.0) {             // her lower waterline: the look's own change there (with its liner, step by step)
+    vec3 wc;
+    float wm = waterAt(px, pow(src, vec3(2.2)), wc) * uWaterK * (uZonesOn == 1 ? shown(4, sw) : 1.0);
+    lex = mix(lex, wc * uK.x, wm);
+  }
   lex = mix(lex, ${(-Math.log(LAYER_FLOOR)).toFixed(4)} * (exp(lex / ${(-Math.log(LAYER_FLOOR)).toFixed(4)}) - 1.0), step(lex, vec3(0.0)));   // (LAYER_FLOOR)
   vec3 base = lu * exp(lex);
   float pigX = 0.0;
@@ -3234,6 +3318,20 @@ export class MakeupGL {
     gl.uniform3f(this.uni(p, "uLipBox"), ...(lips?.box ?? [0, 0, 1]));
     this.bindTex(p, "uDetail", soft ? this.targets.detail.tex[0] : this.targets.layer.tex[0], 14);
     gl.uniform1i(this.uni(p, "uOpenOn"), openOn ? 1 : 0);
+    {                                  // her lower waterline (a look's own; WATER_*)
+      const water = !mine && look.water && P.length >= 478 ? look.water : null;
+      gl.uniform1f(this.uni(p, "uWaterK"), water ? 1 : 0);
+      if (water) {
+        gl.uniform4fv(this.uni(p, "uWaterP"), waterPoints(P));
+        gl.uniform3fv(this.uni(p, "uWaterC"), new Float32Array(water.flat()));
+        const sw = Math.max(0.7, ew * WATER_SOFT, soft ? camLens : 0);
+        const iris = (c: number) => [1, 2, 3, 4].reduce((s, k) => s + Math.hypot(P[c + k][0] - P[c][0], P[c + k][1] - P[c][1]), 0) / 4;
+        gl.uniform4fv(this.uni(p, "uWaterI"), new Float32Array([468, 473].flatMap((c) => [P[c][0], P[c][1], iris(c), sw])));
+        const s = face.sclera;
+        gl.uniform4f(this.uni(p, "uWaterW"), s ? s[0] : 0, s ? s[1] : 0, s ? s[2] : 0, s ? 1 : 0);
+        gl.uniform2f(this.uni(p, "uWaterE"), ...eyeShown(P));
+      }
+    }
     gl.uniform4f(this.uni(p, "uWork"), scissor[0], scissor[1], scissor[0] + scissor[2], scissor[1] + scissor[3]);
     gl.uniform1f(this.uni(p, "uSkinY"), concealOn ? face.skin! : 0);
     gl.uniform1f(this.uni(p, "uSkinMed"), face.skin ?? 0);

@@ -338,6 +338,21 @@ in makeup-gl.ts):
   overlap 0.67 -> 0.71 and offset 0.061 -> 0.055 eye widths. The look gains were calibrated again on the new layers.
   The lid's mean colour came out 0.04 ΔE further from the catalog (1.49 -> 1.53, median): the lids' darkness is a
   defect of its own, next.
+- **Kohl on the lower waterline.** The rim between the eyeball and the lower lash roots lies inside the eye's
+  contour, where the face mesh has no triangles, so the layer never reached it: under a smoky or glam eye her
+  waterline stayed pink, where its catalog photo has it 3 to 6 times darker (log −1 to −1.9 on 14 of the 48 looks;
+  a few light their inner corners instead). Each look's own change there is now measured on its catalog photo
+  (`water_profile`: the bare face's rim tissue, redder than its eye whites and off its iris, registered by the mesh
+  and a fan from each eye's contour to its iris centre; look over bare with the edit's grading taken out, as an
+  inner, middle and outer value) and kept in `looks.json` (`water`). On her it goes on a band along her lower contour
+  (`water_mask`, `waterAt` in makeup-gl.ts: `WATER_BAND` of an eye width up from it, at most `WATER_OPEN` of her eye's
+  opening there, a little onto her lash roots, fading out past her eye's corners), off her irises and off her eye
+  whites (`WATER_WHITE`: as light as they are and no redder), with the liner in the step-by-step mode. A new benchmark
+  line measures it (`cat_water`). All 48 looks on the catalog model in seven lights, against the release before:
+  the waterline 3.8 -> 2.2 ΔE from the catalog (median; worst tenth 6.9 -> 3.5), under the lower lashes 1.93 -> 1.85;
+  the eye whites change a little more (0.25 -> 0.41 ΔE, worst tenth 0.38 -> 0.76, against the limit of 1.5), every
+  other line the same (within 0.005). On the benchmark's real faces (measured only, never tuned on) the kohl sits on
+  their rims, not on the whites of their eyes.
 
 The tiny fallback networks learn the look as the engine finishes it: `scripts/tinybeauty/finish.py` paints the
 foundation, this concealer, the layer with each look's strengths, the brows, lipstick and eye detail in the engine's

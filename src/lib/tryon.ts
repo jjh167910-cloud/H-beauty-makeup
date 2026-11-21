@@ -81,7 +81,7 @@ const EYES_META = `${BASE}eyes.json${EYES_V}`;
  * The look data's version: bumped when the layers, coverage maps and looks.json are made again, so phones that
  * downloaded the earlier files fetch these (a few MB) instead of using the cached ones; the old ones are dropped.
  */
-const DATA_V = "?v=10";
+const DATA_V = "?v=11";
 const LOOKS_META = `${BASE}looks.json${DATA_V}`;
 const ENHANCE = `${BASE}enhance-x4.bin`;
 /**
@@ -98,7 +98,7 @@ const lookEyes = (id: string) => `${BASE}eyes/${id}.png${EYES_V}`;
 const lookCov = (id: string) => `${BASE}cov/${id}.webp${DATA_V}`;
 /** The same files as downloaded before this DATA_V (dropped from the cache). */
 const OLD_DATA = (ids: string[]) => [
-  ...["", "?v=2", "?v=3", "?v=4", "?v=5", "?v=6", "?v=7", "?v=8", "?v=9"].flatMap((v) => [`${BASE}looks.json${v}`, ...ids.flatMap((id) => [`${BASE}layers/${id}.webp${v}`, `${BASE}cov/${id}.webp${v}`])]),
+  ...["", "?v=2", "?v=3", "?v=4", "?v=5", "?v=6", "?v=7", "?v=8", "?v=9", "?v=10"].flatMap((v) => [`${BASE}looks.json${v}`, ...ids.flatMap((id) => [`${BASE}layers/${id}.webp${v}`, `${BASE}cov/${id}.webp${v}`])]),
   ...["", "?v=2", "?v=3"].flatMap((v) => [`${BASE}eyes.json${v}`, ...ids.map((id) => `${BASE}eyes/${id}.png${v}`)]),
   ...ids.flatMap(oldTinyModels),
   // (the HD face's network as it was, in two parts)
@@ -669,7 +669,7 @@ export function warmUp(look?: string) {
 
 type LooksMeta = {
   tris: number[]; swatch: Swatch; canon: Canon;
-  looks: Record<string, { uv: number[]; lip: LipInfo; tint?: number[]; cov?: { shadow: number } }>;
+  looks: Record<string, { uv: number[]; lip: LipInfo; tint?: number[]; cov?: { shadow: number }; water?: number[][] }>;
   /** Her products: a look's own eyeshadow is followed when it is at least this strong; else a style's template look. */
   products?: { shadowMin: number; shadowFrom: Record<string, string> };
 };
@@ -707,7 +707,7 @@ export function loadLook(id: string): Promise<LookFiles> {
       const meta = all.looks[id];
       if (!meta) throw "no-model" satisfies TryOnError;
       const eyeFiles: EyeFiles | null = eyes ? { ids: eyes.ids, pts: eyes.pts, tris: eyes.tris, w: eyes.w, h: eyes.h, map: eyes.map } : null;
-      return { id, uv: meta.uv, lip: meta.lip, layer, eyes: eyeFiles, tint: meta.tint };
+      return { id, uv: meta.uv, lip: meta.lip, layer, eyes: eyeFiles, tint: meta.tint, water: meta.water };
     })();
     files.catch(() => lookFiles.delete(id));
     lookFiles.set(id, files);

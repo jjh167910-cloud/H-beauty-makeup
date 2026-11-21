@@ -13,6 +13,7 @@ On top of that:
     The colour is matched to her photo's light through the whites of the eyes, and nude shades
     follow her skin depth (a nude chosen for the model becomes the same nude for her);
   * the look's crisp liner/lash detail (eye map);
+  * the look's kohl on her lower waterline (inside the eye's contour, where the mesh has no triangles);
   * intensity: soft / natural / bold.
 Nothing outside the makeup changes: her face, skin tone and background stay her own pixels.
 
@@ -21,6 +22,7 @@ also the teacher for the TinyBeauty-style fallback networks (train.py).
 
     python scripts/tinybeauty/teacher.py eyes      # (re)build public/tryon/eyes/*.png + eyes.json
     python scripts/tinybeauty/teacher.py layers    # (re)build public/tryon/layers/*.webp + looks.json
+    python scripts/tinybeauty/teacher.py water     # only the looks' waterline change in looks.json
 """
 from __future__ import annotations
 import json, sys
@@ -1057,6 +1059,141 @@ def apply_eyes(base, user, pu, look, strength=0.9):
     f = np.clip(1 + strength * np.minimum(0, ru - own * 0.6), 0.15, 1)[..., None]
     return np.clip(base.astype(np.float32) * f, 0, 255).astype(np.uint8)
 
+# --------------------------------------------------------------- waterline
+# Kohl on the lower waterline: the rim between her eyeball and her lower lash roots lies inside the eye's contour, where
+# the face mesh has no triangles, so the layer never carried it and her waterline stayed pink under a smoky eye (the
+# catalog's smoky and glam looks darken it 3 to 6 times, log -1 to -1.9 on 14 of the 48; a few light their inner
+# corners). Each look's own is measured on its catalog photo: the bare catalog face's rim tissue (WATER_RIM up from its
+# lower contour, redder than its eye whites by WATER_RED, off its iris), registered by the mesh and a fan from each eye's
+# contour to its iris centre; look over bare (log, the edit's grading taken out), as an inner, middle and outer value
+# (WATER_T), both eyes.
+# On her it goes on a band WATER_BAND eye widths up from her lower contour (at most WATER_OPEN of her eye's opening
+# there, and WATER_OUT below it, onto her lash roots), off her iris and off her eye whites (WATER_WHITE: as light as
+# they are and no redder).
+WATER_RIM = 0.06
+WATER_RED = (0.02, 0.07)
+WATER_T = (0.35, 0.6)
+WATER_BAND = 0.03
+WATER_OPEN = 0.35
+WATER_OUT = 0.006
+WATER_SOFT = 0.006
+WATER_WHITE = ((0.45, 0.75), (0.02, 0.06))
+IRISES = ((468, (469, 470, 471, 472)), (473, (474, 475, 476, 477)))
+
+def _iris(p, k):
+    c, rim = IRISES[k]; return p[c, :2], float(np.mean([np.linalg.norm(p[i, :2] - p[c, :2]) for i in rim]))
+
+def fan_warp(img, ps, pt, shape):
+    """mesh_warp, and inside each eye's opening a fan from its contour to its iris centre."""
+    out, cover = mesh_warp(img, ps, pt, shape)
+    for k, ring in enumerate((EYE_R, EYE_L)):
+        c = IRISES[k][0]
+        for i in range(len(ring)):
+            t = [ring[i], ring[(i + 1) % len(ring)], c]
+            s, d = ps[t, :2].astype(np.float32), pt[t, :2].astype(np.float32)
+            x, y, w, h = cv2.boundingRect(d)
+            if w <= 0 or h <= 0: continue
+            M = cv2.getAffineTransform(s, d - np.float32([x, y]))
+            patch = cv2.warpAffine(img, M, (w, h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+            m = np.zeros((h, w), np.uint8); cv2.fillConvexPoly(m, np.int32(np.round(d - [x, y])), 1)
+            y0, x0 = max(0, y), max(0, x); y2, x2 = min(shape[0], y + h), min(shape[1], x + w)
+            mm = m[y0 - y:y2 - y, x0 - x:x2 - x] > 0
+            out[y0:y2, x0:x2][mm] = patch[y0 - y:y2 - y, x0 - x:x2 - x][mm]; cover[y0:y2, x0:x2][mm] = 1
+    return out, cover
+
+def _redness(x):
+    return (x[..., 0] - x[..., 2]) / np.maximum(x.sum(-1), 1e-4)
+
+def rim_tissue(img_lin, p):
+    """The lower waterline's tissue in a photo (0/1): inside each eye's opening, within WATER_RIM eye widths of its lower
+    contour (nearer it than the upper), off the iris, redder than the eye's own whites by WATER_RED."""
+    H, W = img_lin.shape[:2]; ew = eye_width(p[:, :2]); rn = _redness(img_lin); lum = luma(img_lin)
+    out = np.zeros((H, W), np.float32); yy, xx = np.mgrid[0:H, 0:W]
+    for k, (ring, low) in enumerate(((EYE_R, LOWER_LIDS[0]), (EYE_L, LOWER_LIDS[1]))):
+        o = np.zeros((H, W), np.uint8); cv2.fillPoly(o, [np.int32(np.round(p[ring, :2]))], 1); o = cv2.dilate(o, np.ones((3, 3)))
+        line = lambda ids: cv2.distanceTransform(1 - cv2.polylines(np.zeros((H, W), np.uint8), [np.int32(np.round(p[ids, :2]))], False, 1, 1), cv2.DIST_L2, 5) / ew
+        dl = line(low); du = line([i for i in ring if i not in low])
+        ic, ir = _iris(p, k); di = np.hypot(xx - ic[0], yy - ic[1]) / max(ir, 1e-3)
+        white = (o > 0) & (di > 1.25) & (dl > 0.03) & (du > 0.04)
+        if white.sum() < 10: continue
+        white &= lum >= np.quantile(lum[white], 0.5)
+        band = (o > 0) & (dl < WATER_RIM) & (dl < du) & (di > 1.08)
+        out = np.maximum(out, (band * _smooth(*WATER_RED, rn - np.median(rn[white]))).astype(np.float32))
+    return out
+
+@lru_cache(None)
+def water_profile(look: str):
+    """The look's change on the lower waterline (log RGB, grading out): inner, middle, outer (see WATER_*)."""
+    base, pb = _bare(); im = rgb(LOOKS / f'{look}.webp'); pl = landmarks3(im); H, W = im.shape[:2]
+    bw, _ = fan_warp(lin(base), pb, pl, (H, W))
+    tis = rim_tissue(bw, pl) > 0.5
+    lr = np.log((lin(im) + 0.004) / (bw + 0.004)) - grading(look)
+    ew = eye_width(pl[:, :2]); yy, xx = np.mgrid[0:H, 0:W]; ts, vs = [], []
+    for low in LOWER_LIDS:
+        q = pl[low, :2]; s = np.r_[0, np.cumsum(np.linalg.norm(np.diff(q, axis=0), axis=1))]; s /= s[-1]
+        m = tis & (np.hypot(xx - q[:, 0].mean(), yy - q[:, 1].mean()) < ew)
+        pts = np.stack([xx[m], yy[m]], -1).astype(np.float32)
+        d = np.linalg.norm(pts[:, None] - q[None], axis=-1)
+        ts.append(s[d.argmin(1)]); vs.append(lr[m])
+    t, v = np.concatenate(ts), np.concatenate(vs)
+    if len(t) < 20: return [[0.0] * 3] * 3
+    part = [t < WATER_T[0], (t >= WATER_T[0]) & (t <= WATER_T[1]), t > WATER_T[1]]
+    med = [np.median(v[m], 0) if m.sum() >= 8 else None for m in part]
+    if med[0] is None: med[0] = med[2] if med[2] is not None else np.zeros(3)
+    if med[2] is None: med[2] = med[0]
+    if med[1] is None: med[1] = (med[0] + med[2]) / 2
+    return [[round(float(x), 3) for x in c] for c in med]
+
+def water_points(p):
+    """Her lower contours as the engine's band takes them: per eye its 9 points (inner corner first) with each one's
+    position along the contour (0..1) and the band's height there (px), and a sign so that the left normal of the
+    polyline points into her eye."""
+    p2 = p[:, :2]; ew = eye_width(p2); out = []
+    for ring, low in ((EYE_R, LOWER_LIDS[0]), (EYE_L, LOWER_LIDS[1])):
+        q = p2[low]; s = np.r_[0, np.cumsum(np.linalg.norm(np.diff(q, axis=0), axis=1))]; s /= max(s[-1], 1e-6)
+        up = p2[[i for i in ring if i not in low]]
+        open_ = np.array([np.min(np.linalg.norm(up - x, axis=1)) for x in q])
+        h = np.minimum(WATER_BAND * ew, WATER_OPEN * open_)
+        c = p2[ring].mean(0); a, b = q[3], q[5]; n = np.array([-(b - a)[1], (b - a)[0]])
+        sign = 1.0 if np.dot(c - (a + b) / 2, n) > 0 else -1.0
+        out.append((q, s, h, sign))
+    return out
+
+def water_mask(shape, p, sclera_lin, img_lin, lens=0.0):
+    """Her waterline band (0..1) and the position along it (0..1), as makeup-gl.ts (waterAt)."""
+    H, W = shape; ew = eye_width(p[:, :2]); soft = max(0.7, WATER_SOFT * ew, lens)
+    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32); P = np.stack([xx, yy], -1)
+    best = np.full((H, W), 1e9, np.float32); sd = np.zeros((H, W), np.float32); tt = np.zeros((H, W), np.float32)
+    hh = np.ones((H, W), np.float32); past = np.zeros((H, W), np.float32); seen = np.ones((H, W), np.float32)
+    for (q, s, h, sign), shown in zip(water_points(p), eye_shown(p)):
+        last = len(q) - 2
+        for i in range(len(q) - 1):
+            a, b = q[i].astype(np.float32), q[i + 1].astype(np.float32); ab = b - a; L2 = max(float(ab @ ab), 1e-6)
+            ur = ((P - a) @ ab) / L2; u = np.clip(ur, 0, 1); Q = a + u[..., None] * ab; d = np.linalg.norm(P - Q, axis=-1)
+            n = sign * np.array([-ab[1], ab[0]], np.float32) / np.sqrt(L2)
+            # (past either corner, along the contour: the band stops there)
+            beyond = (np.maximum(0, -ur) * (i == 0) + np.maximum(0, ur - 1) * (i == last)) * np.sqrt(L2)
+            near = d < best
+            best = np.where(near, d, best); sd = np.where(near, (P - Q) @ n, sd); past = np.where(near, beyond, past)
+            tt = np.where(near, s[i] + (s[i + 1] - s[i]) * u, tt); hh = np.where(near, h[i] + (h[i + 1] - h[i]) * u, hh)
+            seen = np.where(near, shown, seen)
+    sm = lambda e0, e1, x: _smooth(e0, e1, x)
+    m = sm(-WATER_OUT * ew - soft, -WATER_OUT * ew + soft, sd) * (1 - sm(hh - soft, hh + soft, sd)) * (1 - sm(0, 2 * soft, past)) * seen
+    for k in (0, 1):
+        ic, ir = _iris(p, k); m = m * sm(0.95, 1.1, np.hypot(xx - ic[0], yy - ic[1]) / max(ir, 1e-3))
+    if sclera_lin is not None:
+        bright = sm(*WATER_WHITE[0], luma(img_lin) / max(float(luma(np.asarray(sclera_lin))), 1e-4))
+        white = 1 - sm(*WATER_WHITE[1], _redness(img_lin) - float(_redness(np.asarray(sclera_lin, np.float32))))
+        m = m * (1 - bright * white)
+    return m.astype(np.float32), tt.astype(np.float32)
+
+def water_colour(look, t):
+    """The look's waterline change along her rim (log RGB): its inner, middle and outer values at the middles of their
+    parts of the rim (WATER_T), linear between them, held beyond."""
+    c = np.asarray(water_profile(look), np.float32); k = (WATER_T[0] / 2, sum(WATER_T) / 2, (1 + WATER_T[1]) / 2)
+    return np.stack([np.interp(t, k, c[:, j]) for j in range(3)], -1).astype(np.float32)
+
+
 # ---------------------------------------------------------------- lipstick
 STYLES = REPO / 'src/data/makeup-styles.ts'
 # finish: (opacity, how much of her fine lip texture is kept, gloss shine)
@@ -1443,7 +1580,7 @@ def export_layer(look, out_dir: Path):
     uv = ((pl[:, :2] - [x0, y0] + 0.5) / [w, h]).astype(np.float32)   # pixel centres -> texture coordinates
     L = look_lips(look)
     r = lambda v, n=5: None if v is None else ([round(float(x), n) for x in v] if np.ndim(v) else round(float(v), n))
-    return {'uv': [round(float(v), 5) for v in uv.ravel()], 'tint': r(look_tint(look), 4),
+    return {'uv': [round(float(v), 5) for v in uv.ravel()], 'tint': r(look_tint(look), 4), 'water': water_profile(look),
             'lip': {'colour': r(L['colour']), 'sclera': r(L['sclera']), 'skin': r(L['skin']), 'ombre': r(L['ombre'], 4),
                     'finish': L['finish'], 'alpha': L['alpha'], 'gamma': L['gamma'], 'shine': L['shine'], 'nude': round(L['nude'], 3),
                     'ratio': r(L['ratio'], 4), 'pigment': L['pigment']}}
@@ -1461,6 +1598,11 @@ if __name__ == '__main__':
         data = {'tris': [int(i) for t in mesh_triangles() for i in t], **lipstick_data(), 'looks': looks}
         json.dump(data, open(TRYON / 'looks.json', 'w'), separators=(',', ':'))
         print('layers:', len(looks))
+    elif sys.argv[1:] == ['water']:         # only the looks' waterline change in looks.json
+        data = json.load(open(TRYON / 'looks.json'))
+        for look, meta in data['looks'].items(): meta['water'] = water_profile(look)
+        json.dump(data, open(TRYON / 'looks.json', 'w'), separators=(',', ':'))
+        print('waterlines:', len(data['looks']))
     elif sys.argv[1:] == ['lipsticks']:     # only the lipstick picker's data in looks.json
         data = json.load(open(TRYON / 'looks.json'))
         looks = data.pop('looks'); data.update(lipstick_data()); data['looks'] = looks
