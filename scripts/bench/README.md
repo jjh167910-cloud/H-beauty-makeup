@@ -37,7 +37,8 @@ Each render against her photo as the app took it (studio light off), colours in 
 | Line | Measured | Target |
 | --- | --- | --- |
 | Catalog colour | lip, lid and cheek colour against her catalog photo, in each light | ΔE 3 (roadmap) |
-| Placement | overlap and offset of the changed area against the catalog photo's | starting guesses |
+| Placement | overlap and offset of the changed area against the catalog photo's, each eye apart | starting guesses |
+| Under the lower lashes | the colour along her lower lashes against the catalog photo's (where a smoky shadow or a lower liner goes) | ΔE 3 |
 | Another light | same look, known light change: colours against the right answer | ΔE 3 |
 | Skin-tone fairness | each lipstick's hue on light, medium and deep skin | 10° |
 | Skin | fine texture kept, blotches left, shading kept | 55-95% kept; shading 0.95 |

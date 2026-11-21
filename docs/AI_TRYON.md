@@ -325,6 +325,19 @@ in makeup-gl.ts):
   hairs, 12% to 35% darker than her skin around (`BROW_MASS`), inside the face mesh's brow outline (`BROW_ZONE`). The
   outline alone drew a brow of its own: the mesh's brows sit a few hundredths of an eye width off hers, and the fill,
   strongest on bare skin, painted a flat block under the brow's tail on real faces and a grey box on sparse brows.
+- **The shadow along the lower lashes.** A smoky or coloured look's shadow under the lower lashes came out at two
+  thirds of its catalog photo's, and pink or grey where the photo was blue or plum. In the layer files, the eye
+  openings (holes in the mesh's cover) were softened with the face's edge, which faded the layer around both eyes,
+  to about half at the lash lines; they are now filled first (`EYE_HOLE`). And the eye zone (finer detail, freer
+  colour) now reaches a quarter of an eye width below the lower lid (`FINE_LOW`), with each eye's wing on its own
+  outer side (it had been the image's right for both). And the concealer gives way under the look's own shadow
+  (`CONCEAL_UNDER`: all of it once the shadow takes a quarter off her light): the shadow had gone on over the
+  concealer's lift, 4 to 6 L* lighter than the catalog photo, which has none under it. Under the lower lashes, against
+  the catalog: 5.0 -> 2.4 ΔE on six looks (the Python engine); in the app, all 48 looks on the catalog model in seven
+  lights, 5.0 -> 1.9 ΔE (median; worst tenth 7.6 -> 4.6), the under-eye against the catalog 2.4 -> 1.9 L*, placement
+  overlap 0.67 -> 0.71 and offset 0.061 -> 0.055 eye widths. The look gains were calibrated again on the new layers.
+  The lid's mean colour came out 0.04 ΔE further from the catalog (1.49 -> 1.53, median): the lids' darkness is a
+  defect of its own, next.
 
 The tiny fallback networks learn the look as the engine finishes it: `scripts/tinybeauty/finish.py` paints the
 foundation, this concealer, the layer with each look's strengths, the brows, lipstick and eye detail in the engine's

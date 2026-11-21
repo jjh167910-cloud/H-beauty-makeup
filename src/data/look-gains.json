@@ -51,7 +51,7 @@
   "contour": 2.0
  },
  "colour-liner": {
-  "shadow": 2.0,
+  "shadow": 1.44,
   "contour": 2.0,
   "blush": 1.22
  },
@@ -182,7 +182,7 @@
  },
  "plum-smokey": {
   "lips": 0.88,
-  "shadow": 1.39
+  "shadow": 1.07
  },
  "rhinestone": {
   "shadow": 1.12

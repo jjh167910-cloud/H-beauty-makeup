@@ -8,7 +8,8 @@ private), and appends the summary to scripts/bench/history.jsonl.
 
 What is measured (each render against her photo as the app took it, studio light off; colours are CIEDE2000):
 - catalog: the catalog model's look against her catalog photo (the truth) in the same light: lip, lid and cheek colour,
-  the whole face, and where the colour sits (the change's overlap with the truth's, and its offset in eye widths).
+  the colour under her lower lashes, the whole face, and where the colour sits (the change's overlap with the truth's,
+  and its offset in eye widths; around each eye apart).
 - light: a real face in a known light change (conditions.py): the look painted in that light against the look painted in
   her original light and then put in that light. Same makeup, same light: the colours must match.
 - fairness: each look's lipstick hue, and the hue the blush and eyeshadow add, on light, medium and deep skin.
@@ -40,6 +41,7 @@ UPPER_L = [263, 466, 388, 387, 386, 385, 384, 398, 362]
 CHEEK_R = [116, 117, 118, 100, 126, 142, 36, 205, 187, 147, 123]
 CHEEK_L = [int(T.MIRROR[i]) for i in CHEEK_R]
 LID_REACH = 0.55        # the lid zone: from her lash line up this share of the way to her brow
+LOWLASH = (0.0, 0.12)   # under her lower lashes: from her lower lid's line this far down (eye widths)
 
 
 # ------------------------------------------------------------------ helpers
@@ -153,10 +155,12 @@ class Face:
         # eyes and lids up to the brows: where eye makeup goes (for the placement check). Not the brows themselves: every
         # look fills her brows (a step of its own) and the catalog photos kept the model's, so they counted as eyeshadow
         # put where the catalog has none (about a third of the "misplaced" area, benchmark 2026-11).
-        hull = np.zeros(shape, np.float32)
-        for ring, brow in ((T.EYE_R, T.BROW_R), (T.EYE_L, T.BROW_L)):
+        self.eyezones = []      # each eye's, apart (placement is measured per eye: one centre over both eyes moved with
+        for ring, brow in ((T.EYE_R, T.BROW_R), (T.EYE_L, T.BROW_L)):    # whichever eye changed more, 2026-11)
+            hull = np.zeros(shape, np.float32)
             cv2.fillConvexPoly(hull, np.int32(cv2.convexHull(np.vstack([p[ring], p[brow]]))), 1)
-        self.eyezone = cv2.dilate(hull, k(ew * 0.25)) * (1 - self.balls) * (1 - cv2.dilate(brows, k(ew * 0.06)))
+            self.eyezones.append(cv2.dilate(hull, k(ew * 0.25)) * (1 - self.balls) * (1 - cv2.dilate(brows, k(ew * 0.06))))
+        self.eyezone = np.maximum(*self.eyezones)
         # her brows (as her photo shows them) and the skin around them within a brow product's reach, less her lids
         self.browzone = T.poly_mask(shape, p, [T.BROW_R, T.BROW_L], scale=1.3)
         self.brow_skin = self.browzone * (1 - cv2.dilate(brow_mass(img, p, ew), ellipse(ew * 0.06))) * (1 - cv2.dilate(self.lids, k(ew * 0.03)))
@@ -171,6 +175,13 @@ class Face:
             self.under |= (du @ ax / (ew * 0.3)) ** 2 + (du @ dn / (ew * 0.1)) ** 2 <= 1
             self.cheek_below |= (dc ** 2).sum(-1) <= (ew * 0.18) ** 2
         self.under &= self.balls < 0.5
+        # under her lower lashes: from her lower lid's line LOWLASH eye widths down her face (where a look's shadow or
+        # liner along the lower lashes goes), not her eyeball
+        self.lowlash = np.zeros(shape, np.float32)
+        for ids in T.LOWER_LIDS:
+            low = p[ids]
+            cv2.fillPoly(self.lowlash, [np.int32(np.round(np.vstack([low + dn * ew * LOWLASH[0], (low + dn * ew * LOWLASH[1])[::-1]])))], 1)
+        self.lowlash *= 1 - cv2.dilate(self.balls, k(ew * 0.02))
 
     def hollow(self, img):
         """Her under-eye against her cheek just below it (L*): negative, darker; the shading of her eye's hollow."""
@@ -178,7 +189,8 @@ class Face:
         return float(L[self.under].mean() - L[self.cheek_below].mean())
 
     def colours(self, img):
-        return dict(lip=mean_lab(img, self.lips), lid=mean_lab(img, self.lids * (1 - self.strands(img))), cheek=mean_lab(img, self.cheeks))
+        return dict(lip=mean_lab(img, self.lips), lid=mean_lab(img, self.lids * (1 - self.strands(img))), cheek=mean_lab(img, self.cheeks),
+                    lowlash=mean_lab(img, self.lowlash * (1 - self.strands(img))))
 
     def strands(self, img):
         """Lashes and liner strands on her lids: thin lines darker than around them (a black-hat), left out of the lid's
@@ -216,13 +228,18 @@ def placement(f: Face, bare, out, truth) -> dict:
     s = f.ew * 0.04
     dr, dt = de_map(bare, out, s), de_map(bare, truth, s)
     res = {}
-    for name, zone in (('eyes', f.eyezone), ('cheeks', cv2.dilate(f.cheeks, np.ones((int(f.ew * 0.6),) * 2, np.uint8)))):
-        z = zone > 0.5; a, b = (dr > 4) & z, (dt > 4) & z
-        if b.sum() < 30: continue
-        res[f'iou_{name}'] = float((a & b).sum() / max(1, (a | b).sum()))
-        if a.sum() >= 30:
-            ya, xa = np.nonzero(a); yb, xb = np.nonzero(b)
-            res[f'shift_{name}'] = float(np.hypot(xa.mean() - xb.mean(), ya.mean() - yb.mean()) / f.ew)
+    cheeks = cv2.dilate(f.cheeks, np.ones((int(f.ew * 0.6),) * 2, np.uint8))
+    for name, zones in (('eyes', f.eyezones), ('cheeks', [cheeks])):    # each eye apart, then their mean
+        iou, shift = [], []
+        for zone in zones:
+            z = zone > 0.5; a, b = (dr > 4) & z, (dt > 4) & z
+            if b.sum() < 30: continue
+            iou.append(float((a & b).sum() / max(1, (a | b).sum())))
+            if a.sum() >= 30:
+                ya, xa = np.nonzero(a); yb, xb = np.nonzero(b)
+                shift.append(float(np.hypot(xa.mean() - xb.mean(), ya.mean() - yb.mean()) / f.ew))
+        if iou: res[f'iou_{name}'] = float(np.mean(iou))
+        if shift: res[f'shift_{name}'] = float(np.mean(shift))
     return res
 
 
@@ -292,6 +309,7 @@ def score_run(run: Path, resume: bool = False, only: str = '') -> list[dict]:
                     if truth.shape == out.shape:
                         tc = f.colours(truth)
                         for k in ('lip', 'lid', 'cheek'): r[f'cat_{k}'] = de(oc[k], tc[k])
+                        r['cat_lowlash'] = de(oc['lowlash'], tc['lowlash'])
                         dm = de_map(out, truth, max(1.0, f.ew * 0.02))
                         r['cat_face'] = float(dm[f.face > 0.5].mean())
                         r.update({f'cat_{k}': v for k, v in placement(f, bare, out, truth).items()})
@@ -345,8 +363,9 @@ def score_run(run: Path, resume: bool = False, only: str = '') -> list[dict]:
 TARGETS = {   # line: (key, direction, target, where it comes from)
     'Catalog colour (lip, lid, cheek)': ('cat_colour', 'max', 3.0, 'roadmap: lip within ΔE 3'),
     'Catalog whole face': ('cat_face', 'max', 3.0, 'starting guess'),
-    'Placement overlap (eyes)': ('cat_iou_eyes', 'min', 0.6, 'starting guess'),
-    'Placement offset (eyes, eye widths)': ('cat_shift_eyes', 'max', 0.05, 'starting guess'),
+    'Placement overlap (eyes, each apart)': ('cat_iou_eyes', 'min', 0.6, 'starting guess'),
+    'Placement offset (eyes, each apart, eye widths)': ('cat_shift_eyes', 'max', 0.05, 'starting guess'),
+    'Under the lower lashes against the catalog (ΔE)': ('cat_lowlash', 'max', 3.0, 'starting guess'),
     'Brows against the catalog (ΔE)': ('cat_brow', 'max', 3.0, 'starting guess'),
     'Brow fill past her brow (L* darker)': ('brow_spill', 'max', 1.5, 'starting guess'),
     'Under-eye against the catalog (L*, against her cheek)': ('cat_hollow', 'max', 3.0, 'starting guess'),
@@ -375,7 +394,7 @@ def summarise(rows: list[dict], looks: list[str]) -> dict:
         vals = {}
         vals['cat_colour'] = [r.get(f'cat_{k}') for r in R for k in ('lip', 'lid', 'cheek')]
         vals['light_colour'] = [r.get(f'light_{k}') for r in R for k in ('lip', 'lid', 'cheek')]
-        for k in ('cat_face', 'cat_iou_eyes', 'cat_shift_eyes', 'cat_brow', 'brow_spill', 'cat_hollow', 'hollow_lift', 'skin_fine', 'skin_shading', 'skin_blotch', 'edge_bleed', 'eye_whites', 'outside', 'clipped', 'drift'):
+        for k in ('cat_face', 'cat_iou_eyes', 'cat_shift_eyes', 'cat_lowlash', 'cat_brow', 'brow_spill', 'cat_hollow', 'hollow_lift', 'skin_fine', 'skin_shading', 'skin_blotch', 'edge_bleed', 'eye_whites', 'outside', 'clipped', 'drift'):
             vals[k] = [r.get(k) for r in R]
         # fairness: per look, the lipstick hue on light, medium and deep skin (real faces, own light)
         fair = []

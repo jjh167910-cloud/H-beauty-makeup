@@ -243,6 +243,13 @@ const CONCEAL_LOOK = 0.85, CONCEAL_LOOK_MAX = 2.2, CONCEAL_HAIR = 0.8, CONCEAL_T
  * crescent once the hollow kept its shading (benchmark, 2026-11). As finish.py.
  */
 const CONCEAL_TONE_FULL = 0.25;
+/**
+ * And it gives way under the look's own shadow (the layer darkening her): by as much as the shadow darkens her, all of it
+ * once the shadow takes CONCEAL_UNDER off her light (log). A smoky look's shadow along the lower lashes went on over
+ * the concealer's lift and came out 4 to 6 L* lighter than its catalog photo, which has none under it (benchmark, 2026-11).
+ * As finish.py.
+ */
+const CONCEAL_UNDER = 0.25;
 const CONCEAL_REF = [0.85, 0.1, 0.18], CONCEAL_Q = 0.6;
 /**
  * Her eye's hollow keeps its own shading: only what is darker than CONCEAL_SHADE of her cheek's brightness below is lifted
@@ -2182,6 +2189,7 @@ void main() {
       vec2 eyeC = (zR >= zL ? uConC.xy : uConC.zw) - dn * uEw * 0.42;
       float ref = zR >= zL ? uConRef.x : uConRef.y;
       float k = max(zR, zL) * uConRef.z * (uZonesOn == 1 ? rv(1, sw) : 1.0) * (1.0 - M.r);
+      k *= 1.0 - clamp(-luma(lr) * uK.x * (1.0 - M.r) / ${CONCEAL_UNDER.toFixed(3)}, 0.0, 1.0);   // (under the look's shadow)
       float ys = pow(g0, 2.2), y = luma(lu);
       float gain = pow(clamp(ref * ${CONCEAL_SHADE.toFixed(3)} / max(ys, 1e-4), 1.0, ${CONCEAL_LOOK_MAX}), ${CONCEAL_LOOK});
       float nearLash = 1.0 - smoothstep(${CONCEAL_LASH[0]}, ${CONCEAL_LASH[1]}, dot(px - eyeC, dn) / uEw);

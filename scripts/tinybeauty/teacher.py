@@ -158,10 +158,13 @@ def regions(shape, p):
     """Masks in a photo's own coordinates: face, fine zone (eyes, lids, wings, lips), eyeballs, mouth, plain skin."""
     ew = eye_width(p)
     face = poly_mask(shape, p, [OVAL]); fine = np.zeros(shape, np.float32)
-    for ring, brow in ((EYE_R, BROW_R), (EYE_L, BROW_L)):
-        e = p[ring]; c = e.mean(0)
-        hull = cv2.convexHull(np.float32(np.vstack([e, p[brow], [c + [ew * 0.95, -ew * 0.2], c + [-ew * 0.8, 0], c + [0, ew * 0.45]]])))
+    mid = p[EYE_R + EYE_L, 0].mean(); ax = p[263] - p[33]; ax = ax / np.linalg.norm(ax); dn = np.array([-ax[1], ax[0]])
+    for ring, brow, low in ((EYE_R, BROW_R, LOWER_LIDS[0]), (EYE_L, BROW_L, LOWER_LIDS[1])):
+        e = p[ring]; c = e.mean(0); out = np.sign(c[0] - mid) or 1.0     # (each eye's own outer side: its wing)
+        hull = cv2.convexHull(np.float32(np.vstack([e, p[brow], [c + [out * ew * 0.95, -ew * 0.2], c + [-out * ew * 0.8, 0], c + [0, ew * 0.45]]])))
         cv2.fillConvexPoly(fine, np.int32(hull), 1)
+        # and along her lower lashes, where a smoky shadow or a lower liner goes (FINE_LOW)
+        cv2.fillPoly(fine, [np.int32(np.round(np.vstack([p[low], (p[low] + dn * ew * FINE_LOW)[::-1]])))], 1)
     cv2.fillPoly(fine, [np.int32(np.round(p[LIPS_OUT]))], 1)
     fine = cv2.GaussianBlur(cv2.dilate(fine, np.ones((5, 5))), (0, 0), ew * 0.08)
     balls = poly_mask(shape, p, [EYE_R, EYE_L], scale=BALL_SCALE)
@@ -170,6 +173,10 @@ def regions(shape, p):
     return dict(ew=ew, face=face, fine=fine, balls=balls, mouth=mouth, skin=skin)
 
 
+# The eye zone reaches FINE_LOW eye widths below her lower lid's line: the catalog's shadow along the lower lashes came
+# into the layer as plain skin (its blue or plum, a "redness taken away", left out: pink or grey under the eye) and the
+# wing's side was set on the image's right for both eyes (one eye's outer corner counted as plain skin), 2026-11
+FINE_LOW = 0.25
 BALL_SCALE = [0.95, 0.8]   # the eyeball, as a share of the eye opening: no layer or eye detail inside it
 BALL_SOFT = 0.015          # its edge's softness, in eye widths (at least 1.5 px)
 FEATHER = 0.35             # the look's layer fades in over this far inside her face's outline (bare-face eye widths)
@@ -499,6 +506,7 @@ TONE_KEEP = (0.8, 0.9)     # how much of the look's complexion (brightness, colo
 TONE_MAX = 0.3             # the complexion's change, at most (log, per colour)
 FILL, FILL_OUT = 0.2, 1.08   # the layer's edge filled from inside (eye widths), out to this much of the face's outline
 EDGE_IN, EDGE_SOFT = (0.95, 0.97), 0.1   # the layer fades out at this much of the catalog face's outline (x, y), over (eye widths)
+EYE_HOLE = 1.1             # her eye openings (this much of each), filled in the cover the fade is measured on
 CORE = (0.85, 0.92)   # inside this much of the outline the catalog's detail is all makeup; beyond, only its broad shapes
 
 @lru_cache(None)
@@ -638,7 +646,11 @@ def layer_parts(look: str, fine_sigma=0.02, soft_sigma=0.07):
     # fade out before the face's edge: there the look photo differs from the bare one by more than
     # makeup (stray hair, the edge itself), which would show as an arc on her temples
     inner = poly_mask((H, W), pl[:, :2], [OVAL], scale=list(EDGE_IN))
-    mask = cv2.GaussianBlur(inner * cover, (0, 0), ew * EDGE_SOFT) * (1 - cv2.GaussianBlur(R['mouth'], (0, 0), 2))
+    # (her eye openings are holes in the mesh's cover, not her face's edge: softened with it, they faded the layer around
+    # both eyes, to about half at the lash lines, and the shadow along the lower lashes came out at two thirds of its
+    # catalog photo's, 2026-11)
+    whole = inner * np.maximum(cover, poly_mask((H, W), pl[:, :2], [EYE_R, EYE_L], scale=EYE_HOLE))
+    mask = cv2.GaussianBlur(whole, (0, 0), ew * EDGE_SOFT) * (1 - cv2.GaussianBlur(R['mouth'], (0, 0), 2))
     # hair: strands fall differently in the two photos; anything much darker than skin in either photo
     # towards the face's edge is left out (the centre and the eyes - their shadow, liner and wing - are kept)
     sky = float(np.median(luma(bw[R['skin'] * cover > 0.5])))
@@ -651,7 +663,7 @@ def layer_parts(look: str, fine_sigma=0.02, soft_sigma=0.07):
     # around (on her face a strand would be a thin dark line from her brow's tail down her cheek)
     # (not over the eyes and lips: the segmenter takes the liner and lashes for hair)
     keep = np.minimum(keep, np.maximum(catalog_visible(look, im, pl, base, pb, (H, W)), zone[..., 0]))
-    edge = cv2.GaussianBlur(inner * cover, (0, 0), ew * EDGE_SOFT) * keep   # the mask without the mouth: where the edge took it out
+    edge = cv2.GaussianBlur(whole, (0, 0), ew * EDGE_SOFT) * keep   # the mask without the mouth: where the edge took it out
     mask *= keep
     lr = np.clip(lr, np.log(0.06), np.log(3.0))
     m = mask.astype(np.float32)

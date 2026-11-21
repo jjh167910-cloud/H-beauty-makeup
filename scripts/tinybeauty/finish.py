@@ -24,10 +24,11 @@ TRYON_TS = T.REPO / 'src/lib/tryon.ts'
 GAINS = T.REPO / 'src/data/look-gains.json'
 STEPS = ['base', 'conceal', 'brows', 'shadow', 'liner', 'lashes', 'contour', 'blush', 'glow', 'lips', 'lenses']
 
-# As makeup-gl.ts: a look's concealer (CONCEAL_LOOK...), its brows (BROW_HAIR_Q, BROW_CARVE, BROW_ZONE, BROW_MASS), a strengthened layer
+# As makeup-gl.ts: a look's concealer (CONCEAL_LOOK..., CONCEAL_UNDER), its brows (BROW_HAIR_Q, BROW_CARVE, BROW_ZONE, BROW_MASS), a strengthened layer
 # (LIGHTEN_GAIN, CHROMA_GAIN); as tryon.ts: the brows' fill (BROW_LOOK_*), lighter on the barest looks.
 CONCEAL_LOOK, CONCEAL_LOOK_MAX, CONCEAL_HAIR, CONCEAL_TONE, CONCEAL_TONE_FULL = 0.85, 2.2, 0.8, 0.6, 0.25
 CONCEAL_REF, CONCEAL_Q, CONCEAL_SHADE = (0.85, 0.1, 0.18), 0.6, 0.45
+CONCEAL_UNDER = 0.25
 CONCEAL_ZONE, CONCEAL_LASH = (1.1, 1.45, 0.55, 1.3), (0.2, 0.32)
 CONCEAL_LIGHT = {'no-makeup': 0.5, 'clean-girl': 0.7}
 BROW_HAIR_Q, BROW_CARVE = 0.3, (0.07, 0.12)
@@ -73,9 +74,10 @@ def refs(ul, p):
     return under, tone, brow
 
 
-def conceal(lu, user, p, under, tone, amount):
+def conceal(lu, user, p, under, tone, amount, shadow=None):
     """A look's concealer on her light `lu` (linear, her foundation on): each under-eye lifted where it is darker than
-    CONCEAL_SHADE of her cheek below it (as makeup-gl.ts)."""
+    CONCEAL_SHADE of her cheek below it, less under the look's own shadow (`shadow`: the layer, log; CONCEAL_UNDER), as
+    makeup-gl.ts."""
     if amount <= 0 or tone is None or min(under) <= 0: return lu
     q = np.asarray(p, np.float64)[:, :2]; ew, ax, dn = _frame(q); H, W = lu.shape[:2]
     ys, xs = np.mgrid[0:H, 0:W] + 0.5
@@ -87,6 +89,8 @@ def conceal(lu, user, p, under, tone, amount):
         zs.append((1 - T.smoothstep(CONCEAL_ZONE[2], CONCEAL_ZONE[3], r)) * shown[e])
     first = zs[0] >= zs[1]
     ref = np.where(first, under[0], under[1]); k = np.maximum(zs[0], zs[1]) * amount * T.ball_keep((H, W), p)
+    if shadow is not None:   # (under the look's shadow: as much less as the shadow darkens her, all of it at CONCEAL_UNDER)
+        k = k * (1 - np.clip(-T.luma(shadow) / CONCEAL_UNDER, 0, 1))
     eyeC = np.where(first[..., None], cs[0] - dn * ew * 0.42, cs[1] - dn * ew * 0.42)
     grey = cv2.cvtColor(user, cv2.COLOR_RGB2GRAY).astype(np.float32) / 255
     Ys = T.soften(grey, max(1.2, ew * 0.042)) ** 2.2; y = T.luma(lu)
@@ -157,7 +161,6 @@ def prepare(look, face, p, level='natural'):
     ul = T.lin(face)
     lu = ul * T.foundation(face, ul, p, None, k_layer, None, None if tint is None else np.asarray(tint) ** k_layer, cover=T.look_cover(look))
     under, tone, brow = refs(ul, p)
-    lu = conceal(lu, face, p, under, tone, CONCEAL_LIGHT.get(look, 1.0) * k_layer)
     w, cover = T.mesh_warp(lr, T.symmetric(pl), p, (H, W), z=p[:, 2])
     # through her photo's lens (T.lens_sigma: on a soft photo the look is as soft as the photo), off her eyeballs
     lens = T.lens_sigma(T.photo_blur(face, p), T.eye_width(p[:, :2]))
@@ -166,6 +169,7 @@ def prepare(look, face, p, level='natural'):
     keep = T.ball_keep((H, W), p, lens) * (1 - cv2.GaussianBlur(R['mouth'], (0, 0), 1.5))
     A, B = PR.step_zones((H, W), p, 'apples')
     w = T.hair_light(w, face, p, B[..., 1]) * (keep * k_layer)[..., None]
+    lu = conceal(lu, face, p, under, tone, CONCEAL_LIGHT.get(look, 1.0) * k_layer, w)
     return dict(look=look, face=face, p=p, levels=(k_layer, k_lip, k_eye), ul=ul, lu=lu, brow=brow, w=w, A=A, B=B,
                 browk=k_layer * T.ball_keep((H, W), p, lens))
 
