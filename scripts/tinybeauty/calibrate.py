@@ -1,5 +1,8 @@
 """Each catalog look as strong as its catalog photo, region by region: per-look step gains for the graphics-chip engine.
 
+(Since 2026-11 the gains are set by calibrate_de.py, by colour against the catalog photos: this projection overdid
+lids that lighten in one place and darken in another. This stays for the strength check and the looks' liner limit.)
+
     python scripts/tinybeauty/calibrate.py DIR      # DIR: strength.py renders' output (DIR/strength.json), made from the
                                                      # engine's renders of every look on the bare catalog face
 
@@ -11,7 +14,7 @@ run, its total between LIMITS. Run, render again, measure again: two or three ru
 A region whose catalog change is small (under strength.FLOOR) has nothing to match; one that comes out under MIN_K (the
 engine's change goes another way) isn't a matter of strength, and is left: a gain set by hand there stays (cut-crease's
 lids: its light cut and dark crease in one region measure as almost nothing, and the general eyeshadow strength made its
-crease black; 0.55 by eye). Lips are only ever taken down, the liner at most 1.3 (HIGH).
+crease black; 0.55 by eye). Lips are only ever taken down; the liner isn't calibrated (STEP).
 """
 from __future__ import annotations
 import json, sys
@@ -23,7 +26,10 @@ import strength as ST
 
 GAINS = Path(__file__).resolve().parents[2] / 'src/data/look-gains.json'
 # region (strength.py) -> the engine's step zone whose gain carries it
-STEP = {'lid': 'shadow', 'wing': 'liner', 'cheek': 'blush', 'contour': 'contour', 'lips': 'lips'}
+# (the wing past her outer corner no longer moves the liner: the liner's gain darkens all of her lash line, which came
+# out two to three times as dark as the catalog's while the wing's tip still measured weak; the wing is the mesh's fade
+# past her outer corner, not the liner's strength)
+STEP = {'lid': 'shadow', 'cheek': 'blush', 'contour': 'contour', 'lips': 'lips'}
 RATE, STEP_MAX, LIMITS, MIN_K, TOL = 0.8, 1.5, (0.5, 2.0), 0.25, 0.08
 # Highest per step: lips never up (a lipstick's blend past full is an extrapolation); the liner's eye detail at most 1.3
 # (the wing past the outer corners measures weak mostly because a turned face's far eye is the near one's mirror image,

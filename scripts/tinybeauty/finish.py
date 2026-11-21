@@ -129,6 +129,12 @@ def strengthen(w, RL):
 
 def paint_finished(look, face, p, level='natural'):
     """`look` on `face` (RGB uint8, MediaPipe points p) as the engine paints it (see the module's doc)."""
+    return finish_with(prepare(look, face, p, level), look_gain(look))
+
+
+def prepare(look, face, p, level='natural'):
+    """Everything paint_finished does before the look's step gains come in (the slow part: foundation, concealer, the
+    layer warped onto her face), so calibrate_de.py can try many gains on one face."""
     k_layer, k_lip, k_eye = T.LEVELS[level]; H, W = face.shape[:2]
     lr, pl = T.make_layer(look); tint = T.look_tint(look)
     ul = T.lin(face)
@@ -141,16 +147,23 @@ def paint_finished(look, face, p, level='natural'):
     w = T.skin_fade(T.soften(T.extend_layer(w, T.feather_map(p, (H, W)) * cover, p, (H, W)), lens), None)
     R = T.regions((H, W), p[:, :2])
     keep = T.ball_keep((H, W), p, lens) * (1 - cv2.GaussianBlur(R['mouth'], (0, 0), 1.5))
-    G = look_gain(look); g = lambda k: G.get(k, 1.0)
     A, B = PR.step_zones((H, W), p, 'apples')
+    w = T.hair_light(w, face, p, B[..., 1]) * (keep * k_layer)[..., None]
+    return dict(look=look, face=face, p=p, levels=(k_layer, k_lip, k_eye), ul=ul, lu=lu, brow=brow, w=w, A=A, B=B,
+                browk=k_layer * T.ball_keep((H, W), p, lens))
+
+
+def finish_with(st, G):
+    """The rest of paint_finished with step gains G (as look_gain's)."""
+    g = lambda k: G.get(k, 1.0); A, B = st['A'], st['B']; _, k_lip, k_eye = st['levels']
     s = A.sum(-1) + B[..., 0]; sc = np.where(s > 1, 1 / np.maximum(s, 1e-6), 1.0)
     RL = np.maximum(0, 1 - s * sc) * g('base') + sc * (A[..., 0] * g('conceal') + B[..., 0] * g('shadow') + A[..., 1] * g('contour')
                                                          + A[..., 2] * g('blush') + A[..., 3] * g('glow'))
-    base = lu * np.exp(T.layer_floor(strengthen(T.hair_light(w, face, p, B[..., 1]) * (keep * k_layer)[..., None], RL)))
-    base = brows(base, ul, face, p, look, brow, k_layer * T.ball_keep((H, W), p, lens))
-    out = T.srgb(T.shoulder(T.apply_lips(base, ul, p, look, k_lip * g('lips'), None), ul))
+    base = st['lu'] * np.exp(T.layer_floor(strengthen(st['w'], RL)))
+    base = brows(base, st['ul'], st['face'], st['p'], st['look'], st['brow'], st['browk'])
+    out = T.srgb(T.shoulder(T.apply_lips(base, st['ul'], st['p'], st['look'], k_lip * g('lips'), None), st['ul']))
     RD = B[..., 1] * g('liner') + (1 - B[..., 1]) * g('lashes')
-    return T.apply_eyes(out, face, p, look, strength=k_eye * RD)
+    return T.apply_eyes(out, st['face'], st['p'], st['look'], strength=k_eye * RD)
 
 
 if __name__ == '__main__':

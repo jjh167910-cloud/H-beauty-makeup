@@ -6,8 +6,8 @@
                                                                # DIR/0_bare.png (no makeup) and DIR/points.json
     python scripts/tinybeauty/strength.py sig                  # each look's signature for the try-on's look rail
                                                                # (src/data/look-signatures.json, see SIG_WEIGHT)
-LOOKS: comma-separated (default: all). For each look and region (her lids, past her eyes' outer corners where a wing
-runs out, cheeks, under her cheekbones, lips, and her face as a whole) the change the makeup makes: the log ratio of
+LOOKS: comma-separated (default: all). For each look and region (her lids, under her eyes, past her eyes' outer corners
+where a wing runs out, cheeks, under her cheekbones, lips, and her face as a whole) the change the makeup makes: the log ratio of
 the region's average colour (linear RGB) made up over
 bare, for the catalog with the photo's own grading taken out (teacher.grading). Its strength is how much of the
 catalog's change it has (the change projected on the catalog's: 100% = as strong), and it strays when that is off by
@@ -22,7 +22,7 @@ import cv2, numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import teacher as T
 
-REGIONS = ['lid', 'wing', 'cheek', 'contour', 'lips', 'face']   # (the temples: the catalog's hair falls differently there)
+REGIONS = ['lid', 'under', 'wing', 'cheek', 'contour', 'lips', 'face']   # (the temples: the catalog's hair falls differently there)
 TOL, FLOOR = 0.1, 0.04
 # A look's signature: its catalog photo's change per region, weighted by how much a difference there shows (the lips and
 # lids most, under the cheekbones and the whole face least). The look rail puts the looks most unlike those before
@@ -41,10 +41,20 @@ def masks(P, shape, half=0):
         m = np.zeros((H, W), np.uint8); cv2.circle(m, (int(c[0]), int(c[1])), int(r * ew), 1, -1); return m.astype(bool)
     eyes = poly(T.EYE_R, 0.15) | poly(T.EYE_L, 0.15)
     brows = poly(T.BROW_R, 0.3) | poly(T.BROW_L, 0.3)
-    lid = (poly(T.EYE_R, 1.0) | poly(T.EYE_L, 1.0)) & ~eyes & ~brows
+    around = (poly(T.EYE_R, 1.0) | poly(T.EYE_L, 1.0)) & ~eyes & ~brows
+    # her lids (where the eyeshadow goes: above the line through each eye's corners) and under her eyes (the concealer,
+    # a lower liner or a smoky eye's lower edge). One region for both measured the lids as strong as the catalog's when
+    # they were twice as strong: the concealer's lighter under-eye evened the average out (benchmark, 2026-11).
+    ys, xs = np.mgrid[0:H, 0:W]; upper = np.zeros((H, W), bool)
+    for inner, outer, brow in ((133, 33, T.BROW_R), (362, 263, T.BROW_L)):
+        a, b = q[inner], q[outer]; c = q[brow].mean(0)
+        side = lambda x, y: (b[0] - a[0]) * (y - a[1]) - (b[1] - a[1]) * (x - a[0])
+        near = np.hypot(xs - (a[0] + b[0]) / 2, ys - (a[1] + b[1]) / 2) < 1.2 * ew
+        upper |= near & (np.sign(side(xs, ys)) == np.sign(side(*c)))
+    lid, under = around & upper, around & ~upper
     lips = poly(T.LIPS_OUT) & ~poly(T.LIPS_IN)
     oval = T.poly_mask((H, W), q, [T.OVAL], scale=0.95) > 0.5
-    cheek = (disk(q[205], 0.25) | disk(q[425], 0.25)) & ~lid
+    cheek = (disk(q[205], 0.25) | disk(q[425], 0.25)) & ~around
     contour = (disk((q[147] + q[213]) / 2, 0.2) | disk((q[376] + q[433]) / 2, 0.2)) & ~cheek
     temple = disk(q[54] + [0, 0.1 * ew], 0.2) | disk(q[284] + [0, 0.1 * ew], 0.2)
     # past each eye's outer corner, where a liner's wing and a smoky eye's edge run out (up to 0.8 eye widths on)
@@ -55,7 +65,7 @@ def masks(P, shape, half=0):
         cv2.fillConvexPoly(wing, np.int32(np.round(pts)), 1)
     wing = wing.astype(bool) & ~poly(T.EYE_R, 0.15) & ~poly(T.EYE_L, 0.15) & ~brows
     face = oval & ~poly(T.LIPS_OUT, 0.15) & ~(poly(T.EYE_R, 1.2) | poly(T.EYE_L, 1.2)) & ~brows
-    out = dict(lid=lid, wing=wing & ~lid, cheek=cheek & oval, contour=contour & oval, temple=temple & oval, lips=lips, face=face)
+    out = dict(lid=lid, under=under, wing=wing & ~around, cheek=cheek & oval, contour=contour & oval, temple=temple & oval, lips=lips, face=face)
     if half:
         a, d = q[10], q[152] - q[10]; ys, xs = np.mgrid[0:H, 0:W]
         side = np.sign(d[0] * (ys - a[1]) - d[1] * (xs - a[0]))

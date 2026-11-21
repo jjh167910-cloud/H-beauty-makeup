@@ -537,6 +537,15 @@ const LIP_CROP = 1.6, LIP_BAND = 0.14, LIP_BAND_IN = 0.015;
  * upper lip (its border catches the light) is brighter than her lips but as red, and is lip.
  */
 const LIP_LUMA = 0.4;
+/**
+ * Her lips in a dark photo: their colours and her skin's are as far apart as in a lit one, only darker, so they are
+ * told apart (and fitted to her photo) as if her lips' crop were as bright as LIP_LEVEL (its median, 0-1), at most
+ * LIP_GAIN_MAX times brighter (darker still is mostly noise). Without it, the colour model's fixed allowance and the
+ * guided filter's regularisation swamped a dark photo's small differences: the lipstick spread past her lip line as a
+ * soft halo (the benchmark's poorly lit faces).
+ */
+export const LIP_LEVEL = 0.35, LIP_GAIN_MAX = 6;
+export const lipGain = (level?: number) => (level ? Math.min(LIP_GAIN_MAX, Math.max(1, LIP_LEVEL / Math.max(level, 1e-3))) : 1);
 
 /** Signed distance from (x, y) to a closed polygon (flat x, y list): positive inside. */
 function polyDist(poly: number[], x: number, y: number): number {
@@ -589,6 +598,11 @@ export function lipProb(photo: HTMLCanvasElement, P: Pt[], scratch?: HTMLCanvasE
   g.drawImage(photo, -box[0] * k, -box[1] * k, photo.width * k, photo.height * k);
   padEdges(g, n, -box[0] * k, -box[1] * k, photo.width * k, photo.height * k);
   const px = g.getImageData(0, 0, n, n).data;
+  const hist = new Uint32Array(256);    // her lips' crop's median brightness (the (n*n-1)/2-th darkest pixel)
+  for (let i = 0; i < n * n; i++) hist[Math.round(0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2])]++;
+  let level = 0;
+  for (let v = 0, seen = 0, mid = Math.floor((n * n - 1) / 2); v < 256; v++) { seen += hist[v]; if (seen > mid) { level = v / 255; break; } }
+  const gain = lipGain(level);
   const ew = eyeWidth(P) * k;
   const out = LIPS_OUT.flatMap((i) => [(P[i][0] - box[0]) * k, (P[i][1] - box[1]) * k]);
   const inn = LIPS_IN.flatMap((i) => [(P[i][0] - box[0]) * k, (P[i][1] - box[1]) * k]);
@@ -596,7 +610,7 @@ export function lipProb(photo: HTMLCanvasElement, P: Pt[], scratch?: HTMLCanvasE
   const core = new Uint8Array(n * n), ring = new Uint8Array(n * n);
   for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
     const i = y * n + x, r = px[i * 4], gg = px[i * 4 + 1], b = px[i * 4 + 2];
-    f[i * 3] = LIP_LUMA * (0.299 * r + 0.587 * gg + 0.114 * b); f[i * 3 + 1] = r - gg; f[i * 3 + 2] = gg - b;
+    f[i * 3] = gain * LIP_LUMA * (0.299 * r + 0.587 * gg + 0.114 * b); f[i * 3 + 1] = gain * (r - gg); f[i * 3 + 2] = gain * (gg - b);
     so[i] = polyDist(out, x + 0.5, y + 0.5); si[i] = polyDist(inn, x + 0.5, y + 0.5);
     core[i] = so[i] > 0.06 * ew && si[i] < -0.03 * ew ? 1 : 0;
     ring[i] = so[i] < -0.05 * ew && so[i] > -0.14 * ew ? 1 : 0;
@@ -617,7 +631,7 @@ export function lipProb(photo: HTMLCanvasElement, P: Pt[], scratch?: HTMLCanvasE
     const w = Math.min(1, Math.max(0, 1 - Math.abs(so[i]) / ((so[i] > 0 ? LIP_BAND_IN : LIP_BAND) * ew)));
     p[i] = Math.round(((so[i] > 0 ? 1 : 0) * (1 - w) + post * w) * 255);
   }
-  return { p, box, clarity: 0.5 * (coreHit / Math.max(coreN, 1) + ringHit / Math.max(ringN, 1)) };
+  return { p, box, clarity: 0.5 * (coreHit / Math.max(coreN, 1) + ringHit / Math.max(ringN, 1)), level };
 }
 
 /* The tiny networks run in a worker (see tryon-worker.ts) so the screen stays responsive. */
@@ -758,12 +772,15 @@ const BROW_LOOK: Record<string, number> = { "no-makeup": 0.6 };
 /**
  * Each region of a catalog look made as strong as in its catalog photo: the engine lost part of it on the way (the layer
  * fades in from her face's outline, past her eyes' outer corners and around her eyes), so on the catalog face itself the
- * lids came out at about 60% of the photo's change, the wings past the outer corners 42%, the cheeks 79%
- * (strength.py renders). These gains (per step zone: the layer's skin level outside the zones, lids, eye detail along
- * the liner, blush, highlight) bring it up to about the photo's; each look's own (src/data/look-gains.json, made by
- * scripts/tinybeauty/calibrate.py from the same measurement) multiply them.
+ * wings past the outer corners came out at 42% of the photo's change, the cheeks 79% (strength.py renders). These gains
+ * (per step zone: the layer's skin level outside the zones, lids, eye detail along the liner, blush, highlight) bring it
+ * up to about the photo's; each look's own (src/data/look-gains.json, made by scripts/tinybeauty/calibrate_de.py: the
+ * gain that brings each region's colour closest to its catalog photo) multiply them. The lids and the liner no longer need any: they come through whole. (Both were
+ * doubled, in the benchmark of 2026-11 on the catalog face: the lids while the measurement averaged them with the
+ * concealer's lighter under-eye, the liner pushed up for its wing's tip, which made her whole lash line two to three times
+ * as dark as the catalog's.)
  */
-const LOOK_GAIN: Partial<Record<StepKey, number>> = { base: 1.15, contour: 0.75, shadow: 2, liner: 1.4, lashes: 1.15, blush: 1.3, glow: 1.3 };
+const LOOK_GAIN: Partial<Record<StepKey, number>> = { base: 1.15, contour: 0.75, shadow: 1, liner: 1, lashes: 1.15, blush: 1.3, glow: 1.3 };
 
 /**
  * What every catalog look adds to its layer, from her face as measured (cheap: the live mirror works it out each frame):

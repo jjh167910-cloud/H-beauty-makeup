@@ -293,9 +293,11 @@ const COVER_BAND = 0.4;
 const RETOUCH_FULL = 0.75;
 export const LIP_GRID = 192;
 const LIP_SIGMA = 0.025, LIP_EPS = 1e-3;
+/** A dark photo's lips are fitted as if their crop were this bright, at most this many times brighter (LIP_LEVEL in tryon.ts). */
+const LIP_LEVEL = 0.35, LIP_GAIN_MAX = 6;
 /** Her lips refined (lip_prob in teacher.py): the probability on a LIP_GRID x LIP_GRID crop (`box`: x0, y0, side). */
 /** Her lips on a square crop (box: x, y, side): lip probability, and how clearly her lips stood out from her skin (0.5-1). */
-export type LipGrid = { p: Uint8Array; box: [number, number, number]; clarity?: number };
+export type LipGrid = { p: Uint8Array; box: [number, number, number]; clarity?: number; level?: number };
 
 const feathers = new WeakMap<Canon, Float32Array>();
 const eyeAreas = new WeakMap<Canon, [Float32Array, Float32Array]>();
@@ -1420,6 +1422,12 @@ export function measureFace(source: CanvasImageSource, P: Pt[]): FaceStats {
 /** At most this much more (or less) of one colour in her light than the mean (her eye whites over the catalog's). */
 const LIGHT_CAST = 1.08;
 /**
+ * Her light can be this dim against the catalog photo's, no dimmer (her skin bounds it first: FAIREST). It was 0.3: in a
+ * dark photo (a dim room, the benchmark's poorly lit faces at 0.01-0.03) the lipstick then came out 10 to 40 times
+ * brighter than her lips' light allowed, a glowing red on a dark face.
+ */
+const LIGHT_MIN = 0.005;
+/**
  * The lipstick colour for her photo (linear RGB) and the mean light factor, as lip_target in teacher.py: the look's
  * lipstick in her light (her eye whites over the catalog's); nude shades also follow her skin's own depth (her skin over
  * the catalog model's, her light taken out: a nude chosen for the model becomes the same nude for her), deep ones not.
@@ -1433,7 +1441,7 @@ export function lipTarget(lip: LipInfo, face: FaceStats): { colour: number[]; li
     // Small, soft or shaded eyes read too dark: her light can't be dimmer than her skin allows.
     const floor = face.skin && lip.skin ? face.skin / lip.skin / FAIREST : 0;
     const ceiling = face.skin && lip.skin ? (face.skin / lip.skin) * DEEPEST : Infinity;
-    g = Math.min(2, Math.max(0.3, Math.min(mean, ceiling), floor)) ** 0.85;
+    g = Math.min(2, Math.max(LIGHT_MIN, Math.min(mean, ceiling), floor)) ** 0.85;
     // (her eye whites are a rough white: their own tint and reflections mustn't turn every product cold or warm)
     light = e.map((v) => g * Math.min(LIGHT_CAST, Math.max(1 / LIGHT_CAST, v / mean)) ** 0.8);
   }
@@ -3034,7 +3042,9 @@ export class MakeupGL {
 
     // 3b. where her face can be seen, and her own lip line
     const [visMode, visTex] = vis ? this.guided("vis", vis, VIS_GRID, vis.box, vis.probs, GUIDE_SIGMA, GUIDE_EPS, P, ew, w, h) : [0, this.src];
-    const [lipMode, lipTex] = lips ? this.guided("lip", lips, LIP_GRID, lips.box, lips.p, LIP_SIGMA * ew * LIP_GRID / lips.box[2], LIP_EPS, P, ew, w, h) : [0, this.src];
+    // (a dark photo's lips fitted as if lit: lipGain in tryon.ts)
+    const lipEps = LIP_EPS / Math.min(LIP_GAIN_MAX, Math.max(1, LIP_LEVEL / Math.max(lips?.level ?? LIP_LEVEL, 1e-3))) ** 2;
+    const [lipMode, lipTex] = lips ? this.guided("lip", lips, LIP_GRID, lips.box, lips.p, LIP_SIGMA * ew * LIP_GRID / lips.box[2], lipEps, P, ew, w, h) : [0, this.src];
 
     // 3c. her foundation (foundation() in teacher.py): her visible skin and its softened light at 1/EXTEND_SCALE of the
     // size, then her photo with the foundation on, which the main pass paints the look over. In the tutorial it goes on

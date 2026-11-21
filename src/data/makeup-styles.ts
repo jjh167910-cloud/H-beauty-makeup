@@ -124,7 +124,7 @@ export const MAKEUP_STYLES: MakeupStyle[] = [
   style("monochrome", "مونوکروم بری",
     { skin: "matte", shadow: "wash", lid: ["#c0606f", "#8f3a4c"], liner: "thin", lashes: "volume", brow: "natural", blush: "high", blushColor: "#c86476", lip: "matte", lipColor: "#8f3a4c" }),
   style("glitter-party", "گلیتر",
-    { skin: "glow", shadow: "wash", lid: ["#e7c9d2", "#c9a0b0"], liner: "wing", lashes: "dramatic", brow: "natural", blush: "apples", blushColor: "#e09aa5", lip: "gloss", lipColor: "#c97a8a", accents: ["glitter", "shimmer"] }),
+    { skin: "glow", shadow: "wash", lid: ["#f3b8a6", "#b5706c"], liner: "wing", lashes: "dramatic", brow: "natural", blush: "apples", blushColor: "#e09aa5", lip: "gloss", lipColor: "#c97a8a", accents: ["glitter", "shimmer"] }),
   style("rhinestone", "نگین‌دار",
     { skin: "dewy", shadow: "wash", lid: ["#dfc0e6", "#b48bc4"], liner: "thin", lashes: "volume", brow: "natural", blush: "high", blushColor: "#e59ab0", lip: "gloss", lipColor: "#c97a96", accents: ["rhinestones", "shimmer"] }),
   style("electric-blue", "آبی ادیتوریال",

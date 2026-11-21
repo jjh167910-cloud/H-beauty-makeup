@@ -281,9 +281,11 @@ in makeup-gl.ts):
   the teacher: 81%, 43%, 75%): the layer fades in from her face's outline, past the outer corners and around her eyes.
   Each look's step zones now carry gains on the look's own layer, eye detail and lipstick (`Products.layerGain`, never
   on a recipe's added shimmer or highlight: doubling a shimmer's coverage painted grey-green lids): `LOOK_GAIN` for all
-  (lids ×2, eye detail along the liner ×1.4, the rest of the eye detail ×1.15, blush and highlight ×1.3, the layer's
-  skin level ×1.15, contour ×0.75) times each look's own (`src/data/look-gains.json`, made by
-  `scripts/tinybeauty/calibrate.py` from the same measurement, five rounds: each moves a look's gain for a region by
+  (the rest of the eye detail ×1.15, blush and highlight ×1.3, the layer's skin level ×1.15, contour ×0.75; lids and
+  the liner ×1 since the quality benchmark, 2026-11: they had come out 1.5 to 2 times the catalog's) times each look's
+  own (`src/data/look-gains.json`, set since 2026-11 by `scripts/tinybeauty/calibrate_de.py`: each step's gain searched
+  for the closest colour to the catalog photo, pixel by pixel, in its region on the catalog face; see "The quality
+  benchmark" below. Before that by `scripts/tinybeauty/calibrate.py` from the same measurement, five rounds: each moves a look's gain for a region by
   (1 / strength)^0.8, at most ×1.5 a round, between ×0.5 and ×2; lips only ever down, and only for the look's own
   lipstick, not one she picks; the liner at most ×1.3: the wing measures weak because a turned face's far eye is the
   near one's mirror image, and pushing the liner for it made heavy black lines). A region it can't measure keeps a gain
@@ -983,7 +985,25 @@ python scripts/tinybeauty/strength.py sig               # each look's signature 
 python scripts/tinybeauty/add_looks.py id,id            # only these looks' layers, eye maps, coverage maps, json entries and signatures
 node scripts/tinybeauty/render_catalog_face.cjs DIR --looks id,id   # the engine's renders on the bare catalog face (for strength / calibrate)
 python scripts/tinybeauty/calibrate.py DIR              # each look's own gains from those renders (src/data/look-gains.json)
+python scripts/tinybeauty/calibrate_de.py [LOOKS]       # ...or by colour against the catalog photos (the way since 2026-11)
 ```
+
+## The quality benchmark
+
+`scripts/bench/` (its README): every engine change is measured on the same photos against the last accepted version.
+The photos are 19 real people across all ten Monk skin tones (MST-E, Google and TONL, 2023; phone photos in good and
+poor light), the catalog face, and known light changes of both (a warm bulb, a dim noisy room, a phone flash). The
+catalog face is scored against the catalog photos; the real faces for the same look in another light, skin-tone
+fairness, skin texture, edges, eye whites and whether the face moved. MST-E's terms allow evaluation, not training:
+nothing is fitted to it, it never goes in the repo, CI or an AI service, and its report is a private file.
+
+The first runs (November 2026) found the lids and liner 1.5 to 2 times as strong as the catalog photos, lipsticks far
+too bright in dark photos (a 0.3 floor on the light estimate: `LIGHT_MIN` now 0.005) with their edge spreading there
+(the lip outline fit now works on the photo's own lip brightness: `lipGain`), and glitter and shimmer lids gone lilac
+(their gains set by the projected strength: now `calibrate_de.py`). Kept as it is, on purpose: a lipstick follows a
+coloured light only partly (`LIGHT_CAST`: eye whites are too unreliable a white reference to follow fully), so under
+a warm bulb it stays about ΔE 2.7 cooler than the truth. `scripts/bench/history.jsonl` keeps every run's numbers.
+The fallback networks learned the earlier strengths (finish.py is their teacher) and are to be trained again.
 
 After `layers`, run `products.py cov` (it adds to looks.json) and bump `DATA_V` in `tryon.ts`.
 

@@ -1054,6 +1054,7 @@ MATTE_SHINE = 0.3     # how much of her lips' own highlights shows through a mat
 FAIREST = 1.15        # fairest skin, relative to the catalog model's (who is fair)
 DEEPEST = 12          # the catalog model's skin reflects at most this many times the light the deepest skin does
 LIGHT_CAST = 1.08     # at most this much more (or less) of one colour in her light than the mean (her eye whites' own tint)
+LIGHT_MIN = 0.005     # her light can be this dim against the catalog's (it was 0.3: a dark photo's lipstick glowed); her skin bounds it first
 NUDE_DEEP = (0.25, 0.45)   # a nude shade's brightness over the skin's (in the catalog) below which it is a pigment (a
                            # deep brown, a plum): it no longer follows her skin's depth, by NUDE_DEEP[1] it fully does
 # intensity: (catalog layer, lipstick opacity, eye detail)
@@ -1161,7 +1162,7 @@ def lip_target(L, u_sclera, u_skin, rgb=False):
         floor = u_skin / L['skin'] / FAIREST if u_skin and L['skin'] else 0.0
         # nor brighter than the deepest skin allows (a dim photo's eye whites still read bright: catchlights, gloss)
         ceiling = u_skin / L['skin'] * DEEPEST if u_skin and L['skin'] else float('inf')
-        g = float(np.clip(max(min(mean, ceiling), floor), 0.3, 2.0)) ** 0.85
+        g = float(np.clip(max(min(mean, ceiling), floor), LIGHT_MIN, 2.0)) ** 0.85
         # (her eye whites are a rough white: their own tint and reflections mustn't turn every product cold or warm)
         light = g * np.clip(e / mean, 1 / LIGHT_CAST, LIGHT_CAST) ** 0.8
     if u_skin and L['skin']:
@@ -1253,6 +1254,15 @@ LIP_CROP = 1.6     # the crop: this many times the lips' larger side
 LIP_BAND = 0.14    # her lips' colour decides within this far outside the detected lip outline (eye widths)
 LIP_BAND_IN = 0.015  # ... and this far inside it (the lighter border of her lips looks like skin to the colours)
 LIP_LUMA = 0.4     # her lips' brightness counts this much against their colour (the light rim of her upper lip is lip)
+LIP_LEVEL, LIP_GAIN_MAX = 0.35, 6   # a dark photo's lips are told apart and fitted as if their crop's median were this bright (lipGain)
+
+def lip_level(grid):
+    """The lips' crop's median brightness (0-1, its (n-1)/2-th darkest pixel, as lipProb)."""
+    l = np.sort(np.round(grid.astype(np.float64) @ [0.299, 0.587, 0.114]).ravel())
+    return float(l[(len(l) - 1) // 2]) / 255
+
+def lip_gain(level):
+    return float(np.clip(LIP_LEVEL / max(level, 1e-3), 1, LIP_GAIN_MAX))
 LIP_SIGMA = 0.025  # guided filter window (eye widths)
 LIP_EPS = 1e-3     # guided filter regularisation
 
@@ -1279,12 +1289,13 @@ def lip_prob(img, p):
     import occlusion as O
     box = lip_box(p); n = LIP_GRID; k = n / box[2]
     g = O.to_grid(img, box, n).astype(np.float64)
+    gain = lip_gain(lip_level(g))
     ew = eye_width(np.asarray(p)[:, :2]) * k
     ys, xs = np.mgrid[0:n, 0:n] + 0.5
     pts = np.c_[xs.ravel(), ys.ravel()]
     q = (np.asarray(p, np.float64)[:, :2] - box[:2]) * k
     so = poly_sdist(q[LIPS_OUT], pts).reshape(n, n); si = poly_sdist(q[LIPS_IN], pts).reshape(n, n)
-    f = np.dstack([LIP_LUMA * (g @ [0.299, 0.587, 0.114]), g[..., 0] - g[..., 1], g[..., 1] - g[..., 2]])
+    f = gain * np.dstack([LIP_LUMA * (g @ [0.299, 0.587, 0.114]), g[..., 0] - g[..., 1], g[..., 1] - g[..., 2]])
     core = (so > 0.06 * ew) & (si < -0.03 * ew); ring = (so < -0.05 * ew) & (so > -0.14 * ew)
     if core.sum() < 20 or ring.sum() < 20: return None, box
     def ll(sel):
@@ -1303,8 +1314,9 @@ def lip_mask(img, p, pr=None, box=None):
     if pr is None: pr, box = lip_prob(img, p)
     if pr is None: return None
     n = LIP_GRID; k = n / box[2]
-    I = O.to_grid(img, box, n).astype(np.float32) / 255 - 0.5
-    a, b = O.fit(I, pr, LIP_SIGMA * eye_width(np.asarray(p)[:, :2]) * k, LIP_EPS)
+    g = O.to_grid(img, box, n); I = g.astype(np.float32) / 255 - 0.5
+    gain = lip_gain(lip_level(g))
+    a, b = O.fit(I, pr, LIP_SIGMA * eye_width(np.asarray(p)[:, :2]) * k, LIP_EPS / gain ** 2)
     H, W = img.shape[:2]
     M = np.float32([[k, 0, (0.5 - box[0]) * k - 0.5], [0, k, (0.5 - box[1]) * k - 0.5]])
     AB = cv2.warpAffine(np.dstack([a, b]), M, (W, H), flags=cv2.INTER_LINEAR | cv2.WARP_INVERSE_MAP, borderMode=cv2.BORDER_REPLICATE)
