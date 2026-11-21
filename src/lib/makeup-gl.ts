@@ -236,7 +236,22 @@ const CONCEAL = 0.6, CONCEAL_MAX = 1.35;
  * its brightness (a quantile: not the shadow of a crease, nor shine).
  */
 const CONCEAL_LOOK = 0.85, CONCEAL_LOOK_MAX = 2.2, CONCEAL_HAIR = 0.8, CONCEAL_TONE = 0.6;
+/**
+ * Its colour shows as far as it covers: where it lifts her by CONCEAL_TONE_FULL (log light) or more, all of CONCEAL_TONE;
+ * where it doesn't lift her, her hollow keeps its own colour. Moved everywhere in its zone, her under-eye came out
+ * greyer than her cheek on most faces (a shadow keeps its colour; the same tint at less light is less colourful), a grey
+ * crescent once the hollow kept its shading (benchmark, 2026-11). As finish.py.
+ */
+const CONCEAL_TONE_FULL = 0.25;
 const CONCEAL_REF = [0.85, 0.1, 0.18], CONCEAL_Q = 0.6;
+/**
+ * Her eye's hollow keeps its own shading: only what is darker than CONCEAL_SHADE of her cheek's brightness below is lifted
+ * (a dark circle, not the hollow). Lifted all the way to her cheek, it took out 17 of the catalog model's 18 L* between
+ * her under-eye and her cheek where every catalog photo keeps them (to within -6..+3.5), and painted a pale crescent
+ * under each eye with every dark speck (her pores) lifted away (benchmark, 2026-11); at 0.45 the catalog model's
+ * hollow keeps all but its darkest creases. As finish.py.
+ */
+const CONCEAL_SHADE = 0.45;
 /**
  * Its zone: the concealer ellipse (uConC, uConAx) this much wider and taller, full to CONCEAL_ZONE[2] of its radius and
  * gone by [3] (it only lifts what is darker than her cheek, so it can reach past the whole shadow: a smaller zone left a
@@ -254,6 +269,14 @@ const BROW_HAIR_Q = 0.3;
  * gives the brow a clean lower edge; never her hairs.
  */
 const BROW_CARVE = [0.07, 0.12];
+/**
+ * A look's brows go only where her own brow is: her skin, softened past single hairs (uGrey.y), darker than her broad
+ * skin around (uShadeB) by BROW_MASS[0] to [1] of it; inside the face mesh's brow outline, BROW_ZONE[0] its size and
+ * BROW_ZONE[1] eye widths soft. The outline alone drew a brow of its own: the mesh's brows sit a few hundredths of an eye
+ * width off hers, and the fill, strongest on bare skin (the widest gap between hairs), painted a flat block under her
+ * brow's tail, a hard edge, and on a sparse brow a grey box (benchmark on real faces, 2026-11). As finish.py.
+ */
+const BROW_ZONE = [1.2, 0.06], BROW_MASS = [0.12, 0.35];
 /** A look's concealer per look: lighter on the barest looks. */
 const CONCEAL_LIGHT: Record<string, number> = { "no-makeup": 0.5, "clean-girl": 0.7 };
 /* Her foundation (foundation() in teacher.py): her skin's colour evened out everywhere inside her face's outline, right up
@@ -788,7 +811,7 @@ export function stepGeometry(P: Pt[], blush: string): Record<StepKey, StepGeo> {
     base: { polys: [OVAL.map((i) => pt(P, i))], sweep: { mode: 0, axes: [[nose, add(nose, mul(across, ew * 1.7))]] } },
     conceal: per((s) => { const c = add(add(s.c, mul(down, ew * 0.42)), mul(s.out, ew * 0.05));
       return { polys: [ellipse(c, ew * 0.55, ew * 0.24, across)], axis: [c, add(c, mul(s.out, ew * 0.6))] }; }, 0),
-    brows: { ...per((s) => ({ polys: [ring(P, s.brow, 1.15)], axis: [s.browIn, s.browTail] }), 1),
+    brows: { ...per((s) => ({ polys: [ring(P, s.brow, BROW_ZONE[0])], axis: [s.browIn, s.browTail] }), 1),
       // The brow's middle line, inner end to tail (upper ids 4..0 paired with lower ids 5..9).
       paths: sides.map((s) => [4, 3, 2, 1, 0].map((k) => lerp(pt(P, s.brow[k]), pt(P, s.brow[9 - k]), 0.5))) },
     shadow: per((s) => {
@@ -2078,11 +2101,19 @@ vec3 browFill(vec3 base, vec3 lu, float a) {
   vec3 Rg = clamp(r / s, 0.005, 0.98);
   return min(base, base + (km(Rg, uBrow, a * uBrowX) - Rg) * E0 * s);
 }
+// Her broad skin's brightness at a point (uShadeB; her own skin there where it has none) and how much of her own brow
+// is there (BROW_MASS: her softened skin, uGrey.y, that much darker than it).
+float broadAt(vec2 at) {
+  vec4 Bd = texture(uShadeB, at); float fB = max(0.0, 0.5 - Bd.y);
+  return (Bd.x + luma(pow(texture(uSrc, at).rgb, vec3(2.2))) * fB) / (Bd.y + fB);
+}
+float browMass(vec2 at, float broad) {
+  return smoothstep(${BROW_MASS[0].toFixed(3)}, ${BROW_MASS[1].toFixed(3)}, 1.0 - pow(texture(uGrey, at).y, 2.2) / max(broad, 1e-4));
+}
 // A look's brows (browDefine in tryon.ts): the gaps between her hairs (her softened brightness up near her skin's around:
 // uShadeB) filled towards her hairs' colour in the light there; her hairs (as dark as that colour) stay as they are.
 vec3 browDefine(vec3 base, vec3 lu, float a) {
-  vec4 Bd = texture(uShadeB, v); float fB = max(0.0, 0.5 - Bd.y);
-  float broad = (Bd.x + luma(lu) * fB) / (Bd.y + fB);
+  float broad = broadAt(v);
   vec3 hairC = uBrowDef.rgb * broad;
   float yh = luma(hairC), y = luma(base);
   float gap = clamp((y - yh) / max(broad - yh, 1e-4), 0.0, 1.0);
@@ -2152,12 +2183,13 @@ void main() {
       float ref = zR >= zL ? uConRef.x : uConRef.y;
       float k = max(zR, zL) * uConRef.z * (uZonesOn == 1 ? rv(1, sw) : 1.0) * (1.0 - M.r);
       float ys = pow(g0, 2.2), y = luma(lu);
-      float gain = pow(clamp(ref / max(ys, 1e-4), 1.0, ${CONCEAL_LOOK_MAX}), ${CONCEAL_LOOK});
+      float gain = pow(clamp(ref * ${CONCEAL_SHADE.toFixed(3)} / max(ys, 1e-4), 1.0, ${CONCEAL_LOOK_MAX}), ${CONCEAL_LOOK});
       float nearLash = 1.0 - smoothstep(${CONCEAL_LASH[0]}, ${CONCEAL_LASH[1]}, dot(px - eyeC, dn) / uEw);
       float hair = clamp((ys - y) / max(0.25 * ys, 1e-4), 0.0, 1.0) * nearLash;
       lu *= 1.0 + (gain - 1.0) * k * (1.0 - ${CONCEAL_HAIR} * hair);
       vec3 c = lu / max(luma(lu), 1e-5);
-      lu *= pow(uConTone / max(c, vec3(1e-4)), vec3(${CONCEAL_TONE} * k * (1.0 - hair)));
+      float covers = clamp((gain - 1.0) / ${CONCEAL_TONE_FULL.toFixed(3)}, 0.0, 1.0);
+      lu *= pow(uConTone / max(c, vec3(1e-4)), vec3(${CONCEAL_TONE} * k * covers * (1.0 - hair)));
     } else {
       float gain = pow(clamp(uSkinY / max(pow(g0, 2.2), 1e-4), 1.0, ${CONCEAL_MAX}), ${CONCEAL});
       lu *= 1.0 + (gain - 1.0) * zone * (uZonesOn == 1 ? rv(1, sw) : 1.0);
@@ -2217,13 +2249,14 @@ void main() {
   }
   if (uMine == 1 && uBrowX > 0.0) base = browFill(base, lu, max(ZB.b, 0.0) * rv(2, sw) * (1.0 - M.r));
   else if (uBrowDef.w > 0.0 && uZonesOn == 1) {
-    float kb = rv(2, sw) * uK.x * (1.0 - M.r);
-    base = browDefine(base, lu, max(ZB.a, 0.0) * kb);
+    float kb = rv(2, sw) * uK.x * (1.0 - M.r), zb = max(ZB.a, 0.0) * browMass(v, broadAt(v));
+    base = browDefine(base, lu, zb * kb);
     if (uSkinY > 0.0) {           // carved: a clean line of concealer just under her brow
       vec2 up = vec2(uConAx.y, -uConAx.x) * uEw * ${BROW_CARVE[0]};
       if (dot(up, vec2(-uConAx.y, uConAx.x)) > 0.0) up = -up;
-      float above = texture(uZoneB, v + up / vec2(uSize)).a;
-      float band = clamp(above - max(ZB.a, 0.0) * 1.5, 0.0, 1.0);
+      vec2 va = v + up / vec2(uSize);
+      float above = max(texture(uZoneB, va).a, 0.0) * browMass(va, broadAt(va));
+      float band = clamp(above - zb * 1.5, 0.0, 1.0);
       vec4 G = texture(uGrey, v);
       float hairs = clamp(-(dot(src, vec3(0.299, 0.587, 0.114)) - G.x) / max(G.y, 20.0 / 255.0), 0.0, 1.0);
       base *= exp(${BROW_CARVE[1]} * band * kb * (1.0 - hairs));
@@ -3032,7 +3065,7 @@ export class MakeupGL {
       this.blur(T.zoneB.tex[0], T.zoneBB, sB, scissor);
     } else {
       if (geo) this.blur(this.targets.zoneA.tex[0], this.targets.zoneAB, [ew * 0.1, ew * 0.1, ew * 0.12, ew * 0.12], scissor);
-      if (lidGeo) this.blur(this.targets.zoneB.tex[0], this.targets.zoneBB, [ew * 0.04, Math.hypot(Math.max(0.8, ew * 0.012), soft ? camLens : 0), prod?.blush ? ew * BLUSH_SOFT : 1, prod?.browDefine ? Math.max(0.8, ew * 0.02, 0.9 * (face.blur ?? 0)) : 1], scissor);
+      if (lidGeo) this.blur(this.targets.zoneB.tex[0], this.targets.zoneBB, [ew * 0.04, Math.hypot(Math.max(0.8, ew * 0.012), soft ? camLens : 0), prod?.blush ? ew * BLUSH_SOFT : 1, prod?.browDefine ? Math.max(0.8, ew * BROW_ZONE[1], 0.9 * (face.blur ?? 0)) : 1], scissor);
     }
     const pigmentsOn = Boolean(prod && (pigs.some(Boolean) || prod.liner || prod.brows || prod.browDefine));
     if (pigmentsOn) {     // her shading: form and broad light (shading() in products.py), her local highlights

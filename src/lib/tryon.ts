@@ -1561,8 +1561,11 @@ const retouched = new WeakMap<HTMLCanvasElement, { points: Pt[]; skin: HTMLCanva
 
 /**
  * Her photo with only her skin perfected (the studio retouch's skin, none of its light: faint blotches softened, pores a
- * little, blemishes healed, the shadow under her eyes lifted), for the foundation to bring in by its coverage
- * (makeup-gl.ts RETOUCH_FULL); null where the phone can't. Made once per photo and points.
+ * little, blemishes healed), for the foundation to bring in by its coverage (makeup-gl.ts RETOUCH_FULL); null where the
+ * phone can't. Made once per photo and points. Not the retouch's work under her eyes (its lift and tint): a foundation
+ * doesn't lighten or tint the hollow under her eye, a concealer does (a look's, or hers). With both, the catalog model's
+ * under-eye came out 5 L* lighter against her cheek than the look's concealer alone makes it, where her catalog photos
+ * keep it, and greyer on most real faces (benchmark, 2026-11).
  */
 export function skinRetouch(photo: HTMLCanvasElement, points: Pt[]): HTMLCanvasElement | null {
   const had = retouched.get(photo);
@@ -1571,7 +1574,7 @@ export function skinRetouch(photo: HTMLCanvasElement, points: Pt[]): HTMLCanvasE
   let skin: HTMLCanvasElement | null = null;
   if (s) {
     try {
-      const out = s.apply(photo, points, studioParams(photo, points), { light: false, skin: 1 });
+      const out = s.apply(photo, points, studioParams(photo, points), { light: false, skin: 1, under: 0 });
       skin = canvas(out.width, out.height);
       ctx2d(skin).drawImage(out, 0, 0);
     } catch (error) {

@@ -26,7 +26,8 @@ Every change to the engine is measured on the same photos, against the last acce
                                      # --resume: go on after a cut-off run; --rescore: score again;
                                      # --photos catalog__: only those photos again (a line measured only there)
 
-`--set full` takes all 48 looks and all six light changes. The quick set takes about three hours on two CPU cores
+`--set looks` takes all 48 looks on the catalog model in all seven lights and on six real faces (two light, two medium, two
+deep skin) in good light: 624 renders, about 110 minutes. `--set full` takes all 48 looks and all six light changes. The quick set takes about three hours on two CPU cores
 (software WebGL, about 8 to 15 s a render); split it with `--minutes`.
 
 ## What is scored
@@ -40,6 +41,8 @@ Each render against her photo as the app took it (studio light off), colours in 
 | Another light | same look, known light change: colours against the right answer | ΔE 3 |
 | Skin-tone fairness | each lipstick's hue on light, medium and deep skin | 10° |
 | Skin | fine texture kept, blotches left, shading kept | 55-95% kept; shading 0.95 |
+| Brows | a look's brow fill on the skin past her own brow (L* darker); on the catalog model, the brows against the catalog's | 1.5; ΔE 3 |
+| Under-eye | her under-eye against her cheek below it: how much a look lifts it; on the catalog model, against the catalog's | 6; 3 L* |
 | Edges | colour past the lip line; eye whites changed; newly clipped pixels; anything changed outside the face; face moved | see score.py |
 
 The starting guesses move once the artist has scored enough pictures on the bench: each goes to where her scores drop

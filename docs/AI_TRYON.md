@@ -309,12 +309,22 @@ in makeup-gl.ts):
   most 2.2×), over a zone 1.1× wider and 1.45× taller than before that only lifts what is darker than that cheek (a
   smaller one left a dark arc where it stopped); her lashes and the fine lines near her lash line stay dark (further down
   every dark speck lifts with the skin around), and the grey, brown or violet cast moves 60% towards her skin's colour.
-  Lighter on no-makeup (0.5) and clean-girl (0.7).
+  Lighter on no-makeup (0.5) and clean-girl (0.7). Her eye's hollow keeps its own shading: only what is darker than
+  45% of that cheek's brightness is lifted (`CONCEAL_SHADE`). Lifted all the way, it took out 17 of the catalog
+  model's 18 L* between under-eye and cheek where every catalog photo keeps them, a pale crescent under each eye with
+  her pores lifted away (benchmark on the catalog model, 2026-11). Its colour shows as far as it lifts
+  (`CONCEAL_TONE_FULL`): her hollow keeps its own colour, which moved towards her cheek's had made it a grey crescent.
+  The studio retouch's own work under the eyes (its lift and tint) no longer comes in with the foundation (a foundation
+  doesn't lighten or tint the hollow; a concealer does): with both, her under-eye came out another 5 L* lighter, and
+  greyer on most real faces.
 - **Brows done.** The gaps between her brow hairs are filled towards her own hairs' colour (the darkest 30% of her brows,
   `measureFace`; 0.85 as light, as a ratio to her skin so a brow in shade gets a deeper fill), 55% of the way, and her
   hairs stay as they are: no colour is painted over them (a brow pomade over full dark brows turned them a flat
   reddish brown). A clean line of concealer just under each brow (+12% light, never on her hairs) gives the brow its
-  lower edge (`BROW_CARVE`). Lighter on no-makeup.
+  lower edge (`BROW_CARVE`). Lighter on no-makeup. All of it only where her own brow is: her skin, softened past single
+  hairs, 12% to 35% darker than her skin around (`BROW_MASS`), inside the face mesh's brow outline (`BROW_ZONE`). The
+  outline alone drew a brow of its own: the mesh's brows sit a few hundredths of an eye width off hers, and the fill,
+  strongest on bare skin, painted a flat block under the brow's tail on real faces and a grey box on sparse brows.
 
 The tiny fallback networks learn the look as the engine finishes it: `scripts/tinybeauty/finish.py` paints the
 foundation, this concealer, the layer with each look's strengths, the brows, lipstick and eye detail in the engine's

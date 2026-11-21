@@ -988,9 +988,11 @@ test("on a soft photo the makeup is as soft as the photo: painting it equals the
     }
     return out;
   });
-  // (the eye makeup off the lens over it, over the eye makeup: ~0.12 through her photo's lens, ~0.23 drawn crisp)
+  // (the eye makeup off the lens over it, over the makeup around her eyes: ~0.18 through her photo's lens, ~0.33 to 0.4
+  // drawn crisp. It was ~0.12 and ~0.23 while the concealer lifted her under-eye flat, a smooth change that counted as
+  // makeup here: now it keeps her hollow, and the same difference, a little smaller, is over less makeup, 2026-11)
   for (const [off, offCrisp] of Object.values(r)) {
-    expect(off).toBeLessThan(0.16);
+    expect(off).toBeLessThan(0.22);
     expect(off).toBeLessThan(offCrisp * 0.65);
   }
 });

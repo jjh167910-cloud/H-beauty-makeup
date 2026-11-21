@@ -384,12 +384,13 @@ export class Studio {
    */
   /**
    * `parts`: the studio's light (white balance, colour, contrast, vignette, face light, glow, eye whites, sharpening) and
-   * its skin (blotches, texture, blemishes, under her eyes) times `skin`. The try-on shows her photo in studio light only,
-   * before and after alike; her skin perfected comes with the foundation (tryon.ts skinRetouch: the skin alone).
+   * its skin (blotches, texture, blemishes, under her eyes) times `skin`, under her eyes (its lift and tint) times `under`
+   * (as `skin` when not given). The try-on shows her photo in studio light only, before and after alike; her skin
+   * perfected comes with the foundation (tryon.ts skinRetouch: the skin alone, nothing under her eyes).
    */
   apply(photo: TexImageSource & { width: number; height: number }, P: Pt[], params: StudioParams,
-    parts: { light?: boolean; skin?: number } = {}): HTMLCanvasElement {
-    const lit = parts.light ?? true, sk = parts.skin ?? 1;
+    parts: { light?: boolean; skin?: number; under?: number } = {}): HTMLCanvasElement {
+    const lit = parts.light ?? true, sk = parts.skin ?? 1, under = parts.under ?? sk;
     const gl = this.gl, w = photo.width, h = photo.height, T = this.targets(w, h), ew = eyeW(P);
     if (this.canvas.width !== w || this.canvas.height !== h) { this.canvas.width = w; this.canvas.height = h; }
     gl.viewport(0, 0, w, h);
@@ -469,8 +470,8 @@ export class Studio {
     gl.uniform3f(u("uTint"), ...params.tint);
     gl.uniform1f(u("uVs"), params.vs * L);
     gl.uniform1f(u("uCs"), params.cs);
-    gl.uniform1f(u("uUnder"), STUDIO.underEye * sk);
-    gl.uniform1f(u("uUnderTint"), STUDIO.underEyeTint * sk);
+    gl.uniform1f(u("uUnder"), STUDIO.underEye * under);
+    gl.uniform1f(u("uUnderTint"), STUDIO.underEyeTint * under);
     gl.uniform4f(u("uSpot"), SPOT_STEP * ew, SPOT_RING * ew, SPOT_MID * ew, STUDIO.spots * sk);
     gl.uniform1f(u("uSat"), STUDIO.sat * L);
     gl.uniform1f(u("uPivot"), params.pivot);

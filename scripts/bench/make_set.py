@@ -6,7 +6,11 @@ research and evaluation, not training a model: these photos only ever measure th
 They stay on this machine (MSTE_DIR): never in the repo, CI, or any AI service. Fetch them with
 scripts/bench/fetch_mste.py first. The user's own photos can be added with --own (also kept local).
 
-    python scripts/bench/make_set.py RUN_DIR [--set quick|full] [--engines v1,v2] [--own a.jpg,b.jpg]
+    python scripts/bench/make_set.py RUN_DIR [--set quick|looks|full] [--engines v1,v2] [--own a.jpg,b.jpg]
+
+quick: 8 looks on everything (the catalog model in four lights, 19 real people, six of them in three light changes);
+looks: all the looks on the catalog model in all seven lights and on six real people (two light, two medium, two deep
+skin, in good light), about 600 renders: every look against its catalog photo; full: all the looks on everything.
 
 Writes RUN_DIR/photos/<id>.png, RUN_DIR/truth/<look>/<id>.png (the catalog model's truth: her catalog photo in that
 light) and RUN_DIR/manifest.json for render.cjs and score.py.
@@ -106,13 +110,13 @@ def mste_pick(cache_file: Path, poorly: int) -> list[dict]:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('run'); ap.add_argument('--set', default='quick', choices=['quick', 'full'])
+    ap.add_argument('run'); ap.add_argument('--set', default='quick', choices=['quick', 'looks', 'full'])
     ap.add_argument('--engines', default='v1,v2'); ap.add_argument('--own', default='', help='your own photos (kept local)')
     ap.add_argument('--looks', default='')
     a = ap.parse_args()
     run = Path(a.run); (run / 'photos').mkdir(parents=True, exist_ok=True)
-    full = a.set == 'full'
-    looks = a.looks.split(',') if a.looks else all_looks() if full else QUICK_LOOKS
+    full, every = a.set == 'full', a.set == 'looks'
+    looks = a.looks.split(',') if a.looks else all_looks() if full or every else QUICK_LOOKS
     photos = []
 
     def add(pid, img, **info):
@@ -122,7 +126,7 @@ def main():
     # the catalog model (bare), and her catalog photos, aligned to her, as the truth in each light
     bare, _ = T._bare(); pb = T.landmarks3(bare); ew = T.eye_width(pb[:, :2])
     cats = {look: aligned(T.rgb(T.LOOKS / f'{look}.webp'), bare, ew) for look in looks if (T.LOOKS / f'{look}.webp').exists()}
-    for c in (['orig', 'warm', 'window', 'dim', 'flash', 'backlit', 'jpeg'] if full else ['orig', 'warm', 'dim', 'flash']):
+    for c in (['orig', 'warm', 'window', 'dim', 'flash', 'backlit', 'jpeg'] if full or every else ['orig', 'warm', 'dim', 'flash']):
         cond = Condition(c, bare, pb, seed=7)
         pid = f'catalog__{c}'
         add(pid, cond.apply(bare), face='catalog', source='catalog', mst=None, group='catalog', light='sim' if c != 'orig' else 'catalog', cond=c, base='catalog__orig')
@@ -134,11 +138,12 @@ def main():
     picks = mste_pick(run.parent / 'mste_pose_cache.json', poorly=3 if full else 1)
     sim_subjects = None if full else {0, 13, 6, 3, 2, 12}     # two light, two medium, two deep (MST 3, 2, 5, 6, 8, 10)
     for k in picks:
+        if every and (k['light'] != 'well' or k['subject'] not in sim_subjects): continue
         r = k['r']; mst = int(r['MST']); sid = f"mste{k['subject']:02d}"
         img = shrink(T.rgb(MSTE_DIR / 'img' / r['subject_name'] / r['image_ID']))
         pid = f"{sid}_{k['light']}_{Path(r['image_ID']).stem[-9:]}__orig"
         add(pid, img, face=sid, source='mste', mst=mst, group=group(mst), light=k['light'], cond='orig', base=pid, src=r['image_ID'])
-        if k['light'] == 'well' and (sim_subjects is None or k['subject'] in sim_subjects):
+        if k['light'] == 'well' and not every and (sim_subjects is None or k['subject'] in sim_subjects):
             p = T.landmarks3(img)
             for c in (['warm', 'window', 'dim', 'flash', 'backlit', 'jpeg'] if full else SIM):
                 add(pid.replace('__orig', f'__{c}'), Condition(c, img, p, seed=k['subject']).apply(img), face=sid, source='mste',
@@ -155,3 +160,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    sys.stdout.flush(); os._exit(0)   # (mediapipe's landmarker raises in its own teardown)

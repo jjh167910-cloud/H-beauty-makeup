@@ -24,13 +24,14 @@ TRYON_TS = T.REPO / 'src/lib/tryon.ts'
 GAINS = T.REPO / 'src/data/look-gains.json'
 STEPS = ['base', 'conceal', 'brows', 'shadow', 'liner', 'lashes', 'contour', 'blush', 'glow', 'lips', 'lenses']
 
-# As makeup-gl.ts: a look's concealer (CONCEAL_LOOK...), its brows (BROW_HAIR_Q, BROW_CARVE), a strengthened layer
+# As makeup-gl.ts: a look's concealer (CONCEAL_LOOK...), its brows (BROW_HAIR_Q, BROW_CARVE, BROW_ZONE, BROW_MASS), a strengthened layer
 # (LIGHTEN_GAIN, CHROMA_GAIN); as tryon.ts: the brows' fill (BROW_LOOK_*), lighter on the barest looks.
-CONCEAL_LOOK, CONCEAL_LOOK_MAX, CONCEAL_HAIR, CONCEAL_TONE = 0.85, 2.2, 0.8, 0.6
-CONCEAL_REF, CONCEAL_Q = (0.85, 0.1, 0.18), 0.6
+CONCEAL_LOOK, CONCEAL_LOOK_MAX, CONCEAL_HAIR, CONCEAL_TONE, CONCEAL_TONE_FULL = 0.85, 2.2, 0.8, 0.6, 0.25
+CONCEAL_REF, CONCEAL_Q, CONCEAL_SHADE = (0.85, 0.1, 0.18), 0.6, 0.45
 CONCEAL_ZONE, CONCEAL_LASH = (1.1, 1.45, 0.55, 1.3), (0.2, 0.32)
 CONCEAL_LIGHT = {'no-makeup': 0.5, 'clean-girl': 0.7}
 BROW_HAIR_Q, BROW_CARVE = 0.3, (0.07, 0.12)
+BROW_ZONE, BROW_MASS = (1.2, 0.06), (0.12, 0.35)
 BROW_LOOK_DEEP, BROW_LOOK_FILL, BROW_LOOK = 0.85, 0.55, {'no-makeup': 0.6}
 LIGHTEN_GAIN, CHROMA_GAIN = 0.35, 0.5
 
@@ -73,7 +74,8 @@ def refs(ul, p):
 
 
 def conceal(lu, user, p, under, tone, amount):
-    """A look's concealer on her light `lu` (linear, her foundation on): each under-eye towards her cheek below it."""
+    """A look's concealer on her light `lu` (linear, her foundation on): each under-eye lifted where it is darker than
+    CONCEAL_SHADE of her cheek below it (as makeup-gl.ts)."""
     if amount <= 0 or tone is None or min(under) <= 0: return lu
     q = np.asarray(p, np.float64)[:, :2]; ew, ax, dn = _frame(q); H, W = lu.shape[:2]
     ys, xs = np.mgrid[0:H, 0:W] + 0.5
@@ -88,30 +90,45 @@ def conceal(lu, user, p, under, tone, amount):
     eyeC = np.where(first[..., None], cs[0] - dn * ew * 0.42, cs[1] - dn * ew * 0.42)
     grey = cv2.cvtColor(user, cv2.COLOR_RGB2GRAY).astype(np.float32) / 255
     Ys = T.soften(grey, max(1.2, ew * 0.042)) ** 2.2; y = T.luma(lu)
-    gain = np.clip(ref / np.maximum(Ys, 1e-4), 1, CONCEAL_LOOK_MAX) ** CONCEAL_LOOK
+    gain = np.clip(ref * CONCEAL_SHADE / np.maximum(Ys, 1e-4), 1, CONCEAL_LOOK_MAX) ** CONCEAL_LOOK   # (her hollow's own shading kept)
     along = (xs - eyeC[..., 0]) * dn[0] + (ys - eyeC[..., 1]) * dn[1]
     near = 1 - T.smoothstep(CONCEAL_LASH[0], CONCEAL_LASH[1], along / ew)
     hair = np.clip((Ys - y) / np.maximum(0.25 * Ys, 1e-4), 0, 1) * near
     lu = lu * (1 + (gain - 1) * k * (1 - CONCEAL_HAIR * hair))[..., None]
     c = lu / np.maximum(T.luma(lu), 1e-5)[..., None]
-    return lu * (np.asarray(tone, np.float32) / np.maximum(c, 1e-4)) ** (CONCEAL_TONE * k * (1 - hair))[..., None]
+    covers = np.clip((gain - 1) / CONCEAL_TONE_FULL, 0, 1)      # (its colour shows where it lifts: her hollow keeps its own)
+    return lu * (np.asarray(tone, np.float32) / np.maximum(c, 1e-4)) ** (CONCEAL_TONE * k * covers * (1 - hair))[..., None]
+
+
+def brow_mass(user, broad, ew):
+    """Where her own brow is (0..1): her skin softened past single hairs (as uGrey.y in makeup-gl.ts) darker than her
+    broad skin around by BROW_MASS[0] to [1] of it."""
+    grey = cv2.cvtColor(user, cv2.COLOR_RGB2GRAY).astype(np.float32) / 255
+    soft = cv2.GaussianBlur(grey, (0, 0), max(1.2, ew * 0.042)) ** 2.2
+    t = np.clip((1 - soft / np.maximum(broad, 1e-4) - BROW_MASS[0]) / (BROW_MASS[1] - BROW_MASS[0]), 0, 1)
+    return t * t * (3 - 2 * t)
 
 
 def brows(base, ul, user, p, look, brow, kb):
     """A look's brows (browDefine in makeup-gl.ts): the gaps between her hairs towards her hairs' colour in the light
-    there, and a clean line of concealer just under each brow."""
+    there, and a clean line of concealer just under each brow; only where her own brow is (brow_mass), inside the face
+    mesh's brow outline (BROW_ZONE: its size and softness). The outline alone drew a brow of its own: the mesh's brows
+    sit a few hundredths of an eye width off hers (the app's 0.03 lower than here on the catalog model), and a fill
+    that took her bare skin there for the widest gap between hairs painted a flat block under her brow's tail, and on
+    a sparse brow a box (benchmark, 2026-11)."""
     skin = T.skin_lum(ul, p); amount = BROW_LOOK_FILL * BROW_LOOK.get(look, 1.0)
     if brow is None or not skin or amount <= 0: return base
     q = np.asarray(p, np.float64)[:, :2]; ew, ax, dn = _frame(q); H, W = base.shape[:2]
-    zone = cv2.GaussianBlur(T.poly_mask((H, W), q, [T.BROW_R, T.BROW_L], scale=1.15).astype(np.float32), (0, 0),
-                            max(0.8, ew * 0.02, 0.9 * T.photo_blur(user, p)))
+    zone = cv2.GaussianBlur(T.poly_mask((H, W), q, [T.BROW_R, T.BROW_L], scale=BROW_ZONE[0]).astype(np.float32), (0, 0),
+                            max(0.8, ew * BROW_ZONE[1], 0.9 * T.photo_blur(user, p)))
     broad = PR.shading(ul, p)[1] * skin
+    zone = zone * brow_mass(user, broad, ew)
     hairC = (np.asarray(brow) / skin * BROW_LOOK_DEEP)[None, None] * broad[..., None]
     yh, y = T.luma(hairC), T.luma(base)
     gap = np.clip((y - yh) / np.maximum(broad - yh, 1e-4), 0, 1)
     a = zone * kb
     base = base + (hairC - base) * (a * amount * gap)[..., None]
-    up = -dn * ew * BROW_CARVE[0]                    # (the zone a little further up her face, over this point)
+    up = -dn * ew * BROW_CARVE[0]                    # (her brow a little further up her face, over this point)
     above = cv2.warpAffine(zone, np.float32([[1, 0, -up[0]], [0, 1, -up[1]]]), (W, H), borderMode=cv2.BORDER_CONSTANT)
     band = np.clip(above - zone * 1.5, 0, 1)
     grey = cv2.cvtColor(user, cv2.COLOR_RGB2GRAY).astype(np.float32) / 255
