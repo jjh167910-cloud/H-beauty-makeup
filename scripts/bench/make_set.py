@@ -13,7 +13,9 @@ looks: all the looks on the catalog model in all seven lights and on six real pe
 skin, in good light), about 600 renders: every look against its catalog photo; full: all the looks on everything.
 
 Writes RUN_DIR/photos/<id>.png, RUN_DIR/truth/<look>/<id>.png (the catalog model's truth: her catalog photo in that
-light) and RUN_DIR/manifest.json for render.cjs and score.py.
+light, makeup only: truth()) and RUN_DIR/manifest.json for render.cjs and score.py.
+
+    python scripts/bench/make_set.py RUN_DIR --truth-only     # an existing run's truth made again (its catalog photos)
 
 The catalog model is her bare face as the teacher sees it (teacher._bare(): no-makeup.webp with its blush and gloss
 taken off), so every look, "no-makeup" included, has something to add. Her catalog photos are AI edits that moved her
@@ -66,6 +68,15 @@ def aligned(cat: np.ndarray, bare: np.ndarray, ew: float) -> np.ndarray:
     return cv2.remap(cat, xx + fl[..., 0], yy + fl[..., 1], cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
 
 
+def truth(look: str, bare: np.ndarray, ew: float) -> np.ndarray:
+    """A catalog photo as the truth: aligned to the bare face, and the edit's change to the whole photo taken out
+    (T.grading: its exposure and white balance, measured on the backdrop). That change is not makeup and the engine
+    never paints it (the layer has it taken out); left in, the lid of a look whose photo was brightened read 5 L* too
+    dark (lilac-eyes) where the makeup itself was 1.5 L* off. calibrate_de.py fits the gains to the same."""
+    cat = aligned(T.rgb(T.LOOKS / f'{look}.webp'), bare, ew)
+    return T.srgb(T.lin(cat) / np.exp(T.grading(look)))
+
+
 def pose(img: np.ndarray):
     """Landmarks and how usable the photo is: frontal, level, mouth closed, eyes open, face large enough."""
     p = T.landmarks3(img)
@@ -113,7 +124,19 @@ def main():
     ap.add_argument('run'); ap.add_argument('--set', default='quick', choices=['quick', 'looks', 'full'])
     ap.add_argument('--engines', default='v1,v2'); ap.add_argument('--own', default='', help='your own photos (kept local)')
     ap.add_argument('--looks', default='')
+    ap.add_argument('--truth-only', action='store_true', help="make an existing run's truth again (its catalog photos)")
     a = ap.parse_args()
+    if a.truth_only:
+        run = Path(a.run); M = json.loads((run / 'manifest.json').read_text())
+        bare, _ = T._bare(); pb = T.landmarks3(bare); ew = T.eye_width(pb[:, :2])
+        conds = [p['cond'] for p in M['photos'] if p['face'] == 'catalog']
+        for look in M['looks']:
+            if not (T.LOOKS / f'{look}.webp').exists(): continue
+            cat = truth(look, bare, ew); (run / 'truth' / look).mkdir(parents=True, exist_ok=True)
+            for c in conds:
+                f = run / 'truth' / look / f'catalog__{c}.png'; f.unlink(missing_ok=True)     # (a new file: not another run's)
+                cv2.imwrite(str(f), cv2.cvtColor(Condition(c, bare, pb, seed=7).apply(cat), cv2.COLOR_RGB2BGR))
+        print(f'{run}: truth made again for {len(M["looks"])} looks x {len(conds)} lights'); sys.stdout.flush(); os._exit(0)
     run = Path(a.run); (run / 'photos').mkdir(parents=True, exist_ok=True)
     full, every = a.set == 'full', a.set == 'looks'
     looks = a.looks.split(',') if a.looks else all_looks() if full or every else QUICK_LOOKS
@@ -125,7 +148,7 @@ def main():
 
     # the catalog model (bare), and her catalog photos, aligned to her, as the truth in each light
     bare, _ = T._bare(); pb = T.landmarks3(bare); ew = T.eye_width(pb[:, :2])
-    cats = {look: aligned(T.rgb(T.LOOKS / f'{look}.webp'), bare, ew) for look in looks if (T.LOOKS / f'{look}.webp').exists()}
+    cats = {look: truth(look, bare, ew) for look in looks if (T.LOOKS / f'{look}.webp').exists()}
     for c in (['orig', 'warm', 'window', 'dim', 'flash', 'backlit', 'jpeg'] if full or every else ['orig', 'warm', 'dim', 'flash']):
         cond = Condition(c, bare, pb, seed=7)
         pid = f'catalog__{c}'

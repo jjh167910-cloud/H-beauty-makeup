@@ -362,6 +362,31 @@ in makeup-gl.ts):
   it as an accent (`kohl` in makeup-styles.ts), so a look opened in «میکاپ من», or painted as its recipe (`?engine=v2`),
   keeps it. On the test face: the rim either side of her iris 34% darker, her eye whites, iris and the skin under her
   lashes unchanged (tests/look-recipes.spec.ts).
+- **The lids' colour.** The vivid lids came out 2 to 5 L* darker than their catalog photos, for three reasons. (1) The
+  benchmark's truth kept the catalog edit's change to the whole photo (exposure, white balance, measured on the
+  backdrop), which is not makeup and which the layer has taken out: lilac-eyes' lid read 5 L* too dark where the
+  makeup was 1.5 L* off. The truth now has it taken out too (`make_set.truth`), as `calibrate_de.py` always fitted to.
+  (2) The layer's darkening floor rolled off each colour channel on its own, so a vivid lid lost its colour (a blue
+  lid's red and green, darkened most, were held back most, and it came out greyer); it now rolls off the brightness
+  and keeps the change of hue, each channel then held above the floor by a sharp knee (`layer_floor`, `FLOOR_KNEE`).
+  With the gains at 1 on the catalog model: electric-blue's lid 4.7 -> 1.2 ΔE, emerald-night's 2.1 -> 0.3,
+  plum-smokey's 2.1 -> 0.9, the lower lashes closer on every vivid look. (3) The look gains had been fitted pixel by
+  pixel, where CIEDE2000 forgives an overdone dark or vivid colour, so they had pushed the vivid lids darker still
+  (electric-blue's to 1.48). They were fitted again from 1, square by square (`calibrate_de.py --cells`: each square
+  of 0.15 eye widths by its mean colour): only two looks keep a shadow gain other than 1 (colour-liner 1.26, twenties
+  0.67) and none a blush or contour gain; the lips keep theirs, fitted pixel by pixel as before (reset to 1 they came
+  out up to 0.5 ΔE further off). All 48 looks on the catalog model in seven lights, against the release before (both
+  against the makeup-only truth): the lid 1.50 -> 1.23 ΔE (median; worst tenth 3.82 -> 3.18; electric-blue 5.5 -> 1.6,
+  arabic-glam 3.3 -> 1.7, full-glam 2.8 -> 1.4), catalog colour 1.29 -> 1.22 (worst tenth 3.10 -> 2.88), lips 1.60 ->
+  1.59, cheeks, the whole face, the under-eye, the waterline and the placement offset a little closer; under the lower
+  lashes 1.73 -> 1.77 and the placement overlap 0.717 -> 0.708, where the lower shadow gains gave a smaller, lighter
+  lower lash line. The catalog colour line now meets its target (worst tenth under 3 ΔE). On the benchmark's real
+  faces every line stays within its limit: the lipstick hue gap across skin tones 9.4 -> 9.6° at its worst (limit 10),
+  the eye whites 0.76 -> 0.79 ΔE at their worst (limit 1.5), the rest the same. Still open on the lids: the pale ones
+  (mod-60s, icy) lighten too little, and on the bold eyes the layer carries streaks along the lash line and a thin
+  line along the bare face's crease: in their photos the eye is more open, with longer (often false) lashes, and the
+  face landmarks are pulled 3 to 5 px by the makeup (0.5 px on the bare look). Neither fix tried so far (leaving lash
+  strands out of the layer's colour; landmarks moved by the optical flow instead) was better on every look.
 
 The tiny fallback networks learn the look as the engine finishes it: `scripts/tinybeauty/finish.py` paints the
 foundation, this concealer, the layer with each look's strengths, the brows, lipstick and eye detail in the engine's

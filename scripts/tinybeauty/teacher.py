@@ -197,13 +197,22 @@ def ball_keep(shape, p, lens=0.0):
 HAIR_LIGHT = (0.15, 0.45, 0.9)   # a look's lightening stays off her lashes and brow hairs: where she is this much darker
                                  # than right around her (her darkness, fine scale), up to this share of it is left off
 
-LAYER_FLOOR = 0.04   # a look's layer darkens a channel at most towards this share of her own, softly (a pigment still
-                     # reflects a few percent of the light: a saturated blue lid keeps a little red, not a channel at 0)
+LAYER_FLOOR = 0.04   # a look's layer darkens her at most towards this share of her own light (a pigment still reflects
+                     # a few percent of the light: a saturated blue lid keeps a little red, not a channel at 0)
+FLOOR_KNEE = 4.0     # how sharply each channel is held above it
 
 def layer_floor(e):
-    """The layer's log change `e` with its darkening rolled off towards log(LAYER_FLOOR). As makeup-gl.ts."""
-    L = -np.log(LAYER_FLOOR)
-    return np.where(e < 0, L * (np.exp(np.minimum(e, 0) / L) - 1), e).astype(np.float32)
+    """The layer's log change `e` (..., 3) with its darkening rolled off: its brightness (luma) softly towards
+    log(LAYER_FLOOR), its change of hue kept, then each channel held above LAYER_FLOOR by a sharp knee. As makeup-gl.ts.
+    Rolled off channel by channel, as it was, a vivid lid lost its colour: a blue lid's red and green, darkened most,
+    were held back most, so it came out greyer, and the look gains fitted to it made up for that by darkening it (with
+    the gains at 1, electric-blue's lid 4.7 -> 1.2 ΔE from its catalog photo, emerald-night's 2.1 -> 0.3, plum-smokey's
+    2.1 -> 0.9, the lower lashes closer on every vivid look; the catalog model, dev data)."""
+    e = np.asarray(e, np.float32); L = -np.log(LAYER_FLOOR)
+    y = luma(e)[..., None]
+    e = e - y + np.where(y < 0, L * (np.exp(np.minimum(y, 0) / L) - 1), y)
+    a = np.maximum(-e, 0)
+    return np.where(e < 0, -a / (1 + (a / L) ** FLOOR_KNEE) ** (1 / FLOOR_KNEE), e).astype(np.float32)
 
 LASH_BAND_LIGHT = 1.0    # ...and off her upper lash line (the liner band): a lid shade isn't pressed into the lash roots
 

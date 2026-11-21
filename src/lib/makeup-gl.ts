@@ -207,11 +207,13 @@ const OWN_GLEAM = 1.25;
  * or less (SHADOW_LASH in products.py), fading in by the second. */
 const SHADOW_LASH = [0.45, 0.8];
 /**
- * A look's layer darkens a colour channel at most towards LAYER_FLOOR of her own (layer_floor() in teacher.py), softly: a
- * pigment still reflects a few percent of the light, so a saturated blue lid keeps a little red in it instead of a channel
- * at 0 (and its shading with it).
+ * A look's layer darkens her at most towards LAYER_FLOOR of her own light (layer_floor() in teacher.py): its brightness
+ * softly, its change of hue kept, then each channel held above it by a sharp knee (FLOOR_KNEE). A pigment still reflects
+ * a few percent of the light, so a saturated blue lid keeps a little red in it instead of a channel at 0 (and its
+ * shading with it). Rolled off channel by channel, as it was, a vivid lid lost its colour: a blue lid's red and green,
+ * darkened most, were held back most, and it came out greyer.
  */
-const LAYER_FLOOR = 0.04;
+const LAYER_FLOOR = 0.04, FLOOR_KNEE = 4;
 /** shoulder(): her camera's white (SHOULDER), in the foundation and main passes; never below her own pixel (own). */
 const SHOULDER_GLSL = `vec3 shoulder(vec3 c, vec3 own) {
   float m = max(c.r, max(c.g, c.b));
@@ -2302,7 +2304,13 @@ void main() {
     float wm = waterAt(px, pow(src, vec3(2.2)), wc) * uWaterK * (uZonesOn == 1 ? shown(4, sw) : 1.0);
     lex = mix(lex, wc * uK.x, wm);
   }
-  lex = mix(lex, ${(-Math.log(LAYER_FLOOR)).toFixed(4)} * (exp(lex / ${(-Math.log(LAYER_FLOOR)).toFixed(4)}) - 1.0), step(lex, vec3(0.0)));   // (LAYER_FLOOR)
+  {                                // (LAYER_FLOOR: her brightness rolled off, the change of hue kept, each channel held above it)
+    const float FL = ${(-Math.log(LAYER_FLOOR)).toFixed(4)};
+    float ly = luma(lex);
+    lex += (ly < 0.0 ? FL * (exp(ly / FL) - 1.0) : ly) - ly;
+    vec3 fa = max(-lex, vec3(0.0));
+    lex = mix(lex, -fa / pow(vec3(1.0) + pow(fa / FL, vec3(${FLOOR_KNEE.toFixed(1)})), vec3(${(1 / FLOOR_KNEE).toFixed(4)})), step(lex, vec3(0.0)));
+  }
   vec3 base = lu * exp(lex);
   float pigX = 0.0;
   for (int k = 0; k < 6; k++) pigX += uPigX[k];

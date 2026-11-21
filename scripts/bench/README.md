@@ -10,7 +10,11 @@ Every change to the engine is measured on the same photos, against the last acce
   Its terms allow research and evaluation, not training a model: these photos only measure the engine; no recipe, gain or
   threshold is fitted to them. They are never committed, put in CI or sent to any AI service, and the report showing
   them is a private file.
-- **The catalog model** (the bare catalog face, `teacher._bare()`): her catalog photos are the exact answer for every look.
+- **The catalog model** (the bare catalog face, `teacher._bare()`): her catalog photos are the exact answer for every look,
+  each aligned to her and with the edit's change to the whole photo (exposure, white balance, measured on the backdrop)
+  taken out (`make_set.truth`): that change is not makeup, and the engine never paints it. (Until 2026-11-21 it was left
+  in: a look whose photo was brightened, lilac-eyes, scored a lid 5 L* too dark where the makeup was 1.5 L* off.
+  `make_set.py RUN_DIR --truth-only` makes an older run's truth again.)
 - **Known light changes** (`conditions.py`): a warm bulb, window side light, a dim noisy room, a phone flash, backlight,
   heavy compression, applied in code to a real photo or the catalog face. Makeup is on the face before the light falls
   on it, so the right answer in that light is known: the look painted in her own light, put in that light.

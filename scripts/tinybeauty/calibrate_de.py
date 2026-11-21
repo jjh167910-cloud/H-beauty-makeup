@@ -1,9 +1,10 @@
 """Each catalog look's step gains set by colour: the gain that brings each region closest to its catalog photo
 (CIEDE2000), on the bare catalog face.
 
-    python scripts/tinybeauty/calibrate_de.py [LOOKS] [--dry] [--from=LOOK] [--steps=shadow,...] [--soft=0.05] [--mean]
+    python scripts/tinybeauty/calibrate_de.py [LOOKS] [--dry] [--from=LOOK] [--steps=shadow,...] [--soft=0.05] [--mean | --cells[=0.15]]
       LOOKS: comma-separated (default: all); --from: go on from that look (a run cut off); --steps: only these steps;
-      --soft: the softening before comparing, eye widths; --mean: compare each region's average colour, not pixel by pixel
+      --soft: the softening before comparing, eye widths; --mean: compare each region's average colour, not pixel by pixel;
+      --cells: compare the average colours of squares this many eye widths wide (cell_err)
 
 calibrate.py moves a gain by how much of the catalog's change a region has (its change projected on the catalog's).
 That is right where a step only darkens or only colours. A lid that lightens in one place and darkens in another
@@ -25,6 +26,10 @@ The engine is finish.py (paint_finished: the graphics-chip engine's v1 path, wit
 the catalog face and its catalog photos are used: nothing from the benchmark's real faces (MST-E may not be fitted to).
 A region the catalog barely changes (under FLOOR ΔE) has nothing to match and keeps its gain; a gain moves only when
 that brings the region at least GAIN_TOL ΔE closer. Lips are only ever taken down (calibrate.HIGH).
+
+The gains in look-gains.json (2026-11-21, with layer_floor on the brightness): shadow, blush and contour fitted from 1
+with --cells, the lips pixel by pixel (`--steps=lips`). Pixel by pixel had pushed the vivid lids darker (cell_err);
+the lips, reset to 1 and fitted square by square, came out up to 0.5 ΔE further from their photos.
 """
 from __future__ import annotations
 import json, re, sys
@@ -98,6 +103,39 @@ def pixel_err(img_u8, ref_lab, ref_strands, M, ew, w, step):
     return float((d * k).sum() / k.sum())
 
 
+CELL = float(next((a.split('=', 1)[1] for a in sys.argv if a.startswith('--cells=')), 0.15))
+
+
+def cell_cols(img_u8, M, ew, w, step, drop):
+    """The region's colour per square CELL eye widths wide (CIELAB of its mean linear colour, weighted by the footprint)
+    and each square's weight."""
+    region = REGION[step]; m = M[region] & ~drop
+    ys, xs = np.nonzero(m); k = np.maximum(w[ys, xs], 0.05)
+    cell = np.int64(ys // max(2, ew * CELL)) * 100000 + np.int64(xs // max(2, ew * CELL))
+    ids, inv = np.unique(cell, return_inverse=True)
+    li = T.lin(img_u8)[ys, xs] * k[:, None]
+    tot = np.zeros((len(ids), 3)); np.add.at(tot, inv, li)
+    kw = np.zeros(len(ids)); np.add.at(kw, inv, k)
+    n = np.bincount(inv, minlength=len(ids))
+    keep = n >= 12
+    return np.stack([lab(c) for c in tot[keep] / kw[keep, None]]), kw[keep], ids[keep]
+
+
+def cell_err(img_u8, ref_u8, M, ew, w, step, ref_strands):
+    """The region's colour difference square by square (CIEDE2000 of each square's mean colour, weighted by its share of
+    the footprint): the lid's light middle and dark crease are both matched, as pixel_err does, but a pixel's error
+    doesn't count on its own. Pixel by pixel, the error is smallest where the engine overdoes the colour (CIEDE2000
+    forgives a difference more in a dark or vivid colour, and a lid's misplaced edge is dark or vivid on one side), and the
+    gains it chose left the vivid lids 2 to 5 L* darker and more saturated than their catalog photos."""
+    from skimage.color import deltaE_ciede2000
+    drop = (strands(img_u8, ew) | ref_strands) if REGION[step] == 'lid' else np.zeros(img_u8.shape[:2], bool)
+    a, ka, ia = cell_cols(img_u8, M, ew, w, step, drop)
+    b, kb, ib = cell_cols(ref_u8, M, ew, w, step, drop)
+    common, xa, xb = np.intersect1d(ia, ib, return_indices=True)
+    d = deltaE_ciede2000(a[xa], b[xb]); k = kb[xb]
+    return float((d * k).sum() / k.sum())
+
+
 def search(f, lo, hi, x0):
     """The gain in [lo, hi] (searched in log, golden section) where f is smallest, and f there; f(x0) too."""
     a, b = np.log(lo), np.log(hi); r = (np.sqrt(5) - 1) / 2
@@ -114,6 +152,7 @@ def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     dry = '--dry' in sys.argv
     global PIXEL, STEPS; PIXEL = '--mean' not in sys.argv
+    cells = any(a.startswith('--cells') for a in sys.argv)
     STEPS = next((a.split('=', 1)[1].split(',') for a in sys.argv if a.startswith('--steps=')), None)
     looks = args[0].split(',') if args else [l for l in all_looks() if (T.LOOKS / f'{l}.webp').exists()]
     start = next((a.split('=', 1)[1] for a in sys.argv if a.startswith('--from=')), None)
@@ -137,6 +176,7 @@ def main():
             base = G.get(step, 1.0) / mine.get(step, 1.0)                  # LOOK_GAIN's part (tryon.ts), not the look's own
             def err(own, step=step):
                 H = dict(G); H[step] = base * own; out = F.finish_with(st, H)
+                if cells: return cell_err(out, cat, M, ew, w, step, ref_strands)
                 if PIXEL: return pixel_err(out, ref_lab, ref_strands, M, ew, w, step)
                 return de2000(colours(out, M, ew, w)[step], ct[step])
             now = mine.get(step, 1.0); e_now = err(now)
