@@ -103,6 +103,7 @@ ACCENTS = {
     "lowerLiner": "precisely drawn liner near the lower lash line",
     "bottomLashes": "individual defined lower lashes with plausible roots and lengths",
     "aegyo": "subtle aegyo-sal under-eye highlight and contour without altering identity",
+    "kohl": "kohl pencil along the lower waterline (the inner rim of the lower lid), never on the white of the eye",
 }
 
 MASTER_RULES = (

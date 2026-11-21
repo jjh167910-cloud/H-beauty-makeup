@@ -47,14 +47,21 @@ test("every catalog look is a recipe her own makeup can hold, step by step", asy
   expect(report.hollywood.lips).toMatchObject({ finish: "matte", from: "hollywood" });
   expect(report.hollywood.brows).toMatchObject({ shade: "own", place: "full" });
   expect(report.lines.join("\n")).toContain("خط چشم");
-  // (its accents: freckles with its blush, aegyo-sal with its eyeshadow, rhinestones with its liner)
+  // (its accents: freckles with its blush, aegyo-sal with its eyeshadow, rhinestones and kohl with its liner)
   const accents = await page.evaluate(async () => {
     const { lookRecipe } = await import("/src/data/look-recipes.ts");
-    return { sun: lookRecipe("sun-kissed")!.blush, k: lookRecipe("k-beauty")!.shadow, stones: lookRecipe("rhinestone")!.liner };
+    const { minePicks, recipeLines } = await import("/src/data/my-makeup.ts");
+    const arabic = lookRecipe("arabic-glam")!;
+    return { sun: lookRecipe("sun-kissed")!.blush, k: lookRecipe("k-beauty")!.shadow, stones: lookRecipe("rhinestone")!.liner,
+      kohl: arabic.liner, kohlPick: minePicks(arabic)!.liner, kohlText: recipeLines(arabic).join("\n"), soft: lookRecipe("soft-glam")!.liner };
   });
   expect(accents.sun).toMatchObject({ freckles: true });
   expect(accents.k).toMatchObject({ aegyo: true });
   expect(accents.stones).toMatchObject({ stones: true });
+  expect(accents.kohl).toMatchObject({ kohl: true });         // (the Arabic glam's catalog photo has kohl on its waterline)
+  expect(accents.kohlPick?.kohl).toBeGreaterThan(0.5);
+  expect(accents.kohlText).toContain("سرمه داخل چشم");
+  expect(accents.soft?.kohl).toBeUndefined();                 // (a soft glam's has not)
 });
 
 test("?engine=v2 paints a look as its recipe (kept for the tab, ?engine=v1 turns it off), lashes strand by strand", async ({ page }) => {
@@ -128,7 +135,7 @@ test("?engine=v2 paints a look as its recipe (kept for the tab, ?engine=v1 turns
   expect(out.lashes[2]).toBeLessThan(out.lashes[1]);
 });
 
-test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a lit aegyo-sal, rhinestones that sparkle", async ({ page }) => {
+test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a lit aegyo-sal, rhinestones that sparkle, kohl on her waterline", async ({ page }) => {
   test.setTimeout(300_000);
   await page.goto("/");
   const photo = readFileSync(join(process.cwd(), "tests/fixtures/lit-cheek.jpg")).toString("base64");   // (a synthetic face)
@@ -171,13 +178,33 @@ test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a 
     each([P[263][0] + ew * 0.02, P[263][1] - ew * 0.4, P[263][0] + ew * 0.45, P[263][1] + ew * 0.05], (x, y) => {   // (past her outer corner)
       brightest = Math.max(brightest, lum(stones, x, y)); before = Math.max(before, lum(lined, x, y));
     });
-    return { dots, lighter, band: [band(lid), band(lit)], upper: [upper(lid), upper(lit)], brightest, before };
+    // kohl: her liner with it and without: the rim inside her lower lashes, either side of her iris, darker; the white
+    // of her eye, her iris and the skin under her lashes as they were
+    const kohl = pixels(await m.paintMine(shot, { gain: { liner: 1 }, liner: { ...liner, kohl: 0.8 } }));
+    const up = [-down[0], -down[1]];
+    const at = (d: Uint8ClampedArray, i: number, k: number) => {
+      let s = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) s += lum(d, P[i][0] + up[0] * ew * k + dx, P[i][1] + up[1] * ew * k + dy);
+      return s / 9;
+    };
+    const rim = (d: Uint8ClampedArray) => [381, 382, 390, 249].reduce((s, i) => s + at(d, i, 0.012), 0) / 4;
+    const white = (d: Uint8ClampedArray) =>     // (from her iris's centre 0.6 of the way to each corner of her eye)
+      [362, 263].reduce((s, c) => s + lum(d, P[473][0] + (P[c][0] - P[473][0]) * 0.6, P[473][1] + (P[c][1] - P[473][1]) * 0.6), 0) / 2;
+    const iris = (d: Uint8ClampedArray) => lum(d, P[473][0], P[473][1] + down[1] * ew * 0.05);
+    const below = (d: Uint8ClampedArray) => [380, 374, 373].reduce((s, i) => s + at(d, i, -0.06), 0) / 3;
+    return { dots, lighter, band: [band(lid), band(lit)], upper: [upper(lid), upper(lit)], brightest, before,
+      rim: [rim(lined), rim(kohl)], white: [white(lined), white(kohl)], iris: [iris(lined), iris(kohl)], below: [below(lined), below(kohl)] };
   }, photo);
+  console.log("kohl", JSON.stringify({ rim: out.rim, white: out.white, iris: out.iris, below: out.below }));
   expect(out.dots).toBeGreaterThan(15);                       // dotted on
   expect(out.lighter).toBe(0);                               // (and nothing else on her cheek)
   expect(out.band[1]).toBeGreaterThan(out.band[0] + 2);      // her aegyo-sal lit
   expect(Math.abs(out.upper[1] - out.upper[0])).toBeLessThan(1.5);   // her lid as it was
   expect(out.brightest).toBeGreaterThan(Math.min(250, out.before + 25));   // a crystal catching her light
+  expect(out.rim[1]).toBeLessThan(out.rim[0] * 0.75);                     // kohl on her waterline
+  expect(Math.abs(out.white[1] - out.white[0])).toBeLessThan(1.5);        // (not on the white of her eye,
+  expect(Math.abs(out.iris[1] - out.iris[0])).toBeLessThan(1.5);          // nor her iris,
+  expect(Math.abs(out.below[1] - out.below[0])).toBeLessThan(1.5);        // nor her skin under her lashes)
 });
 
 test("one recipe link opens either: her own makeup or a look's recipe, in «میکاپ من» on whoever opens it (never a photo)", async ({ page }) => {

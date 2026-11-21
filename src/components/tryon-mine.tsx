@@ -570,7 +570,10 @@ export default function TryOnMine({ shot, recipe, onRecipe, onBook, onLive, open
                     <button type="button" className="chip" aria-pressed={Boolean(step?.freckles)} onClick={() => update({ freckles: !step?.freckles })}>کک‌مک</button>
                   ) : null}
                   {def.key === "liner" ? (
-                    <button type="button" className="chip" aria-pressed={Boolean(step?.stones)} onClick={() => update({ stones: !step?.stones })}>نگین گوشه چشم</button>
+                    <>
+                      <button type="button" className="chip" aria-pressed={Boolean(step?.kohl)} onClick={() => update({ kohl: !step?.kohl })}>سرمه داخل چشم</button>
+                      <button type="button" className="chip" aria-pressed={Boolean(step?.stones)} onClick={() => update({ stones: !step?.stones })}>نگین گوشه چشم</button>
+                    </>
                   ) : null}
                   {def.key === "shadow" ? (
                     <button type="button" className="chip" aria-pressed={Boolean(step?.aegyo)} onClick={() => update({ aegyo: !step?.aegyo })}>زیر چشم براق (اگیو)</button>

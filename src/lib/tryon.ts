@@ -992,7 +992,8 @@ async function mineProducts(picks: MinePicks, face: FaceStats, all: LooksMeta): 
   }
   if (picks.liner) {
     out.liner = linerColour(picks.liner.hex);
-    mine.liner = { place: picks.liner.place, lower: picks.liner.lower, soft: picks.liner.soft, opacity: picks.liner.opacity };
+    mine.liner = { place: picks.liner.place, lower: picks.liner.lower, soft: picks.liner.soft, opacity: picks.liner.opacity,
+      ...(picks.liner.kohl ? { kohl: picks.liner.kohl } : {}) };
     if (picks.liner.stones) mine.stones = picks.liner.stones;
   }
   if (picks.lashes) mine.lashes = { place: picks.lashes.place, lower: Boolean(picks.lashes.lower) };

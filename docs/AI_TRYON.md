@@ -353,6 +353,15 @@ in makeup-gl.ts):
   the eye whites change a little more (0.25 -> 0.41 ΔE, worst tenth 0.38 -> 0.76, against the limit of 1.5), every
   other line the same (within 0.005). On the benchmark's real faces (measured only, never tuned on) the kohl sits on
   their rims, not on the whites of their eyes.
+- **Kohl in «میکاپ من».** The artist can now design with it: the liner step has a «سرمه داخل چشم» chip, kohl on her
+  lower waterline in the liner's colour, on the same band as a catalog look's (`waterAt`), off her irises and the
+  whites of her eyes and under her lashes, at `KOHL` (0.85) of the liner tool's opacity, with the liner in the
+  step-by-step mode. Her recipe's text says «با سرمه داخل چشم» and the tutorial how to put it on. The 14 looks whose
+  catalog photo has kohl there (their measured waterline at under 45% of the bare face's light on average: the
+  smokeys and glams, the Persian bride, henna night, the fox and siren eyes, the twenties and the blue editorial) carry
+  it as an accent (`kohl` in makeup-styles.ts), so a look opened in «میکاپ من», or painted as its recipe (`?engine=v2`),
+  keeps it. On the test face: the rim either side of her iris 34% darker, her eye whites, iris and the skin under her
+  lashes unchanged (tests/look-recipes.spec.ts).
 
 The tiny fallback networks learn the look as the engine finishes it: `scripts/tinybeauty/finish.py` paints the
 foundation, this concealer, the layer with each look's strengths, the brows, lipstick and eye detail in the engine's

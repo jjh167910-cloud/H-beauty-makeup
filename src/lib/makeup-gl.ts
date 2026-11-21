@@ -168,7 +168,8 @@ const BALL_SCALE = [0.95, 0.8], BALL_SOFT = 0.015, FEATHER = 0.35, LIP_VOLUME = 
  * a smoky eye whose catalog photo has it 3 to 6 times darker. Each look's own change there (looks.json `water`: inner,
  * middle and outer parts of the rim, WATER_T) goes on a band WATER_BAND eye widths up from her lower contour (at most
  * WATER_OPEN of her eye's opening there, and WATER_OUT below it, onto her lash roots), off her irises and her eye whites
- * (WATER_WHITE: at least this share of their light and redder by less than this), its edges WATER_SOFT soft.
+ * (WATER_WHITE: at least this share of their light and redder by less than this), its edges WATER_SOFT soft. Her own
+ * makeup's kohl («میکاپ من»: Mine.liner.kohl) goes on the same band, in her liner's colour.
  */
 const WATER_BAND = 0.03, WATER_OPEN = 0.35, WATER_OUT = 0.006, WATER_SOFT = 0.006;
 const WATER_WHITE = [[0.45, 0.75], [0.02, 0.06]], WATER_T = [0.35, 0.6];
@@ -652,8 +653,11 @@ export type Mine = {
   shadow?: { pack: number; low?: number; corners?: boolean; aegyoSal?: boolean;
     /** Its placement drawn from her own eye (shadowPattern: her lash line, crease and brow), not a catalog look's map. */
     drawn?: string };
-  /** Liner: thin / wing / fox / puppy / smudge, along her lower lash line too, its edge's softness and opacity. */
-  liner?: { place: string; lower: boolean; soft: number; opacity: number };
+  /**
+   * Liner: thin / wing / fox / puppy / smudge, along her lower lash line too, its edge's softness and opacity; kohl: on
+   * her lower waterline too, this opaque (the waterline's band, waterAt).
+   */
+  liner?: { place: string; lower: boolean; soft: number; opacity: number; kohl?: number };
   /** Lashes strand by strand (lashStrands): natural / volume / dramatic, her lower lashes too. */
   lashes?: { place: string; lower?: boolean };
   /** Freckles dotted across her nose and upper cheeks (freckleSpots): how strong (1 = as an artist dots them). */
@@ -1879,6 +1883,7 @@ uniform vec3 uWaterC[3];
 uniform vec4 uWaterI[2];
 uniform vec4 uWaterW;
 uniform float uWaterK;
+uniform float uKohl;
 uniform vec2 uWaterE;
 out vec4 o;
 float sweepT(vec2 x) {
@@ -2421,6 +2426,12 @@ void main() {
     // (a dark liner never lightens her own lash line, already darker than it in her light)
     vec3 lined = mix(res, pow(clamp(uLiner * lightHere(lu), 0.0, 1.0), vec3(1.0 / 2.2)), dl);
     res = luma(uLiner) < 0.02 ? min(res, lined) : lined;
+    if (uKohl > 0.0) {            // kohl on her lower waterline (Mine.liner.kohl): her liner's colour in her light there
+      vec3 wc;
+      float km = clamp(waterAt(px, pow(src, vec3(2.2)), wc) * uKohl * rv(4, sw), 0.0, 1.0);   // (uKohl: its opacity)
+      vec3 kohl = mix(res, pow(clamp(uLiner * lightHere(lu), 0.0, 1.0), vec3(1.0 / 2.2)), km);
+      res = luma(uLiner) < 0.02 ? min(res, kohl) : kohl;
+    }
     if (uStrands == 1) {          // strand by strand: dark hairs over whatever is on her lid (a darkening of a pale
       // eyeshadow would leave grey lashes), as dark as a lash is in her light, never lighter than she is there
       float la = clamp(uK.z * rv(5, sw) * texture(uDetail, v).a * lashK * (1.0 - M.r), 0.0, ${LASH_OPAQUE.toFixed(2)});
@@ -3318,12 +3329,14 @@ export class MakeupGL {
     gl.uniform3f(this.uni(p, "uLipBox"), ...(lips?.box ?? [0, 0, 1]));
     this.bindTex(p, "uDetail", soft ? this.targets.detail.tex[0] : this.targets.layer.tex[0], 14);
     gl.uniform1i(this.uni(p, "uOpenOn"), openOn ? 1 : 0);
-    {                                  // her lower waterline (a look's own; WATER_*)
+    {                                  // her lower waterline (a look's own; WATER_*), or her own kohl there
       const water = !mine && look.water && P.length >= 478 ? look.water : null;
+      const kohl = mine?.liner?.kohl && P.length >= 478 ? mine.liner.kohl : 0;
       gl.uniform1f(this.uni(p, "uWaterK"), water ? 1 : 0);
-      if (water) {
+      gl.uniform1f(this.uni(p, "uKohl"), kohl);
+      if (water || kohl) {
         gl.uniform4fv(this.uni(p, "uWaterP"), waterPoints(P));
-        gl.uniform3fv(this.uni(p, "uWaterC"), new Float32Array(water.flat()));
+        gl.uniform3fv(this.uni(p, "uWaterC"), water ? new Float32Array(water.flat()) : new Float32Array(9));
         const sw = Math.max(0.7, ew * WATER_SOFT, soft ? camLens : 0);
         const iris = (c: number) => [1, 2, 3, 4].reduce((s, k) => s + Math.hypot(P[c + k][0] - P[c][0], P[c + k][1] - P[c][1]), 0) / 4;
         gl.uniform4fv(this.uni(p, "uWaterI"), new Float32Array([468, 473].flatMap((c) => [P[c][0], P[c][1], iris(c), sw])));

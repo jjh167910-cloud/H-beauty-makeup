@@ -20,6 +20,8 @@ export type MyStep = {
   freckles?: boolean;
   /** Liner: rhinestones at her outer eye corners too, up and out as her wing goes. */
   stones?: boolean;
+  /** Liner: kohl on her lower waterline too (sormeh), the rim inside her lower lashes, in the liner's colour. */
+  kohl?: boolean;
   /** Eyeshadow: her aegyo-sal lit too (her inner-corner light, or a pearl shimmer, just under her lower lashes). */
   aegyo?: boolean;
   /** Eyeshadow: a second shade for her crease and outer corner, and a light for her inner corners. */
@@ -180,7 +182,7 @@ export const MY_STEPS: MyStepDef[] = [
     places: SHADOW_STYLES.map(([id, name]) => ({ id, name })),
   },
   {
-    key: "liner", title: "خط چشم", en: "EYELINER", hint: "شکل خط را انتخاب کنید؛ خط پایین چشم را هم می‌توانید اضافه کنید.",
+    key: "liner", title: "خط چشم", en: "EYELINER", hint: "شکل خط را انتخاب کنید؛ خط پایین و سرمه داخل چشم را هم می‌توانید اضافه کنید.",
     shades: fromShades(LINERS),
     tools: [
       tool("pen", "خط چشم ماژیکی", "liner", 0.004, 1, 1, { opacity: 0.96 }),
@@ -233,6 +235,12 @@ export function newStep(): MyStep {
  */
 const STRENGTH: Partial<Record<StepKey, number>> = { contour: 0.6, blush: 1.5, glow: 0.5, shadow: 1 };
 
+/**
+ * Kohl on her waterline, at a liner's opacity: a pencil on the wet rim covers less than on skin (a catalog look's kohl
+ * leaves its waterline about a fifth of its light: water_profile in teacher.py, `water` in looks.json).
+ */
+const KOHL = 0.85;
+
 /** Her aegyo-sal's light when she has no inner-corner light: a pearl shimmer (a champagne one read as a gold stripe). */
 const AEGYO_LIGHT = HIGHLIGHTERS.find((h) => h.id === "pearl")!.hex;
 
@@ -270,7 +278,7 @@ export function minePicks(recipe: MyMakeup): MinePicks | null {
       }
       case "liner":
         out.liner = { hex, place: step.place ?? "wing", lower: Boolean(step.lower), soft: step.place === "smudge" ? Math.max(t.soft, 0.03) : t.soft,
-          opacity: t.opacity ?? 0.95, ...(raw.stones ? { stones: 1 } : {}) };
+          opacity: t.opacity ?? 0.95, ...(raw.stones ? { stones: 1 } : {}), ...(raw.kohl ? { kohl: KOHL * (t.opacity ?? 0.95) } : {}) };
         break;
       case "lashes": out.lashes = { place: step.place ?? "natural", ...(step.lower ? { lower: true } : {}) }; break;
       case "lips": out.lips = { hex: raw.hex ?? shade?.hex ?? "#b8766d", finish: (step.finish ?? "satin") as Finish, ...(raw.from ? { from: raw.from } : {}) }; break;
@@ -301,6 +309,7 @@ export function recipeLines(recipe: MyMakeup): string[] {
       def.key === "liner" && step.lower ? "خط پایین هم" : def.key === "lashes" && step.lower ? "مژه پایین هم" : undefined,
       def.key === "blush" && raw.freckles ? "با کک‌مک" : undefined,
       def.key === "shadow" && raw.aegyo ? "زیر چشم براق (اگیو)" : undefined,
+      def.key === "liner" && raw.kohl ? "با سرمه داخل چشم" : undefined,
       def.key === "liner" && raw.stones ? "با نگین گوشه چشم" : undefined,
       def.tools.length > 1 ? def.tools.find((t) => t.id === step.tool)?.name : undefined,
       `شدت ${percent(step.amount)}`,
@@ -349,6 +358,7 @@ const HOW: Partial<Record<StepKey, (s: MyStep) => { how: string; tip?: string }>
   liner: (s) => {
     const l = LINER[(s.place ?? "wing") as keyof typeof LINER] ?? LINER.wing;
     return { how: `${l.name}: ${l.how}`, tip: [s.lower ? "خط پایین را از گوشه بیرونی تا نیمه چشم، نازک و نزدیک ریشه مژه‌ها بکشید." : "",
+      s.kohl ? "سرمه: پلک پایین را با نوک انگشت کمی پایین بکشید، به بالا نگاه کنید و مداد نرم مخصوص داخل چشم (کوهل) را آرام روی لبه داخلی پلک پایین، از گوشه بیرونی تا گوشه داخلی بکشید؛ روی سفیدی چشم نرود." : "",
       s.stones ? "نگین: سه نگین ریز با چسب مژه (یک نقطه چسب پشت هر نگین، چند ثانیه صبر کنید) از گوشه بیرونی چشم رو به بالا، در امتداد خط چشم بچسبانید؛ وسطی کمی درشت‌تر." : ""]
       .filter(Boolean).join(" ") || undefined };
   },
@@ -410,6 +420,7 @@ export function cleanRecipe(value: unknown): MyMakeup {
     if (def.key === "blush" && s.freckles === true) step.freckles = true;
     if (def.key === "shadow" && s.aegyo === true) step.aegyo = true;
     if (def.key === "liner" && s.stones === true) step.stones = true;
+    if (def.key === "liner" && s.kohl === true) step.kohl = true;
     const shade2 = pick(s.shade2, def.shades2), inner = pick(s.inner, def.inners);
     if (shade2) step.shade2 = shade2;
     if (inner) step.inner = inner;

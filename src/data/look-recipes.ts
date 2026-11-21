@@ -11,8 +11,8 @@
  * scripts/tinybeauty/fit_recipes.cjs: on synthetic faces, each step as strong and its colour as the old engine paints
  * the photo's change there).
  *
- * Its accents are her own makeup's (freckles with its blush, an aegyo-sal with its eyeshadow, rhinestones with its
- * liner; glitter is its eyeshadow's finish); recipeGaps lists any a recipe can't paint.
+ * Its accents are her own makeup's (freckles with its blush, an aegyo-sal with its eyeshadow, rhinestones and kohl on
+ * the waterline with its liner; glitter is its eyeshadow's finish); recipeGaps lists any a recipe can't paint.
  */
 import type { StepKey } from "@/lib/tryon";
 import fits from "./look-fit.json";
@@ -50,7 +50,7 @@ const LINER_PLACE: Record<Exclude<Liner, "none">, string> = {
 const BLACK_LINER = "#141113";
 
 /** A look's accents the recipe paints (the others are recipeGaps). */
-const PAINTED: ReadonlySet<Accent> = new Set(["shimmer", "contour", "lowerLiner", "bottomLashes", "glitter", "freckles", "aegyo", "rhinestones"]);
+const PAINTED: ReadonlySet<Accent> = new Set(["shimmer", "contour", "lowerLiner", "bottomLashes", "glitter", "freckles", "aegyo", "rhinestones", "kohl"]);
 
 /**
  * A look's recipe: its FaceLook as her own makeup's steps (amount 1: as the artist put it on in its catalog photo).
@@ -118,9 +118,11 @@ export function recipeOf(look: FaceLook, id?: string): MyMakeup {
   if (look.liner !== "none") {
     const hex = look.linerColor ?? BLACK_LINER;
     out.liner = { shade: nearestShade(LINERS, hex), hex, tool: look.liner === "smudge" ? "pencil" : "pen", place: LINER_PLACE[look.liner], amount: 1,
-      ...(acc.has("lowerLiner") || look.liner === "double" ? { lower: true } : {}), ...(acc.has("rhinestones") ? { stones: true } : {}) };
-  } else if (acc.has("lowerLiner")) {
-    out.liner = { shade: "black", tool: "pencil", place: "thin", lower: true, amount: 0.6 };
+      ...(acc.has("lowerLiner") || look.liner === "double" ? { lower: true } : {}), ...(acc.has("rhinestones") ? { stones: true } : {}),
+      ...(acc.has("kohl") ? { kohl: true } : {}) };
+  } else if (acc.has("lowerLiner") || acc.has("kohl")) {
+    out.liner = { shade: "black", tool: "pencil", place: "thin", amount: 0.6,
+      ...(acc.has("lowerLiner") ? { lower: true } : {}), ...(acc.has("kohl") ? { kohl: true } : {}) };
   }
 
   out.lashes = { tool: "wand", place: look.lashes, amount: 1, ...(acc.has("bottomLashes") ? { lower: true } : {}) };
