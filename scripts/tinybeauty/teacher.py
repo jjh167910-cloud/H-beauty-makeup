@@ -330,7 +330,10 @@ def conceal_gain(user, user_lin, p, amount=1.0):
 
 # ------------------------------------------------------------ foundation
 # Her foundation: her skin evened out everywhere inside her face's outline (her own, if she moved it), right up to it.
-FOUND_COLOUR = 0.7                      # how much of her skin's uneven colour (redness, blotches) it covers
+FOUND_COLOUR = 0.45                     # how much of her skin's uneven colour (redness, blotches) it covers
+# (it was 0.7: on the catalog model the cheeks came out 1.7 b* yellower than their photos and the under-eye 2.7 b* bluer,
+# the evening counted twice, the photo's own and hers; at 0.45 1.0 and 1.8, and on the benchmark's real faces (measured
+# only) her under-eye's colour lost 3.6 not 4.5 of its chroma, her cheeks' unevenness still 15% evened out, not 17%)
 FOUND_NEAR, FOUND_WIDE = 0.05, 0.6      # her skin's colour softened over these (eye widths): local, broad
 FOUND_UP, FOUND_DOWN, FOUND_OUT, FOUND_SOFT = 0.8, 0.1, 0.35, 0.1   # up her forehead, down onto her neck, past her outline (her visible face decides), edge
 FOUND_DARK = (0.2, 0.4)                 # darker than this share of her skin's brightness (nostrils, lashes, a strand) isn't skin

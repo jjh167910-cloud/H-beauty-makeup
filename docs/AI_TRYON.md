@@ -419,6 +419,18 @@ in makeup-gl.ts):
   brown all at 0.27 of its bare light, a plum at 0.32). It now deepens by at most half of `deep` in its own colour
   (`PIG_DEEPEN`): a plum 0.45, a mid-brown 0.59, black and charcoal 0.27 as before. The looks as recipes, whose
   eyeshadow is never packed that hard, came out the same on every benchmark line (electric-blue's lid 2.4 -> 2.0 ΔE).
+- **The foundation's colour evening, gentler.** Her foundation brought FOUND_COLOUR (0.7) of her skin's uneven colour
+  towards her face's broad colour. On the catalog model that evening went on twice (the photo's own, in the layer,
+  then hers), and the cheeks came out 1.7 b* yellower than their photos and the under-eye 2.7 b* bluer; on the
+  benchmark's real faces the under-eye lost 4.5 of its chroma (the open "foundation greys the hollow" defect). Taking
+  the foundation's own work out of the layer instead (foundation() on the bare face divided out of it) swung the
+  cheeks the other way, redder (cheek ΔE 0.90 -> 1.49), so FOUND_COLOUR is now 0.45, in both engines. On the real
+  faces (measured only) the under-eye loses 3.6 of its chroma, not 4.5, and the cheeks' unevenness is still 15% evened
+  out (17% before). All 48 looks in seven lights against the release before: the cheeks 1.13 -> 0.88 ΔE from their
+  photos (median; worst tenth 1.71 -> 1.54), catalog colour 1.22 -> 1.10, the whole face 2.14 -> 1.98, the brows, the
+  waterline, the eye whites and the look in another light a little closer, no newly blown highlights at the limit any
+  more; the under-eye 1.93 -> 2.01 L* off its photo and lifted 1.18 -> 1.40 L* over the cheek below it (limit 6), the
+  lower lashes' worst tenth 4.67 -> 4.76.
 
 The tiny fallback networks learn the look as the engine finishes it: `scripts/tinybeauty/finish.py` paints the
 foundation, this concealer, the layer with each look's strengths, the brows, lipstick and eye detail in the engine's

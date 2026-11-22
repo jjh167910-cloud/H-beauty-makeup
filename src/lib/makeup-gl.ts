@@ -307,7 +307,7 @@ const CONCEAL_LIGHT: Record<string, number> = { "no-makeup": 0.5, "clean-girl": 
  * to it. How much of her uneven colour it covers; her skin's colour softened over FOUND_NEAR eye widths brought towards it
  * softened over FOUND_WIDE; the shape (up her forehead, down onto her neck, past her outline, its edge's softness, eye
  * widths); darker than FOUND_DARK of her skin isn't skin. */
-const FOUND_COLOUR = 0.7, FOUND_NEAR = 0.05, FOUND_WIDE = 0.6;
+const FOUND_COLOUR = 0.45, FOUND_NEAR = 0.05, FOUND_WIDE = 0.6;     // (FOUND_COLOUR: as teacher.py, and why)
 /* Her skin in shade (the side of her face by her hair, under her jaw) lifted towards her skin's median brightness, never
  * darkened: how much (in log light), from at most how far below, her brightness softened over FOUND_WIDE_L eye widths. */
 const FOUND_LIGHT = 0.6, FOUND_LIFT = 1.6, FOUND_WIDE_L = 0.3, FOUND_FACE = [0.6, 0.95];
