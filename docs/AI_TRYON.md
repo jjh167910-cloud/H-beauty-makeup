@@ -431,6 +431,38 @@ in makeup-gl.ts):
   waterline, the eye whites and the look in another light a little closer, no newly blown highlights at the limit any
   more; the under-eye 1.93 -> 2.01 L* off its photo and lifted 1.18 -> 1.40 L* over the cheek below it (limit 6), the
   lower lashes' worst tenth 4.67 -> 4.76.
+- **Eyeshadow under her lower lashes, her lid shade over her mobile lid, a smoky eye's deep shade over it.** Four
+  changes to how «میکاپ من» lays an eyeshadow, from the recipes (`?engine=v2`) next to their catalog photos.
+  (1) Most of the catalog's looks have their eyeshadow (their second shade) smudged along under the lower lashes too,
+  from the outer corner in; a recipe had nowhere to put it, and under the lower lashes they came out up to 21 ΔE off
+  their photos (electric-blue's blue smudge, the cut crease's brown). The eyeshadow step now has «سایه زیر چشم هم»
+  (`MyStep.lower`: a small brush or a soft pencil along under her lower lashes, softened; `LOWER_SMUDGE`, full to 0.08
+  eye widths below them and gone by 0.19, fullest from her outer corner to the middle of her eye, over whatever her
+  placement puts there; with two shades it is the second one), drawn under a placement from her eye and over a catalog
+  map alike, and 11 looks' recipes have it (the `lowerShadow` accent: electric-blue, henna-night, full-glam, fox-eye,
+  cut-crease, bronzed-goddess, lilac-eyes, monochrome, glitter-party, golden-hour, latte). (2) A smoky eye's band
+  under the lower lashes was full only to 0.056 eye widths below them and gone by 0.16, where the smoky photos are as
+  deep as the lid to about 0.12 and fade out by 0.2; blurred by the blending brush it read as a faint shadow. It is now
+  full to 0.12 and gone by 0.24 before the brush, and 0.6 of it at the inner corner (was 0.45). (3) With two shades,
+  her lid shade went where `lidSpots`' soft spots put it: a narrow band a third of the way up her lid with a crisp top
+  edge, so it came out as a pale crescent with her crease shade drawn round it like an outline. It now covers her
+  mobile lid (`LID_PATTERN`: from her lashes to just under her crease, her inner corner to past the middle of her eye,
+  softening towards both), and her crease shade gives way over it in step (`1 - 0.85 gLid`), as a fluffy brush blends
+  two shades; any eyeshadow is packed on there. (4) A smoky eye keeps its deep shade over her lid and presses the lid
+  shade on over it (`MINE_LID_FADE`: it gives way by 0.4, not 0.85): giving way as much as the other placements, the
+  smoky looks' lids came out 1 to 2 L* lighter than their photos. Every look's eyeshadow and liner were fitted again
+  (`fit_recipes.cjs --steps shadow,liner`, the catalog model and `deep-skin.jpg`; seven smoky lids with `--keep 0.3`,
+  their darker pixels counted: classic-smokey's 3.5 -> 3.1 ΔE, arabic-glam's 4.5 -> 2.5; fitting the smoky looks
+  again after (4) made them worse on the benchmark, so they keep the fit made before it). All 48 looks as recipes on
+  the catalog model, against the release before: the lid 2.80 -> 2.19 ΔE from its photo (mean; worst 7.3 -> 4.8),
+  under the lower lashes 6.1 -> 4.6 (median; worst tenth 10.1 -> 8.2; electric-blue's 21.2 -> 10.0, the worst now
+  arabic-glam's 12.6), catalog colour 1.62 -> 1.58 (worst tenth 3.94 -> 3.41), the whole face
+  2.69 -> 2.63, the under-eye 3.2 -> 2.7 L* off its photo (worst tenth 5.1 -> 4.5), the eye placement's offset's worst
+  tenth 0.26 -> 0.21 eye widths, the waterline a little closer (but electric-blue's 7.0 -> 8.7, next to its new blue
+  smudge); the eye whites 0.26 -> 0.32 ΔE changed (worst tenth 1.21 -> 1.26, limit 1.5; electric-blue
+  1.8 -> 2.5); lips, cheeks and brows as they were. Lids further from their photos: golden-hour 1.8 ->
+  3.1, icy 2.5 -> 3.3, grunge-smokey 1.5 -> 2.2, monochrome 1.4 -> 2.0. The catalog engine (the default for the looks)
+  paints pixel for pixel as before.
 
 The tiny fallback networks learn the look as the engine finishes it: `scripts/tinybeauty/finish.py` paints the
 foundation, this concealer, the layer with each look's strengths, the brows, lipstick and eye detail in the engine's

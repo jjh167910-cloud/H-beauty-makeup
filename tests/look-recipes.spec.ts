@@ -53,7 +53,9 @@ test("every catalog look is a recipe her own makeup can hold, step by step", asy
     const { minePicks, recipeLines } = await import("/src/data/my-makeup.ts");
     const arabic = lookRecipe("arabic-glam")!;
     return { sun: lookRecipe("sun-kissed")!.blush, k: lookRecipe("k-beauty")!.shadow, stones: lookRecipe("rhinestone")!.liner,
-      kohl: arabic.liner, kohlPick: minePicks(arabic)!.liner, kohlText: recipeLines(arabic).join("\n"), soft: lookRecipe("soft-glam")!.liner };
+      kohl: arabic.liner, kohlPick: minePicks(arabic)!.liner, kohlText: recipeLines(arabic).join("\n"), soft: lookRecipe("soft-glam")!.liner,
+      under: lookRecipe("cut-crease")!.shadow, underPick: minePicks(lookRecipe("cut-crease")!)!.shadow, underText: recipeLines(lookRecipe("cut-crease")!).join("\n"),
+      softUnder: lookRecipe("soft-glam")!.shadow };
   });
   expect(accents.sun).toMatchObject({ freckles: true });
   expect(accents.k).toMatchObject({ aegyo: true });
@@ -62,6 +64,10 @@ test("every catalog look is a recipe her own makeup can hold, step by step", asy
   expect(accents.kohlPick?.kohl).toBeGreaterThan(0.5);
   expect(accents.kohlText).toContain("سرمه داخل چشم");
   expect(accents.soft?.kohl).toBeUndefined();                 // (a soft glam's has not)
+  expect(accents.under).toMatchObject({ lower: true });       // (the cut crease's photo has its eyeshadow under its lower lashes too)
+  expect(accents.underPick?.lower).toBe(true);
+  expect(accents.underText).toContain("سایه زیر چشم هم");
+  expect(accents.softUnder?.lower).toBeUndefined();           // (a soft glam's has not)
 });
 
 test("?engine=v2 paints a look as its recipe (kept for the tab, ?engine=v1 turns it off), lashes strand by strand", async ({ page }) => {
@@ -135,7 +141,7 @@ test("?engine=v2 paints a look as its recipe (kept for the tab, ?engine=v1 turns
   expect(out.lashes[2]).toBeLessThan(out.lashes[1]);
 });
 
-test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a lit aegyo-sal, rhinestones that sparkle, kohl on her waterline", async ({ page }) => {
+test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a lit aegyo-sal, rhinestones that sparkle, kohl on her waterline, eyeshadow under her lower lashes", async ({ page }) => {
   test.setTimeout(300_000);
   await page.goto("/");
   const photo = readFileSync(join(process.cwd(), "tests/fixtures/lit-cheek.jpg")).toString("base64");   // (a synthetic face)
@@ -192,7 +198,14 @@ test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a 
       [362, 263].reduce((s, c) => s + lum(d, P[473][0] + (P[c][0] - P[473][0]) * 0.6, P[473][1] + (P[c][1] - P[473][1]) * 0.6), 0) / 2;
     const iris = (d: Uint8ClampedArray) => lum(d, P[473][0], P[473][1] + down[1] * ew * 0.05);
     const below = (d: Uint8ClampedArray) => [380, 374, 373].reduce((s, i) => s + at(d, i, -0.06), 0) / 3;
+    // her eyeshadow under her lower lashes too: the band under the outer half of her lower lashes deeper, her lid as it was
+    // (a deep brown: on this face the skin under her outer lower lashes is in shadow, darker than a mid-brown powder)
+    const brown = { hex: "#3a2219", finish: "matte", place: "crease", pack: 1 };
+    const crease = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow: brown }));
+    const smudged = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow: { ...brown, lower: true } }));
+    const under = (d: Uint8ClampedArray) => [249, 390, 373].reduce((s, i) => s + at(d, i, -0.06) + at(d, i, -0.09), 0) / 6;
     return { dots, lighter, band: [band(lid), band(lit)], upper: [upper(lid), upper(lit)], brightest, before,
+      under: [under(crease), under(smudged)], lid: [upper(crease), upper(smudged)],
       rim: [rim(lined), rim(kohl)], white: [white(lined), white(kohl)], iris: [iris(lined), iris(kohl)], below: [below(lined), below(kohl)] };
   }, photo);
   console.log("kohl", JSON.stringify({ rim: out.rim, white: out.white, iris: out.iris, below: out.below }));
@@ -205,6 +218,9 @@ test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a 
   expect(Math.abs(out.white[1] - out.white[0])).toBeLessThan(1.5);        // (not on the white of her eye,
   expect(Math.abs(out.iris[1] - out.iris[0])).toBeLessThan(1.5);          // nor her iris,
   expect(Math.abs(out.below[1] - out.below[0])).toBeLessThan(1.5);        // nor her skin under her lashes)
+  console.log("under", JSON.stringify({ under: out.under, lid: out.lid }));
+  expect(out.under[1]).toBeLessThan(out.under[0] - 4);                    // her eyeshadow under her lower lashes
+  expect(Math.abs(out.lid[1] - out.lid[0])).toBeLessThan(1.5);            // (her lid as it was)
 });
 
 test("one recipe link opens either: her own makeup or a look's recipe, in «میکاپ من» on whoever opens it (never a photo)", async ({ page }) => {

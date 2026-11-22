@@ -576,7 +576,10 @@ export default function TryOnMine({ shot, recipe, onRecipe, onBook, onLive, open
                     </>
                   ) : null}
                   {def.key === "shadow" ? (
-                    <button type="button" className="chip" aria-pressed={Boolean(step?.aegyo)} onClick={() => update({ aegyo: !step?.aegyo })}>زیر چشم براق (اگیو)</button>
+                    <>
+                      <button type="button" className="chip" aria-pressed={Boolean(step?.lower)} onClick={() => update({ lower: !step?.lower })}>سایه زیر چشم هم</button>
+                      <button type="button" className="chip" aria-pressed={Boolean(step?.aegyo)} onClick={() => update({ aegyo: !step?.aegyo })}>زیر چشم براق (اگیو)</button>
+                    </>
                   ) : null}
                 </div>
               </div>

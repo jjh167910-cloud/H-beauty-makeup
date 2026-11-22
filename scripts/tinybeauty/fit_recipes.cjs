@@ -22,15 +22,20 @@
  * model, 2026-11). Where the target is much darker or lighter than the recipe's paint (its lashes and liner, its
  * glitter) doesn't count.
  *
+ * With `--steps shadow,liner` only those steps' amounts and colours are fitted, the others kept as look-fit.json has
+ * them (a few times faster: after a change to how the engine lays an eyeshadow, 2026-11).
+ *
  * Needs the dev server (npm run dev) and Playwright's Chromium (software WebGL is enough: a few minutes a look).
  *   node scripts/tinybeauty/fit_recipes.cjs --faces a.jpg,b.jpg,c.jpg [--looks all|id,id] [--iters 4] [--url http://127.0.0.1:5173/]
+ *     [--hue] [--keep 0.6] [--steps shadow,liner] [--out other.json]
  *   node scripts/tinybeauty/fit_recipes.cjs --teacher results/teacher [--looks all] ...
  */
 const { chromium } = require("playwright");
 const fs = require("fs");
 const path = require("path");
 const arg = (name, d) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : d; };
-const OUT = arg("out", path.join(__dirname, "../../src/data/look-fit.json"));   // (--out: another file, to run looks in parallel)
+const APP_FIT = path.join(__dirname, "../../src/data/look-fit.json"), APP = JSON.parse(fs.readFileSync(APP_FIT, "utf8"));
+const OUT = arg("out", APP_FIT);   // (--out: another file, to run looks in parallel)
 const TEACHER = arg("teacher", "");
 const FACES = TEACHER && !arg("faces", "")
   ? fs.readdirSync(path.join(TEACHER, "_faces")).filter((f) => f.endsWith(".jpg")).sort().map((f) => path.join(TEACHER, "_faces", f))
@@ -44,6 +49,8 @@ const teacherPicture = (look, face) => {
 };
 const ITERS = +arg("iters", 4);
 const HUE = process.argv.includes("--hue");
+const KEEP = +arg("keep", 0.6);        // (--hue: where the target is darker than this share of the recipe's paint, it is its lashes or liner)
+const STEPS = arg("steps", "");          // (only these steps' amounts and colours are fitted: e.g. shadow,liner)
 const URL_ = arg("url", "http://127.0.0.1:5173/");
 if (!FACES.length) { console.error("usage: fit_recipes.cjs --faces a.jpg,b.jpg [--looks all] [--iters 4] [--url ...]"); process.exit(2); }
 (async () => {
@@ -75,7 +82,7 @@ if (!FACES.length) { console.error("usage: fit_recipes.cjs --faces a.jpg,b.jpg [
     const t0 = Date.now();
     const targets = FACES.map((f) => teacherPicture(look, f));
     if (TEACHER && !targets.some(Boolean)) { console.log(look, "no teacher pictures: skipped"); continue; }
-    result[look] = await page.evaluate(async ({ look, iters, targets, hue }) => {
+    const fitted = await page.evaluate(async ({ look, iters, targets, hue, keep, steps }) => {
       const m = await import('/src/lib/tryon.ts');
       const R = await import('/src/data/look-recipes.ts');
       const W = 320, LIN = Float32Array.from({ length: 256 }, (_, i) => (i / 255) ** 2.2);
@@ -90,7 +97,7 @@ if (!FACES.length) { console.error("usage: fit_recipes.cjs --faces a.jpg,b.jpg [
       const linHex = (c) => '#' + c.map((v) => Math.round(255 * Math.min(1, Math.max(0, v)) ** (1 / 2.2)).toString(16).padStart(2, '0')).join('');
       const recipe = R.lookRecipe(look);
       const picks = m.v2Picks(look, 'natural', null);
-      const keys = ['base', 'conceal', 'contour', 'blush', 'glow', 'brows', 'shadow', 'liner'].filter((k) => (picks.gain[k] ?? 0) > 0);
+      const keys = ['base', 'conceal', 'contour', 'blush', 'glow', 'brows', 'shadow', 'liner'].filter((k) => (picks.gain[k] ?? 0) > 0 && (!steps || steps.split(',').includes(k)));
       const gain0 = { ...picks.gain };
       const only = (k) => ({ done: Object.fromEntries(m.STEP_KEYS.map((s) => [s, s === k ? 1 : 0])), blush: picks.blush?.place ?? 'apples' });
       const shots = window.__shots;
@@ -160,7 +167,7 @@ if (!FACES.length) { console.error("usage: fit_recipes.cjs --faces a.jpg,b.jpg [
             const add = (acc, w) => { for (let c = 0; c < 3; c++) { acc[c] += w * V[p + c]; acc[c + 3] += w * full[p + c]; } };
             if (hue) {        // (not where the target's lashes, liner or glitter are: much darker or lighter than the recipe there)
               const yv = 0.2126 * V[p] + 0.7152 * V[p + 1] + 0.0722 * V[p + 2], yf = 0.2126 * full[p] + 0.7152 * full[p + 1] + 0.0722 * full[p + 2];
-              if (yv < 0.6 * yf || yv > 1.6 * yf) continue;
+              if (yv < keep * yf || yv > 1.6 * yf) continue;
             }
             if (d.blush && d.blush[1] > 1e-5) add(col.blush, (d.blush[1] / tot) * Math.sqrt(d.blush[1]));
             if (d.shadow && d.shadow[1] > 1e-5 && MK[p / 3]) {
@@ -204,7 +211,10 @@ if (!FACES.length) { console.error("usage: fit_recipes.cjs --faces a.jpg,b.jpg [
       const hex = { ...(picks.blush ? { blush: picks.blush.hex } : {}), ...(picks.shadow ? { shadow: picks.shadow.hex } : {}), ...(two ? { shadow2: picks.shadow.hex2 } : {}) };
       sessionStorage.removeItem('hb-engine');
       return { amount, hex, rms: [...err, best.e], ...(hue ? { hue: true } : {}) };
-    }, { look, iters: ITERS, targets, hue: HUE });
+    }, { look, iters: ITERS, targets, hue: HUE, keep: KEEP, steps: STEPS });
+    // (--steps: the other steps' amounts and colours as the app has them)
+    const prev = STEPS ? result[look] ?? APP[look] : null;
+    result[look] = prev ? { ...prev, ...fitted, amount: { ...prev.amount, ...fitted.amount }, hex: { ...prev.hex, ...fitted.hex } } : fitted;
     console.log(look, JSON.stringify(result[look]), `${Math.round((Date.now() - t0) / 1000)} s`);
     fs.writeFileSync(OUT, `${JSON.stringify(result, null, 1)}\n`);
   }

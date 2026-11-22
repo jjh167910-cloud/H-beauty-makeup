@@ -874,6 +874,8 @@ export type MinePicks = {
   shadow?: { hex: string; finish: string; place: string; pack: number; hex2?: string; finish2?: string; inner?: string;
     /** Her aegyo-sal lit with this (her inner-corner light's colour, or a pearl), as Korean makeup does. */
     aegyo?: string;
+    /** Smudged along her lower lash line too (her second shade where she has one), from her outer corner in. */
+    lower?: boolean;
     /** A catalog look whose own eyeshadow places it (where its photo has eyeshadow, when it has enough: else the place's template). */
     from?: string;
     /** Its colours (its inner-corner light too) made deeper on deeper skin, as an artist picks a look's shades for her (RECIPE_SKIN; this power of it). */
@@ -906,6 +908,12 @@ export type MineReady = { products: Products; look: string; lip: LipChoice | nul
 const MINE_SHADOW_THICK = 6;
 /** How much of her eyeshadow's placement under her eye is taken away. */
 const MINE_SHADOW_LOW: Record<string, number> = { smoky: 0.45, halo: 0.5 };
+/**
+ * With two shades, how much her second shade gives way over her mobile lid where her lid shade goes (LID_PATTERN): a
+ * smoky eye keeps its deep shade all over her lid and presses the lid shade on over it, as the catalog's smoky photos
+ * have it (giving way as much as the other placements do, their lids came out 1 to 2 L* lighter than their photos).
+ */
+const MINE_LID_FADE: Record<string, number> = { smoky: 0.4 };
 /**
  * The skin a look's eyeshadow colours are for (linear reflectance: light skin, the most mineLight lets skin reflect):
  * on her skin, a recipe's (relative) are as much deeper as hers is, to that power (a pale champagne lid on deep skin
@@ -986,9 +994,9 @@ async function mineProducts(picks: MinePicks, face: FaceStats, all: LooksMeta): 
     }
     const light = picks.shadow.inner ?? picks.shadow.aegyo;
     if (light) out.inner = { ...shade(pigment("glow", light, "shimmer")), thick: 0.13, sheen: 0.6 };
-    // (under her eye: smoky and halo wrap her lower lash line, the others barely touch it)
-    mine.shadow = { pack: picks.shadow.pack, low: drawn ? 0 : MINE_SHADOW_LOW[picks.shadow.place] ?? 0.8, corners: Boolean(picks.shadow.inner),
-      aegyoSal: Boolean(picks.shadow.aegyo), ...(drawn ? { drawn } : {}) };
+    // (under her eye: smoky and halo wrap her lower lash line, the others barely touch it unless she smudges it there)
+    mine.shadow = { pack: picks.shadow.pack, low: drawn || picks.shadow.lower ? 0 : MINE_SHADOW_LOW[picks.shadow.place] ?? 0.8, corners: Boolean(picks.shadow.inner),
+      aegyoSal: Boolean(picks.shadow.aegyo), ...(drawn ? { drawn } : {}), ...(picks.shadow.lower ? { lower: true } : {}), fade: MINE_LID_FADE[picks.shadow.place] ?? 0.85 };
   }
   if (picks.liner) {
     out.liner = linerColour(picks.liner.hex);

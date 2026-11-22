@@ -50,7 +50,7 @@ const LINER_PLACE: Record<Exclude<Liner, "none">, string> = {
 const BLACK_LINER = "#141113";
 
 /** A look's accents the recipe paints (the others are recipeGaps). */
-const PAINTED: ReadonlySet<Accent> = new Set(["shimmer", "contour", "lowerLiner", "bottomLashes", "glitter", "freckles", "aegyo", "rhinestones", "kohl"]);
+const PAINTED: ReadonlySet<Accent> = new Set(["shimmer", "contour", "lowerLiner", "bottomLashes", "glitter", "freckles", "aegyo", "rhinestones", "kohl", "lowerShadow"]);
 
 /**
  * A look's recipe: its FaceLook as her own makeup's steps (amount 1: as the artist put it on in its catalog photo).
@@ -110,7 +110,7 @@ export function recipeOf(look: FaceLook, id?: string): MyMakeup {
     out.shadow = {
       shade: nearestShade(SHADOWS, look.lid[0]), hex: look.lid[0], shade2: nearestShade(SHADOWS, look.lid[1]), hex2: look.lid[1],
       finish, tool: blended ? "fluffy" : "flat", place: look.shadow, amount: 1, ...(id ? { from: id } : {}),
-      ...(acc.has("aegyo") ? { aegyo: true } : {}),
+      ...(acc.has("aegyo") ? { aegyo: true } : {}), ...(acc.has("lowerShadow") ? { lower: true } : {}),
       // (no inner-corner light: a catalog photo's is a whisper, and at its full amount it read as a white spot)
     };
   }

@@ -14,7 +14,7 @@ export type MyStep = {
   finish?: string;
   tool?: string;
   place?: string;
-  /** Liner along her lower lash line too; lashes: her lower lashes too. */
+  /** Liner along her lower lash line too; lashes: her lower lashes too; eyeshadow: smudged under her lower lashes too. */
   lower?: boolean;
   /** Blush: freckles dotted across her nose and cheeks too (a freckle pen). */
   freckles?: boolean;
@@ -272,7 +272,7 @@ export function minePicks(recipe: MyMakeup): MinePicks | null {
         const hex2 = raw.hex2 ?? second?.hex, light = raw.innerHex ?? inner?.hex;
         out.shadow = { hex, finish: step.finish ?? "matte", place: step.place ?? "wash", pack: t.pack ?? 1,
           ...(hex2 ? { hex2, finish2: raw.hex2 ? step.finish ?? "matte" : second?.finish ?? "matte" } : {}), ...(light ? { inner: light } : {}),
-          ...(raw.aegyo ? { aegyo: light ?? AEGYO_LIGHT } : {}),
+          ...(raw.aegyo ? { aegyo: light ?? AEGYO_LIGHT } : {}), ...(step.lower ? { lower: true } : {}),
           ...(raw.from ? { from: raw.from } : {}) };
         break;
       }
@@ -306,7 +306,8 @@ export function recipeLines(recipe: MyMakeup): string[] {
       def.inners?.find((s) => s.id === raw.inner) ? `نور گوشه چشم ${def.inners.find((s) => s.id === raw.inner)!.name}` : undefined,
       def.finishes?.find((f) => f.id === step.finish)?.name,
       def.places?.find((p) => p.id === step.place)?.name,
-      def.key === "liner" && step.lower ? "خط پایین هم" : def.key === "lashes" && step.lower ? "مژه پایین هم" : undefined,
+      def.key === "liner" && step.lower ? "خط پایین هم" : def.key === "lashes" && step.lower ? "مژه پایین هم"
+        : def.key === "shadow" && step.lower ? "سایه زیر چشم هم" : undefined,
       def.key === "blush" && raw.freckles ? "با کک‌مک" : undefined,
       def.key === "shadow" && raw.aegyo ? "زیر چشم براق (اگیو)" : undefined,
       def.key === "liner" && raw.kohl ? "با سرمه داخل چشم" : undefined,
@@ -350,7 +351,8 @@ const HOW: Partial<Record<StepKey, (s: MyStep) => { how: string; tip?: string }>
     return {
       how: s.shade2 ? "رنگ اول را روی پلک متحرک بزنید؛ رنگ دوم را در چین پلک و گوشه بیرونی به شکل V بزنید و مرز دو رنگ را با براش پخش‌کن محو کنید."
         : SHADOW[style].how,
-      tip: [s.inner ? "در پایان کمی نور در گوشه داخلی چشم بزنید تا چشم روشن‌تر دیده شود." : "",
+      tip: [s.lower ? `زیر چشم: با براش کوچک یا مداد نرم، ${s.shade2 ? "رنگ دوم" : "همان رنگ"} را از گوشه بیرونی تا نیمه چشم، درست زیر مژه‌های پایین بکشید و با براش تمیز محو کنید.` : "",
+        s.inner ? "در پایان کمی نور در گوشه داخلی چشم بزنید تا چشم روشن‌تر دیده شود." : "",
         s.aegyo ? "اگیو: با براش کوچک یا نوک انگشت، سایه براق روشن را در نوار باریکی درست زیر مژه‌های پایین، از نزدیک گوشه داخلی تا دو سوم چشم بزنید؛ وقتی لبخند می‌زنید همین برجستگی است." : ""]
         .filter(Boolean).join(" ") || undefined,
     };

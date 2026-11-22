@@ -13,7 +13,7 @@ export type Lashes = "natural" | "volume" | "dramatic";
 export type Brow = "natural" | "bold" | "lifted" | "thin";
 export type Blush = "none" | "apples" | "high" | "draped" | "nose" | "under";
 export type LipFinish = "matte" | "satin" | "gloss" | "ombre" | "lined";
-export type Accent = "shimmer" | "glitter" | "rhinestones" | "freckles" | "contour" | "lowerLiner" | "bottomLashes" | "aegyo" | "kohl";
+export type Accent = "shimmer" | "glitter" | "rhinestones" | "freckles" | "contour" | "lowerLiner" | "bottomLashes" | "aegyo" | "kohl" | "lowerShadow";
 
 export type FaceLook = {
   skin: Skin;
@@ -58,25 +58,25 @@ export const MAKEUP_STYLES: MakeupStyle[] = [
   style("soft-glam", "گلم نرم",
     { skin: "glow", shadow: "crease", lid: ["#c8a08a", "#8f6655"], liner: "thin", lashes: "volume", brow: "bold", blush: "apples", blushColor: "#d4958a", lip: "satin", lipColor: "#9a5257" }),
   style("latte", "لاته",
-    { skin: "bronzed", shadow: "crease", lid: ["#c49a7a", "#7a5440"], liner: "smudge", linerColor: "#5a3a2a", lashes: "volume", brow: "natural", blush: "high", blushColor: "#c98a6f", lip: "lined", lipColor: "#9a6450" }),
+    { skin: "bronzed", shadow: "crease", lid: ["#c49a7a", "#7a5440"], liner: "smudge", linerColor: "#5a3a2a", lashes: "volume", brow: "natural", blush: "high", blushColor: "#c98a6f", lip: "lined", lipColor: "#9a6450", accents: ["lowerShadow"] }),
   style("strawberry", "توت‌فرنگی",
     { skin: "dewy", shadow: "wash", lid: ["#f1a7b0", "#e08391"], liner: "none", lashes: "natural", brow: "natural", blush: "draped", blushColor: "#ee8a98", lip: "gloss", lipColor: "#e0707f", accents: ["freckles"] }),
 
   /* ---------- Full glam ---------- */
   style("full-glam", "فول گلم",
-    { skin: "matte", shadow: "crease", lid: ["#d8b08a", "#5e3b2c"], liner: "wing", lashes: "dramatic", brow: "bold", blush: "high", blushColor: "#cf8d7b", lip: "lined", lipColor: "#a3685c", accents: ["contour", "shimmer", "kohl"] }),
+    { skin: "matte", shadow: "crease", lid: ["#d8b08a", "#5e3b2c"], liner: "wing", lashes: "dramatic", brow: "bold", blush: "high", blushColor: "#cf8d7b", lip: "lined", lipColor: "#a3685c", accents: ["lowerShadow", "contour", "shimmer", "kohl"] }),
   style("hollywood", "گلم هالیوودی",
     { skin: "glow", shadow: "wash", lid: ["#e7cfae", "#c7a27c"], liner: "wing", lashes: "dramatic", brow: "bold", blush: "apples", blushColor: "#dc9488", lip: "matte", lipColor: "#b3242f", accents: ["shimmer"] }),
   style("arabic-glam", "گلم عربی",
     { skin: "matte", shadow: "smoky", lid: ["#c9963f", "#2b1d17"], liner: "siren", lashes: "dramatic", brow: "bold", blush: "high", blushColor: "#c98472", lip: "lined", lipColor: "#a86a5b", accents: ["lowerLiner", "contour", "shimmer", "kohl"] }),
   style("bronzed-goddess", "برنزه طلایی",
-    { skin: "bronzed", shadow: "gradient", lid: ["#c99a52", "#7b4a2a"], liner: "thin", lashes: "volume", brow: "bold", blush: "high", blushColor: "#c4795a", lip: "gloss", lipColor: "#b06a52", accents: ["shimmer", "contour"] }),
+    { skin: "bronzed", shadow: "gradient", lid: ["#c99a52", "#7b4a2a"], liner: "thin", lashes: "volume", brow: "bold", blush: "high", blushColor: "#c4795a", lip: "gloss", lipColor: "#b06a52", accents: ["lowerShadow", "shimmer", "contour"] }),
   style("golden-hour", "طلایی",
-    { skin: "glow", shadow: "halo", lid: ["#e2bd6a", "#8a5a33"], liner: "wing", lashes: "volume", brow: "natural", blush: "high", blushColor: "#d99172", lip: "satin", lipColor: "#b56a57", accents: ["shimmer"] }),
+    { skin: "glow", shadow: "halo", lid: ["#e2bd6a", "#8a5a33"], liner: "wing", lashes: "volume", brow: "natural", blush: "high", blushColor: "#d99172", lip: "satin", lipColor: "#b56a57", accents: ["lowerShadow", "shimmer"] }),
   style("bold-glam", "گلم جسور",
     { skin: "matte", shadow: "smoky", lid: ["#7a4a3c", "#2a1814"], liner: "wing", lashes: "dramatic", brow: "bold", blush: "high", blushColor: "#b9776a", lip: "lined", lipColor: "#6d1f2c", accents: ["contour", "kohl"] }),
   style("cut-crease", "کات‌کریز",
-    { skin: "matte", shadow: "cutcrease", lid: ["#efd6bf", "#5a3426"], liner: "wing", lashes: "dramatic", brow: "bold", blush: "high", blushColor: "#cf8d7b", lip: "lined", lipColor: "#a3685c", accents: ["shimmer"] }),
+    { skin: "matte", shadow: "cutcrease", lid: ["#efd6bf", "#5a3426"], liner: "wing", lashes: "dramatic", brow: "bold", blush: "high", blushColor: "#cf8d7b", lip: "lined", lipColor: "#a3685c", accents: ["lowerShadow", "shimmer"] }),
 
   /* ---------- Smoky & evening ---------- */
   style("classic-smokey", "دودی کلاسیک",
@@ -96,7 +96,7 @@ export const MAKEUP_STYLES: MakeupStyle[] = [
   style("cat-eye", "خط چشم گربه‌ای",
     { skin: "matte", shadow: "wash", lid: ["#dcbca8", "#bf9a85"], liner: "wing", lashes: "volume", brow: "natural", blush: "apples", blushColor: "#d99486", lip: "satin", lipColor: "#b8746c" }),
   style("fox-eye", "فاکس آی",
-    { skin: "matte", shadow: "crease", lid: ["#c9a08a", "#6e4a3a"], liner: "fox", lashes: "volume", brow: "lifted", blush: "high", blushColor: "#cf8d7b", lip: "lined", lipColor: "#a3685c", accents: ["contour", "kohl"] }),
+    { skin: "matte", shadow: "crease", lid: ["#c9a08a", "#6e4a3a"], liner: "fox", lashes: "volume", brow: "lifted", blush: "high", blushColor: "#cf8d7b", lip: "lined", lipColor: "#a3685c", accents: ["lowerShadow", "contour", "kohl"] }),
   style("graphic-liner", "لاینر گرافیکی",
     { skin: "matte", shadow: "none", lid: ["#e2c6b3", "#c6a08a"], liner: "graphic", lashes: "natural", brow: "natural", blush: "apples", blushColor: "#d99486", lip: "matte", lipColor: "#b8746c" }),
   style("colour-liner", "خط رنگی",
@@ -114,7 +114,7 @@ export const MAKEUP_STYLES: MakeupStyle[] = [
   style("aqd", "مراسم عقد",
     { skin: "glow", shadow: "wash", lid: ["#efd9c4", "#d5b39a"], liner: "thin", lashes: "volume", brow: "natural", blush: "apples", blushColor: "#e6a39b", lip: "satin", lipColor: "#c9837f", accents: ["shimmer"] }),
   style("henna-night", "شب حنابندان",
-    { skin: "glow", shadow: "halo", lid: ["#d7a54a", "#6b2f1f"], liner: "siren", lashes: "dramatic", brow: "bold", blush: "high", blushColor: "#d0846e", lip: "matte", lipColor: "#8c1f28", accents: ["glitter", "kohl"] }),
+    { skin: "glow", shadow: "halo", lid: ["#d7a54a", "#6b2f1f"], liner: "siren", lashes: "dramatic", brow: "bold", blush: "high", blushColor: "#d0846e", lip: "matte", lipColor: "#8c1f28", accents: ["lowerShadow", "glitter", "kohl"] }),
 
   /* ---------- Colour & editorial ---------- */
   style("sunset", "غروب",
@@ -122,13 +122,13 @@ export const MAKEUP_STYLES: MakeupStyle[] = [
   style("pastel", "پاستلی",
     { skin: "dewy", shadow: "wash", lid: ["#c9b3e8", "#a58ad6"], liner: "none", lashes: "natural", brow: "natural", blush: "apples", blushColor: "#f0a5b4", lip: "gloss", lipColor: "#e08aa0" }),
   style("monochrome", "مونوکروم بری",
-    { skin: "matte", shadow: "wash", lid: ["#c0606f", "#8f3a4c"], liner: "thin", lashes: "volume", brow: "natural", blush: "high", blushColor: "#c86476", lip: "matte", lipColor: "#8f3a4c" }),
+    { skin: "matte", shadow: "wash", lid: ["#c0606f", "#8f3a4c"], liner: "thin", lashes: "volume", brow: "natural", blush: "high", blushColor: "#c86476", lip: "matte", lipColor: "#8f3a4c", accents: ["lowerShadow"] }),
   style("glitter-party", "گلیتر",
-    { skin: "glow", shadow: "wash", lid: ["#f3b8a6", "#b5706c"], liner: "wing", lashes: "dramatic", brow: "natural", blush: "apples", blushColor: "#e09aa5", lip: "gloss", lipColor: "#c97a8a", accents: ["glitter", "shimmer"] }),
+    { skin: "glow", shadow: "wash", lid: ["#f3b8a6", "#b5706c"], liner: "wing", lashes: "dramatic", brow: "natural", blush: "apples", blushColor: "#e09aa5", lip: "gloss", lipColor: "#c97a8a", accents: ["lowerShadow", "glitter", "shimmer"] }),
   style("rhinestone", "نگین‌دار",
     { skin: "dewy", shadow: "wash", lid: ["#dfc0e6", "#b48bc4"], liner: "thin", lashes: "volume", brow: "natural", blush: "high", blushColor: "#e59ab0", lip: "gloss", lipColor: "#c97a96", accents: ["rhinestones", "shimmer"] }),
   style("electric-blue", "آبی ادیتوریال",
-    { skin: "matte", shadow: "gradient", lid: ["#4aa3f0", "#1d3fb8"], liner: "graphic", linerColor: "#1d3fb8", lashes: "volume", brow: "natural", blush: "none", blushColor: "#d99486", lip: "matte", lipColor: "#b57a72", accents: ["kohl"] }),
+    { skin: "matte", shadow: "gradient", lid: ["#4aa3f0", "#1d3fb8"], liner: "graphic", linerColor: "#1d3fb8", lashes: "volume", brow: "natural", blush: "none", blushColor: "#d99486", lip: "matte", lipColor: "#b57a72", accents: ["lowerShadow", "kohl"] }),
 
   /* ---------- Retro ---------- */
   style("pin-up", "پین‌آپ دهه ۵۰",
@@ -152,7 +152,7 @@ export const MAKEUP_STYLES: MakeupStyle[] = [
   style("icy", "میکاپ یخی",
     { skin: "dewy", shadow: "wash", lid: ["#dcd9e0", "#c6bcc8"], liner: "thin", lashes: "natural", brow: "natural", blush: "nose", blushColor: "#e8909f", lip: "gloss", lipColor: "#e18590", accents: ["shimmer"] }, { gpuOnly: true }),
   style("lilac-eyes", "سایه یاسی",
-    { skin: "glow", shadow: "crease", lid: ["#c3a6de", "#6e4392"], liner: "thin", lashes: "volume", brow: "natural", blush: "apples", blushColor: "#e3a0b2", lip: "gloss", lipColor: "#c5607a" }, { gpuOnly: true }),
+    { skin: "glow", shadow: "crease", lid: ["#c3a6de", "#6e4392"], liner: "thin", lashes: "volume", brow: "natural", blush: "apples", blushColor: "#e3a0b2", lip: "gloss", lipColor: "#c5607a", accents: ["lowerShadow"] }, { gpuOnly: true }),
   style("grunge-smokey", "اسموکی گرانج",
     { skin: "matte", shadow: "smoky", lid: ["#4f4440", "#1c1614"], liner: "smudge", linerColor: "#1c1614", lashes: "natural", brow: "natural", blush: "none", blushColor: "#cf9488", lip: "satin", lipColor: "#c36e67", accents: ["lowerLiner", "kohl"] }, { gpuOnly: true }),
   style("fiery-red", "قرمز آتشین",

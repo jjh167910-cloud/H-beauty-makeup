@@ -656,7 +656,11 @@ export type Mine = {
    */
   shadow?: { pack: number; low?: number; corners?: boolean; aegyoSal?: boolean;
     /** Its placement drawn from her own eye (shadowPattern: her lash line, crease and brow), not a catalog look's map. */
-    drawn?: string };
+    drawn?: string;
+    /** Smudged along her lower lash line too (LOWER_SMUDGE), over whatever its placement puts there. */
+    lower?: boolean;
+    /** With two shades: how much her second shade gives way over her mobile lid, where her lid shade goes (0.85). */
+    fade?: number };
   /**
    * Liner: thin / wing / fox / puppy / smudge, along her lower lash line too, its edge's softness and opacity; kohl: on
    * her lower waterline too, this opaque (the waterline's band, waterAt).
@@ -1027,9 +1031,10 @@ const SHADOW_PATTERNS: Record<string, { out: number; f: (s: number, t: number) =
   crease: { out: 1.1, f: (s, t) => (t >= 0 ? Math.max(0.3 * (1 - ss(0.65, 1, t)), bump(1, 0.3, t), 0.95 * ss(0.6, 0.95, s) * (1 - ss(0.95, 1.3, t)))
     : 0.3 * ss(0.55, 0.95, s) * (1 - ss(0, 1, -t))) },
   // all of her lid and her crease, smoked out above it and on out, and along her lower lash line, as deep there as on
-  // her lid right at her lashes (in the catalog's smoky photos it is; at 0.85 of a fading band it read as 40% of her lid
-  // just under her lashes, and her lower lash line came out 4 to 10 ΔE lighter than theirs)
-  smoky: { out: 1.18, f: (s, t) => (t >= 0 ? 1 - ss(0.95, 1.6, t) : (1 - ss(0.35, 1, -t)) * (0.45 + 0.55 * ss(0.15, 0.55, s))) },
+  // her lid right at her lashes and as far down as the catalog's smoky photos take it (full to 0.12 eye widths below her
+  // lashes, gone by 0.24, before her brush blurs it: a band a third as tall read as a faint shadow under the blending
+  // brush, 4 to 10 ΔE lighter than their photos)
+  smoky: { out: 1.18, f: (s, t) => (t >= 0 ? 1 - ss(0.95, 1.6, t) : (1 - ss(0.75, 1.5, -t)) * (0.6 + 0.4 * ss(0.1, 0.45, s))) },
   // deeper at her inner and outer corners, her lid's middle lighter (the spotlight)
   halo: { out: 1.1, f: (s, t) => (t >= 0 ? (1 - ss(0.85, 1.35, t)) * (1 - 0.65 * bump(0.5, 0.17, s)) : 0.45 * (1 - ss(0, 1, -t)) * (0.4 + 0.6 * ss(0.45, 0.85, s))) },
   // a crisp line in her crease (her lid under it left for her lid shade), blended out above it
@@ -1038,6 +1043,25 @@ const SHADOW_PATTERNS: Record<string, { out: number; f: (s: number, t: number) =
   // from light at her inner corner to deep at her outer corner
   gradient: { out: 1.1, f: (s, t) => (t >= 0 ? (0.15 + 0.85 * ss(0.1, 0.95, s)) * (1 - ss(0.85, 1.35, t)) : 0.35 * ss(0.5, 1, s) * (1 - ss(0, 1, -t))) },
 };
+/**
+ * Her mobile lid (as SHADOW_PATTERNS, at 1 where it is fullest): from her lashes up to just under her crease, from her
+ * inner corner to past the middle of her eye, softening towards her crease and her outer corner. Her two-shade
+ * eyeshadow's lid shade goes here and her crease shade around it, crossing over as a fluffy brush blends them; and here
+ * any eyeshadow is packed on rather than blended out. (lidSpots' soft spots drew a narrow band just above her lashes,
+ * a third of the way up her lid, with a crisp top edge: her lid shade came out as a pale crescent, her crease shade
+ * drawn round it like an outline.)
+ */
+const LID_PATTERN = { out: 1.0, f: (s: number, t: number) => (t >= 0 ? (1 - ss(0.3, 1.2, t)) * (1 - ss(0.45, 0.95, s)) : 0) };
+/**
+ * Her eyeshadow smudged along her lower lash line too (Mine.shadow.lower, «سایه زیر چشم هم»: a small brush or a pencil
+ * run along under her lower lashes and softened), as SHADOW_PATTERNS below her lashes: fullest from her outer corner to
+ * the middle of her eye and fading towards her inner corner, a band down from her lashes about as deep as her lash line
+ * is wide, softening out below it. Most of the catalog's looks with a crease, halo, gradient or wash have it in their
+ * photos, a smoky eye all along her lower lashes (its own placement); with two shades it is the second one, as on her
+ * outer corner.
+ */
+const LOWER_SMUDGE = (s: number, t: number) => (t < 0 ? (1 - ss(0.5, 1.2, -t)) * (0.2 + 0.8 * ss(0.2, 0.65, s)) : 0);
+const NO_PATTERN = { out: 1.1, f: () => 0 };
 /** How soft her drawn eyeshadow's edges are per tool (Mine.shadow.pack: finger, flat brush, fluffy brush), eye widths. */
 const SHADOW_PATTERN_SOFT = [0.075, 0.055, 0.1];
 /**
@@ -1048,10 +1072,11 @@ const SHADOW_PATTERN_PEAK = 0.62, SHADOW_PATTERN_EDGE: Record<string, number> = 
 /** Her crease's ring (inner to outer) per eye: image left, image right (MediaPipe's rightEyeUpper2 / leftEyeUpper2). */
 const CREASE_RING = [[189, 221, 222, 223, 224, 225, 113], [413, 441, 442, 443, 444, 445, 342]];
 /** Her eyeshadow's placement (SHADOW_PATTERNS) as triangles for the "pattern" program: x, y, 0, 0, coverage. */
-export function shadowPattern(P: Pt[], place: string): Float32Array {
-  const pat = SHADOW_PATTERNS[place] ?? SHADOW_PATTERNS.wash;
+export function shadowPattern(P: Pt[], place: string, lid = false, lower = false): Float32Array {
+  const pat = lid ? LID_PATTERN : place === "none" ? NO_PATTERN : SHADOW_PATTERNS[place] ?? SHADOW_PATTERNS.wash, peak = lid ? 1 : SHADOW_PATTERN_PEAK;
+  const f = (s: number, t: number) => (lower && t < 0 ? Math.max(pat.f(s, t), LOWER_SMUDGE(s, t)) : pat.f(s, t));
   const { ew, down, sides } = frame(P), up = mul(down, -1);
-  const S = 26, ts = [-1, -0.66, -0.33, 0, ...Array.from({ length: 21 }, (_, i) => i * 0.1)];
+  const S = 26, ts = [-1.6, -1.3, -1, -0.66, -0.33, 0, ...Array.from({ length: 21 }, (_, i) => i * 0.1)];
   const out: number[] = [];
   sides.forEach((side, k) => {
     // (each curve from her inner corner out, on past her outer corner along its own last direction)
@@ -1066,7 +1091,7 @@ export function shadowPattern(P: Pt[], place: string): Float32Array {
       if (t < 0) return add(low(Math.min(s, 1)), mul(down, -t * ew * 0.16));
       return t <= 1 ? lerp(lash(s), crease(s), t) : lerp(crease(s), brow(s), t - 1);
     };
-    const value = (s: number, t: number) => SHADOW_PATTERN_PEAK * pat.f(s, t) * ss(-0.04, 0.1, s) * (1 - ss(pat.out - 0.1, pat.out, s));
+    const value = (s: number, t: number) => peak * f(s, t) * ss(-0.04, 0.1, s) * (1 - ss(pat.out - 0.1, pat.out, s));
     for (let i = 0; i < S; i++) {
       const s0 = -0.04 + (i / S) * (pat.out + 0.04), s1 = -0.04 + ((i + 1) / S) * (pat.out + 0.04);
       for (let j = 0; j + 1 < ts.length; j++) {
@@ -1856,7 +1881,7 @@ uniform float uFreckle;    // her freckles: how strong (0: none)
 const vec3 LASH_COLOUR = vec3(${LASH_COLOUR.map((x) => x.toFixed(4)).join(", ")});
 uniform vec4 uMineK;
 uniform vec3 uConTint, uBrow, uBrowShape;
-uniform float uBrowX, uMineLow;
+uniform float uBrowX, uMineLow, uLidFade;
 uniform vec4 uBrowDef;      // a look's brows: her hairs' colour over her skin's brightness (rgb), how far the gaps fill (a)
 // coloured lenses: each iris (centre in uv, radius in uv x and y), the lens colour (linear, in her light), its amount
 // and whether it covers her iris (1) or tints it (0)
@@ -2332,11 +2357,11 @@ void main() {
       vec2 lash = vec2(0.0, uEw * ${MINE_LASH_LINE.toFixed(4)}) / vec2(uSize);
       float rim = max(max(texture(uMask, v + lash).r, texture(uMask, v - lash).r), max(texture(uMask, v + lash * 0.5).r, texture(uMask, v - lash * 0.5).r));
       float keep = (1.0 - M.r) * (1.0 - M.g), k3 = rv(3, sw) * keep * (1.0 - ${MINE_LASH_KEEP.toFixed(3)} * rim), sh = mineShadow() * (1.0 - uMineLow * smoothstep(0.08, 0.6, C.a));
-      gLid = smoothstep(0.0, 0.6, C.g);
+      gLid = clamp(C.g, 0.0, 1.0);
       float two = uPigX[4] > 0.0 ? 1.0 : 0.0, lid = mix(1.0, gLid, two), light = smoothstep(0.04, 0.7, C.b);
       float c = sat(uMineK.z * mix(sh, max(sh, lid), two)) * k3;
       cov = float[6](c * lid, sat(max(ZA.g, 0.0)) * rv(6, sw) * keep, sat(max(ZA.b, 0.0)) * rv(7, sw) * keep,
-        sat(max(ZA.a, 0.0)) * rv(8, sw) * keep, two * sat(uMineK.z * sh) * k3 * (1.0 - 0.85 * smoothstep(0.3, 0.9, C.g)),
+        sat(max(ZA.a, 0.0)) * rv(8, sw) * keep, two * sat(uMineK.z * sh) * k3 * (1.0 - uLidFade * gLid),
         light * k3 / max(uGain[3], 1e-4) * clamp(uGain[3], ${MINE_LIGHT_GAIN[0]}, ${MINE_LIGHT_GAIN[1]}));
     } else {
       cov = float[6](texture(uCov, v).r * rv(3, sw) * uK.x * hairK * lineK, ZA.g * rv(6, sw) * uK.x, ZB.b * rv(7, sw) * uK.x, ZA.a * rv(8, sw) * uK.x, 0.0, 0.0);
@@ -3133,14 +3158,14 @@ export class MakeupGL {
           // (drawn from her own eye: as soft as her brush lays it, and never crisper than her photo)
           let C = T.cov;
           if (mine.shadow.drawn) {
-            this.pattern(T.cov, 0, shadowPattern(P, mine.shadow.drawn), w, h);
+            this.pattern(T.cov, 0, shadowPattern(P, mine.shadow.drawn, false, mine.shadow.lower), w, h);
             const edge = SHADOW_PATTERN_EDGE[mine.shadow.drawn] ?? 1;
             const sigma = Math.max(0.8, ew * (SHADOW_PATTERN_SOFT[mine.shadow.pack] ?? 0.075) * edge, 0.9 * (face.blur ?? 0));
             this.blur(T.cov.tex[0], T.covB, [sigma, 0.5, 0.5, 0.5], scissor);
             C = T.covB;
-          }
+          } else if (mine.shadow.lower) this.pattern(T.cov, 0, shadowPattern(P, "none", false, true), w, h);   // (over her map)
           const m = lidSpots(P);
-          this.spots(C, 1, m.lid, w, h);
+          this.pattern(C, 1, shadowPattern(P, "", true), w, h);          // (her mobile lid: LID_PATTERN)
           if (prod?.inner && mine.shadow.corners !== false) this.spots(C, 2, m.inner, w, h);
           if (prod?.inner && mine.shadow.aegyoSal) this.spots(C, 2, m.aegyo, w, h);
           this.spots(C, 3, m.low, w, h);
@@ -3407,6 +3432,7 @@ export class MakeupGL {
     const bd = !mine && lidGeo ? prod?.browDefine : undefined;
     gl.uniform4f(this.uni(p, "uBrowDef"), ...((bd ? [...bd.ratio, bd.amount] : [0, 0, 0, 0]) as [number, number, number, number]));
     gl.uniform1f(this.uni(p, "uMineLow"), mine?.shadow?.low ?? 0);
+    gl.uniform1f(this.uni(p, "uLidFade"), mine?.shadow?.fade ?? 0.85);
     const lens = prod?.lenses, irises = P.length >= 478 ? [468, 473] : null;
     gl.uniform2f(this.uni(p, "uLensK"), lens && irises ? 1 : 0, lens?.opaque ? 1 : 0);
     if (lens && irises) {
