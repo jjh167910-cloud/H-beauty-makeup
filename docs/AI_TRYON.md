@@ -412,6 +412,13 @@ in makeup-gl.ts):
   cold-girl) now carry almost no eyeshadow, where their photos have a little; and pastel's and lilac-eyes' lids, 6.3
   -> 2.9 and 3.9, would have come out 1.5 ΔE closer still with their own hue kept. The catalog engine (the default) is
   unchanged.
+- **A packed eyeshadow keeps its own colour.** Where a smoky, crease, cut-crease, halo or gradient placement packs an
+  eyeshadow on (`SHADOW_DEEP` in tryon.ts), its colour was raised to a power (1 + `deep`: 1.6 for smoky) in linear
+  light: a plum came out four times darker than its pan and every shade deeper than a mid-brown black, so in «میکاپ
+  من» a brown smoky eye and a black one were the same (packed on the catalog model's lid: black, charcoal and a deep
+  brown all at 0.27 of its bare light, a plum at 0.32). It now deepens by at most half of `deep` in its own colour
+  (`PIG_DEEPEN`): a plum 0.45, a mid-brown 0.59, black and charcoal 0.27 as before. The looks as recipes, whose
+  eyeshadow is never packed that hard, came out the same on every benchmark line (electric-blue's lid 2.4 -> 2.0 ΔE).
 
 The tiny fallback networks learn the look as the engine finishes it: `scripts/tinybeauty/finish.py` paints the
 foundation, this concealer, the layer with each look's strengths, the brows, lipstick and eye detail in the engine's

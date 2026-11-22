@@ -63,6 +63,8 @@ const LIP_GLOSS: Record<string, number> = { gloss: 0.55, satin: 0.14, ombre: 0.1
 const LID_SHEEN = 0.45, LID_GLOW = 0.6;
 /** Her products: shading blur widths (form, broad light) and the blush's softness, in eye widths (products.py). */
 const SHADE_SIGMA = [0.025, 0.22], BLUSH_SOFT = 0.16, REFLECT_BASE = 0.8;
+/** An eyeshadow packed on (its placement's `deep`, SHADOW_DEEP in tryon.ts) at most this share of `deep` deeper than its pan. */
+const PIG_DEEPEN = 0.5;
 /** Her own eyeshadow: her lid lit at least this much of her face's light (her lid's folds still shading it). */
 const MINE_LID_FORM = 0.75;
 /** Her own eyeshadow's powder: how fast its grains cover her skin as her coverage builds (per unit of thickness). */
@@ -2064,7 +2066,9 @@ vec3 pigments(vec3 base, vec3 lu, float cov[6]) {
     float alpha = cov[i];
     int fin = uPigFin[i];
     vec3 col = uPig[i], Rinf = col;
-    if (uPigDeep[i] > 0.0) Rinf = pow(col, vec3(1.0 + uPigDeep[i] * smoothstep(0.55, 1.0, alpha)));
+    // (packed on, built up: a little deeper than its pan, in its own colour; raised to a power, as it was, a plum came out
+    // four times darker than its pan and every shade deeper than a mid-brown black, so a brown smoky eye was a black one)
+    if (uPigDeep[i] > 0.0) Rinf = col * (1.0 - ${PIG_DEEPEN.toFixed(2)} * uPigDeep[i] * smoothstep(0.55, 1.0, alpha));
     // her reflectance; where she is brighter than the light estimate allows, the light is brighter
     vec3 Ei = i == 0 || i >= 4 ? Eeye : E0;
     // (her own lid shade's shimmer: her lid's fullest part catches the light)
