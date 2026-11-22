@@ -387,6 +387,31 @@ in makeup-gl.ts):
   line along the bare face's crease: in their photos the eye is more open, with longer (often false) lashes, and the
   face landmarks are pulled 3 to 5 px by the makeup (0.5 px on the bare look). Neither fix tried so far (leaving lash
   strands out of the layer's colour; landmarks moved by the optical flow instead) was better on every look.
+- **The looks as recipes, measured and fitted again.** A first benchmark run of the recipe engine (`?engine=v2`: the
+  studio's pigment engine painting each look's recipe, the way a look opened in «میکاپ من» is painted; a manifest with
+  `engines: ["v2"]` on the catalog photo) put it well behind the catalog engine on the catalog model: catalog colour
+  2.1 ΔE (worst 6.2), under the lower lashes 6.6, the under-eye 5.3 L* too bright, the brows 3.4 (the catalog engine:
+  1.2, 1.8, 1.9, 1.8). The studio paints a shade as it is (a bronze, a gold, a beige, a mauve on the catalog model's
+  lid come out as themselves); the recipes were what was off. Their amounts had been fitted against an older catalog
+  engine (the concealer at its 1.5 limit on most looks, the brows at 1.2 to 1.5), and their colours were only made
+  lighter or deeper, never changed in hue: laid on as packed powder, the looks' own colours came out with 3 to 10 less
+  chroma than their photos (grey-olive on warm skin) and their pale pinks and lilacs magenta-blue (hollywood's lid 9.7
+  ΔE off, aqd's 15.2). `fit_recipes.cjs --hue` now fits the blush's and the eyeshadow's colours in full, each channel
+  towards the catalog engine's where each shows (not where its lashes, liner or glitter are), and look-recipes.ts uses
+  such a fit's colours as they are (`hue`); every look was fitted again on the catalog model and two synthetic faces
+  (`tests/fixtures/deep-skin.jpg`, `lit-cheek.jpg`; the catalog photos themselves as the target on the catalog model
+  gave much the same amounts). And the smoky placement now takes the lower lash line as deep as the lid right at the
+  lashes, as the catalog's smoky photos do (at 0.85 of a fading band it read as 40% of the lid there). A recipe's
+  liner stays in full (`FIT_MIN`): a liner is opaque, and a fit's lower amount only greyed it (hollywood's wing came
+  out a faint grey line). All 48 looks as recipes on the catalog photo, before and after: catalog colour 2.10 -> 1.69
+  ΔE (worst 6.2 -> 4.0; icy's lid 11.8 -> 2.5, aqd's 15.2 -> 7.3, hollywood's 9.7 -> 3.0, classic-smokey's 7.5 -> 1.9,
+  twenties' 7.7 -> 1.2), the whole face 3.06 -> 2.83, the under-eye 5.3 -> 3.1 L* off (it was lifted 4.4 L* over the
+  cheek below it, now 1.7), the brows 3.4 -> 2.3, under the lower lashes 6.6 -> 6.0 (worst 9.7 -> 9.9: the smoky
+  looks' lower lash lines are still lighter than in their photos), the waterline 3.6 -> 3.4, the eye whites 0.40 ->
+  0.30 (worst 1.49 -> 1.24). The eye placement's overlap went down (0.59 -> 0.51): the soft pink looks (strawberry,
+  cold-girl) now carry almost no eyeshadow, where their photos have a little; and pastel's and lilac-eyes' lids, 6.3
+  -> 2.9 and 3.9, would have come out 1.5 ΔE closer still with their own hue kept. The catalog engine (the default) is
+  unchanged.
 
 The tiny fallback networks learn the look as the engine finishes it: `scripts/tinybeauty/finish.py` paints the
 foundation, this concealer, the layer with each look's strengths, the brows, lipstick and eye detail in the engine's

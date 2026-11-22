@@ -8,8 +8,8 @@
  * finish and ombre).
  *
  * Each look's amounts and its blush and eyeshadow colours are then fitted to its catalog photo (look-fit.json, made by
- * scripts/tinybeauty/fit_recipes.cjs: on synthetic faces, each step as strong and its colour as the old engine paints
- * the photo's change there).
+ * scripts/tinybeauty/fit_recipes.cjs --hue: on the catalog model and two synthetic faces, each step as strong and its
+ * colour, in full, as the catalog engine paints the photo's change there).
  *
  * Its accents are her own makeup's (freckles with its blush, an aegyo-sal with its eyeshadow, rhinestones and kohl on
  * the waterline with its liner; glitter is its eyeshadow's finish); recipeGaps lists any a recipe can't paint.
@@ -139,6 +139,8 @@ export type RecipeFit = {
   hex?: { blush?: string; shadow?: string; shadow2?: string };
   /** Root-mean-square colour change (linear, x1000): the look's own, then the recipe's difference each round, the kept one last. */
   rms?: number[];
+  /** Its colours fitted in full (fit_recipes.cjs --hue), not only how light or deep: used as they are. */
+  hue?: boolean;
 };
 const FITS = fits as Record<string, RecipeFit>;
 
@@ -149,17 +151,18 @@ const FITS = fits as Record<string, RecipeFit>;
  */
 const FIT_MAX: Partial<Record<StepKey, number>> = { base: 1.3, glow: 1, blush: 1.3, brows: 1.3, shadow: 1 };
 /**
- * ...and at least this much of what the look is known for: its liner as its spec draws it (a fit on colour alone dropped
- * a graphic liner the old engine's layer drew a little elsewhere), and a bold colour on its lid (at least BOLD_SHADOW[1]
+ * ...and at least this much of what the look is known for: its liner as its spec draws it, in full (a fit on colour alone
+ * dropped a graphic liner the old engine's layer drew a little elsewhere; and a liner is opaque, so a fit's lower amount
+ * only greyed it: hollywood's wing at 0.26, then 0.6, was a faint grey line, 2026-11), and a bold colour on its lid (at least BOLD_SHADOW[1]
  * of its eyeshadow when its lid colour's chroma is BOLD_SHADOW[0] or more and it isn't a smoky eye, whose dark crease is
  * what it is: a fit undershoots a vivid colour whose hue the pigments over her skin can't quite reach, and electric blue
  * or a sunset turned into a pale veil).
  */
-const FIT_MIN: Partial<Record<StepKey, number>> = { liner: 0.6 };
+const FIT_MIN: Partial<Record<StepKey, number>> = { liner: 1 };
 const BOLD_SHADOW: [number, number] = [0.5, 1.2];
 /** An eyeshadow is pale (FIT_MAX's cap is for it) when its lid colour's linear luminance is more than this. */
 const PALE_SHADOW = 0.35;
-/** ...and its colours this much deeper or lighter than the look's own (their hue and chroma always its own). */
+/** ...and its colours this much deeper or lighter than the look's own, in their hue (unless the fit was in full: `hue`). */
 const FIT_LIGHT: [number, number] = [0.5, 1.15];
 
 const lin = (hex: string) => rgb(hex).map((v) => (v / 255) ** 2.2);
@@ -188,7 +191,7 @@ function fitted(recipe: MyMakeup, fit: RecipeFit | undefined, look?: FaceLook): 
   const set = (step: MyStep | undefined, key: "hex" | "hex2", name: "shade" | "shade2", hex: string | undefined, list: typeof SHADOWS) => {
     const was = step?.[key];
     if (!step || !hex || !was) return;
-    step[key] = asLight(was, hex);
+    step[key] = fit.hue ? hex : asLight(was, hex);
     step[name] = nearestShade(list, step[key]!);
   };
   set(recipe.blush, "hex", "shade", blush, BLUSHES);

@@ -1,1158 +1,1248 @@
 {
  "no-makeup": {
   "amount": {
-   "base": 1.05,
-   "conceal": 1.5,
-   "blush": 0.306,
-   "brows": 0.729,
+   "base": 0.958,
+   "conceal": 0.375,
+   "blush": 0.076,
+   "brows": 0.366,
    "shadow": 0.05
   },
   "hex": {
-   "blush": "#e6a697",
-   "shadow": "#bc9a89",
-   "shadow2": "#be9784"
+   "blush": "#eba495",
+   "shadow": "#ba8a74",
+   "shadow2": "#bf9079"
   },
   "rms": [
-   53.53,
-   22.17,
-   21.96,
-   21.93,
-   21.91,
-   21.91
-  ]
+   41.56,
+   19.29,
+   18.48,
+   18.4,
+   18.41,
+   18.41,
+   18.4
+  ],
+  "hue": true
  },
  "clean-girl": {
   "amount": {
-   "base": 1.169,
-   "conceal": 1.5,
-   "blush": 1.5,
-   "glow": 1.5,
-   "brows": 1.5
+   "base": 1.148,
+   "conceal": 0.819,
+   "blush": 0.677,
+   "glow": 1.45,
+   "brows": 0.242
   },
   "hex": {
-   "blush": "#ffb8aa"
+   "blush": "#ffb69f"
   },
   "rms": [
-   79.44,
-   48.47,
-   43.19,
-   41.14,
-   40.6,
-   40.6
-  ]
+   62.91,
+   38.03,
+   37.5,
+   37.39,
+   37.25,
+   37.08,
+   37.08
+  ],
+  "hue": true
  },
  "sun-kissed": {
   "amount": {
-   "base": 1.235,
-   "conceal": 1.5,
-   "contour": 0.1,
-   "blush": 1.089,
-   "glow": 1.5,
-   "brows": 1.211,
-   "shadow": 0.158
+   "base": 1.232,
+   "conceal": 1.156,
+   "contour": 0.075,
+   "blush": 1.265,
+   "glow": 1.489,
+   "brows": 0.496,
+   "shadow": 0.05
   },
   "hex": {
-   "blush": "#ee8e74",
-   "shadow": "#916a50",
-   "shadow2": "#b67a56"
+   "blush": "#f88e75",
+   "shadow": "#97614a",
+   "shadow2": "#ba714f"
   },
   "rms": [
-   90.27,
-   52.4,
-   48,
-   46.51,
-   46.15,
-   46.15
-  ]
+   78.34,
+   41.13,
+   40.71,
+   40.62,
+   40.55,
+   40.56,
+   40.55
+  ],
+  "hue": true
  },
  "cold-girl": {
   "amount": {
-   "base": 0.98,
-   "conceal": 1.5,
-   "blush": 1.385,
-   "glow": 1.5,
-   "brows": 1.337,
-   "shadow": 0.125
+   "base": 0.926,
+   "conceal": 0.61,
+   "blush": 0.726,
+   "glow": 1.31,
+   "brows": 0.553,
+   "shadow": 0.05
   },
   "hex": {
-   "blush": "#ff9ba9",
-   "shadow": "#af8a90",
-   "shadow2": "#bf8891"
+   "blush": "#ff94a1",
+   "shadow": "#bb696d",
+   "shadow2": "#bb7189"
   },
   "rms": [
-   77.41,
-   54.93,
-   49.67,
-   47.16,
-   46.26,
-   46.26
-  ]
+   55.61,
+   35.7,
+   34.7,
+   34.64,
+   34.63,
+   34.62,
+   34.62
+  ],
+  "hue": true
  },
  "soft-glam": {
   "amount": {
-   "base": 0.93,
-   "conceal": 1.5,
-   "contour": 0.056,
-   "blush": 0.609,
+   "base": 0.94,
+   "conceal": 0.094,
+   "contour": 0.05,
+   "blush": 0.05,
    "glow": 1.5,
-   "brows": 1.318,
-   "shadow": 0.483,
-   "liner": 1.171
+   "brows": 0.383,
+   "shadow": 0.264,
+   "liner": 0.695
   },
   "hex": {
-   "blush": "#eba599",
-   "shadow": "#a0806e",
-   "shadow2": "#9e725f"
+   "blush": "#e8a093",
+   "shadow": "#9a6654",
+   "shadow2": "#a46c58"
   },
   "rms": [
-   79.83,
-   44.51,
-   40.01,
-   39.46,
-   39.02,
-   39.02
-  ]
+   61.63,
+   32.95,
+   28.81,
+   28.38,
+   28.24,
+   28.17,
+   28.17
+  ],
+  "hue": true
  },
  "latte": {
   "amount": {
-   "base": 1.003,
-   "conceal": 1.5,
-   "contour": 0.172,
-   "blush": 0.297,
-   "glow": 1.5,
-   "brows": 1.207,
-   "shadow": 0.716,
-   "liner": 0.178
+   "base": 0.727,
+   "conceal": 0.094,
+   "contour": 0.719,
+   "blush": 0.18,
+   "glow": 1.16,
+   "brows": 0.464,
+   "shadow": 0.455,
+   "liner": 1.497
   },
   "hex": {
-   "blush": "#e8a080",
-   "shadow": "#997860",
-   "shadow2": "#815944"
+   "blush": "#e6a474",
+   "shadow": "#945a46",
+   "shadow2": "#97573c"
   },
   "rms": [
-   75.18,
-   47.56,
-   42.86,
-   42.47,
-   42.27,
-   42.27
-  ]
+   70.08,
+   50.74,
+   48.43,
+   47.74,
+   47.54,
+   47.5,
+   47.5
+  ],
+  "hue": true
  },
  "strawberry": {
   "amount": {
-   "base": 1.149,
-   "conceal": 1.5,
-   "blush": 1.5,
-   "glow": 1.5,
-   "brows": 1.287,
-   "shadow": 0.125
+   "base": 1.12,
+   "conceal": 0.954,
+   "blush": 0.65,
+   "glow": 1.228,
+   "brows": 0.731,
+   "shadow": 0.063
   },
   "hex": {
-   "blush": "#ffb3c5",
-   "shadow": "#aa767c",
-   "shadow2": "#b86b76"
+   "blush": "#ff9ba7",
+   "shadow": "#b26e6f",
+   "shadow2": "#b96771"
   },
   "rms": [
-   99.97,
-   56.01,
-   49.17,
-   46.06,
-   45.26,
-   45.26
-  ]
+   69.5,
+   37.23,
+   36.44,
+   36.45,
+   36.54,
+   36.61,
+   36.44
+  ],
+  "hue": true
  },
  "full-glam": {
   "amount": {
-   "base": 0.984,
-   "conceal": 1.003,
-   "contour": 0.125,
-   "blush": 1.231,
-   "glow": 1.5,
-   "brows": 1.085,
-   "shadow": 0.655,
-   "liner": 1.5
+   "base": 0.802,
+   "conceal": 0.063,
+   "contour": 0.05,
+   "blush": 0.906,
+   "glow": 0.948,
+   "brows": 0.068,
+   "shadow": 0.327,
+   "liner": 0.583
   },
   "hex": {
-   "blush": "#ffb9a2",
-   "shadow": "#93775d",
-   "shadow2": "#40281e"
+   "blush": "#ffb9a0",
+   "shadow": "#ad725d",
+   "shadow2": "#582e23"
   },
   "rms": [
-   76.83,
-   72.79,
-   65.58,
-   63.36,
-   61.42,
-   61.42
-  ]
+   71.62,
+   55.47,
+   52.65,
+   52.12,
+   51.81,
+   51.39,
+   51.39
+  ],
+  "hue": true
  },
  "hollywood": {
   "amount": {
-   "base": 0.984,
-   "conceal": 1.5,
+   "base": 1.02,
+   "conceal": 0.094,
    "contour": 0.05,
-   "blush": 0.523,
+   "blush": 0.05,
    "glow": 1.5,
-   "brows": 1.441,
-   "shadow": 0.315,
-   "liner": 1.421
+   "brows": 0.643,
+   "shadow": 0.241,
+   "liner": 0.259
   },
   "hex": {
-   "blush": "#e2988c",
-   "shadow": "#ffeac5",
-   "shadow2": "#ddb48a"
+   "blush": "#ea9989",
+   "shadow": "#ebaa8e",
+   "shadow2": "#ca9575"
   },
   "rms": [
-   102.88,
-   48.21,
-   45.52,
-   45.63,
-   45.8,
-   45.52
-  ]
+   77.72,
+   38.91,
+   36.08,
+   35.68,
+   35.52,
+   35.4,
+   35.4
+  ],
+  "hue": true
  },
  "arabic-glam": {
   "amount": {
-   "base": 1.005,
-   "conceal": 0.2,
-   "contour": 0.25,
-   "blush": 0.25,
-   "glow": 1.5,
-   "brows": 1.003,
-   "shadow": 0.25,
-   "liner": 1.5
+   "base": 0.874,
+   "conceal": 0.05,
+   "contour": 0.063,
+   "blush": 0.063,
+   "glow": 0.94,
+   "brows": 0.251,
+   "shadow": 0.486,
+   "liner": 1.15
   },
   "hex": {
-   "blush": "#f5a18b",
-   "shadow": "#9b7430",
-   "shadow2": "#211612"
+   "blush": "#e7a588",
+   "shadow": "#9c7030",
+   "shadow2": "#221510"
   },
   "rms": [
-   80.31,
-   86.56,
-   68.29,
-   60.02,
-   65.54,
-   60.02
-  ]
+   79.12,
+   60.19,
+   58.27,
+   58.17,
+   58.2,
+   58.18,
+   58.17
+  ],
+  "hue": true
  },
  "bronzed-goddess": {
   "amount": {
-   "base": 1.198,
-   "conceal": 1.5,
-   "contour": 0.125,
-   "blush": 0.125,
+   "base": 1.082,
+   "conceal": 0.094,
+   "contour": 0.181,
+   "blush": 0.097,
    "glow": 1.5,
-   "brows": 1.34,
-   "shadow": 0.267,
-   "liner": 1.5
+   "brows": 0.13,
+   "shadow": 0.239,
+   "liner": 1.259
   },
   "hex": {
-   "blush": "#f1946e",
-   "shadow": "#8c6b39",
-   "shadow2": "#5b361f"
+   "blush": "#e18e5e",
+   "shadow": "#8c5529",
+   "shadow2": "#5e3217"
   },
   "rms": [
-   83.1,
-   80.46,
-   58.11,
-   47.71,
-   47.5,
-   47.5
-  ]
+   72.44,
+   48.54,
+   46.84,
+   46.4,
+   46.34,
+   46.33,
+   46.33
+  ],
+  "hue": true
  },
  "golden-hour": {
   "amount": {
-   "base": 1.022,
-   "conceal": 1.5,
-   "contour": 0.056,
-   "blush": 0.382,
+   "base": 1.095,
+   "conceal": 0.094,
+   "contour": 0.05,
+   "blush": 0.281,
    "glow": 1.5,
-   "brows": 1.306,
-   "shadow": 0.3,
-   "liner": 1.5
+   "brows": 0.638,
+   "shadow": 0.343,
+   "liner": 0.548
   },
   "hex": {
-   "blush": "#e79a78",
-   "shadow": "#a1874c",
-   "shadow2": "#744c2b"
+   "blush": "#ec9876",
+   "shadow": "#c08c4a",
+   "shadow2": "#784a23"
   },
   "rms": [
-   90.75,
-   71.69,
-   52.17,
-   44.65,
-   43.94,
-   43.94
-  ]
+   70.53,
+   39.88,
+   38.08,
+   37.68,
+   37.5,
+   37.37,
+   37.37
+  ],
+  "hue": true
  },
  "bold-glam": {
   "amount": {
-   "base": 0.971,
-   "conceal": 0.63,
-   "contour": 0.125,
-   "blush": 0.125,
-   "brows": 1.346,
-   "shadow": 0.623,
-   "liner": 1.048
+   "base": 0.946,
+   "conceal": 0.079,
+   "contour": 0.135,
+   "blush": 0.059,
+   "brows": 0.281,
+   "shadow": 0.244,
+   "liner": 0.626
   },
   "hex": {
-   "blush": "#de8f7f",
-   "shadow": "#77483b",
-   "shadow2": "#2b1815"
+   "blush": "#ce7f70",
+   "shadow": "#8f4236",
+   "shadow2": "#371914"
   },
   "rms": [
-   70.81,
-   46.05,
-   38.77,
-   37.05,
-   36.66,
-   36.66
-  ]
+   78.92,
+   44.97,
+   40.09,
+   39.13,
+   39.02,
+   39.03,
+   39.02
+  ],
+  "hue": true
  },
  "cut-crease": {
   "amount": {
-   "base": 0.975,
-   "conceal": 1.358,
-   "contour": 0.056,
-   "blush": 1.21,
-   "glow": 1.5,
-   "brows": 1.125,
-   "shadow": 1.122,
-   "liner": 1.211
+   "base": 0.911,
+   "conceal": 0.085,
+   "contour": 0.05,
+   "blush": 0.821,
+   "glow": 1.113,
+   "brows": 0.07,
+   "shadow": 0.794,
+   "liner": 0.443
   },
   "hex": {
-   "blush": "#ffbea5",
-   "shadow": "#ffffeb",
-   "shadow2": "#5d3627"
+   "blush": "#ffbea3",
+   "shadow": "#ffbfa2",
+   "shadow2": "#6a3b2a"
   },
   "rms": [
-   86.24,
-   74.41,
-   70.49,
-   69.31,
-   67.29,
-   67.29
-  ]
+   75.05,
+   55.16,
+   52.8,
+   52.42,
+   52.12,
+   51.51,
+   51.51
+  ],
+  "hue": true
  },
  "classic-smokey": {
   "amount": {
-   "base": 0.861,
-   "conceal": 1.483,
-   "contour": 0.056,
-   "blush": 0.565,
-   "brows": 1.204,
-   "shadow": 0.94,
-   "liner": 1.208
+   "base": 0.829,
+   "conceal": 0.093,
+   "contour": 0.05,
+   "blush": 0.145,
+   "brows": 0.123,
+   "shadow": 0.458,
+   "liner": 0.599
   },
   "hex": {
-   "blush": "#e6a498",
-   "shadow": "#5a5250",
-   "shadow2": "#141010"
+   "blush": "#e99e90",
+   "shadow": "#6e5450",
+   "shadow2": "#181415"
   },
   "rms": [
-   67.78,
-   41.28,
-   39.64,
-   39.25,
-   38.76,
-   38.76
-  ]
+   66.75,
+   35.87,
+   30.39,
+   28.52,
+   28.09,
+   28.02,
+   28.02
+  ],
+  "hue": true
  },
  "brown-smokey": {
   "amount": {
-   "base": 0.872,
-   "conceal": 1.5,
-   "contour": 0.056,
-   "blush": 0.296,
-   "brows": 1.185,
-   "shadow": 0.611,
-   "liner": 0.832
+   "base": 0.84,
+   "conceal": 0.094,
+   "contour": 0.05,
+   "blush": 0.05,
+   "brows": 0.274,
+   "shadow": 0.259,
+   "liner": 0.447
   },
   "hex": {
-   "blush": "#e79f87",
-   "shadow": "#9d7056",
-   "shadow2": "#3c241a"
+   "blush": "#e59c82",
+   "shadow": "#a9654b",
+   "shadow2": "#4b2719"
   },
   "rms": [
-   63.71,
-   42.49,
-   39.46,
-   38.95,
-   38.59,
-   38.59
-  ]
+   56.02,
+   34,
+   27.93,
+   26.72,
+   26.59,
+   26.57,
+   26.57
+  ],
+  "hue": true
  },
  "plum-smokey": {
   "amount": {
-   "base": 0.88,
-   "conceal": 1.5,
-   "contour": 0.056,
-   "blush": 0.39,
-   "brows": 1.234,
-   "shadow": 0.808,
-   "liner": 1.147
+   "base": 0.876,
+   "conceal": 0.094,
+   "contour": 0.05,
+   "blush": 0.223,
+   "brows": 0.14,
+   "shadow": 0.341,
+   "liner": 0.71
   },
   "hex": {
-   "blush": "#dd92a2",
-   "shadow": "#81526f",
-   "shadow2": "#34162b"
+   "blush": "#e2899c",
+   "shadow": "#92425b",
+   "shadow2": "#431536"
   },
   "rms": [
-   70.72,
-   40.73,
-   38.57,
-   38.23,
-   38.01,
-   38.01
-  ]
+   65.68,
+   37.94,
+   31.17,
+   29.36,
+   29.06,
+   28.99,
+   28.99
+  ],
+  "hue": true
  },
  "emerald-night": {
   "amount": {
-   "base": 0.97,
-   "conceal": 0.502,
-   "contour": 0.056,
-   "blush": 0.477,
+   "base": 1.073,
+   "conceal": 0.05,
+   "contour": 0.05,
+   "blush": 0.219,
    "glow": 1.5,
-   "brows": 1.312,
-   "shadow": 0.687,
-   "liner": 1.463
+   "brows": 0.272,
+   "shadow": 0.453,
+   "liner": 0.697
   },
   "hex": {
-   "blush": "#de9783",
-   "shadow": "#2a5340",
-   "shadow2": "#0e2215"
+   "blush": "#e49383",
+   "shadow": "#344c31",
+   "shadow2": "#102315"
   },
   "rms": [
-   83.85,
-   58.98,
-   53.68,
-   52.94,
-   52.74,
-   52.74
-  ]
+   72.02,
+   37.31,
+   33.22,
+   32.4,
+   32.26,
+   32.23,
+   32.23
+  ],
+  "hue": true
  },
  "navy-smokey": {
   "amount": {
-   "base": 0.907,
-   "conceal": 1.5,
-   "contour": 0.056,
-   "blush": 0.778,
-   "brows": 1.136,
-   "shadow": 0.951,
-   "liner": 1.089
+   "base": 0.904,
+   "conceal": 0.258,
+   "contour": 0.05,
+   "blush": 0.199,
+   "brows": 0.1,
+   "shadow": 0.471,
+   "liner": 0.704
   },
   "hex": {
-   "blush": "#e9a79a",
-   "shadow": "#3b4c76",
-   "shadow2": "#11182f"
+   "blush": "#eda192",
+   "shadow": "#46506d",
+   "shadow2": "#161d40"
   },
   "rms": [
-   71.63,
-   46.18,
-   44.7,
-   44.19,
-   43.44,
-   43.44
-  ]
+   69.33,
+   38.24,
+   32.98,
+   31.3,
+   30.93,
+   30.88,
+   30.88
+  ],
+  "hue": true
  },
  "siren-eyes": {
   "amount": {
-   "base": 0.916,
-   "conceal": 1.158,
-   "contour": 0.056,
-   "blush": 0.224,
-   "brows": 1.5,
-   "shadow": 0.525,
-   "liner": 1.14
+   "base": 0.882,
+   "conceal": 0.145,
+   "contour": 0.172,
+   "blush": 0.067,
+   "brows": 0.33,
+   "shadow": 0.218,
+   "liner": 0.578
   },
   "hex": {
-   "blush": "#ee9d87",
-   "shadow": "#a97764",
-   "shadow2": "#2d1b15"
+   "blush": "#e2917a",
+   "shadow": "#bd6d55",
+   "shadow2": "#371d17"
   },
   "rms": [
-   64.01,
-   43.41,
-   39.36,
-   38.79,
-   38.59,
-   38.59
-  ]
+   61.74,
+   40.04,
+   35.6,
+   34.83,
+   34.76,
+   34.76,
+   34.76
+  ],
+  "hue": true
  },
  "cat-eye": {
   "amount": {
-   "base": 0.88,
-   "conceal": 1.5,
-   "contour": 0.056,
-   "blush": 0.377,
-   "brows": 1.291,
-   "shadow": 0.272,
-   "liner": 1.39
+   "base": 0.888,
+   "conceal": 0.094,
+   "contour": 0.05,
+   "blush": 0.05,
+   "brows": 0.534,
+   "shadow": 0.192,
+   "liner": 0.23
   },
   "hex": {
-   "blush": "#eda291",
-   "shadow": "#a0887a",
-   "shadow2": "#9a7c6b"
+   "blush": "#f39a8c",
+   "shadow": "#b5735f",
+   "shadow2": "#9f6958"
   },
   "rms": [
-   61.94,
-   43.09,
-   39.61,
-   38.46,
-   37.98,
-   37.98
-  ]
+   52.75,
+   27.26,
+   25.69,
+   25.23,
+   25.04,
+   24.96,
+   24.96
+  ],
+  "hue": true
  },
  "fox-eye": {
   "amount": {
-   "base": 0.981,
-   "conceal": 0.987,
-   "contour": 0.125,
-   "blush": 0.392,
-   "brows": 1.5,
-   "shadow": 0.801,
-   "liner": 1.422
+   "base": 0.885,
+   "conceal": 0.062,
+   "contour": 0.207,
+   "blush": 0.391,
+   "brows": 0.553,
+   "shadow": 0.458,
+   "liner": 0.719
   },
   "hex": {
-   "blush": "#e49c87",
-   "shadow": "#8c7060",
-   "shadow2": "#6f4b3b"
+   "blush": "#e5967e",
+   "shadow": "#855041",
+   "shadow2": "#8b4e38"
   },
   "rms": [
-   69.43,
-   42.33,
-   38.37,
-   37.27,
-   36.8,
-   36.8
-  ]
+   68.24,
+   43.83,
+   41.96,
+   41.45,
+   41.32,
+   41.25,
+   41.25
+  ],
+  "hue": true
  },
  "graphic-liner": {
   "amount": {
-   "base": 0.854,
-   "conceal": 1.5,
-   "contour": 0.056,
-   "blush": 0.423,
-   "brows": 1.234,
-   "liner": 0.784
+   "base": 0.84,
+   "conceal": 0.188,
+   "contour": 0.05,
+   "blush": 0.053,
+   "brows": 0.597,
+   "liner": 0.098
   },
   "hex": {
-   "blush": "#f3a596"
+   "blush": "#f0a290"
   },
   "rms": [
-   62.09,
-   42.43,
-   40.66,
-   40.3,
-   39.9,
-   39.9
-  ]
+   47.4,
+   28.49,
+   27.69,
+   27.53,
+   27.48,
+   27.48,
+   27.48
+  ],
+  "hue": true
  },
  "colour-liner": {
   "amount": {
-   "base": 1.14,
-   "conceal": 1.5,
-   "blush": 1.5,
+   "base": 1.005,
+   "conceal": 0.094,
+   "blush": 0.693,
    "glow": 1.5,
-   "brows": 1.256,
-   "liner": 0.712
+   "brows": 0.54,
+   "liner": 0.807
   },
   "hex": {
-   "blush": "#ffb3ac"
+   "blush": "#ffb4a7"
   },
   "rms": [
-   82.28,
-   54.16,
-   49.74,
-   47.89,
-   47.12,
-   47.12
-  ]
+   62.02,
+   41.77,
+   40.6,
+   40.4,
+   40.2,
+   39.83,
+   39.83
+  ],
+  "hue": true
  },
  "classic-bride": {
   "amount": {
-   "base": 0.86,
-   "conceal": 1.5,
-   "contour": 0.133,
-   "blush": 0.953,
+   "base": 0.861,
+   "conceal": 0.094,
+   "contour": 0.12,
+   "blush": 0.374,
    "glow": 1.5,
-   "brows": 1.338,
-   "shadow": 0.15,
-   "liner": 1.208
+   "brows": 0.234,
+   "shadow": 0.05,
+   "liner": 0.291
   },
   "hex": {
-   "blush": "#f2a7a2",
-   "shadow": "#beaa99",
-   "shadow2": "#b17f69"
+   "blush": "#ed9a91",
+   "shadow": "#bb9c87",
+   "shadow2": "#977668"
   },
   "rms": [
-   76.65,
-   59.09,
-   52.54,
-   45.42,
-   43.32,
-   43.32
-  ]
+   62.91,
+   40.67,
+   38.18,
+   37.62,
+   37.49,
+   37.44,
+   37.44
+  ],
+  "hue": true
  },
  "persian-bride": {
   "amount": {
-   "base": 1.08,
-   "conceal": 1.5,
-   "contour": 0.125,
-   "blush": 0.868,
+   "base": 1.075,
+   "conceal": 0.094,
+   "contour": 0.05,
+   "blush": 0.054,
    "glow": 1.5,
-   "brows": 1.182,
-   "shadow": 0.351,
-   "liner": 0.998
+   "brows": 0.192,
+   "shadow": 0.141,
+   "liner": 0.482
   },
   "hex": {
-   "blush": "#f4a196",
-   "shadow": "#ab8464",
-   "shadow2": "#4b2c20"
+   "blush": "#e79c8a",
+   "shadow": "#c58768",
+   "shadow2": "#522f23"
   },
   "rms": [
-   79.6,
-   57.58,
-   47.98,
-   43.54,
-   41.78,
-   41.78
-  ]
+   65.38,
+   37.66,
+   33.31,
+   32.67,
+   32.6,
+   32.57,
+   32.57
+  ],
+  "hue": true
  },
  "romantic-bride": {
   "amount": {
-   "base": 0.99,
-   "conceal": 1.5,
-   "blush": 1.5,
-   "glow": 1.5,
-   "brows": 1.227,
-   "shadow": 1.439,
-   "liner": 1.5
+   "base": 0.85,
+   "conceal": 0.509,
+   "blush": 0.659,
+   "glow": 1.103,
+   "brows": 0.49,
+   "shadow": 0.549,
+   "liner": 1.066
   },
   "hex": {
-   "blush": "#ffb4c2",
-   "shadow": "#ecbabe",
-   "shadow2": "#ffafbf"
+   "blush": "#ffa2ae",
+   "shadow": "#d08b8c",
+   "shadow2": "#d18b8c"
   },
   "rms": [
-   102.17,
-   73.4,
-   70.29,
-   69.95,
-   69.97,
-   69.95
-  ]
+   62.31,
+   47.85,
+   44.15,
+   43.53,
+   43.38,
+   43.22,
+   43.22
+  ],
+  "hue": true
  },
  "boho-bride": {
   "amount": {
-   "base": 1.16,
-   "conceal": 1.5,
-   "contour": 0.1,
-   "blush": 0.281,
-   "glow": 1.5,
-   "brows": 1.162,
-   "shadow": 0.125
+   "base": 1.061,
+   "conceal": 0.375,
+   "contour": 0.05,
+   "blush": 0.079,
+   "glow": 1.49,
+   "brows": 0.595,
+   "shadow": 0.163
   },
   "hex": {
-   "blush": "#fa9c7e",
-   "shadow": "#ad855e",
-   "shadow2": "#a3714a"
+   "blush": "#fd9f81",
+   "shadow": "#a06e50",
+   "shadow2": "#a26a47"
   },
   "rms": [
-   80.01,
-   66.79,
-   56.04,
-   48.33,
-   46.95,
-   46.95
-  ]
+   65.79,
+   40.61,
+   39.65,
+   39.47,
+   39.48,
+   39.49,
+   39.47
+  ],
+  "hue": true
  },
  "aqd": {
   "amount": {
-   "base": 1.033,
-   "conceal": 1.5,
-   "contour": 0.056,
-   "blush": 1.5,
-   "glow": 1.5,
-   "brows": 1.332,
-   "shadow": 0.678,
-   "liner": 1.245
+   "base": 0.99,
+   "conceal": 0.883,
+   "contour": 0.05,
+   "blush": 0.99,
+   "glow": 1.492,
+   "brows": 0.749,
+   "shadow": 0.339,
+   "liner": 1.167
   },
   "hex": {
-   "blush": "#fcb2aa",
-   "shadow": "#a99a8a",
-   "shadow2": "#dfbba2"
+   "blush": "#f8ada1",
+   "shadow": "#b0897c",
+   "shadow2": "#d7a68f"
   },
   "rms": [
-   88.04,
-   54.26,
-   49.35,
-   48.34,
-   47.86,
-   47.86
-  ]
+   65.53,
+   42.04,
+   34.15,
+   34.21,
+   34.38,
+   34.43,
+   34.15
+  ],
+  "hue": true
  },
  "henna-night": {
   "amount": {
-   "base": 1.008,
-   "conceal": 1.462,
-   "contour": 0.056,
-   "blush": 0.205,
+   "base": 1.078,
+   "conceal": 0.091,
+   "contour": 0.05,
+   "blush": 0.153,
    "glow": 1.5,
-   "brows": 1.393,
-   "shadow": 0.849,
-   "liner": 0.985
+   "brows": 0.253,
+   "shadow": 0.519,
+   "liner": 0.446
   },
   "hex": {
-   "blush": "#e59179",
-   "shadow": "#bb8f40",
-   "shadow2": "#6d2f1f"
+   "blush": "#e78a73",
+   "shadow": "#b38041",
+   "shadow2": "#7a351e"
   },
   "rms": [
-   92.99,
-   48.81,
-   42.87,
-   42.32,
-   42.21,
-   42.21
-  ]
+   76.84,
+   39.4,
+   34.69,
+   33.66,
+   33.47,
+   33.42,
+   33.42
+  ],
+  "hue": true
  },
  "sunset": {
   "amount": {
-   "base": 1.214,
-   "conceal": 1.5,
-   "contour": 0.056,
-   "blush": 0.504,
+   "base": 1.181,
+   "conceal": 0.565,
+   "contour": 0.05,
+   "blush": 0.05,
    "glow": 1.5,
-   "brows": 1.256,
-   "shadow": 0.235,
-   "liner": 1.115
+   "brows": 0.37,
+   "shadow": 0.412,
+   "liner": 0.758
   },
   "hex": {
-   "blush": "#ff9c86",
-   "shadow": "#dda044",
-   "shadow2": "#f44c65"
+   "blush": "#ff9f8b",
+   "shadow": "#db7f47",
+   "shadow2": "#ef5c62"
   },
   "rms": [
-   110.73,
-   55.24,
-   48.29,
-   47.12,
-   46.72,
-   46.72
-  ]
+   84.43,
+   43.84,
+   41.4,
+   41.04,
+   40.91,
+   40.86,
+   40.86
+  ],
+  "hue": true
  },
  "pastel": {
   "amount": {
-   "base": 1.149,
-   "conceal": 1.5,
+   "base": 1.06,
+   "conceal": 1.296,
    "blush": 1.5,
-   "glow": 1.5,
-   "brows": 1.313,
-   "shadow": 0.125
+   "glow": 1.4,
+   "brows": 0.768,
+   "shadow": 0.063
   },
   "hex": {
-   "blush": "#ffbfd1",
-   "shadow": "#af9bca",
-   "shadow2": "#a68ad7"
+   "blush": "#ffb3be",
+   "shadow": "#b795ae",
+   "shadow2": "#a988b9"
   },
   "rms": [
-   83.64,
-   61.96,
-   54.91,
-   51.48,
-   50.05,
-   50.05
-  ]
+   63.71,
+   41.77,
+   39.44,
+   39.44,
+   39.46,
+   39.48,
+   39.44
+  ],
+  "hue": true
  },
  "monochrome": {
   "amount": {
-   "base": 0.856,
-   "conceal": 1.5,
-   "contour": 0.056,
-   "blush": 0.198,
-   "brows": 1.33,
-   "shadow": 0.61,
-   "liner": 1.287
+   "base": 0.851,
+   "conceal": 0.094,
+   "contour": 0.246,
+   "blush": 0.293,
+   "brows": 0.549,
+   "shadow": 0.39,
+   "liner": 0.813
   },
   "hex": {
-   "blush": "#f0788e",
-   "shadow": "#b35968",
-   "shadow2": "#9f4154"
+   "blush": "#d96b7d",
+   "shadow": "#af5c55",
+   "shadow2": "#a24551"
   },
   "rms": [
-   79.34,
-   42.34,
-   36.57,
-   35.96,
-   35.87,
-   35.87
-  ]
+   63.89,
+   34.08,
+   32.73,
+   32.31,
+   32.18,
+   32.12,
+   32.12
+  ],
+  "hue": true
  },
  "glitter-party": {
   "amount": {
-   "base": 1.065,
-   "conceal": 1.5,
-   "contour": 0.056,
-   "blush": 0.97,
+   "base": 1.066,
+   "conceal": 0.094,
+   "contour": 0.05,
+   "blush": 0.061,
    "glow": 1.5,
-   "brows": 1.346,
-   "shadow": 0.94,
-   "liner": 1.5
+   "brows": 0.685,
+   "shadow": 0.298,
+   "liner": 0.603
   },
   "hex": {
-   "blush": "#f1a7b2",
-   "shadow": "#e9cad3",
-   "shadow2": "#d9adbe"
+   "blush": "#f59e9f",
+   "shadow": "#efa7a2",
+   "shadow2": "#ae6963"
   },
   "rms": [
-   87.39,
-   48.38,
-   45.08,
-   44.83,
-   44.81,
-   44.81
-  ]
+   64.05,
+   43.4,
+   35.41,
+   33.4,
+   33.13,
+   33.04,
+   33.04
+  ],
+  "hue": true
  },
  "rhinestone": {
   "amount": {
-   "base": 1.145,
-   "conceal": 1.5,
-   "blush": 1.5,
-   "glow": 1.5,
-   "brows": 1.365,
-   "shadow": 0.285,
-   "liner": 0.654
+   "base": 1.019,
+   "conceal": 0.094,
+   "blush": 0.924,
+   "glow": 1.143,
+   "brows": 0.628,
+   "shadow": 0.163,
+   "liner": 0.05
   },
   "hex": {
-   "blush": "#f8a7be",
-   "shadow": "#eccbf3",
-   "shadow2": "#c397d5"
+   "blush": "#ffadb3",
+   "shadow": "#e1a4ae",
+   "shadow2": "#bc8fa6"
   },
   "rms": [
-   89.73,
-   61.73,
    60.56,
-   61.01,
-   61.61,
-   60.56
-  ]
+   52.17,
+   47.66,
+   47.59,
+   47.48,
+   47.4,
+   47.4
+  ],
+  "hue": true
  },
  "electric-blue": {
   "amount": {
-   "base": 0.847,
-   "conceal": 1.5,
+   "base": 0.841,
+   "conceal": 0.094,
    "contour": 0.05,
-   "brows": 1.297,
-   "shadow": 1.2,
-   "liner": 0.6
+   "brows": 0.534,
+   "shadow": 0.797,
+   "liner": 0.441
   },
   "hex": {
-   "shadow": "#4aa3f0",
-   "shadow2": "#1d3fb8"
+   "shadow": "#2a79cb",
+   "shadow2": "#1f4e88"
   },
   "rms": [
-   95.42,
-   65.71,
-   66.98,
-   67.08,
-   67.02,
-   65.71
-  ]
+   69.8,
+   46.54,
+   40.09,
+   39.19,
+   39.02,
+   38.87,
+   38.87
+  ],
+  "hue": true
  },
  "pin-up": {
   "amount": {
-   "base": 1.02,
-   "conceal": 1.5,
-   "contour": 0.056,
-   "blush": 0.749,
-   "brows": 1.122,
-   "shadow": 0.192,
-   "liner": 1.5
+   "base": 1.046,
+   "conceal": 0.514,
+   "contour": 0.05,
+   "blush": 0.455,
+   "brows": 0.07,
+   "shadow": 0.068,
+   "liner": 0.278
   },
   "hex": {
-   "blush": "#f89f97",
-   "shadow": "#a29488",
-   "shadow2": "#9b8474"
+   "blush": "#ff9b89",
+   "shadow": "#b17c68",
+   "shadow2": "#a6766a"
   },
   "rms": [
-   89.73,
-   52.56,
-   47.37,
-   45.56,
-   44.86,
-   44.86
-  ]
+   78.06,
+   42.1,
+   40.36,
+   39.94,
+   39.85,
+   39.81,
+   39.81
+  ],
+  "hue": true
  },
  "mod-60s": {
   "amount": {
-   "base": 0.813,
-   "conceal": 1.5,
-   "contour": 0.056,
-   "blush": 1.227,
-   "brows": 1.098,
-   "shadow": 0.462,
-   "liner": 0.874
+   "base": 0.826,
+   "conceal": 0.375,
+   "contour": 0.05,
+   "blush": 0.4,
+   "brows": 0.354,
+   "shadow": 0.378,
+   "liner": 0.218
   },
   "hex": {
-   "blush": "#f1afa6",
-   "shadow": "#c8bbb2",
-   "shadow2": "#8f8177"
+   "blush": "#eea796",
+   "shadow": "#f5b298",
+   "shadow2": "#a28676"
   },
   "rms": [
-   60.33,
-   45.89,
-   41.97,
-   40.8,
-   40.2,
-   40.2
-  ]
+   55.38,
+   37.08,
+   35.33,
+   35.26,
+   35.37,
+   35.48,
+   35.26
+  ],
+  "hue": true
  },
  "nineties": {
   "amount": {
-   "base": 0.986,
-   "conceal": 1.5,
-   "contour": 0.125,
-   "blush": 0.125,
-   "brows": 0.585,
-   "shadow": 0.355,
-   "liner": 1.396
+   "base": 0.973,
+   "conceal": 0.094,
+   "contour": 0.058,
+   "blush": 0.175,
+   "brows": 0.05,
+   "shadow": 0.298,
+   "liner": 1.008
   },
   "hex": {
-   "blush": "#d89177",
-   "shadow": "#97725e",
-   "shadow2": "#9c6a54"
+   "blush": "#cd8866",
+   "shadow": "#9b604a",
+   "shadow2": "#9b5a43"
   },
   "rms": [
-   68.2,
-   48.71,
-   41.5,
-   39.55,
-   38.87,
-   38.87
-  ]
+   62.32,
+   34.83,
+   34.04,
+   33.82,
+   33.73,
+   33.66,
+   33.66
+  ],
+  "hue": true
  },
  "twenties": {
   "amount": {
-   "base": 0.45,
-   "conceal": 1.5,
-   "contour": 0.056,
-   "blush": 0.358,
-   "brows": 0.629,
-   "shadow": 0.597,
-   "liner": 1.198
+   "base": 0.394,
+   "conceal": 0.188,
+   "contour": 0.05,
+   "blush": 0.05,
+   "brows": 0.079,
+   "shadow": 0.265,
+   "liner": 0.625
   },
   "hex": {
-   "blush": "#ffa6a2",
-   "shadow": "#5e4d53",
-   "shadow2": "#1f151c"
+   "blush": "#e8a9a1",
+   "shadow": "#75544f",
+   "shadow2": "#1f1722"
   },
   "rms": [
-   70.32,
-   57.41,
-   52.91,
-   52.73,
-   52.69,
-   52.69
-  ]
+   77.67,
+   55.93,
+   52.62,
+   52.08,
+   52.06,
+   52.07,
+   52.06
+  ],
+  "hue": true
  },
  "k-beauty": {
   "amount": {
-   "base": 1.108,
+   "base": 0.974,
    "conceal": 1.5,
-   "blush": 1.5,
-   "glow": 1.5,
-   "brows": 0.891,
-   "shadow": 0.125,
-   "liner": 0.217
+   "blush": 1.483,
+   "glow": 1.441,
+   "brows": 0.396,
+   "shadow": 0.1,
+   "liner": 0.36
   },
   "hex": {
-   "blush": "#ffbabf",
-   "shadow": "#b5928a",
-   "shadow2": "#d49b8f"
+   "blush": "#ffafad",
+   "shadow": "#bb7d6b",
+   "shadow2": "#d89586"
   },
   "rms": [
-   123.72,
-   65.87,
-   60.15,
-   58.2,
-   57.38,
-   57.38
-  ]
+   79.05,
+   43.49,
+   42.63,
+   42.6,
+   42.69,
+   42.78,
+   42.6
+  ],
+  "hue": true
  },
  "douyin": {
   "amount": {
-   "base": 1.129,
+   "base": 0.962,
    "conceal": 1.5,
    "blush": 1.5,
-   "glow": 1.5,
-   "brows": 1.393,
-   "shadow": 0.989,
-   "liner": 1.017
-  },
-  "hex": {
-   "blush": "#ffcadc",
-   "shadow": "#ecb5bc",
-   "shadow2": "#ffa5b7"
-  },
-  "rms": [
-   110.79,
-   64.9,
-   59.87,
-   58.99,
-   58.53,
-   58.53
-  ]
- },
- "wine-lips": {
-  "amount": {
-   "base": 0.843,
-   "conceal": 1.5,
-   "contour": 0.05,
-   "blush": 0.465,
-   "brows": 1.404,
-   "shadow": 0.265,
-   "liner": 1.411
-  },
-  "hex": {
-   "blush": "#cb8477",
-   "shadow": "#a57d61",
-   "shadow2": "#986651"
-  },
-  "rms": [
-   73.4,
-   43.82,
-   38.83,
-   38.23,
-   38.07,
-   37.96,
-   37.96
-  ]
- },
- "icy": {
-  "amount": {
-   "base": 1.336,
-   "conceal": 1.5,
-   "blush": 1.5,
-   "glow": 1.5,
-   "brows": 1.5,
-   "shadow": 0.667,
+   "glow": 1.33,
+   "brows": 0.603,
+   "shadow": 0.364,
    "liner": 1.5
   },
   "hex": {
-   "blush": "#ffb3c4",
-   "shadow": "#fcfcff",
-   "shadow2": "#fdf5ff"
+   "blush": "#ffabc8",
+   "shadow": "#c87f7a",
+   "shadow2": "#cf8e8c"
   },
   "rms": [
-   116.05,
-   74.2,
-   72.41,
-   74.2,
-   72.35,
-   71.49,
-   71.49
-  ]
+   76,
+   60.78,
+   47.26,
+   45.11,
+   44.91,
+   44.81,
+   44.81
+  ],
+  "hue": true
+ },
+ "wine-lips": {
+  "amount": {
+   "base": 0.827,
+   "conceal": 0.272,
+   "contour": 0.086,
+   "blush": 0.884,
+   "brows": 0.433,
+   "shadow": 0.148,
+   "liner": 1.053
+  },
+  "hex": {
+   "blush": "#bd816c",
+   "shadow": "#be7152",
+   "shadow2": "#925640"
+  },
+  "rms": [
+   75.91,
+   31.39,
+   29.3,
+   28.96,
+   28.82,
+   28.77,
+   28.77
+  ],
+  "hue": true
+ },
+ "icy": {
+  "amount": {
+   "base": 0.915,
+   "conceal": 0.867,
+   "blush": 0.985,
+   "glow": 1.5,
+   "brows": 0.54,
+   "shadow": 0.549,
+   "liner": 0.95
+  },
+  "hex": {
+   "blush": "#ffa6bd",
+   "shadow": "#ceb6bb",
+   "shadow2": "#c9a3a3"
+  },
+  "rms": [
+   80.44,
+   59.2,
+   53.83,
+   53.91,
+   53.17,
+   51.93,
+   51.93
+  ],
+  "hue": true
  },
  "lilac-eyes": {
   "amount": {
-   "base": 0.64,
-   "conceal": 1.5,
-   "contour": 0.191,
-   "blush": 1.287,
-   "glow": 1.409,
-   "brows": 1.381,
-   "shadow": 0.329,
-   "liner": 1.37
+   "base": 0.628,
+   "conceal": 0.094,
+   "contour": 0.309,
+   "blush": 0.708,
+   "glow": 1.267,
+   "brows": 0.536,
+   "shadow": 0.203,
+   "liner": 1.136
   },
   "hex": {
-   "blush": "#eaa5b8",
-   "shadow": "#ae94c6",
-   "shadow2": "#814fac"
+   "blush": "#db909c",
+   "shadow": "#b17d92",
+   "shadow2": "#7c477f"
   },
   "rms": [
-   80.51,
-   52.7,
-   50.83,
-   50,
-   50.14,
-   50.57,
-   50
-  ]
+   65.27,
+   49.24,
+   46.2,
+   45.9,
+   45.83,
+   45.77,
+   45.77
+  ],
+  "hue": true
  },
  "grunge-smokey": {
   "amount": {
-   "base": 0.789,
-   "conceal": 0.645,
-   "contour": 0.158,
-   "brows": 1.064,
-   "shadow": 0.41,
-   "liner": 0.394
+   "base": 0.797,
+   "conceal": 0.081,
+   "contour": 0.164,
+   "brows": 0.33,
+   "shadow": 0.3,
+   "liner": 0.678
   },
   "hex": {
-   "shadow": "#544943",
-   "shadow2": "#241c1a"
+   "shadow": "#64463c",
+   "shadow2": "#221816"
   },
   "rms": [
-   62.5,
-   38.38,
-   33.84,
-   33.07,
-   33.03,
-   33.07,
-   33.03
-  ]
+   69.37,
+   45.82,
+   45.36,
+   45.28,
+   45.26,
+   45.26,
+   45.26
+  ],
+  "hue": true
  },
  "fiery-red": {
   "amount": {
-   "base": 0.885,
-   "conceal": 1.5,
+   "base": 0.897,
+   "conceal": 0.594,
    "contour": 0.05,
-   "blush": 1.204,
-   "brows": 1.294,
-   "shadow": 0.063,
-   "liner": 0.682
+   "blush": 1.256,
+   "brows": 0.441,
+   "shadow": 0.076,
+   "liner": 0.339
   },
   "hex": {
-   "blush": "#f69e87",
-   "shadow": "#c0a28d",
-   "shadow2": "#caa38c"
+   "blush": "#e59378",
+   "shadow": "#f5ab80",
+   "shadow2": "#daa17d"
   },
   "rms": [
-   118.68,
-   45.6,
-   43.6,
-   41.54,
-   40.5,
-   39.97,
-   39.97
-  ]
+   92.56,
+   31.87,
+   31.03,
+   30.67,
+   30.44,
+   30.3,
+   30.3
+  ],
+  "hue": true
  },
  "winter-goth": {
   "amount": {
-   "base": 0.647,
-   "conceal": 1.5,
+   "base": 0.644,
+   "conceal": 0.75,
    "contour": 0.05,
-   "blush": 0.174,
-   "glow": 1.5,
-   "brows": 1.475,
-   "shadow": 0.509,
-   "liner": 0.843
+   "blush": 0.087,
+   "glow": 0.733,
+   "brows": 0.85,
+   "shadow": 0.357,
+   "liner": 0.462
   },
   "hex": {
-   "blush": "#ffa0bb",
-   "shadow": "#bcb4b8",
-   "shadow2": "#b49a9d"
+   "blush": "#c2768b",
+   "shadow": "#c7a3a0",
+   "shadow2": "#887173"
   },
   "rms": [
-   80.67,
-   74.92,
-   66.51,
-   65.07,
-   64.77,
-   63.93,
-   63.93
-  ]
+   67,
+   46.37,
+   45.68,
+   45.73,
+   45.79,
+   45.81,
+   45.68
+  ],
+  "hue": true
  }
 }

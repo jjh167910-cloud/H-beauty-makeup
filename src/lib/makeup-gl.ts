@@ -1024,8 +1024,10 @@ const SHADOW_PATTERNS: Record<string, { out: number; f: (s: number, t: number) =
   // a little on her lid, her crease's band, and a V from her outer corner up into it
   crease: { out: 1.1, f: (s, t) => (t >= 0 ? Math.max(0.3 * (1 - ss(0.65, 1, t)), bump(1, 0.3, t), 0.95 * ss(0.6, 0.95, s) * (1 - ss(0.95, 1.3, t)))
     : 0.3 * ss(0.55, 0.95, s) * (1 - ss(0, 1, -t))) },
-  // all of her lid and her crease, smoked out above it and on out, and along her lower lash line
-  smoky: { out: 1.18, f: (s, t) => (t >= 0 ? 1 - ss(0.95, 1.6, t) : 0.85 * (1 - ss(0, 1, -t)) * (0.45 + 0.55 * ss(0.15, 0.55, s))) },
+  // all of her lid and her crease, smoked out above it and on out, and along her lower lash line, as deep there as on
+  // her lid right at her lashes (in the catalog's smoky photos it is; at 0.85 of a fading band it read as 40% of her lid
+  // just under her lashes, and her lower lash line came out 4 to 10 ΔE lighter than theirs)
+  smoky: { out: 1.18, f: (s, t) => (t >= 0 ? 1 - ss(0.95, 1.6, t) : (1 - ss(0.35, 1, -t)) * (0.45 + 0.55 * ss(0.15, 0.55, s))) },
   // deeper at her inner and outer corners, her lid's middle lighter (the spotlight)
   halo: { out: 1.1, f: (s, t) => (t >= 0 ? (1 - ss(0.85, 1.35, t)) * (1 - 0.65 * bump(0.5, 0.17, s)) : 0.45 * (1 - ss(0, 1, -t)) * (0.4 + 0.6 * ss(0.45, 0.85, s))) },
   // a crisp line in her crease (her lid under it left for her lid shade), blended out above it

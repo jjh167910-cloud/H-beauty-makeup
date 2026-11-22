@@ -13,6 +13,14 @@
  *
  * With `--teacher <dir>` (the GPU kit's results/teacher, scripts/gpu/pilot.py --keep-pictures) the target is the
  * teacher's picture of the look on each of its faces (makeup only: the face's own pixels), not the old engine's.
+ * (The catalog photos themselves on the catalog model, as teacher pictures, gave much the same amounts as the old
+ * engine's paint there: soft-glam's concealer 0.094 either way, its blush 0.08 / 0.05; 2026-11.)
+ *
+ * With `--hue` the blush's and the eyeshadow's colours are fitted in full (each channel towards the target's, where
+ * each one shows), not only how light or deep: the looks' own colours, laid on as packed powder, came out with 3 to 10
+ * less chroma than their photos (grey-olive on warm skin) and their pale pinks and lilacs magenta-blue (the catalog
+ * model, 2026-11). Where the target is much darker or lighter than the recipe's paint (its lashes and liner, its
+ * glitter) doesn't count.
  *
  * Needs the dev server (npm run dev) and Playwright's Chromium (software WebGL is enough: a few minutes a look).
  *   node scripts/tinybeauty/fit_recipes.cjs --faces a.jpg,b.jpg,c.jpg [--looks all|id,id] [--iters 4] [--url http://127.0.0.1:5173/]
@@ -22,7 +30,7 @@ const { chromium } = require("playwright");
 const fs = require("fs");
 const path = require("path");
 const arg = (name, d) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : d; };
-const OUT = path.join(__dirname, "../../src/data/look-fit.json");
+const OUT = arg("out", path.join(__dirname, "../../src/data/look-fit.json"));   // (--out: another file, to run looks in parallel)
 const TEACHER = arg("teacher", "");
 const FACES = TEACHER && !arg("faces", "")
   ? fs.readdirSync(path.join(TEACHER, "_faces")).filter((f) => f.endsWith(".jpg")).sort().map((f) => path.join(TEACHER, "_faces", f))
@@ -35,6 +43,7 @@ const teacherPicture = (look, face) => {
   return file ? fs.readFileSync(path.join(dir, file)).toString("base64") : null;
 };
 const ITERS = +arg("iters", 4);
+const HUE = process.argv.includes("--hue");
 const URL_ = arg("url", "http://127.0.0.1:5173/");
 if (!FACES.length) { console.error("usage: fit_recipes.cjs --faces a.jpg,b.jpg [--looks all] [--iters 4] [--url ...]"); process.exit(2); }
 (async () => {
@@ -66,7 +75,7 @@ if (!FACES.length) { console.error("usage: fit_recipes.cjs --faces a.jpg,b.jpg [
     const t0 = Date.now();
     const targets = FACES.map((f) => teacherPicture(look, f));
     if (TEACHER && !targets.some(Boolean)) { console.log(look, "no teacher pictures: skipped"); continue; }
-    result[look] = await page.evaluate(async ({ look, iters, targets }) => {
+    result[look] = await page.evaluate(async ({ look, iters, targets, hue }) => {
       const m = await import('/src/lib/tryon.ts');
       const R = await import('/src/data/look-recipes.ts');
       const W = 320, LIN = Float32Array.from({ length: 256 }, (_, i) => (i / 255) ** 2.2);
@@ -149,6 +158,10 @@ if (!FACES.length) { console.error("usage: fit_recipes.cjs --faces a.jpg,b.jpg [
             const vd = [V[p] - B[p], V[p + 1] - B[p + 1], V[p + 2] - B[p + 2]];
             if (any || vd[0] * vd[0] + vd[1] * vd[1] + vd[2] * vd[2] > 1e-5) { e2 += r[0] * r[0] + r[1] * r[1] + r[2] * r[2]; s2 += vd[0] * vd[0] + vd[1] * vd[1] + vd[2] * vd[2]; en++; }
             const add = (acc, w) => { for (let c = 0; c < 3; c++) { acc[c] += w * V[p + c]; acc[c + 3] += w * full[p + c]; } };
+            if (hue) {        // (not where the target's lashes, liner or glitter are: much darker or lighter than the recipe there)
+              const yv = 0.2126 * V[p] + 0.7152 * V[p + 1] + 0.0722 * V[p + 2], yf = 0.2126 * full[p] + 0.7152 * full[p + 1] + 0.0722 * full[p + 2];
+              if (yv < 0.6 * yf || yv > 1.6 * yf) continue;
+            }
             if (d.blush && d.blush[1] > 1e-5) add(col.blush, (d.blush[1] / tot) * Math.sqrt(d.blush[1]));
             if (d.shadow && d.shadow[1] > 1e-5 && MK[p / 3]) {
               const dom = d.shadow[1] / tot, mag = Math.sqrt(d.shadow[1]);
@@ -176,6 +189,7 @@ if (!FACES.length) { console.error("usage: fit_recipes.cjs --faces a.jpg,b.jpg [
         const luma = (a, o) => 0.2126 * a[o] + 0.7152 * a[o + 1] + 0.0722 * a[o + 2];
         const shift = (hex, acc) => {
           if (acc[0] + acc[1] + acc[2] <= 0) return hex;
+          if (hue) return linHex(hexLin(hex).map((v, c) => v * Math.min(1.5, Math.max(0.67, acc[c] / Math.max(acc[c + 3], 1e-6))) ** 0.8));
           const k = Math.min(1.4, Math.max(0.7, luma(acc, 0) / Math.max(luma(acc, 3), 1e-6))) ** 0.8;
           return linHex(hexLin(hex).map((v) => v * k));
         };
@@ -189,8 +203,8 @@ if (!FACES.length) { console.error("usage: fit_recipes.cjs --faces a.jpg,b.jpg [
       const amount = Object.fromEntries(keys.map((k) => [k, +((recipe[k]?.amount ?? 1) * picks.gain[k] / gain0[k]).toFixed(3)]));
       const hex = { ...(picks.blush ? { blush: picks.blush.hex } : {}), ...(picks.shadow ? { shadow: picks.shadow.hex } : {}), ...(two ? { shadow2: picks.shadow.hex2 } : {}) };
       sessionStorage.removeItem('hb-engine');
-      return { amount, hex, rms: [...err, best.e] };
-    }, { look, iters: ITERS, targets });
+      return { amount, hex, rms: [...err, best.e], ...(hue ? { hue: true } : {}) };
+    }, { look, iters: ITERS, targets, hue: HUE });
     console.log(look, JSON.stringify(result[look]), `${Math.round((Date.now() - t0) / 1000)} s`);
     fs.writeFileSync(OUT, `${JSON.stringify(result, null, 1)}\n`);
   }
