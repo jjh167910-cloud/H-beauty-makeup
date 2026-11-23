@@ -93,6 +93,9 @@ export const MY_STEPS: MyStepDef[] = [
       { id: "deep", name: "یک درجه تیره‌تر", tint: [0.91, 0.9, 0.88] },
       { id: "warm", name: "گرم و طلایی", tint: [1.035, 1, 0.93] },
       { id: "rosy", name: "صورتی", tint: [1.03, 0.985, 1.005] },
+      // (a bronzed skin: a shade deeper and warm, as the catalog's bronzed photos have her skin, 2.5 L* deeper than a warm
+      // shade one her own depth left it, its colour the same)
+      { id: "tan", name: "برنزه", tint: [0.94, 0.9, 0.83] },
     ],
     finishes: opts([["matte", "مات"], ["natural", "طبیعی"], ["dewy", "شبنمی"]]),
     tools: [

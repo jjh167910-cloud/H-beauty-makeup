@@ -67,7 +67,7 @@ export function recipeOf(look: FaceLook, id?: string): MyMakeup {
     matte: { shade: "match", finish: "matte", tool: "brush", amount: 1 },
     dewy: { shade: "match", finish: "dewy", tool: "sponge", amount: 0.85 },
     glow: { shade: "match", finish: "dewy", tool: "sponge", amount: 1 },
-    bronzed: { shade: "warm", finish: "natural", tool: "sponge", amount: 0.9 },
+    bronzed: { shade: "tan", finish: "natural", tool: "sponge", amount: 0.9 },
   }[look.skin] as MyStep;
 
   // concealer under her eyes: every look has it, a touch of it on a sheer one

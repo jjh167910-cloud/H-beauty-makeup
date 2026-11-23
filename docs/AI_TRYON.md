@@ -597,6 +597,18 @@ in makeup-gl.ts):
   gloss 19.7 (20.9), satin 18.3 (17.6), lined 16.6 (19.3), ombre 13.4 (13.6), matte 9.9 (14.1). The lip colour 0.879 ->
   0.868 ΔE from the photos (mean). A test: a satin lipstick's brightest fiftieth over 10 above a matte's (20.0; 1.7
   before), its colour on average within 4.
+- **Concealer fitted again, a bronzed foundation.** With the blush where the photos have it, the under-eye against the
+  cheek below it was 2.5 L* off the photos (mean; the studio's concealer lifted it 1 to 4 L* where the photos keep it as
+  deep as her bare skin, or deeper). Every look's concealer was fitted again (`--steps conceal`; three looks whose
+  under-eye came out further kept theirs: twenties, plum-smokey, persian-bride). And the bronzed looks' skin came out
+  2.5 L* lighter than their photos (61.4 L*; a warm shade her own depth: 63.9), its colour the same: the base step has a
+  bronzed shade now («برنزه», a shade deeper and warm, `tint` 0.94, 0.9, 0.83), and the bronzed looks' recipes wear it
+  (their skin 61.6 L*). All 48 looks as recipes on the catalog model: the under-eye against its photo 2.55 -> 2.29 L*
+  (median), under the lower lashes 3.63 -> 3.22 ΔE, the whole face 2.571 -> 2.550 (worst 3.32 -> 3.28; latte 3.15 ->
+  2.35, bronzed-goddess 3.45 -> 2.82, sun-kissed 2.78 -> 2.37); the brow fill's spill past the brows 0.14 -> 0.16 L*
+  (median; its worst 0.34 -> 0.52, the limit 1.5: a deeper foundation deepens her skin by her brows too). A deeper
+  highlighter (its strength 0.5 -> 0.8, refitted) was tried and dropped: the fit took its amounts down to about the same
+  light, the whole face no closer.
 
 The tiny fallback networks learn the look as the engine finishes it: `scripts/tinybeauty/finish.py` paints the
 foundation, this concealer, the layer with each look's strengths, the brows, lipstick and eye detail in the engine's
