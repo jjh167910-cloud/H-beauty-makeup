@@ -1340,38 +1340,43 @@ export function mineZones(P: Pt[], m: Mine): { A: StepGeo[]; B: StepGeo[] } {
 
 /**
  * Lashes drawn strand by strand on her own lash lines (Phase 2 of the roadmap: her own makeup's and every look's
- * lashes, no catalog look's eye detail): per style how many strands along each upper lash line, their length and root
- * half-width (eye widths), how dark, how much they clump into points, how much longer the outer ones are. A false lash
- * strip (dramatic) is denser, longer and clumped; mascara (natural) is her own lashes, darker and a little longer.
+ * lashes, no catalog look's eye detail), in clumps, as lashes are seen: a mascara pulls her lashes together into a few
+ * at a time, a strip is knotted in spikes, and between them her lid shows. Per style: how many clumps along each upper
+ * lash line and how many strands in each, their length and root half-width (eye widths), how dark, how far each clump's
+ * strands are drawn together towards their tips, how much longer the outer ones are, how much shorter every other clump
+ * is (a strip's long and short spikes) and how many fine single lashes between them. Drawn as evenly spaced strands of
+ * one length, as they were, they came out as a comb or a brush.
  */
-const LASH_STYLES: Record<string, { n: number; len: number; hw: number; dark: number; clump: number; outer: number }> = {
-  natural: { n: 34, len: 0.21, hw: 0.0055, dark: 0.75, clump: 0.15, outer: 0.15 },
-  volume: { n: 52, len: 0.29, hw: 0.0068, dark: 0.9, clump: 0.35, outer: 0.3 },
-  dramatic: { n: 70, len: 0.34, hw: 0.006, dark: 0.95, clump: 0.5, outer: 0.4 },
+const LASH_STYLES: Record<string, { clumps: number; per: [number, number]; len: number; hw: number; dark: number; pull: number; outer: number; alt: number; wisps: number }> = {
+  natural: { clumps: 22, per: [2, 3], len: 0.22, hw: 0.0045, dark: 0.75, pull: 0.4, outer: 0.15, alt: 0.1, wisps: 10 },
+  volume: { clumps: 26, per: [3, 5], len: 0.27, hw: 0.0042, dark: 0.9, pull: 0.4, outer: 0.2, alt: 0.2, wisps: 10 },
+  dramatic: { clumps: 28, per: [4, 6], len: 0.31, hw: 0.0042, dark: 0.95, pull: 0.35, outer: 0.25, alt: 0.25, wisps: 8 },
 };
 /**
- * Their roots: as many short strands again (a share of each style's length) along her lash line, so the lashes are
- * dense where they grow (or where a strip is glued) and thin out towards their tips, as lashes do: not a comb of
- * evenly spaced hairs over her lid.
+ * How long her lashes look in a frontal photo, as a share of their length, from her inner corner out: her middle lashes
+ * point at the camera (it sees them end-on, foreshortened), her outer ones sweep out to the side (seen whole): at least
+ * LASH_SEEN[0], all of it from LASH_SEEN[1] to LASH_SEEN[2] of the way out.
  */
-const LASH_ROOTS = 0.28, LASH_ROOT_SHARE = 0.6;
-/** Her lower lashes (bottomLashes, or a dramatic look's): from a quarter of the way out, short, pointing down. */
-const LOWER_LASHES = { n: 16, from: 0.25, len: 0.085, hw: 0.004, dark: 0.55 };
+const LASH_SEEN = [0.62, 0.45, 0.95];
+/** Which way they point (degrees from her lash line's normal, towards her outer corner): from a little in at her inner corner to swept out at her outer corner. */
+const LASH_FAN = [-12, 82, 2];
+/** Her lower lashes (bottomLashes, or a dramatic look's): from a quarter of the way out, short, pointing down, in twos and threes. */
+const LOWER_LASHES = { clumps: 8, per: [2, 3] as [number, number], from: 0.25, len: 0.085, hw: 0.004, dark: 0.55, pull: 0.6 };
 /** A lash's colour (linear reflectance: a black mascara or false lash, a little warm) and how opaque a strand's core is. */
 const LASH_COLOUR = [0.012, 0.0105, 0.01], LASH_OPAQUE = 0.92;
 /**
  * Each strand's points (a cubic curve), how much its half-width tapers by its tip and how much lighter its tip is (a
  * lash is thick and dark at its root, fine and see-through at its tip).
  */
-const STRAND_STEPS = 10, STRAND_TAPER = 0.92, STRAND_TIP_LIGHT = 0.65;
+const STRAND_STEPS = 10, STRAND_TAPER = 0.92, STRAND_TIP_LIGHT = 0.35;
 /**
- * A lash's curl, as a frontal photo shows it (degrees, towards her outer corner): from her lid it first leans out (it
- * points at the camera there, so it looks short and sideways), then curls back up towards its tip. Drawn straight,
- * as they were, the strands fanned out from her lash line like a comb's teeth or a spider's legs.
+ * A lash's curl, as a frontal photo shows it (degrees, towards her outer corner, at its two inner control points and its
+ * tip, which lie LASH_BEND of the way along it): from her lid it first leans out (it points at the camera there, so it
+ * looks short and sideways), then curls back up towards its tip.
  */
-const LASH_CURL = [12, 2, -8];
+const LASH_CURL = [26, 8, -22], LASH_BEND = [0.3, 0.68], LASH_CURL_FROM = 0.35;
 /** How varied her lashes are: length, angle (degrees), thickness, darkness; a little wave across each. */
-const LASH_VARY = { len: 0.45, angle: 14, width: 0.6, dark: 0.3, wave: 0.05 };
+const LASH_VARY = { len: 0.35, angle: 12, width: 0.6, dark: 0.3, wave: 0.05 };
 
 const hash = (a: number, b: number) => { const x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return x - Math.floor(x); };
 const smooth = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -1379,6 +1384,26 @@ const turn = (v: V, toward: V, deg: number): V => {     // v turned by deg towar
   const a = (deg * Math.PI) / 180;
   return unit(add(mul(v, Math.cos(a)), mul(toward, Math.sin(a))));
 };
+/**
+ * A point along her lash line at share x of its length and its normal there (towards `side`), turning smoothly along it
+ * (each landmark's the mean of its two segments'): with each segment's own, neighbouring lashes stood parallel in
+ * groups between her landmarks.
+ */
+function lashLine(line: V[], side: V): (x: number) => [V, V] {
+  const seg = line.slice(1).map((b, i) => Math.hypot(b[0] - line[i][0], b[1] - line[i][1]));
+  const total = seg.reduce((a, b) => a + b, 0);
+  const segN = line.slice(1).map((b, i): V => {
+    const d = unit(sub(b, line[i])), n: V = [-d[1], d[0]];
+    return n[0] * side[0] + n[1] * side[1] < 0 ? mul(n, -1) : n;
+  });
+  const N = line.map((_, i) => unit(add(segN[Math.max(0, i - 1)], segN[Math.min(segN.length - 1, i)])));
+  return (x) => {
+    let s = Math.min(1, Math.max(0, x)) * total, i = 0;
+    while (i < seg.length - 1 && s > seg[i]) { s -= seg[i]; i++; }
+    const f = seg[i] ? Math.min(1, s / seg[i]) : 0;
+    return [lerp(line[i], line[i + 1], f), unit(lerp(N[i], N[i + 1], f))];
+  };
+}
 
 /**
  * Her lashes as strands, triangles in pixels for the "strand" program: per vertex x, y, its distance across the strand
@@ -1407,73 +1432,73 @@ export function lashStrands(P: Pt[], style: string, lower: boolean, shown: [numb
       out.push(a1[0], a1[1], -wa, ha, da, b1[0], b1[1], -wb, hb, db, b0[0], b0[1], wb, hb, db);
     }
   };
-  // (a lash from `root` along `n` (her lash line's normal), leaning `theta` degrees out: curled as LASH_CURL, its tip
-  // moved by `pull`)
-  const curled = (root: V, n: V, out_: V, theta: number, L: number, wave: number, pull: V = [0, 0]) => {
-    const d = (deg: number) => turn(n, out_, theta + deg);
+  // (a lash from `root` along `n` (her lash line's normal), pointing `theta` degrees out, `L` long, curled as LASH_CURL;
+  // `pull` moves its tip (and its far control point part of the way), as a clump draws it in)
+  const curled = (root: V, n: V, out_: V, theta: number, L: number, wave: number, pull: V = [0, 0], k = 1) => {
+    const d = (deg: number) => turn(n, out_, Math.min(88, theta + deg * k));
     const side: V = [-n[1], n[0]];
-    const c1 = add(root, mul(d(LASH_CURL[0]), L * 0.38));
-    const c2 = add(add(root, mul(d(LASH_CURL[1]), L * 0.72)), mul(side, wave * L));
+    const c1 = add(root, mul(d(LASH_CURL[0]), L * LASH_BEND[0]));
+    const c2 = add(add(root, mul(d(LASH_CURL[1]), L * LASH_BEND[1])), add(mul(side, wave * L), mul(pull, 0.45)));
     const tip = add(add(root, mul(d(LASH_CURL[2]), L)), pull);
     return [c1, c2, tip] as const;
   };
+  // (where a lash of length L from `root` along `n` pointing `theta` out ends, uncurled by its clump)
+  const end = (root: V, n: V, out_: V, theta: number, L: number, k = 1) => add(root, mul(turn(n, out_, theta + LASH_CURL[2] * k), L));
   sides.forEach((s, side) => {
     const seen = shown[side];
     if (seen < 0.05) return;
-    const lid = s.upper.map((i) => pt(P, i));
+    const at = lashLine(s.upper.map((i) => pt(P, i)), up);
     // (the strands as long as this eye is wide in the photo: a turned head's far eye is narrower)
     const own = Math.min(ew, Math.hypot(s.outer[0] - s.inner[0], s.outer[1] - s.inner[1]));
-    type Lash = { root: V; n: V; theta: number; L: number; hw: number; dark: number; wave: number; tip: V };
-    const lashes: Lash[] = [];
-    for (let j = 0; j < S.n; j++) {
-      const r = (k: number) => hash(j, k);         // (both eyes alike, mirrored, as a pair of strips or her own two eyes)
-      const t = 0.04 + 0.95 * ((j + 0.5 + (r(1) - 0.5) * 0.8) / S.n);
-      const [q, n] = along(lid, t, up);
-      // longest from the middle out (longer still at the outer corner for volume and false lashes), short at each end
-      const L = own * S.len * (0.3 + 0.7 * smooth(0, 0.4, t)) * (1 + S.outer * smooth(0.45, 0.92, t)) * (1 - 0.45 * smooth(0.9, 1.02, t))
-        * (1 - LASH_VARY.len / 2 + LASH_VARY.len * r(2));
-      // from up-and-in at her inner corner to swept out at her outer corner
-      const theta = -14 + 60 * t ** 1.15 + (r(3) - 0.5) * LASH_VARY.angle;
-      const root = add(q, mul(n, -ew * 0.004));
-      const wave = (r(5) - 0.5) * 2 * LASH_VARY.wave;
-      const tip = add(root, mul(turn(n, s.out, theta + LASH_CURL[2]), L));
-      lashes.push({ root, n, theta, L, hw: S.hw * own * (1 - LASH_VARY.width / 2 + LASH_VARY.width * r(4)),
-        dark: S.dark * (1 - LASH_VARY.dark * r(6)), wave, tip });
+    const fan = (t: number) => LASH_FAN[0] + LASH_FAN[1] * Math.max(0, t) ** LASH_FAN[2];
+    // (how long they look: short at her inner corner, longest towards her outer corner (longer still for volume and
+    // false lashes), a little shorter at its very end; her middle ones foreshortened)
+    const curl = (t: number) => LASH_CURL_FROM + (1 - LASH_CURL_FROM) * smooth(0.3, 0.9, t);
+    const reach = (t: number) => own * S.len * (0.35 + 0.65 * smooth(0.02, 0.4, t)) * (1 + S.outer * smooth(0.5, 0.95, t))
+      * (1 - 0.4 * smooth(0.93, 1.03, t)) * (LASH_SEEN[0] + (1 - LASH_SEEN[0]) * smooth(LASH_SEEN[1], LASH_SEEN[2], t));
+    const rootAt = (t: number) => { const [q, n] = at(t); return [add(q, mul(n, -ew * 0.004)), n] as const; };
+    // (fine single lashes first, under the clumps; both eyes alike, mirrored, as a pair of strips or her own two eyes)
+    for (let j = 0; j < S.wisps; j++) {
+      const r = (k: number) => hash(j + 11, k);
+      const t = 0.05 + 0.92 * ((j + 0.5 + (r(1) - 0.5) * 0.8) / S.wisps), [root, n] = rootAt(t);
+      const [c1, c2, tip] = curled(root, n, s.out, fan(t) + (r(3) - 0.5) * 24, reach(t) * (0.55 + 0.35 * r(2)), (r(4) - 0.5) * 0.1, [0, 0], curl(t));
+      strand(root, c1, c2, tip, S.hw * own * 0.7, S.dark * seen * 0.7);
     }
-    // (lashes clump into points: groups of two to four, each tip pulled towards its group's, as mascara or a strip's
-    // knots gather them; not every one)
-    let g0 = 0;
-    while (g0 < lashes.length) {
-      const size = 2 + Math.floor(hash(g0, 9) * 3), g = lashes.slice(g0, g0 + size);
-      const mid = mul(g.reduce<V>((a, x) => add(a, x.tip), [0, 0]), 1 / g.length);
-      g.forEach((x, k) => {
-        const pull = mul(sub(mid, x.tip), S.clump * (0.5 + 0.5 * hash(g0 + k, 11)));
-        const [c1, c2, tip] = curled(x.root, x.n, s.out, x.theta, x.L, x.wave, pull);
-        strand(x.root, c1, c2, tip, x.hw, x.dark * seen);
-      });
-      g0 += size;
-    }
-    // (and short ones between them, at her lash line: dense where they grow)
-    const nRoots = Math.round(S.n * LASH_ROOT_SHARE);
-    for (let j = 0; j < nRoots; j++) {
-      const r = (k: number) => hash(j + 3, k);
-      const t = 0.04 + 0.95 * ((j + 0.5 + (r(5) - 0.5) * 0.8) / nRoots);
-      const [q, n] = along(lid, t, up), root = add(q, mul(n, -ew * 0.004));
-      const L = own * S.len * LASH_ROOTS * (0.4 + 0.6 * smooth(0, 0.4, t)) * (0.7 + 0.6 * r(1));
-      const [c1, c2, tip] = curled(root, n, s.out, -14 + 60 * t ** 1.15 + (r(2) - 0.5) * LASH_VARY.angle, L, 0);
-      strand(root, c1, c2, tip, S.hw * own * (0.7 + 0.5 * r(3)), S.dark * seen * (0.8 + 0.2 * r(4)));
+    // (the clumps: each a few strands from neighbouring roots, their tips drawn towards the clump's middle line, as long
+    // or short as it; every other clump a little shorter)
+    const T0 = 0.03, T1 = 0.99, w = (T1 - T0) / S.clumps;
+    for (let c = 0; c < S.clumps; c++) {
+      const r = (k: number) => hash(c, k);
+      const tc = T0 + w * (c + 0.5 + (r(1) - 0.5) * 0.5), [rootC, nC] = rootAt(tc);
+      const m = Math.max(1, Math.round((S.per[0] + Math.floor(r(2) * (S.per[1] - S.per[0] + 1))) * (0.5 + 0.5 * smooth(0, 0.3, tc))));
+      const Lc = reach(tc) * (c % 2 ? 1 - S.alt : 1) * (1 - LASH_VARY.len / 2 + LASH_VARY.len * r(3));
+      const thC = fan(tc) + (r(4) - 0.5) * LASH_VARY.angle;
+      for (let k = 0; k < m; k++) {
+        const q = (i: number) => hash(c * 7 + k, 20 + i);
+        const [root, n] = rootAt(tc + w * 0.95 * ((k + 0.5) / m - 0.5 + (q(1) - 0.5) * 0.3));
+        const L = Lc * (0.75 + 0.3 * q(2)), th = thC + (q(3) - 0.5) * 10;
+        const kc = curl(tc), pull = mul(sub(end(rootC, nC, s.out, thC, L, kc), end(root, n, s.out, th, L, kc)), S.pull * (0.75 + 0.25 * q(4)));
+        const [c1, c2, tip] = curled(root, n, s.out, th, L, (q(5) - 0.5) * 2 * LASH_VARY.wave, pull, kc);
+        strand(root, c1, c2, tip, S.hw * own * (1 - LASH_VARY.width / 2 + LASH_VARY.width * q(6)), S.dark * seen * (1 - LASH_VARY.dark * q(7)));
+      }
     }
     if (lower || style === "dramatic") {
-      const low = s.lower.map((i) => pt(P, i)), K = LOWER_LASHES;
-      for (let j = 0; j < K.n; j++) {
-        const r = (k: number) => hash(j + 7, k);
-        const t = K.from + (1 - K.from - 0.04) * ((j + 0.5 + (r(3) - 0.5) * 0.6) / K.n);
-        const [q, n] = along(low, t, down);
-        const L = own * K.len * (0.6 + 0.4 * smooth(0.2, 0.8, t)) * (0.75 + 0.5 * r(1)) * (lower ? 1 : 0.7);
-        const d = turn(n, s.out, 15 + 30 * t + (r(4) - 0.5) * 10);
-        const root = add(q, mul(n, -ew * 0.003));
-        strand(root, add(root, mul(d, L * 0.35)), add(root, mul(turn(n, s.out, 12 + 28 * t), L * 0.7)), add(root, mul(turn(n, s.out, 8 + 24 * t), L)),
-          K.hw * own * (0.8 + 0.4 * r(2)), K.dark * seen * (lower ? 1 : 0.7));
+      const low = lashLine(s.lower.map((i) => pt(P, i)), down), K = LOWER_LASHES, wl = (1 - K.from - 0.04) / K.clumps;
+      for (let c = 0; c < K.clumps; c++) {
+        const r = (k: number) => hash(c + 7, k);
+        const tc = K.from + wl * (c + 0.5 + (r(3) - 0.5) * 0.5);
+        const Lc = own * K.len * (0.6 + 0.4 * smooth(0.2, 0.8, tc)) * (0.75 + 0.5 * r(1)) * (lower ? 1 : 0.7);
+        const m = K.per[0] + Math.floor(r(2) * (K.per[1] - K.per[0] + 1)), thC = 15 + 30 * tc + (r(4) - 0.5) * 10;
+        const [qC, nC] = low(tc), rootC = add(qC, mul(nC, -ew * 0.003));
+        for (let k = 0; k < m; k++) {
+          const q = (i: number) => hash(c * 5 + k + 40, i);
+          const [p, n] = low(tc + wl * 0.8 * ((k + 0.5) / m - 0.5)), root = add(p, mul(n, -ew * 0.003));
+          const L = Lc * (0.8 + 0.25 * q(1)), th = thC + (q(2) - 0.5) * 8;
+          const tipC = add(rootC, mul(turn(nC, s.out, thC - 6), L)), own_ = add(root, mul(turn(n, s.out, th - 6), L));
+          const pull = mul(sub(tipC, own_), K.pull);
+          strand(root, add(root, mul(turn(n, s.out, th + 2), L * 0.35)), add(add(root, mul(turn(n, s.out, th - 2), L * 0.7)), mul(pull, 0.45)),
+            add(own_, pull), K.hw * own * (0.8 + 0.4 * q(3)), K.dark * seen * (lower ? 1 : 0.7));
+        }
       }
     }
   });

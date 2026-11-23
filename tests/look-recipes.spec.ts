@@ -114,9 +114,28 @@ test("?engine=v2 paints a look as its recipe (kept for the tab, ?engine=v1 turns
     const two = pixels(v2);
     // the lashes alone, natural to false lashes: darker each time
     const lashes = [];
+    // (false lashes along her upper lash line, a quarter to 85% of the way out, `up` eye widths above it: the share of
+    // points darkened to under 0.7 of her bare skin)
+    const lid = [362, 398, 384, 385, 386, 387, 388, 466, 263].map((i) => P[i]);
+    const seg = lid.slice(1).map((q, i) => Math.hypot(q[0] - lid[i][0], q[1] - lid[i][1])), tot = seg.reduce((a, c) => a + c, 0);
+    const lum = (d: Uint8ClampedArray, x: number, y: number) => { const i = (Math.round(y) * w + Math.round(x)) * 4; return d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11; };
+    const darkened = (d: Uint8ClampedArray, up: number) => {
+      let n = 0, k = 0;
+      for (let x = 0.25; x <= 0.85; x += 0.5 / tot) {
+        let s = x * tot, i = 0;
+        while (i < seg.length - 1 && s > seg[i]) { s -= seg[i]; i++; }
+        const a = lid[i], b = lid[i + 1], f = s / seg[i], t = [(b[0] - a[0]) / seg[i], (b[1] - a[1]) / seg[i]];
+        const nrm = t[0] >= 0 ? [t[1], -t[0]] : [-t[1], t[0]];             // (up, towards her brow)
+        const px = a[0] + (b[0] - a[0]) * f + nrm[0] * up * ew, py = a[1] + (b[1] - a[1]) * f + nrm[1] * up * ew;
+        n++; if (lum(d, px, py) < 0.7 * lum(bare, px, py)) k++;
+      }
+      return k / n;
+    };
+    let spikes: number[] = [];
     for (const place of ["natural", "volume", "dramatic"]) {
-      const c = await m.paintMine(shot, { gain: { lashes: 1 }, lashes: { place } });
-      lashes.push(mean(pixels(c), w, lash));
+      const c = await m.paintMine(shot, { gain: { lashes: 1 }, lashes: { place } }), d = pixels(c);
+      lashes.push(mean(d, w, lash));
+      if (place === "dramatic") spikes = [darkened(d, 0.02), darkened(d, 0.1)];
     }
     history.replaceState(null, "", "/?engine=v1");
     const off = m.lookV2();
@@ -129,7 +148,7 @@ test("?engine=v2 paints a look as its recipe (kept for the tab, ?engine=v1 turns
     const ax = [(P[263][0] - P[362][0]) / ew, (P[263][1] - P[362][1]) / ew], lift = [ax[1], -ax[0]];
     const wx = P[263][0] + ew * (0.12 * ax[0] + 0.07 * lift[0]), wy = P[263][1] + ew * (0.12 * ax[1] + 0.07 * lift[1]);
     const wing = (d: Uint8ClampedArray) => mean(d, w, [wx - 1, wy - 1, wx + 2, wy + 2]);
-    return { on, kept, off, offKept, bareLash: mean(bare, w, lash), bareLine: line(bare), line: line(two), bareWing: wing(bare), wing: wing(two), bareLips: mean(bare, w, lips), lips: mean(two, w, lips), lashes, diff };
+    return { on, kept, off, offKept, bareLash: mean(bare, w, lash), bareLine: line(bare), line: line(two), bareWing: wing(bare), wing: wing(two), bareLips: mean(bare, w, lips), lips: mean(two, w, lips), lashes, spikes, diff };
   }, photo);
   expect([out.on, out.kept, out.off, out.offKept]).toEqual([true, true, false, false]);
   expect(out.diff).toBeGreaterThan(0);                      // (not the old engine's picture)
@@ -139,6 +158,10 @@ test("?engine=v2 paints a look as its recipe (kept for the tab, ?engine=v1 turns
   expect(out.lashes[0]).toBeLessThan(out.bareLash);
   expect(out.lashes[1]).toBeLessThan(out.lashes[0]);
   expect(out.lashes[2]).toBeLessThan(out.lashes[1]);
+  // false lashes in clumps: dense where they grow, spikes with her lid between them higher up (not a comb or a brush)
+  console.log("lash spikes", JSON.stringify(out.spikes));
+  expect(out.spikes[0]).toBeGreaterThan(0.55);
+  expect(out.spikes[1]).toBeLessThan(0.3);
 });
 
 test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a lit aegyo-sal, rhinestones that sparkle, kohl on her waterline, eyeshadow under her lower lashes, a crease line, a glitter's own colour", async ({ page }) => {

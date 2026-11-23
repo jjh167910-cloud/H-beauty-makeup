@@ -512,6 +512,33 @@ in makeup-gl.ts):
   2.0, hollywood's 1.5 -> 2.1, bold-glam's 3.4 -> 4.0, classic-smokey's 1.3 -> 1.7, bronzed-goddess's 2.2 -> 2.5,
   cut-crease's 1.5 -> 1.7; mod-60s's 4.8 -> 3.4, glitter-party's
   3.2 -> 2.5, rhinestone's 3.4 -> 2.9 closer.
+- **Lashes in clumps, as a photo sees them.** Curled and varied, the strands still came out as a brush next to the
+  catalog photos: as many as 70 along each lash line, evenly spaced, one length from her inner corner to her outer one,
+  every one pointing out from her lid along its own landmark segment's normal (so they stood parallel in groups), the
+  middle ones as long as the outer ones. Lashes come in clumps (a mascara pulls them together a few at a time, a
+  strip is knotted in spikes) with her lid showing between them, and a frontal photo sees her middle lashes end-on.
+  Now each style is a number of clumps (`LASH_STYLES`: natural 22 of two or three strands, volume 26 of three to five,
+  false lashes 28 of four to six; finer strands, 0.0042 to 0.0045 eye widths), their roots spread along her lash line
+  and their tips drawn part of the way to the clump's middle line (`pull`), every other clump a little shorter (a
+  strip's long and short spikes), a few fine single lashes between them; her middle lashes foreshortened (`LASH_SEEN`:
+  0.62 of their length, all of it from 45% to 95% of the way out), the outer ones swept out to the side (`LASH_FAN`, up
+  to 70 degrees) and curled up the more the further out they are (`LASH_CURL`, from 0.35 of it at her inner corner);
+  the normal along her lash line turning smoothly (`lashLine`); tips a little less see-through (`STRAND_TIP_LIGHT`
+  0.35). Her lower lashes in twos and threes. False lashes on the synthetic test face, the share of points along her
+  lash line darkened (under 0.7 of bare): at it 0.95 -> 0.74, 0.1 eye widths above it 0.39 -> 0.11 (spikes with her lid
+  between them; a test). Against the catalog photos (share of the lash line zone darker than half its surroundings):
+  at her lash line volume 0.703 -> 0.650 and false lashes 0.738 -> 0.692 (the photos 0.615 and 0.624); 0.1 to 0.25
+  eye widths above it 0.140 -> 0.085 and 0.187 -> 0.098 (the photos 0.169 and 0.194, which count their crease's dark
+  fold there too; the clumps' fine tips are lighter than the photos' lashes). With fewer dark strands over the lid
+  zone, 15 looks' lids came out lighter than their photos; their eyeshadows were fitted again (`--steps shadow --hue`,
+  the catalog model and `deep-skin.jpg`), 14 kept (icy came out further and kept its fit). All 48 looks as recipes on
+  the catalog model, against the last release: lid 2.17 -> 2.00 ΔE from its photo (mean; 2.12 before the lashes were
+  redrawn), catalog colour 1.61 -> 1.59 (median; worst 3.62 -> 3.41), the whole face 2.628 -> 2.623, the eye
+  placement's offset 0.073 -> 0.069 (median; worst tenth 0.195 -> 0.203, its overlap's worst 0.125 -> 0.107: liner
+  looks whose photos' eye makeup is mostly lashes), the under-eye 2.67 -> 2.62, the waterline 3.36 -> 3.33; lids closer
+  on fox-eye (3.5 -> 2.2), mod-60s (3.4 -> 2.4), pin-up (1.9 -> 1.0), bronzed-goddess (2.5 -> 1.7), full-glam (2.5 ->
+  1.8), hollywood (2.1 -> 1.6), cut-crease (1.7 -> 1.3), persian-bride (2.0 -> 1.6); further on sunset (1.6 -> 2.1),
+  fiery-red (2.7 -> 3.0), classic-bride (1.3 -> 1.5), siren-eyes, nineties and henna-night (0.2 each).
 
 The tiny fallback networks learn the look as the engine finishes it: `scripts/tinybeauty/finish.py` paints the
 foundation, this concealer, the layer with each look's strengths, the brows, lipstick and eye detail in the engine's
