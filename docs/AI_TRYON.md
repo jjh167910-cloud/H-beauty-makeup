@@ -493,6 +493,25 @@ in makeup-gl.ts):
   but its lid 4.8 -> 5.3 ΔE and the whole face 2.61 -> 2.65, its lid being too dark already (its photo's lid is 17 L*
   lighter than her bare lid, the recipe's 1 darker), so it doesn't carry one yet (the `creaseLine` accent is there for
   when it does). Every look's recipe and the catalog engine paint pixel for pixel as before.
+- **Lashes that look like lashes.** The studio's strand-by-strand lashes (`lashStrands`) were straight, evenly spaced,
+  equally long, thick and dark, fanned out from her lash line like a comb's teeth or a spider's legs, and the volume
+  and false-lash styles read as stiff black spikes. Each strand is now a cubic curve curled as a frontal photo shows a
+  lash (`LASH_CURL`: leaning out from her lid, then curling back up towards its tip), its length, angle, thickness and
+  darkness varied (`LASH_VARY`, with a little wave), thinning to a fine, lighter tip (`STRAND_TAPER`,
+  `STRAND_TIP_LIGHT`), in clumps of two to four (each tip pulled part of the way to its clump's), with fewer, shorter
+  strands at her lash line between them (`LASH_ROOT_SHARE`); both eyes alike, mirrored, as a pair of strips is; the
+  volume and false lashes a little longer (0.29 and 0.34 eye widths: curled, they reach less far). Their darkness over
+  her lid against the catalog photos' (the share of her lid 0.1 to 0.25 eye widths above her lashes darker than half its
+  surroundings, false lashes): 0.187 against the photos' 0.194 (0.194 before); at her lash line (0.02 to 0.1 above)
+  0.738 against 0.624 (0.774 before). All 48 looks as recipes on the catalog model: the eye placement's offset closer
+  (worst tenth 0.208 -> 0.195 eye widths), the under-eye a little closer, the whole face the same; but the lid 2.12 ->
+  2.17 ΔE from its photo (mean; catalog colour 1.47 -> 1.61, median): the stiff lashes' dark edges had darkened the lid
+  zone where the lashes measure (`strands`) didn't take them out, and some looks' lids, a little light, had come out
+  right with them. Eight of them were fitted again (`--steps shadow`; classic-smokey and bold-glam kept their fits,
+  which came out further); still further from their photos: classic-bride's lid 0.6 -> 1.3, persian-bride's 1.3 ->
+  2.0, hollywood's 1.5 -> 2.1, bold-glam's 3.4 -> 4.0, classic-smokey's 1.3 -> 1.7, bronzed-goddess's 2.2 -> 2.5,
+  cut-crease's 1.5 -> 1.7; mod-60s's 4.8 -> 3.4, glitter-party's
+  3.2 -> 2.5, rhinestone's 3.4 -> 2.9 closer.
 
 The tiny fallback networks learn the look as the engine finishes it: `scripts/tinybeauty/finish.py` paints the
 foundation, this concealer, the layer with each look's strengths, the brows, lipstick and eye detail in the engine's
