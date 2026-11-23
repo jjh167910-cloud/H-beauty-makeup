@@ -573,6 +573,30 @@ in makeup-gl.ts):
   6.23: navy-smokey 8.8 -> 4.4, classic-smokey 6.7 -> 2.4, arabic-glam 12.1 -> 7.9, twenties 7.5 -> 3.8), the under-eye
   2.62 -> 2.59, catalog colour 1.569 -> 1.562; the waterline 3.29 -> 3.41 (median; the smoky looks with kohl: their
   band's blur reaches the rim, navy-smokey 3.3 -> 3.8) and the eye whites' change 1.17 -> 1.21 (worst; the limit 1.5).
+- **Blush where the photos have it.** Next to the catalog photos the studio's cheeks hardly changed: the photos'
+  blush changes the cheek 3 to 10 ΔE, the studio's 0.2 to 2 (icy 7.5 against 0.6, cold-girl 6.4 against 0.6). Its
+  placements sat 0.3 to 0.5 eye widths too high and too near her nose (the apples centred 0.05 out from her eye's centre
+  and 0.72 down, small: on her under-eye and the side of her nose), where the photos' redness on her cheek nearer the
+  camera is centred 0.60 out and 1.11 down, spread 0.35 by 0.22, turned up 20 degrees, every placement alike within a few
+  hundredths (45 looks). Now `BLUSH_PLACE`: the apples there (round under her pupil, blended up and out), high a little
+  higher and longer along her cheekbone, draped on up to her temple, under (a douyin blush) just under her eyes; and
+  every look's blush fitted again for them (`--steps blush --hue`, the catalog model and `deep-skin.jpg`). A test: her
+  apples blush centred more than 0.35 eye widths out and 0.95 down (0.58 and 1.12 on the test face; 0.01 and 0.83
+  before), high higher and further out. All 48 looks as recipes on the catalog model: the cheek 2.27 -> 1.73 ΔE from the
+  photos (mean; plum-smokey 3.9 -> 0.5, icy 4.6 -> 2.2, cold-girl 4.5 -> 2.5, lilac-eyes 4.6 -> 2.7), catalog colour
+  1.56 -> 1.40 (median; worst 3.40 -> 2.72), the whole face 2.617 -> 2.572, the under-eye 2.59 -> 2.55 and lifted 1.69 ->
+  1.34 against the photos; under the lower lashes 3.53 -> 3.63 (median; douyin's under-eye blush lower, 3.6 -> 4.5).
+- **Lips lit along their own lines.** The catalog photos' lips shine on every finish (their brightest fiftieth 16 to
+  24 L* over their middle on a gloss, a satin or a lined lip, 12 to 17 on a matte one), in fine streaks along the
+  ridges between their lines; the studio's were a smooth colour with a soft glow on a gloss and nothing on the others
+  (9 to 11 L* on a satin or lined lip, 6 to 8 on a matte). Now (`LIP_STREAK`) where her bare lips' ridges are brighter
+  than around them they catch the light, most on her lips' fullest parts, per finish (gloss 0.6, satin and lined 0.7,
+  ombre 0.35, matte 0.25), fainter on a deep lipstick (`LIP_STREAK_DEEP`: the photos' dark matte and wine lips hardly
+  shine), the lipstick between them a little darker so its colour holds on average (`LIP_STREAK_MEAN`, measured: 0.11;
+  laid on top, the satin and lined lips came out 1.5 to 3.8 L* lighter, 0.88 -> 1.51 ΔE). Per finish now (photos):
+  gloss 19.7 (20.9), satin 18.3 (17.6), lined 16.6 (19.3), ombre 13.4 (13.6), matte 9.9 (14.1). The lip colour 0.879 ->
+  0.868 ΔE from the photos (mean). A test: a satin lipstick's brightest fiftieth over 10 above a matte's (20.0; 1.7
+  before), its colour on average within 4.
 
 The tiny fallback networks learn the look as the engine finishes it: `scripts/tinybeauty/finish.py` paints the
 foundation, this concealer, the layer with each look's strengths, the brows, lipstick and eye detail in the engine's

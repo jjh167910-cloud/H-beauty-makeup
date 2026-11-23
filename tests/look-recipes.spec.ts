@@ -192,6 +192,31 @@ test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a 
     const dotted = pixels(await m.paintMine(shot, { gain: { blush: 0 }, blush: { ...blush, freckles: 1 } }));
     let dots = 0, lighter = 0;
     each(around([350, 346, 280, 429]), (x, y) => { const d = lum(plain, x, y) - lum(dotted, x, y); if (d > 6) dots++; if (d < -2) lighter++; });
+    // her blush where the catalog's photos have it (BLUSH_PLACE): the centre of its flush on her cheek (image right), out
+    // from and down from her eye's centre (eye widths): the apples on the round of her cheek, high a little higher, further out
+    const flush = async (place: string) => {
+      const d = pixels(await m.paintMine(shot, { gain: { blush: 1 }, blush: { place, soft: 0.17, size: 1.25, hex: "#e8909f", finish: "matte" } }));
+      const ids = [263, 249, 390, 373, 374, 380, 381, 382, 362, 398, 384, 385, 386, 387, 388, 466];
+      const c = ids.reduce((s, i) => [s[0] + P[i][0] / ids.length, s[1] + P[i][1] / ids.length], [0, 0]);
+      const e = (Math.hypot(P[263][0] - P[362][0], P[263][1] - P[362][1]) + Math.hypot(P[33][0] - P[133][0], P[33][1] - P[133][1])) / 2;
+      const L = Math.hypot(P[263][0] - P[33][0], P[263][1] - P[33][1]), ax = [(P[263][0] - P[33][0]) / L, (P[263][1] - P[33][1]) / L], dn = [-ax[1], ax[0]];
+      let sw = 0, su = 0, sv = 0;
+      each([c[0] - e * 0.5, c[1], c[0] + e * 1.6, c[1] + e * 2], (x, y) => {
+        const i = (y * w + x) * 4, red = d[i] - d[i + 1] - (plain[i] - plain[i + 1]);
+        const u = ((x - c[0]) * ax[0] + (y - c[1]) * ax[1]) / e, v = ((x - c[0]) * dn[0] + (y - c[1]) * dn[1]) / e;
+        if (red > 2 && v > 0.2) { sw += red; su += red * u; sv += red * v; }
+      });
+      return [su / sw, sv / sw];
+    };
+    const apples = await flush("apples"), high = await flush("high");
+    // her lipstick lit along her lips' own lines (LIP_STREAK): its brightest fiftieth further over its middle with a
+    // gloss than a matte, and either way its colour on average as it was (the streaks' light taken from between them)
+    const lipPx = (d: Uint8ClampedArray) => { const v: number[] = []; each(around([61, 291, 0, 17]), (x, y) => v.push(lum(d, x, y))); return v.sort((a, b) => a - b); };
+    const lipShine = async (finish: string) => {
+      const v = lipPx(pixels(await m.paintMine(shot, { gain: { lips: 1 }, lips: { hex: "#c06a72", finish } })));
+      return [v[Math.floor(v.length * 0.98)] - v[Math.floor(v.length * 0.5)], v.reduce((a, b) => a + b, 0) / v.length];
+    };
+    const shine = { gloss: await lipShine("gloss"), satin: await lipShine("satin"), matte: await lipShine("matte") };
     // aegyo-sal: her eyeshadow with it and without: the narrow band under her lower lashes lighter, her lid the same
     const shadow = { hex: "#e0a497", finish: "shimmer", place: "wash", pack: 1 };
     const lid = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow }));
@@ -244,12 +269,19 @@ test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a 
       const j = (Math.round(P[i][1] - ew * k) * w + Math.round(P[i][0] + dx)) * 4; if (d[j] + d[j + 1] + d[j + 2] > 3 * 150) { r += d[j]; b += d[j + 2]; } } return r - b; };
     const gold = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow: { ...glitter, glitter: "#ffe1b4" } }));
     const silver = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow: { ...glitter, glitter: "#f4f4f6" } }));
-    return { dots, lighter, band: [band(lid), band(lit)], upper: [upper(lid), upper(lit)], brightest, before,
+    return { dots, lighter, apples, high, shine, band: [band(lid), band(lit)], upper: [upper(lid), upper(lit)], brightest, before,
       under: [under(crease), under(smudged)], lid: [upper(crease), upper(smudged)], smoky: [underAll(crease), underAll(smoky)],
       creaseLine: [ring(lined), ring(creased)], lashLine: [rim(lined), rim(creased)], warmth: [warmth(silver), warmth(gold)],
       rim: [rim(lined), rim(kohl)], rimIris: [underIris(lined), underIris(kohl)], white: [white(lined), white(kohl)], iris: [iris(lined), iris(kohl)], below: [below(lined), below(kohl)] };
   }, photo);
   console.log("kohl", JSON.stringify({ rim: out.rim, rimIris: out.rimIris, white: out.white, iris: out.iris, below: out.below }));
+  console.log("blush", JSON.stringify({ apples: out.apples, high: out.high }), "lips", JSON.stringify(out.shine));
+  expect(out.apples[0]).toBeGreaterThan(0.35);                 // her apples blush on the round of her cheek, not by her nose
+  expect(out.apples[1]).toBeGreaterThan(0.95);                 // (nor up on her under-eye)
+  expect(out.high[1]).toBeLessThan(out.apples[1]);             // high: higher,
+  expect(out.high[0]).toBeGreaterThan(out.apples[0]);          // further out
+  expect(out.shine.satin[0]).toBeGreaterThan(out.shine.matte[0] + 10);    // a satin lipstick lit along her lips' lines
+  expect(Math.abs(out.shine.satin[1] - out.shine.matte[1])).toBeLessThan(4);  // (its colour on average much as a matte's)
   expect(out.dots).toBeGreaterThan(15);                       // dotted on
   expect(out.lighter).toBe(0);                               // (and nothing else on her cheek)
   expect(out.band[1]).toBeGreaterThan(out.band[0] + 2);      // her aegyo-sal lit

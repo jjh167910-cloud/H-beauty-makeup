@@ -66,6 +66,16 @@ const OWN_LIGHT = [0.3, 0.7];
  * finish (matte none).
  */
 const LIP_GLOSS: Record<string, number> = { gloss: 0.55, satin: 0.14, ombre: 0.1, lined: 0.08, metallic: 0.1, glitter: 0.08 };
+/**
+ * ...and lit along her lips' own lines: the ridges between them (where her bare lips are brighter than around them,
+ * LIP_STREAK_RIDGE times or more) catch the light in fine streaks, most on the fullest parts of her lips (the gloss spots),
+ * some everywhere on them; how much per finish. The catalog's photos have them on every finish (their lips' brightest
+ * fiftieth 16 to 24 L* over their middle on a gloss, a satin or a lined lip, 12 to 17 on a matte one), where the studio's
+ * lips were a smooth colour with a soft glow on a gloss and none on the others (9 to 11 L* on a satin or lined lip, 6 to
+ * 8 on a matte one; 2026-11).
+ */
+const LIP_STREAK: Record<string, number> = { gloss: 0.6, satin: 0.7, lined: 0.7, ombre: 0.35, metallic: 0.3, glitter: 0.3, matte: 0.25 };
+const LIP_STREAK_RIDGE = [1.0, 1.15], LIP_STREAK_MEAN = 0.11, LIP_STREAK_DEEP = [0.15, 0.3];
 /** Her own shimmer and metallic eyeshadow catch the light where her lid is fullest (her eyeball under it): how much. */
 const LID_SHEEN = 0.45, LID_GLOW = 0.6;
 /** Her products: shading blur widths (form, broad light) and the blush's softness, in eye widths (products.py). */
@@ -860,6 +870,20 @@ function frame(P: Pt[]) {
   return { ew, across, down, sides, per, tilt };
 }
 
+/**
+ * Her blush's placements (eye widths from her eye's centre: out towards her ear, down her face; the ellipse's radii, its
+ * long one turned this many degrees up towards her temple), before her tool's size and the brush's blur. Measured from
+ * the catalog's photos (their redness on her cheek nearer the camera, the catalog model: centred 0.54 out and 1.06 down,
+ * spread 0.34 by 0.22, turned up 25 degrees, every placement alike within a few hundredths), where the studio's blush
+ * sat 0.3 to 0.5 eye widths higher and nearer her nose (its apples 0.05 out and 0.72 down; its high 0.27 and 0.58): on
+ * her under-eye and the side of her nose, small, so little of it showed. The apples sit there (as the photos have them:
+ * round under her pupil, blended up and out); high a little higher and longer, along her cheekbone; draped on up towards
+ * her temple; under (a douyin blush) high, just under her eyes.
+ */
+const BLUSH_PLACE: Record<string, [number, number, number, number, number]> = {
+  apples: [0.63, 1.17, 0.59, 0.25, 22], high: [0.72, 1.03, 0.6, 0.15, 30], draped: [0.78, 0.86, 0.55, 0.16, 42], under: [0.47, 0.88, 0.45, 0.17, 10],
+};
+
 /** Each step's zone on her face and the way its brush moves (also used to draw the tutorial's guides). */
 export function stepGeometry(P: Pt[], blush: string): Record<StepKey, StepGeo> {
   const { ew, across, down, sides, per, tilt } = frame(P);
@@ -867,22 +891,24 @@ export function stepGeometry(P: Pt[], blush: string): Record<StepKey, StepGeo> {
   const lipC = lerp(pt(P, 0), pt(P, 17), 0.5);
 
   const blushGeo: StepGeo = (() => {
+    // (each placement's ellipse from BLUSH_PLACE: its centre out from and down from her eye's, its two radii, how far its
+    // long axis turns up towards her temple)
+    const oval = (s: Parameters<Parameters<typeof per>[0]>[0], k: string) => {
+      const [u, v, rx, ry, deg] = BLUSH_PLACE[k], c = add(add(s.c, mul(down, ew * v)), mul(s.out, ew * u)), d = tilt(s, deg);
+      return { c, d, poly: ellipse(c, ew * rx, ew * ry, d) };
+    };
     switch (blush) {
       case "none": return { polys: [], sweep: { mode: 0, axes: [[nose, add(nose, mul(across, ew))]] } };
-      case "high": return per((s) => { const c = add(add(s.c, mul(down, ew * 0.55)), mul(s.out, ew * 0.35)), d = tilt(s, 20);
-        return { polys: [ellipse(c, ew * 0.5, ew * 0.2, d)], axis: [add(c, mul(d, -ew * 0.45)), add(c, mul(d, ew * 0.5))] }; }, 1);
-      case "draped": return per((s) => { const c = add(add(s.outer, mul(s.out, ew * 0.45)), mul(down, ew * 0.15)), d = tilt(s, 40);
-        return { polys: [ellipse(c, ew * 0.6, ew * 0.22, d)], axis: [add(c, mul(d, -ew * 0.55)), add(c, mul(d, ew * 0.6))] }; }, 1);
-      case "under": return per((s) => { const c = add(s.c, mul(down, ew * 0.55));
-        return { polys: [ellipse(c, ew * 0.45, ew * 0.18, s.out)], axis: [c, add(c, mul(s.out, ew * 0.5))] }; }, 0);
+      case "high": case "draped": case "under": return per((s) => { const { c, d, poly } = oval(s, blush), r = ew * BLUSH_PLACE[blush][2];
+        return { polys: [poly], axis: [add(c, mul(d, -r)), add(c, mul(d, r))] }; }, blush === "under" ? 0 : 1);
       case "nose": {
-        const g = per((s) => { const c = add(add(s.c, mul(down, ew * 0.8)), mul(s.out, ew * 0.05));
-          return { polys: [ellipse(c, ew * 0.3, ew * 0.3, s.out)], axis: [pt(P, 195), c] }; }, 1);
+        const g = per((s) => { const { c, poly } = oval(s, "apples");
+          return { polys: [poly], axis: [pt(P, 195), c] }; }, 1);
         g.polys.push(ellipse(pt(P, 195), ew * 0.45, ew * 0.1, across));
         return g;
       }
-      default: return per((s) => { const c = add(add(s.c, mul(down, ew * 0.8)), mul(s.out, ew * 0.05));
-        return { polys: [ellipse(c, ew * 0.33, ew * 0.33, s.out)], axis: [c, add(c, mul(s.out, ew * 0.42))] }; }, 0);
+      default: return per((s) => { const { c, d, poly } = oval(s, "apples");
+        return { polys: [poly], axis: [c, add(c, mul(d, ew * BLUSH_PLACE.apples[2]))] }; }, 0);
     }
   })();
 
@@ -1970,6 +1996,7 @@ uniform float uMetK, uLight, uEw, uCanonEw, uMatte;
 // the gloss highlights by her lips' shape: lower and upper lip (centre, size along and across her mouth, pixels), her
 // mouth's direction and the finish's gloss (LIP_GLOSS)
 uniform vec4 uGlossLo, uGlossUp, uGlossDir;
+uniform float uLipStreak;
 // her lids' fullest part (centre, size along and across her eye, pixels) and each eye's direction (her own shimmer)
 uniform vec4 uLidC[2], uLidDir;
 uniform ivec2 uSize;
@@ -2584,6 +2611,17 @@ void main() {
     float g = spot(px, uGlossLo, uGlossDir.xy) + 0.45 * spot(px, uGlossUp, uGlossDir.xy);
     float form = mix(${GLOSS_FLAT.toFixed(2)}, 1.0, smoothstep(0.95, 1.35, ysm / max(broad, 1e-4)));
     cover += uGlossDir.z * g * g * form * uLight * inside * uLightC * white;
+  }
+  if (uLipStreak > 0.0 && lipF > 0.0) {      // the light along her lips' own lines (LIP_STREAK)
+    vec2 px = v * vec2(uSize);
+    float zone = min(1.0, spot(px, uGlossLo, uGlossDir.xy) + 0.6 * spot(px, uGlossUp, uGlossDir.xy));
+    float ridge = smoothstep(${LIP_STREAK_RIDGE[0].toFixed(2)}, ${LIP_STREAK_RIDGE[1].toFixed(2)}, local);
+    float form = mix(${GLOSS_FLAT.toFixed(2)}, 1.0, smoothstep(0.95, 1.35, ysm / max(broad, 1e-4)));
+    // (the lipstick between them a little darker, so its colour holds on average: it is the photos' colour, shine and all)
+    // (on a deep lipstick fainter: the catalog's dark matte and wine lips hardly shine)
+    float deepK = clamp(luma(uTarget) / ${LIP_STREAK_DEEP[0].toFixed(2)}, ${LIP_STREAK_DEEP[1].toFixed(2)}, 1.0);
+    cover += uLipStreak * deepK * (ridge - ${LIP_STREAK_MEAN.toFixed(2)}) * (0.3 + 0.7 * zone) * form * uLight * inside * uLightC * white;
+    cover = max(cover, vec3(0.0));
   }
   if (uFinish >= 3 && lipF > 0.0) {
     vec3 tint = uTarget / max(max(uTarget.r, uTarget.g), max(uTarget.b, 1e-4));
@@ -3494,6 +3532,7 @@ export class MakeupGL {
       gl.uniform4f(this.uni(p, "uGlossLo"), lo[0], lo[1], 0.2 * mw, 0.2 * hLo);
       gl.uniform4f(this.uni(p, "uGlossUp"), up[0], up[1], 0.14 * mw, 0.22 * hUp);
       gl.uniform4f(this.uni(p, "uGlossDir"), along[0], along[1], LIP_GLOSS[lip.finish] ?? 0, 0);
+      gl.uniform1f(this.uni(p, "uLipStreak"), LIP_STREAK[lip.finish] ?? 0);
       // her lids' fullest part: above her upper lid's middle, towards her brow
       const lid = (top: number, a: number, b: number) => {
         const ax = unit([P[b][0] - P[a][0], P[b][1] - P[a][1]]), ewi = Math.hypot(P[b][0] - P[a][0], P[b][1] - P[a][1]);
