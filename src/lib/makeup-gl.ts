@@ -34,11 +34,15 @@ export type LipInfo = {
   /** A lipstick that hardly changes the model's lips changes hers the same way: the change, and how much its own colour
    * counts instead (1: all; look_lips in teacher.py). */
   ratio?: number[]; pigment?: number;
+  /** Where on her lips: "gradient" (the colour where her lips meet, fading out to her lip line), else all of them. */
+  place?: string;
+  /** Her lip liner's colour (as `colour`: linear, in the catalog photos' light). */
+  liner?: number[];
 };
 /** Lipstick finishes she can pick. */
 export type Finish = "matte" | "satin" | "gloss" | "metallic" | "glitter";
 /** Her lipstick pick: a shade (swatch hex) and/or a finish over the look's lipstick; null = the look's. */
-export type LipChoice = { shade: string | null; finish: Finish | null };
+export type LipChoice = { shade: string | null; finish: Finish | null; place?: string | null; liner?: string | null };
 /** How a swatch looks as lipstick in the catalog photos' light (swatch_calibration in teacher.py). */
 export type Swatch = { k: number; sclera: number[]; skin: number };
 /** The bare catalog face's points (pixels) and eye width: glitter and pearl grains live on them. */
@@ -76,6 +80,29 @@ const LIP_GLOSS: Record<string, number> = { gloss: 0.55, satin: 0.14, ombre: 0.1
  */
 const LIP_STREAK: Record<string, number> = { gloss: 0.6, satin: 0.7, lined: 0.7, ombre: 0.35, metallic: 0.3, glitter: 0.3, matte: 0.25 };
 const LIP_STREAK_RIDGE = [1.0, 1.15], LIP_STREAK_MEAN = 0.11, LIP_STREAK_DEEP = [0.15, 0.3];
+/**
+ * Her lips' lines (MediaPipe points): where her lips meet (upper and lower lip's inner lines) and her lip line (their
+ * outer lines), corner to corner. How deep into her lips a pixel is (`lipDepth` in the shader, `lip_depth` in teacher.py)
+ * is its distance from where they meet over that and its distance from her lip line: 0 where they meet, 1 at her lip line.
+ */
+export const LIP_LINES = [
+  [78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308], [78, 95, 88, 178, 87, 14, 317, 402, 318, 324, 308],
+  [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291], [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291],
+];
+/**
+ * A gradient lip (Korean-style, the catalog's ombre finish): the colour full where her lips meet and fading out to her
+ * lip line, as the k-beauty photo has it (against the bare face: 6 to 7 L* deeper and 18 to 24 a* redder up to 0.4 of
+ * the way out, its colour fading from 0.5 and her own lips' light back at her lip line). Where the fade starts and
+ * ends (lip depth), and how much of the colour stays at her lip line and in the middle.
+ */
+const LIP_GRADIENT = { from: 0.25, to: 0.85, edge: 0.12, core: 0.92 };
+/**
+ * Her lip liner: drawn along her lip line and blended in towards the middle of her lips from `from` to `to` lip depth,
+ * at `alpha` (a pencil's colour), with her lips' fine lines through it. A lined lip's edge is crisp: her lips' outline
+ * coverage from `crisp` (none past it, full inside it), for the lipstick too (her lips' soft edge as it is let the
+ * pencil out onto her skin, a dark halo around her mouth).
+ */
+const LIP_LINER = { from: 0.68, to: 0.93, crisp: [0.3, 0.65], alpha: 0.85 };
 /** Her own shimmer and metallic eyeshadow catch the light where her lid is fullest (her eyeball under it): how much. */
 const LID_SHEEN = 0.45, LID_GLOW = 0.6;
 /** Her products: shading blur widths (form, broad light) and the blush's softness, in eye widths (products.py). */
@@ -473,7 +500,7 @@ export function nudeWeight(hex: string): number {
 
 /** The look's lipstick, or her pick on top of it (lip_choice in teacher.py). */
 export function lipChoice(lip: LipInfo, choice: LipChoice | null | undefined, swatch: Swatch): LipInfo {
-  if (!choice || (!choice.shade && !choice.finish)) return lip;
+  if (!choice || (!choice.shade && !choice.finish && !choice.place && !choice.liner)) return lip;
   const out: LipInfo = { ...lip };
   if (choice.shade) {
     const c = hexRgb(choice.shade).map((v) => (v / 255) ** 2.2);
@@ -483,7 +510,12 @@ export function lipChoice(lip: LipInfo, choice: LipChoice | null | undefined, sw
     });
   }
   if (choice.finish) out.finish = choice.finish;
-  [out.alpha, out.gamma, out.shine] = FINISH[out.finish] ?? FINISH.satin;
+  if (choice.shade || choice.finish) [out.alpha, out.gamma, out.shine] = FINISH[out.finish] ?? FINISH.satin;
+  if (choice.place) out.place = choice.place;
+  if (choice.liner) {     // (in the lipstick's light references, as its colour: lipTarget turns both into her light)
+    const sc = out.sclera ?? swatch.sclera;
+    out.liner = hexRgb(choice.liner).map((v, i) => swatch.k * (v / 255) ** 2.2 * sc[i]);
+  }
   return out;
 }
 export type EyeFiles = { ids: number[]; pts: number[]; tris: number[]; w: number; h: number; map: Uint8Array };
@@ -1688,7 +1720,7 @@ const LIGHT_MIN = 0.005;
  * lipstick in her light (her eye whites over the catalog's); nude shades also follow her skin's own depth (her skin over
  * the catalog model's, her light taken out: a nude chosen for the model becomes the same nude for her), deep ones not.
  */
-export function lipTarget(lip: LipInfo, face: FaceStats): { colour: number[]; light: number; rgb: number[] } {
+export function lipTarget(lip: LipInfo, face: FaceStats): { colour: number[]; light: number; rgb: number[]; liner: number[] | null } {
   let colour = lip.colour.slice();
   let light = [1, 1, 1], g = 1;
   if (face.sclera && lip.sclera) {
@@ -1709,7 +1741,7 @@ export function lipTarget(lip: LipInfo, face: FaceStats): { colour: number[]; li
     colour = colour.map((c) => c * (1 - w + w * depth));
   }
   const mean = (light[0] + light[1] + light[2]) / 3;
-  return { colour: colour.map((c, i) => c * light[i]), light: mean, rgb: light.map((v) => v / mean) };
+  return { colour: colour.map((c, i) => c * light[i]), light: mean, rgb: light.map((v) => v / mean), liner: lip.liner?.map((c, i) => c * light[i]) ?? null };
 }
 
 /* ---------------------------------------------------------------- shaders */
@@ -1992,6 +2024,10 @@ uniform vec3 uTarget;       // lipstick colour for her light (linear)
 uniform vec3 uOmbre;        // centre-over-edge colour for gradient lips
 uniform float uAlpha, uGamma, uShine, uRef, uLipPig; uniform vec3 uLipRatio, uLightC;
 uniform int uFinish;        // 0 plain, 1 lined, 2 ombre, 3 metallic, 4 glitter
+// her lips' lines (LIP_LINES, pixels): where they meet (upper xy, lower zw) and her lip line (upper xy, lower zw)
+uniform vec4 uLipIn[11], uLipOut[11];
+uniform int uLipPlace;      // 1: a gradient lip (LIP_GRADIENT)
+uniform vec4 uLipLiner;     // her lip liner's colour for her light (linear), and 1 when she has one on
 uniform float uMetK, uLight, uEw, uCanonEw, uMatte;
 // the gloss highlights by her lips' shape: lower and upper lip (centre, size along and across her mouth, pixels), her
 // mouth's direction and the finish's gloss (LIP_GLOSS)
@@ -2190,6 +2226,19 @@ float grains(vec2 canon, float cellPx, float scale, float density) {
     acc += bright * exp(-dot(d, d) / (r * r));
   }
   return acc;
+}
+// How far a point is from a segment, and how deep into her lips a pixel is (0 where they meet, 1 at her lip line)
+float segDist(vec2 p, vec2 a, vec2 b) {
+  vec2 ab = b - a; float t = clamp(dot(p - a, ab) / max(dot(ab, ab), 1e-6), 0.0, 1.0);
+  return length(p - a - ab * t);
+}
+float lipDepth(vec2 px) {
+  float di = 1e9, dl = 1e9;
+  for (int i = 0; i < 10; i++) {
+    di = min(di, min(segDist(px, uLipIn[i].xy, uLipIn[i + 1].xy), segDist(px, uLipIn[i].zw, uLipIn[i + 1].zw)));
+    dl = min(dl, min(segDist(px, uLipOut[i].xy, uLipOut[i + 1].xy), segDist(px, uLipOut[i].zw, uLipOut[i + 1].zw)));
+  }
+  return di / max(di + dl, 1e-3);
 }
 vec2 canonAt() {
   vec4 t = texelFetch(uCanon, ivec2(v * vec2(uSize)), 0) * 255.0;
@@ -2638,10 +2687,21 @@ void main() {
     }
   }
   float a = uAlpha;
-  if (uFinish == 2) { float t = clamp((M.a - 0.5) * 2.2, 0.0, 1.0); cover *= pow(uOmbre, vec3(t - 0.5)); a = 0.55 + 0.35 * t; }
-  float f = lipF;
+  bool deep = lipF > 0.0 && (uFinish == 2 || uLipPlace == 1 || uLipLiner.a > 0.0);
+  float sd = deep ? lipDepth(v * vec2(uSize)) : 1.0;
+  // (a gradient lip: full where her lips meet, fading out to her lip line; a look's ombre in its own colours there)
+  float tg = 1.0 - smoothstep(${LIP_GRADIENT.from.toFixed(2)}, ${LIP_GRADIENT.to.toFixed(2)}, sd);
+  if (uFinish == 2) cover *= pow(uOmbre, vec3(tg - 0.5));
+  else if (uLipPlace == 1) a = mix(${LIP_GRADIENT.edge.toFixed(2)}, max(uAlpha, ${LIP_GRADIENT.core.toFixed(2)}), tg);
+  // (a lined lip's edge is the liner's: crisp at her lip line, nothing past it)
+  float f = uLipLiner.a > 0.0 ? smoothstep(${LIP_LINER.crisp[0].toFixed(2)}, ${LIP_LINER.crisp[1].toFixed(2)}, lipF) : lipF;
   vec3 c = mix(base, cover, clamp(a * uK.y, 0.0, 0.97) * f * RLips);
   if (uFinish == 1) c = mix(c, cover * 0.62, 4.0 * f * (1.0 - f) * f * 0.45 * min(uK.y, 1.0) * RLips);
+  if (uLipLiner.a > 0.0 && lipF > 0.0) {      // her lip liner along her lip line, blended in (LIP_LINER)
+    float wl = smoothstep(${LIP_LINER.from.toFixed(2)}, ${LIP_LINER.to.toFixed(2)}, sd) * f;
+    vec3 pencil = uLipLiner.rgb * pow(fd, uGamma) * pow(clamp(broad / uRef, 0.2, 3.0), ${LIP_VOLUME});
+    c = mix(c, pencil, clamp(${LIP_LINER.alpha.toFixed(2)} * wl * uK.y, 0.0, 0.97) * RLips);
+  }
   if (uLensK.x > 0.0) c = lenses(c, src, M.r, rv(10, sw));
   vec3 res = pow(clamp(shoulder(c, pow(src, vec3(2.2))), 0.0, 1.0), vec3(1.0 / 2.2));
   vec4 R = texture(uGrey, v);
@@ -3509,7 +3569,7 @@ export class MakeupGL {
     this.bindTex(p, "uLip", this.targets.lipB.tex[0], 3);
     this.bindTex(p, "uGrey", this.targets.greyB.tex[0], 4);
     this.bindTex(p, "uCanon", this.targets.canon.tex[0], 5);
-    const { colour, light, rgb } = lipTarget(lip, face);
+    const { colour, light, rgb, liner: linerC } = lipTarget(lip, face);
     const mean = (lip.colour[0] + lip.colour[1] + lip.colour[2]) / 3;
     gl.uniform3f(this.uni(p, "uK"), kLayer, kLip, look.eyes ? kEye : 0);
     gl.uniform1f(this.uni(p, "uLipTint"), extendOn ? 0 : 1);
@@ -3549,6 +3609,13 @@ export class MakeupGL {
     gl.uniform1f(this.uni(p, "uRef"), Math.max(1e-4, face.lipRef ?? 0.1));
     const finishes: Record<string, number> = { lined: 1, ombre: 2, metallic: grains ? 3 : 0, glitter: grains ? 4 : 0 };
     gl.uniform1i(this.uni(p, "uFinish"), finishes[lip.finish] ?? 0);
+    {                                  // her lips' lines (LIP_LINES), a gradient lip, her lip liner
+      const line = (a: number[], b: number[]) => new Float32Array(a.flatMap((i, k) => [P[i][0], P[i][1], P[b[k]][0], P[b[k]][1]]));
+      gl.uniform4fv(this.uni(p, "uLipIn"), line(LIP_LINES[0], LIP_LINES[1]));
+      gl.uniform4fv(this.uni(p, "uLipOut"), line(LIP_LINES[2], LIP_LINES[3]));
+      gl.uniform1i(this.uni(p, "uLipPlace"), lip.place === "gradient" ? 1 : 0);
+      gl.uniform4f(this.uni(p, "uLipLiner"), ...((linerC ? [linerC[0], linerC[1], linerC[2], 1] : [0, 0, 0, 0]) as [number, number, number, number]));
+    }
     gl.uniform1i(this.uni(p, "uStepsOn"), geo && steps ? 1 : 0);
     gl.uniform1i(this.uni(p, "uZonesOn"), geo ? 1 : 0);
     this.bindTex(p, "uZoneA", this.targets.zoneAB.tex[0], 6);

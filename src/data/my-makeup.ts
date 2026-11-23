@@ -5,7 +5,7 @@
  * The engine paints it with paintMine (src/lib/tryon.ts).
  */
 import type { Finish, MinePicks, StepKey } from "@/lib/tryon";
-import { FINISHES, LIPSTICKS } from "./lipsticks";
+import { FINISHES, LIP_LINERS, LIPSTICKS } from "./lipsticks";
 import { BLUSH, BROWS, LASHES, LINER, SHADOW, type Step, type Tool as Draw } from "./makeup-steps";
 import { BLUSHES, BLUSH_STYLES, GLITTERS, HIGHLIGHTERS, LINERS, SHADOWS, SHADOW_FINISHES, SHADOW_STYLES, type Shade } from "./products";
 
@@ -31,6 +31,8 @@ export type MyStep = {
   /** Eyeshadow: a second shade for her crease and outer corner, and a light for her inner corners. */
   shade2?: string;
   inner?: string;
+  /** Lips: her lip liner (LIP_LINERS), along her lip line and blended in. */
+  pencil?: string;
   /** 0..1.5 (1 = as a makeup artist would put it on). */
   amount: number;
   /**
@@ -61,6 +63,8 @@ export type MyStepDef = {
   shades: MyShade[]; finishes?: Opt[]; tools: MyTool[]; places?: Opt[];
   /** Eyeshadow: the second shade's choices (her crease and outer corner) and the inner-corner lights. */
   shades2?: MyShade[]; inners?: MyShade[];
+  /** Lips: the lip liners. */
+  pencils?: MyShade[];
 };
 
 const opts = (list: Array<[string, string]>): Opt[] => list.map(([id, name]) => ({ id, name }));
@@ -205,14 +209,17 @@ export const MY_STEPS: MyStepDef[] = [
     places: opts([["natural", "ریمل طبیعی"], ["volume", "حجیم"], ["dramatic", "مژه مصنوعی"]]),
   },
   {
-    key: "lips", title: "رژ لب", en: "LIPS", hint: "رنگ و بافت لب؛ با انگشت، محو و ملایم می‌نشیند.",
+    key: "lips", title: "رژ لب", en: "LIPS",
+    hint: "رنگ و بافت لب؛ گرادیانی یعنی رنگ از وسط لب که به خط لب محو می‌شود، و خط لب دور لب را مشخص می‌کند.",
     shades: LIPSTICKS.map((l) => ({ id: l.id, name: l.name, hex: l.hex, finish: l.finish })),
+    pencils: LIP_LINERS.map((l) => ({ id: l.id, name: l.name, hex: l.hex })),
     finishes: FINISHES.map(([id, name]) => ({ id, name })),
     tools: [
       tool("lipstick", "رژ لب", "lipstick", 0, 1, 1),
       tool("brush", "براش لب", "brush", 0, 1, 1),
       tool("finger", "نوک انگشت (محو)", "finger", 0, 1, 0.7),
     ],
+    places: opts([["full", "تمام لب"], ["gradient", "گرادیانی (از وسط لب)"]]),
   },
 ];
 
@@ -292,7 +299,12 @@ export function minePicks(recipe: MyMakeup): MinePicks | null {
           ...(raw.crease ? { crease: true } : {}) };
         break;
       case "lashes": out.lashes = { place: step.place ?? "natural", ...(step.lower ? { lower: true } : {}) }; break;
-      case "lips": out.lips = { hex: raw.hex ?? shade?.hex ?? "#b8766d", finish: (step.finish ?? "satin") as Finish, ...(raw.from ? { from: raw.from } : {}) }; break;
+      case "lips": {
+        const pencil = def.pencils?.find((x) => x.id === raw.pencil)?.hex;
+        out.lips = { hex: raw.hex ?? shade?.hex ?? "#b8766d", finish: (step.finish ?? "satin") as Finish, ...(raw.from ? { from: raw.from } : {}),
+          ...(step.place === "gradient" ? { place: "gradient" } : {}), ...(pencil ? { liner: pencil } : {}) };
+        break;
+      }
       case "lenses": out.lenses = { hex, opaque: step.place === "opaque" }; break;
     }
   }
@@ -315,6 +327,7 @@ export function recipeLines(recipe: MyMakeup): string[] {
       def.shades.find((s) => s.id === step.shade)?.name,
       def.shades2?.find((s) => s.id === raw.shade2) ? `چین و گوشه بیرونی ${def.shades2.find((s) => s.id === raw.shade2)!.name}` : undefined,
       def.inners?.find((s) => s.id === raw.inner) ? `نور گوشه چشم ${def.inners.find((s) => s.id === raw.inner)!.name}` : undefined,
+      def.pencils?.find((s) => s.id === raw.pencil) ? `خط لب ${def.pencils.find((s) => s.id === raw.pencil)!.name}` : undefined,
       def.finishes?.find((f) => f.id === step.finish)?.name,
       def.places?.find((p) => p.id === step.place)?.name,
       def.key === "liner" && step.lower ? "خط پایین هم" : def.key === "lashes" && step.lower ? "مژه پایین هم"
@@ -387,9 +400,13 @@ const HOW: Partial<Record<StepKey, (s: MyStep) => { how: string; tip?: string }>
     tip: "لنز رنگی را فقط با مشورت چشم‌پزشک و از داروخانه تهیه کنید و قبل از میکاپ بگذارید؛ با لنز نخوابید و آن را با کسی شریک نشوید.",
   }),
   lips: (s) => ({
-    how: s.tool === "finger" ? "رنگ را با نوک انگشت روی وسط لب ضربه بزنید و رو به لبه‌ها محو کنید تا ملایم و محو بنشیند."
-      : s.tool === "brush" ? "دور لب را با براش دقیق بکشید و داخلش را پر کنید؛ با دستمال بلات کنید و لایه دوم بزنید."
-      : "از وسط لب بالا (کمان) شروع کنید و رو به گوشه‌ها پر کنید؛ لب‌ها را آرام روی هم بفشارید.",
+    how: (s.pencil ? "اول با مداد خط لب، از کمان لب بالا و وسط لب پایین رو به گوشه‌ها، دقیق روی خط لب بکشید و کمی رو به داخل محو کنید. " : "")
+      + (s.place === "gradient"
+        ? "رنگ را فقط روی قسمت داخلی لب‌ها (جایی که لب‌ها به هم می‌رسند) بزنید و با نوک انگشت یا براش رو به بیرون ضربه بزنید تا به خط لب محو شود؛ لبه لب تقریباً بی‌رنگ بماند."
+        : s.tool === "finger" ? "رنگ را با نوک انگشت روی وسط لب ضربه بزنید و رو به لبه‌ها محو کنید تا ملایم و محو بنشیند."
+        : s.tool === "brush" ? "دور لب را با براش دقیق بکشید و داخلش را پر کنید؛ با دستمال بلات کنید و لایه دوم بزنید."
+        : "از وسط لب بالا (کمان) شروع کنید و رو به گوشه‌ها پر کنید؛ لب‌ها را آرام روی هم بفشارید."),
+    tip: s.place === "gradient" && s.pencil ? "در لب گرادیانی خط لب را خیلی محو و هم‌رنگ لب خودتان نگه دارید تا لبه سخت دیده نشود." : undefined,
   }),
 };
 
@@ -398,12 +415,13 @@ export function mySteps(recipe: MyMakeup): Step[] {
   return MY_STEPS.filter((def) => recipe[def.key]).map((def) => {
     const raw = recipe[def.key]!, step = filled(def, raw), t = def.tools.find((x) => x.id === step.tool)!;
     const shade = def.shades.find((x) => x.id === step.shade), second = def.shades2?.find((x) => x.id === raw.shade2);
+    const pencil = def.pencils?.find((x) => x.id === raw.pencil);
     const product = [shade?.name, second ? `و ${second.name}` : undefined, def.finishes?.find((f) => f.id === step.finish)?.name,
-      def.places?.find((p) => p.id === step.place)?.name].filter(Boolean).join(" · ");
+      def.places?.find((p) => p.id === step.place)?.name, pencil ? `خط لب ${pencil.name}` : undefined].filter(Boolean).join(" · ");
     const text = HOW[def.key]?.({ ...raw, ...step }) ?? { how: def.hint };
     return {
       key: def.key, title: def.title, en: def.en, product: `${def.title} ${product}`.trim(),
-      colors: [shade?.hex, second?.hex].filter((c): c is string => Boolean(c)), tool: t.name, draw: t.draw,
+      colors: [shade?.hex, second?.hex, pencil?.hex].filter((c): c is string => Boolean(c)), tool: t.name, draw: t.draw,
       how: text.how, tip: text.tip,
     };
   });
@@ -439,9 +457,10 @@ export function cleanRecipe(value: unknown): MyMakeup {
     if (def.key === "liner" && s.stones === true) step.stones = true;
     if (def.key === "liner" && s.kohl === true) step.kohl = true;
     if (def.key === "liner" && s.crease === true) step.crease = true;
-    const shade2 = pick(s.shade2, def.shades2), inner = pick(s.inner, def.inners);
+    const shade2 = pick(s.shade2, def.shades2), inner = pick(s.inner, def.inners), pencil = pick(s.pencil, def.pencils);
     if (shade2) step.shade2 = shade2;
     if (inner) step.inner = inner;
+    if (pencil) step.pencil = pencil;
     // (a look's own colours, and its own lipstick by its id)
     for (const k of ["hex", "hex2", "innerHex"] as const) if (typeof s[k] === "string" && /^#[0-9a-f]{6}$/i.test(s[k] as string)) step[k] = s[k] as string;
     if ((def.key === "lips" || def.key === "shadow") && typeof s.from === "string" && /^[a-z0-9-]{1,40}$/.test(s.from)) step.from = s.from;

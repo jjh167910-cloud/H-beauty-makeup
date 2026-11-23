@@ -887,7 +887,8 @@ export type MinePicks = {
   /** natural, volume or dramatic, drawn strand by strand on her own lash lines (lashStrands in makeup-gl.ts); her lower lashes too. */
   lashes?: { place: string; lower?: boolean };
   /** Lipstick: its colour and finish, or a catalog look's own as measured from its photo (from: the look's id). */
-  lips?: { hex: string; finish: Finish; from?: string };
+  /** Her lipstick: its colour, finish, a gradient lip (`place`), her lip liner's colour; a catalog look's own (`from`). */
+  lips?: { hex: string; finish: Finish; from?: string; place?: string; liner?: string };
   /** Coloured lenses: their colour, covering her iris (opaque) or tinting it. */
   lenses?: { hex: string; opaque: boolean };
 };
@@ -1014,7 +1015,9 @@ async function mineProducts(picks: MinePicks, face: FaceStats, all: LooksMeta): 
   const look = MINE_CARRIER;
   if (picks.lenses) out.lenses = { color: linHex(picks.lenses.hex), opaque: picks.lenses.opaque };
   const lipInfo = picks.lips?.from ? all.looks[picks.lips.from]?.lip : undefined;
-  return { products: out, look, lip: picks.lips && !lipInfo ? { shade: picks.lips.hex, finish: picks.lips.finish } : null, ...(lipInfo ? { lipInfo } : {}) };
+  const L = picks.lips, extra = L ? { ...(L.place ? { place: L.place } : {}), ...(L.liner ? { liner: L.liner } : {}) } : {};
+  const lip: LipChoice | null = L && !lipInfo ? { shade: L.hex, finish: L.finish, ...extra } : L?.place || L?.liner ? { shade: null, finish: null, ...extra } : null;
+  return { products: out, look, lip, ...(lipInfo ? { lipInfo } : {}) };
 }
 
 /**

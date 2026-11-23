@@ -609,6 +609,24 @@ in makeup-gl.ts):
   (median; its worst 0.34 -> 0.52, the limit 1.5: a deeper foundation deepens her skin by her brows too). A deeper
   highlighter (its strength 0.5 -> 0.8, refitted) was tried and dropped: the fit took its amounts down to about the same
   light, the whole face no closer.
+- **A gradient lip and a lip liner in the studio, the k-beauty ombre by her lips' own lines.** The studio's lipstick
+  went on the whole lip only, with no liner: an artist's Korean gradient lip and a 90s lined lip couldn't be made. And
+  the catalog's ombre (k-beauty) was measured and laid on by how far a pixel is from the lip line, so its middle was
+  each lip's fullest, lightest part (the gloss there): it came out lighter and bluer in the middle (`ombre` 1.39, 1.13,
+  1.67), where the photo has it 6 to 7 L* deeper and 18 to 24 a* redder than the bare lips up to 0.4 of the way out,
+  from where her lips meet. Now how deep into her lips a pixel is (`lipDepth` / `lip_depth`) is from where they meet
+  (0) to her lip line (1), from her points (`LIP_LINES`). The lips step has a model (`places`: «تمام لب», «گرادیانی (از
+  وسط لب)»): a gradient lip is full where her lips meet and fades out to her lip line (`LIP_GRADIENT`: from 0.25 to
+  0.85, 0.12 of it left there). And a lip liner («خط لب», six pencils, `LIP_LINERS`): along her lip line, blended in
+  from 0.68 to 0.93 of the way out (`LIP_LINER`), with her lips' fine lines through it; a lined lip's edge is crisp (her
+  lips' soft outline as it was let the pencil out onto her skin as a dark halo). The catalog's ombre is measured the same
+  way, over the bare lips' own (where they meet is in their shadow already): k-beauty's now 0.81, 0.36, 0.47 (the clip
+  0.4 -> 0.3), at the finish's own opacity all over (its edge at 0.55 left it paler than the photo's). Its recipe wears
+  the gradient model, put on with a lip brush (with a fingertip, a sheer 0.7, it came out 5 a* paler than its photo all
+  over). k-beauty's lip 2.97 -> 1.27 ΔE from its photo (its whole face 2.37 -> 2.31); all 48 looks' lips 0.875 -> 0.839
+  (mean; worst 2.97 -> 2.03, latte's, as it was). A test: a red gradient lip as red where her lips
+  meet as the whole lip, under half of it at her lip line (11 against 100); a brown liner round a nude 16 L* darker just
+  inside her lip line, her lips' middle as it was, her skin past it no darker.
 
 The tiny fallback networks learn the look as the engine finishes it: `scripts/tinybeauty/finish.py` paints the
 foundation, this concealer, the layer with each look's strengths, the brows, lipstick and eye detail in the engine's

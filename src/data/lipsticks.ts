@@ -32,3 +32,16 @@ export const FINISHES: Array<[Finish, string]> = [
 ];
 
 export const lipstickById = new Map(LIPSTICKS.map((item) => [item.id, item]));
+
+/**
+ * Lip liner pencils («خط لب»): drawn along her lip line and blended in towards the middle of her lips, under or with her
+ * lipstick (a 90s brown liner round a nude or a gloss; a liner a shade deeper than her lipstick to define it).
+ */
+export const LIP_LINERS: Array<{ id: string; name: string; hex: string }> = [
+  { id: "nude", name: "نود", hex: "#a87565" },
+  { id: "rose-brown", name: "قهوه‌ای صورتی", hex: "#8a5249" },
+  { id: "brown", name: "قهوه‌ای", hex: "#6a3f33" },
+  { id: "red", name: "قرمز", hex: "#94192b" },
+  { id: "berry", name: "تمشکی", hex: "#74233d" },
+  { id: "plum", name: "آلویی تیره", hex: "#4c1c2e" },
+];

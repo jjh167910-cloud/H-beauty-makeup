@@ -545,6 +545,7 @@ export default function TryOnMine({ shot, recipe, onRecipe, onBook, onLive, open
             ) : null}
             {def.shades2 ? optional("رنگ چین پلک و گوشه بیرونی", def.shades2, raw?.shade2, (id) => update({ shade2: id, hex2: undefined })) : null}
             {def.inners ? optional("نور گوشه چشم", def.inners, raw?.inner, (id) => update({ inner: id, innerHex: undefined })) : null}
+            {def.pencils ? optional("خط لب", def.pencils, raw?.pencil, (id) => update({ pencil: id })) : null}
             {def.finishes ? (
               <div className="mine__group">
                 <span>بافت</span>
@@ -567,7 +568,7 @@ export default function TryOnMine({ shot, recipe, onRecipe, onBook, onLive, open
             ) : null}
             {def.places ? (
               <div className="mine__group">
-                <span>{def.key === "lashes" || def.key === "liner" || def.key === "brows" || def.key === "lenses" ? "مدل" : "جای کار"}</span>
+                <span>{def.key === "lashes" || def.key === "liner" || def.key === "brows" || def.key === "lenses" || def.key === "lips" ? "مدل" : "جای کار"}</span>
                 <div className="steps__chips" role="group" aria-label={`جای ${def.title}`}>
                   {def.places.map((p) => (
                     <button key={p.id} type="button" className="chip" aria-pressed={step?.place === p.id} onClick={() => update({ place: p.id, from: undefined })}>{p.name}</button>

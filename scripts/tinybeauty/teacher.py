@@ -1239,6 +1239,25 @@ def nude_weight(hex_colour):
     c = np.array([int(hex_colour[i:i + 2], 16) for i in (1, 3, 5)], np.float32)
     return float(np.clip((0.66 - (c.max() - c.min()) / max(c.max(), 1)) / 0.24, 0, 1))
 
+# Her lips' lines (LIP_LINES in makeup-gl.ts): where they meet (upper, lower lip's inner line) and her lip line (upper, lower).
+LIP_LINES = ([78, 191, 80, 81, 82, 13, 312, 311, 310, 415, 308], [78, 95, 88, 178, 87, 14, 317, 402, 318, 324, 308],
+             [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291], [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291])
+LIP_GRADIENT = (0.25, 0.85)   # a gradient lip's fade (lip depth; LIP_GRADIENT in makeup-gl.ts)
+
+
+def lip_depth(shape, p):
+    """How deep into her lips each pixel is (lipDepth in makeup-gl.ts): its distance from where her lips meet over that
+    and its distance from her lip line; 0 where they meet, 1 at her lip line."""
+    h, w = shape
+    def dist(lines):
+        m = np.full((h, w), 255, np.uint8)
+        for line in lines:
+            cv2.polylines(m, [np.round(p[line, :2]).astype(np.int32)], False, 0, 1, cv2.LINE_8)
+        return cv2.distanceTransform(m, cv2.DIST_L2, 5)
+    di, dl = dist(LIP_LINES[:2]), dist(LIP_LINES[2:])
+    return di / np.maximum(di + dl, 1e-3)
+
+
 def lip_hard(shape, p):
     return poly_mask(shape, p[:, :2], [LIPS_OUT]) * (1 - poly_mask(shape, p[:, :2], [LIPS_IN]))
 
@@ -1284,23 +1303,29 @@ def look_lips(look):
     that can't be made that way (a deep shade over lighter lips) takes more opacity, at most 0.97. A lipstick that hardly
     changes the model's lips (a nude like her own lips, a clear gloss) changes hers the same way instead (`ratio`, by
     `pigment` 0, LIP_CHANGE): her lips with the same small change and the finish's shine, not the model's lip colour."""
-    im = rgb(LOOKS / f'{look}.webp'); p = landmarks3(im); li = lin(im); ew = eye_width(p[:, :2])
-    m = cv2.erode((lip_hard(im.shape[:2], p) > 0.5).astype(np.uint8), np.ones((5, 5))) > 0
+    im = rgb(LOOKS / f'{look}.webp'); p = landmarks3(im); li = lin(im)
     seen = lip_colour(li, p)
-    d = cv2.distanceTransform(m.astype(np.uint8), cv2.DIST_L2, 5)
-    inner, outer = m & (d > ew * 0.07), m & (d < ew * 0.03)
-    ombre = np.median(li[inner], 0) / np.maximum(np.median(li[outer], 0), 1e-4) if inner.sum() > 20 and outer.sum() > 20 else np.ones(3)
     s = styles()[look]; alpha, gamma, shine = FINISH.get(s['lip'], FINISH['satin'])
     # The light references are the bare photo's (in this photo's grading): the look photo's own eye whites read darker
     # under its lashes, liner and shadow, and its skin carries the look's complexion.
     base, pb = _bare(); bl = lin(base); g = np.exp(grading(look))
+    # (where her lips meet against her lip line, as a gradient lip goes (lip_depth), over the bare lips' own: where they
+    # meet is in their shadow already, and the engine keeps her lips' own light)
+    def middle_over_edge(img, q):
+        mq = cv2.erode((lip_hard(img.shape[:2], q) > 0.5).astype(np.uint8), np.ones((5, 5))) > 0
+        sd = lip_depth(img.shape[:2], q)
+        inner, outer = mq & (sd < LIP_GRADIENT[0] + 0.1), mq & (sd > LIP_GRADIENT[1] - 0.1)
+        if inner.sum() <= 20 or outer.sum() <= 20: return None
+        return np.median(img[inner], 0) / np.maximum(np.median(img[outer], 0), 1e-4)
+    seen_r, bare_r = middle_over_edge(li, p), middle_over_edge(bl, pb)
+    ombre = seen_r / bare_r if seen_r is not None and bare_r is not None else np.ones(3)
     own = lip_colour(bl, pb) * g
     ratio = np.clip(seen / np.maximum(own, 1e-4), 0.3, 3).astype(np.float32)
     t = float(np.clip((np.abs(np.log(ratio)).max() - LIP_CHANGE[0]) / (LIP_CHANGE[1] - LIP_CHANGE[0]), 0, 1))
     need = np.where(own > seen, (own - seen) / np.maximum(own - PIGMENT_MIN * seen, 1e-4), 0).max()
     alpha = float(np.clip(max(alpha, need), alpha, 0.97))
     colour = np.maximum((seen - (1 - alpha) * own) / alpha, PIGMENT_MIN * seen).astype(np.float32)
-    return dict(colour=colour, sclera=sclera(bl, pb) * g, skin=skin_lum(bl, pb) * float(luma(g)), ombre=np.clip(ombre, 0.4, 2.5),
+    return dict(colour=colour, sclera=sclera(bl, pb) * g, skin=skin_lum(bl, pb) * float(luma(g)), ombre=np.clip(ombre, 0.3, 2.5),
                 finish=s['lip'], alpha=round(alpha, 3), gamma=gamma, shine=shine, nude=nude_weight(s['lipColor']),
                 ratio=ratio, pigment=round(t * t * (3 - 2 * t), 3))
 
@@ -1541,10 +1566,10 @@ def apply_lips(base_lin, user_lin, p, look, k_lip, L=None):
         glint = 0.4 + 1.6 * np.clip(broad / max(ref, 1e-4) - 0.75, 0, 1) + 1.0 * np.clip(local - 1.0, 0, 0.5)
         cover = cover + ((spark * glint) * 1.8 * light)[..., None] * (0.6 + 0.4 * tint)
     a = np.full((H, W), L['alpha'], np.float32)
-    if L['finish'] == 'ombre':      # towards the lips' middle (their outline softened over 0.05 eye widths, as M.a)
-        t = np.clip((g(hard, ew * 0.05) - 0.5) * 2.2, 0, 1)
+    if L['finish'] == 'ombre':      # where her lips meet, fading out to her lip line (lip_depth)
+        t = 1 - np.clip((lip_depth((H, W), p) - LIP_GRADIENT[0]) / (LIP_GRADIENT[1] - LIP_GRADIENT[0]), 0, 1)
+        t = t * t * (3 - 2 * t)
         cover = cover * np.asarray(L['ombre'], np.float32)[None, None] ** (t[..., None] - 0.5)
-        a = 0.55 + 0.35 * t
     A = np.clip(a * k_lip, 0, 0.97) * f
     out = base * (1 - A[..., None]) + cover * A[..., None]
     if L['finish'] == 'lined':   # a slightly deeper lip liner along the edge

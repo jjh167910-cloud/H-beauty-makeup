@@ -164,7 +164,7 @@ test("?engine=v2 paints a look as its recipe (kept for the tab, ?engine=v1 turns
   expect(out.spikes[1]).toBeLessThan(0.3);
 });
 
-test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a lit aegyo-sal, rhinestones that sparkle, kohl on her waterline, eyeshadow under her lower lashes, a crease line, a glitter's own colour", async ({ page }) => {
+test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a lit aegyo-sal, rhinestones that sparkle, kohl on her waterline, eyeshadow under her lower lashes, a crease line, a glitter's own colour, a gradient lip, a lip liner", async ({ page }) => {
   test.setTimeout(300_000);
   await page.goto("/");
   const photo = readFileSync(join(process.cwd(), "tests/fixtures/lit-cheek.jpg")).toString("base64");   // (a synthetic face)
@@ -217,6 +217,25 @@ test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a 
       return [v[Math.floor(v.length * 0.98)] - v[Math.floor(v.length * 0.5)], v.reduce((a, b) => a + b, 0) / v.length];
     };
     const shine = { gloss: await lipShine("gloss"), satin: await lipShine("satin"), matte: await lipShine("matte") };
+    // a gradient lip (LIP_GRADIENT): as red as the whole lip where her lips meet, much less so at her lip line; her lip
+    // liner (LIP_LINER): her lips just inside her lip line darker, their middle and her skin just past it as they were
+    const lipAt = (d: Uint8ClampedArray, a: number, b: number, t: number, out = 0) => {
+      const n = Math.hypot(P[b][0] - P[a][0], P[b][1] - P[a][1]), x = P[a][0] + (P[b][0] - P[a][0]) * (t + out * ew / n), y = P[a][1] + (P[b][1] - P[a][1]) * (t + out * ew / n);
+      let r = 0, l = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const i = (Math.round(y + dy) * w + Math.round(x + dx)) * 4; r += d[i] - d[i + 1]; l += (d[i] + d[i + 1] + d[i + 2]) / 3; }
+      return [r / 9, l / 9];
+    };
+    const red = { hex: "#b3122e", finish: "matte" };
+    const wholeLip = pixels(await m.paintMine(shot, { gain: { lips: 1 }, lips: red }));
+    const gradLip = pixels(await m.paintMine(shot, { gain: { lips: 1 }, lips: { ...red, place: "gradient" } }));
+    const redder = (d: Uint8ClampedArray, t: number) => (lipAt(d, 14, 17, t)[0] + lipAt(d, 13, 0, t)[0]) / 2 - (lipAt(plain, 14, 17, t)[0] + lipAt(plain, 13, 0, t)[0]) / 2;
+    const gradient = { meet: [redder(wholeLip, 0.15), redder(gradLip, 0.15)], line: [redder(wholeLip, 0.88), redder(gradLip, 0.88)] };
+    const nude = { hex: "#c99582", finish: "satin" };
+    const bare = pixels(await m.paintMine(shot, { gain: { lips: 1 }, lips: nude }));
+    const pencil = pixels(await m.paintMine(shot, { gain: { lips: 1 }, lips: { ...nude, liner: "#6a3f33" } }));
+    const lipLine = (d: Uint8ClampedArray, t: number, out = 0) => (lipAt(d, 14, 17, t, out)[1] + lipAt(d, 13, 0, t, out)[1]) / 2;
+    const lipLiner = { line: [lipLine(bare, 0.9), lipLine(pencil, 0.9)], middle: [lipLine(bare, 0.45), lipLine(pencil, 0.45)],
+      skin: [lipLine(bare, 1, 0.07), lipLine(pencil, 1, 0.07)] };
     // aegyo-sal: her eyeshadow with it and without: the narrow band under her lower lashes lighter, her lid the same
     const shadow = { hex: "#e0a497", finish: "shimmer", place: "wash", pack: 1 };
     const lid = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow }));
@@ -269,7 +288,7 @@ test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a 
       const j = (Math.round(P[i][1] - ew * k) * w + Math.round(P[i][0] + dx)) * 4; if (d[j] + d[j + 1] + d[j + 2] > 3 * 150) { r += d[j]; b += d[j + 2]; } } return r - b; };
     const gold = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow: { ...glitter, glitter: "#ffe1b4" } }));
     const silver = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow: { ...glitter, glitter: "#f4f4f6" } }));
-    return { dots, lighter, apples, high, shine, band: [band(lid), band(lit)], upper: [upper(lid), upper(lit)], brightest, before,
+    return { dots, lighter, apples, high, shine, gradient, lipLiner, band: [band(lid), band(lit)], upper: [upper(lid), upper(lit)], brightest, before,
       under: [under(crease), under(smudged)], lid: [upper(crease), upper(smudged)], smoky: [underAll(crease), underAll(smoky)],
       creaseLine: [ring(lined), ring(creased)], lashLine: [rim(lined), rim(creased)], warmth: [warmth(silver), warmth(gold)],
       rim: [rim(lined), rim(kohl)], rimIris: [underIris(lined), underIris(kohl)], white: [white(lined), white(kohl)], iris: [iris(lined), iris(kohl)], below: [below(lined), below(kohl)] };
@@ -282,6 +301,12 @@ test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a 
   expect(out.high[0]).toBeGreaterThan(out.apples[0]);          // further out
   expect(out.shine.satin[0]).toBeGreaterThan(out.shine.matte[0] + 10);    // a satin lipstick lit along her lips' lines
   expect(Math.abs(out.shine.satin[1] - out.shine.matte[1])).toBeLessThan(4);  // (its colour on average much as a matte's)
+  console.log("gradient, lip liner", JSON.stringify({ gradient: out.gradient, lipLiner: out.lipLiner }));
+  expect(out.gradient.meet[1]).toBeGreaterThan(out.gradient.meet[0] * 0.8);   // a gradient lip: red where her lips meet,
+  expect(out.gradient.line[1]).toBeLessThan(out.gradient.line[0] * 0.5);      // fading out to her lip line
+  expect(out.lipLiner.line[1]).toBeLessThan(out.lipLiner.line[0] - 8);       // her lip liner along her lip line,
+  expect(Math.abs(out.lipLiner.middle[1] - out.lipLiner.middle[0])).toBeLessThan(2);   // (not in her lips' middle,
+  expect(out.lipLiner.skin[1]).toBeGreaterThan(out.lipLiner.skin[0] - 1.5);   // nor past it on her skin: a crisp edge)
   expect(out.dots).toBeGreaterThan(15);                       // dotted on
   expect(out.lighter).toBe(0);                               // (and nothing else on her cheek)
   expect(out.band[1]).toBeGreaterThan(out.band[0] + 2);      // her aegyo-sal lit

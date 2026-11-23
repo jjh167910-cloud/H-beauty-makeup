@@ -127,9 +127,11 @@ export function recipeOf(look: FaceLook, id?: string): MyMakeup {
 
   out.lashes = { tool: "wand", place: look.lashes, amount: 1, ...(acc.has("bottomLashes") ? { lower: true } : {}) };
 
+  // (a gradient lip blended out with a lip brush: dabbed on with a fingertip, a sheer 0.7, k-beauty's came out 5 a* paler
+  // than its photo all over)
   out.lips = { shade: nearestShade(LIPSTICKS, look.lipColor), hex: look.lipColor,
-    finish: look.lip === "matte" || look.lip === "gloss" ? look.lip : "satin", tool: look.lip === "ombre" ? "finger" : look.lip === "lined" ? "brush" : "lipstick",
-    amount: 1, ...(id ? { from: id } : {}) };
+    finish: look.lip === "matte" || look.lip === "gloss" ? look.lip : "satin", tool: look.lip === "ombre" || look.lip === "lined" ? "brush" : "lipstick",
+    amount: 1, ...(look.lip === "ombre" ? { place: "gradient" } : {}), ...(id ? { from: id } : {}) };
   return out;
 }
 
