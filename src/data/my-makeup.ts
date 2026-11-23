@@ -7,7 +7,7 @@
 import type { Finish, MinePicks, StepKey } from "@/lib/tryon";
 import { FINISHES, LIPSTICKS } from "./lipsticks";
 import { BLUSH, BROWS, LASHES, LINER, SHADOW, type Step, type Tool as Draw } from "./makeup-steps";
-import { BLUSHES, BLUSH_STYLES, HIGHLIGHTERS, LINERS, SHADOWS, SHADOW_FINISHES, SHADOW_STYLES, type Shade } from "./products";
+import { BLUSHES, BLUSH_STYLES, GLITTERS, HIGHLIGHTERS, LINERS, SHADOWS, SHADOW_FINISHES, SHADOW_STYLES, type Shade } from "./products";
 
 export type MyStep = {
   shade?: string;
@@ -22,8 +22,12 @@ export type MyStep = {
   stones?: boolean;
   /** Liner: kohl on her lower waterline too (sormeh), the rim inside her lower lashes, in the liner's colour. */
   kohl?: boolean;
+  /** Liner: a graphic line along her crease too (a 60s banana), in the liner's colour. */
+  crease?: boolean;
   /** Eyeshadow: her aegyo-sal lit too (her inner-corner light, or a pearl shimmer, just under her lower lashes). */
   aegyo?: boolean;
+  /** Eyeshadow (glitter): its glitter's colour (GLITTERS: gold, silver, rose gold; its own shade when not set). */
+  glitter?: string;
   /** Eyeshadow: a second shade for her crease and outer corner, and a light for her inner corners. */
   shade2?: string;
   inner?: string;
@@ -273,12 +277,14 @@ export function minePicks(recipe: MyMakeup): MinePicks | null {
         out.shadow = { hex, finish: step.finish ?? "matte", place: step.place ?? "wash", pack: t.pack ?? 1,
           ...(hex2 ? { hex2, finish2: raw.hex2 ? step.finish ?? "matte" : second?.finish ?? "matte" } : {}), ...(light ? { inner: light } : {}),
           ...(raw.aegyo ? { aegyo: light ?? AEGYO_LIGHT } : {}), ...(step.lower ? { lower: true } : {}),
+          ...(step.finish === "glitter" && GLITTERS.find((g) => g[0] === raw.glitter)?.[2] ? { glitter: GLITTERS.find((g) => g[0] === raw.glitter)![2] } : {}),
           ...(raw.from ? { from: raw.from } : {}) };
         break;
       }
       case "liner":
         out.liner = { hex, place: step.place ?? "wing", lower: Boolean(step.lower), soft: step.place === "smudge" ? Math.max(t.soft, 0.03) : t.soft,
-          opacity: t.opacity ?? 0.95, ...(raw.stones ? { stones: 1 } : {}), ...(raw.kohl ? { kohl: KOHL * (t.opacity ?? 0.95) } : {}) };
+          opacity: t.opacity ?? 0.95, ...(raw.stones ? { stones: 1 } : {}), ...(raw.kohl ? { kohl: KOHL * (t.opacity ?? 0.95) } : {}),
+          ...(raw.crease ? { crease: true } : {}) };
         break;
       case "lashes": out.lashes = { place: step.place ?? "natural", ...(step.lower ? { lower: true } : {}) }; break;
       case "lips": out.lips = { hex: raw.hex ?? shade?.hex ?? "#b8766d", finish: (step.finish ?? "satin") as Finish, ...(raw.from ? { from: raw.from } : {}) }; break;
@@ -310,8 +316,10 @@ export function recipeLines(recipe: MyMakeup): string[] {
         : def.key === "shadow" && step.lower ? "سایه زیر چشم هم" : undefined,
       def.key === "blush" && raw.freckles ? "با کک‌مک" : undefined,
       def.key === "shadow" && raw.aegyo ? "زیر چشم براق (اگیو)" : undefined,
+      def.key === "shadow" && step.finish === "glitter" && GLITTERS.find((g) => g[0] === raw.glitter)?.[2] ? `اکلیل ${GLITTERS.find((g) => g[0] === raw.glitter)![1]}` : undefined,
       def.key === "liner" && raw.kohl ? "با سرمه داخل چشم" : undefined,
       def.key === "liner" && raw.stones ? "با نگین گوشه چشم" : undefined,
+      def.key === "liner" && raw.crease ? "با خط چین پلک" : undefined,
       def.tools.length > 1 ? def.tools.find((t) => t.id === step.tool)?.name : undefined,
       `شدت ${percent(step.amount)}`,
     ].filter(Boolean);
@@ -361,7 +369,8 @@ const HOW: Partial<Record<StepKey, (s: MyStep) => { how: string; tip?: string }>
     const l = LINER[(s.place ?? "wing") as keyof typeof LINER] ?? LINER.wing;
     return { how: `${l.name}: ${l.how}`, tip: [s.lower ? "خط پایین را از گوشه بیرونی تا نیمه چشم، نازک و نزدیک ریشه مژه‌ها بکشید." : "",
       s.kohl ? "سرمه: پلک پایین را با نوک انگشت کمی پایین بکشید، به بالا نگاه کنید و مداد نرم مخصوص داخل چشم (کوهل) را آرام روی لبه داخلی پلک پایین، از گوشه بیرونی تا گوشه داخلی بکشید؛ روی سفیدی چشم نرود." : "",
-      s.stones ? "نگین: سه نگین ریز با چسب مژه (یک نقطه چسب پشت هر نگین، چند ثانیه صبر کنید) از گوشه بیرونی چشم رو به بالا، در امتداد خط چشم بچسبانید؛ وسطی کمی درشت‌تر." : ""]
+      s.stones ? "نگین: سه نگین ریز با چسب مژه (یک نقطه چسب پشت هر نگین، چند ثانیه صبر کنید) از گوشه بیرونی چشم رو به بالا، در امتداد خط چشم بچسبانید؛ وسطی کمی درشت‌تر." : "",
+      s.crease ? "خط چین پلک: چشم را باز نگه دارید و به روبه‌رو نگاه کنید؛ با ژل و براش باریک، خطی کمانی درست روی چین پلک، از بالای گوشه داخلی تا گوشه بیرونی بکشید و به دنباله خط چشم برسانید." : ""]
       .filter(Boolean).join(" ") || undefined };
   },
   lashes: (s) => ({ how: LASHES[(s.place === "volume" ? "volume" : s.place === "dramatic" ? "dramatic" : "natural") as keyof typeof LASHES].how,
@@ -421,8 +430,10 @@ export function cleanRecipe(value: unknown): MyMakeup {
     if (s.lower === true) step.lower = true;
     if (def.key === "blush" && s.freckles === true) step.freckles = true;
     if (def.key === "shadow" && s.aegyo === true) step.aegyo = true;
+    if (def.key === "shadow" && typeof s.glitter === "string" && GLITTERS.some((g) => g[0] === s.glitter)) step.glitter = s.glitter;
     if (def.key === "liner" && s.stones === true) step.stones = true;
     if (def.key === "liner" && s.kohl === true) step.kohl = true;
+    if (def.key === "liner" && s.crease === true) step.crease = true;
     const shade2 = pick(s.shade2, def.shades2), inner = pick(s.inner, def.inners);
     if (shade2) step.shade2 = shade2;
     if (inner) step.inner = inner;

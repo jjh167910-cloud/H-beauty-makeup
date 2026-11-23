@@ -481,6 +481,18 @@ in makeup-gl.ts):
   classic-bride's 0.5 -> 0.6; every other line as it was. Tried and left out: a glitter 2.2 times as bright, its grains
   in the shade's own colour: the glitter looks' lids went further from their photos (emerald-night's 2.0 -> 5.5 ΔE
   fitted again, glitter-party's 3.2 -> 4.2). The catalog engine is untouched (her own makeup's eyeshadow only).
+- **Two more of an artist's tools in «میکاپ من».** (1) A glitter eyeshadow's glitter in a colour of its own («رنگ
+  اکلیل»: همرنگ سایه، طلایی، نقره‌ای، رزگلد; `GLITTERS` in products.ts, `MyStep.glitter`, `uGlitterTop`), a topper over
+  her shade as an artist lays one. Given to the catalog's five glitter looks with the colours their photos' brightest
+  grains measure (gold over emerald and bronze, a pink-champagne over pink), their lids went up to 1.0 ΔE further from
+  their photos (henna-night's 2.2 -> 3.2, emerald-night's 2.0 -> 2.4, douyin's the same), so the looks keep their own
+  shade's glitter. (2) A graphic crease line with
+  her liner («خط چین پلک», `MyStep.crease`: a 60s banana, a wide, shallow arc from just inside her inner corner,
+  between her lash line and her crease (`CREASE_RING`) and a little past it over the middle of her lid, out past her
+  outer corner to her wing). On mod-60s, whose photo has one: its eye placement's overlap with the photo 0.52 -> 0.54,
+  but its lid 4.8 -> 5.3 ΔE and the whole face 2.61 -> 2.65, its lid being too dark already (its photo's lid is 17 L*
+  lighter than her bare lid, the recipe's 1 darker), so it doesn't carry one yet (the `creaseLine` accent is there for
+  when it does). Every look's recipe and the catalog engine paint pixel for pixel as before.
 
 The tiny fallback networks learn the look as the engine finishes it: `scripts/tinybeauty/finish.py` paints the
 foundation, this concealer, the layer with each look's strengths, the brows, lipstick and eye detail in the engine's

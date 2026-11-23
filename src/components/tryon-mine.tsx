@@ -4,6 +4,7 @@ import {
   MY_STEPS, filled, minePicks, mySteps, myStep, newStep, recipeLines, recipeLink, removeMakeup, saveMakeup, savedMakeups, stepCount,
   type MyMakeup, type MyShade, type MyStep, type MyStepDef, type SavedMakeup,
 } from "@/data/my-makeup";
+import { GLITTERS } from "@/data/products";
 import type { Step } from "@/data/makeup-steps";
 import { STEP_KEYS, paintMine, paintMineFull, tutorialShot, type Shot, type StepKey } from "@/lib/tryon";
 import { READ, Tutor, skinTone } from "@/lib/tryon-tutor";
@@ -554,6 +555,16 @@ export default function TryOnMine({ shot, recipe, onRecipe, onBook, onLive, open
                 </div>
               </div>
             ) : null}
+            {def.key === "shadow" && step?.finish === "glitter" ? (
+              <div className="mine__group">
+                <span>رنگ اکلیل</span>
+                <div className="steps__chips" role="group" aria-label="رنگ اکلیل">
+                  {GLITTERS.map(([id, name]) => (
+                    <button key={id} type="button" className="chip" aria-pressed={(step?.glitter ?? "shade") === id} onClick={() => update({ glitter: id === "shade" ? undefined : id })}>{name}</button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             {def.places ? (
               <div className="mine__group">
                 <span>{def.key === "lashes" || def.key === "liner" || def.key === "brows" || def.key === "lenses" ? "مدل" : "جای کار"}</span>
@@ -573,6 +584,7 @@ export default function TryOnMine({ shot, recipe, onRecipe, onBook, onLive, open
                     <>
                       <button type="button" className="chip" aria-pressed={Boolean(step?.kohl)} onClick={() => update({ kohl: !step?.kohl })}>سرمه داخل چشم</button>
                       <button type="button" className="chip" aria-pressed={Boolean(step?.stones)} onClick={() => update({ stones: !step?.stones })}>نگین گوشه چشم</button>
+                      <button type="button" className="chip" aria-pressed={Boolean(step?.crease)} onClick={() => update({ crease: !step?.crease })}>خط چین پلک</button>
                     </>
                   ) : null}
                   {def.key === "shadow" ? (

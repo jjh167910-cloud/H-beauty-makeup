@@ -30,6 +30,12 @@ export const SHADOWS: Shade[] = [
 ];
 
 export const SHADOW_FINISHES: Array<[ShadowFinish, string]> = [["matte", "مات"], ["shimmer", "شاین"], ["metallic", "متالیک"], ["glitter", "اکلیلی"]];
+/**
+ * A glitter eyeshadow's glitter: in its own shade (the default), or a topper of its own colour over it, as the catalog's
+ * glitter lids have (gold over emerald and bronze, a pink-champagne over pink: their brightest grains measured on their
+ * photos).
+ */
+export const GLITTERS: Array<[string, string, string?]> = [["shade", "همرنگ سایه"], ["gold", "طلایی", "#ffe1b4"], ["silver", "نقره‌ای", "#f4f4f6"], ["rose", "رزگلد", "#ffd0c8"]];
 
 /** Eyeshadow placements, each as a makeup artist applied it in one of the catalog photos. */
 export const SHADOW_STYLES: Array<[ShadowStyle, string]> = [

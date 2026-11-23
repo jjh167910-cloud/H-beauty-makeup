@@ -141,7 +141,7 @@ test("?engine=v2 paints a look as its recipe (kept for the tab, ?engine=v1 turns
   expect(out.lashes[2]).toBeLessThan(out.lashes[1]);
 });
 
-test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a lit aegyo-sal, rhinestones that sparkle, kohl on her waterline, eyeshadow under her lower lashes", async ({ page }) => {
+test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a lit aegyo-sal, rhinestones that sparkle, kohl on her waterline, eyeshadow under her lower lashes, a crease line, a glitter's own colour", async ({ page }) => {
   test.setTimeout(300_000);
   await page.goto("/");
   const photo = readFileSync(join(process.cwd(), "tests/fixtures/lit-cheek.jpg")).toString("base64");   // (a synthetic face)
@@ -204,8 +204,22 @@ test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a 
     const crease = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow: brown }));
     const smudged = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow: { ...brown, lower: true } }));
     const under = (d: Uint8ClampedArray) => [249, 390, 373].reduce((s, i) => s + at(d, i, -0.06) + at(d, i, -0.09), 0) / 6;
+    // a graphic crease line with her liner: along her crease (her ring's middle points), darker; her lash line as it was
+    const creased = pixels(await m.paintMine(shot, { gain: { liner: 1 }, liner: { ...liner, crease: true } }));
+    const ring = (d: Uint8ClampedArray) => {      // (the darkest of a short column across the arc, either side of her crease)
+      let s = 0;
+      for (const i of [443, 444]) { let lo = 255; for (let k = -0.06; k <= 0.06; k += 0.01) lo = Math.min(lo, lum(d, P[i][0] + up[0] * ew * k, P[i][1] + up[1] * ew * k)); s += lo; }
+      return s / 2;
+    };
+    // a glitter eyeshadow with a gold topper and a silver one: its grains warmer with the gold
+    const glitter = { hex: "#8e5a7a", finish: "glitter", place: "wash", pack: 1 };
+    const warmth = (d: Uint8ClampedArray) => { let r = 0, b = 0; for (const i of [385, 386, 387]) for (let k = 0.04; k <= 0.14; k += 0.01) for (let dx = -6; dx <= 6; dx++) {
+      const j = (Math.round(P[i][1] - ew * k) * w + Math.round(P[i][0] + dx)) * 4; if (d[j] + d[j + 1] + d[j + 2] > 3 * 150) { r += d[j]; b += d[j + 2]; } } return r - b; };
+    const gold = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow: { ...glitter, glitter: "#ffe1b4" } }));
+    const silver = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow: { ...glitter, glitter: "#f4f4f6" } }));
     return { dots, lighter, band: [band(lid), band(lit)], upper: [upper(lid), upper(lit)], brightest, before,
       under: [under(crease), under(smudged)], lid: [upper(crease), upper(smudged)],
+      creaseLine: [ring(lined), ring(creased)], lashLine: [rim(lined), rim(creased)], warmth: [warmth(silver), warmth(gold)],
       rim: [rim(lined), rim(kohl)], white: [white(lined), white(kohl)], iris: [iris(lined), iris(kohl)], below: [below(lined), below(kohl)] };
   }, photo);
   console.log("kohl", JSON.stringify({ rim: out.rim, white: out.white, iris: out.iris, below: out.below }));
@@ -221,6 +235,10 @@ test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a 
   console.log("under", JSON.stringify({ under: out.under, lid: out.lid }));
   expect(out.under[1]).toBeLessThan(out.under[0] - 4);                    // her eyeshadow under her lower lashes
   expect(Math.abs(out.lid[1] - out.lid[0])).toBeLessThan(1.5);            // (her lid as it was)
+  console.log("crease, glitter", JSON.stringify({ creaseLine: out.creaseLine, lashLine: out.lashLine, warmth: out.warmth }));
+  expect(out.creaseLine[1]).toBeLessThan(out.creaseLine[0] - 12);         // a graphic line along her crease
+  expect(Math.abs(out.lashLine[1] - out.lashLine[0])).toBeLessThan(1.5);  // (her waterline as it was)
+  expect(out.warmth[1]).toBeGreaterThan(out.warmth[0]);                   // a gold glitter warmer than a silver one
 });
 
 test("one recipe link opens either: her own makeup or a look's recipe, in «میکاپ من» on whoever opens it (never a photo)", async ({ page }) => {

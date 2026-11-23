@@ -876,6 +876,8 @@ export type MinePicks = {
     aegyo?: string;
     /** Smudged along her lower lash line too (her second shade where she has one), from her outer corner in. */
     lower?: boolean;
+    /** A glitter eyeshadow's glitter in a colour of its own (a topper: gold, silver, rose gold), not her shade's. */
+    glitter?: string;
     /** A catalog look whose own eyeshadow places it (where its photo has eyeshadow, when it has enough: else the place's template). */
     from?: string;
     /** Its colours (its inner-corner light too) made deeper on deeper skin, as an artist picks a look's shades for her (RECIPE_SKIN; this power of it). */
@@ -996,12 +998,13 @@ async function mineProducts(picks: MinePicks, face: FaceStats, all: LooksMeta): 
     if (light) out.inner = { ...shade(pigment("glow", light, "shimmer")), thick: 0.13, sheen: 0.6 };
     // (under her eye: smoky and halo wrap her lower lash line, the others barely touch it unless she smudges it there)
     mine.shadow = { pack: picks.shadow.pack, low: drawn || picks.shadow.lower ? 0 : MINE_SHADOW_LOW[picks.shadow.place] ?? 0.8, corners: Boolean(picks.shadow.inner),
-      aegyoSal: Boolean(picks.shadow.aegyo), ...(drawn ? { drawn } : {}), ...(picks.shadow.lower ? { lower: true } : {}), fade: MINE_LID_FADE[picks.shadow.place] ?? 0.85 };
+      aegyoSal: Boolean(picks.shadow.aegyo), ...(drawn ? { drawn } : {}), ...(picks.shadow.lower ? { lower: true } : {}), fade: MINE_LID_FADE[picks.shadow.place] ?? 0.85,
+      ...(picks.shadow.glitter && picks.shadow.finish === "glitter" ? { glitterTop: linHex(picks.shadow.glitter) } : {}) };
   }
   if (picks.liner) {
     out.liner = linerColour(picks.liner.hex);
     mine.liner = { place: picks.liner.place, lower: picks.liner.lower, soft: picks.liner.soft, opacity: picks.liner.opacity,
-      ...(picks.liner.kohl ? { kohl: picks.liner.kohl } : {}) };
+      ...(picks.liner.kohl ? { kohl: picks.liner.kohl } : {}), ...(picks.liner.crease ? { crease: true } : {}) };
     if (picks.liner.stones) mine.stones = picks.liner.stones;
   }
   if (picks.lashes) mine.lashes = { place: picks.lashes.place, lower: Boolean(picks.lashes.lower) };

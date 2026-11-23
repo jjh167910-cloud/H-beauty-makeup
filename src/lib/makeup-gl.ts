@@ -667,12 +667,16 @@ export type Mine = {
     /** Smudged along her lower lash line too (LOWER_SMUDGE), over whatever its placement puts there. */
     lower?: boolean;
     /** With two shades: how much her second shade gives way over her mobile lid, where her lid shade goes (0.85). */
-    fade?: number };
+    fade?: number;
+    /** Her glitter's own colour (linear; a topper over her eyeshadow: gold, silver, rose gold), else her shade's. */
+    glitterTop?: number[] };
   /**
    * Liner: thin / wing / fox / puppy / smudge, along her lower lash line too, its edge's softness and opacity; kohl: on
    * her lower waterline too, this opaque (the waterline's band, waterAt).
    */
-  liner?: { place: string; lower: boolean; soft: number; opacity: number; kohl?: number };
+  liner?: { place: string; lower: boolean; soft: number; opacity: number; kohl?: number;
+    /** A graphic line along her crease too (a 60s banana), from over her inner corner to her outer corner. */
+    crease?: boolean };
   /** Lashes strand by strand (lashStrands): natural / volume / dramatic, her lower lashes too. */
   lashes?: { place: string; lower?: boolean };
   /** Freckles dotted across her nose and upper cheeks (freckleSpots): how strong (1 = as an artist dots them). */
@@ -1282,6 +1286,21 @@ export function mineZones(P: Pt[], m: Mine): { A: StepGeo[]; B: StepGeo[] } {
         wing(24, 0.3, 0.84, ew * 0.032);
       }
       if (m.liner!.lower && style !== "smudge") polys.push(...taper(low, ew * 0.003, ew * 0.02, ew * 0.006, down, 0.5));
+      // (a graphic crease line: over her inner corner, along her crease (CREASE_RING), down to her outer corner's wing)
+      if (m.liner!.crease) {
+        // (a wide, shallow arc drawn with her eye open: from just inside her inner corner, between her lash line and her crease
+        // (CREASE_RING) and a little past it over the middle of her lid, out past her outer corner to her wing)
+        const ring = CREASE_RING[s.eye === EYE_R ? 0 : 1].map((i) => pt(P, i));
+        const on = (line: V[], x: number): V => {     // (past either end along its own last direction)
+          const n = line.length, a = x < 0 ? line[0] : line[n - 1], d = x < 0 ? sub(line[0], line[1]) : sub(line[n - 1], line[n - 2]);
+          return x < 0 ? add(a, mul(unit(d), -x * own)) : x > 1 ? add(a, mul(unit(d), (x - 1) * own)) : along(line, x, up)[0];
+        };
+        const arc: V[] = Array.from({ length: 29 }, (_, i) => {
+          const x = -0.04 + (i / 28) * 1.16, w = 0.95 * Math.max(0, Math.sin((Math.PI * (x + 0.04)) / 1.16)) ** 0.6;
+          return lerp(on(lid, x), on(ring, Math.min(1, Math.max(0, x))), w);
+        });
+        polys.push(...taper(arc, ew * 0.01, ew * 0.02, ew * 0.01, up));
+      }
       return { polys, axis: [s.inner, s.outer] };
     }, 1);
   }
@@ -1889,6 +1908,7 @@ const vec3 LASH_COLOUR = vec3(${LASH_COLOUR.map((x) => x.toFixed(4)).join(", ")}
 uniform vec4 uMineK;
 uniform vec3 uConTint, uBrow, uBrowShape;
 uniform float uBrowX, uMineLow, uLidFade;
+uniform vec4 uGlitterTop;
 uniform vec4 uBrowDef;      // a look's brows: her hairs' colour over her skin's brightness (rgb), how far the gaps fill (a)
 // coloured lenses: each iris (centre in uv, radius in uv x and y), the lens colour (linear, in her light), its amount
 // and whether it covers her iris (1) or tints it (0)
@@ -2184,7 +2204,9 @@ vec3 pigments(vec3 base, vec3 lu, float cov[6]) {
           res = res * (1.0 + (s > 0.0 ? s : 0.5 * s)) + mix(tint, vec3(luma(tint)), 0.3) * L * max(s, 0.0) * 0.2;
         }
       }
-      if (k.w > 0.0) res += L * (k.w * (i == 0 || i == 4 ? sparkLid : spark) * glint * a * uPigSheen[i]) * (0.6 + 0.4 * tint);
+      // (her own eyeshadow's glitter topper: its grains in their own colour)
+      if (k.w > 0.0) res += L * (k.w * (i == 0 || i == 4 ? sparkLid : spark) * glint * a * uPigSheen[i])
+        * (uMine == 1 && uGlitterTop.w > 0.0 && (i == 0 || i == 4) ? uGlitterTop.rgb / max(max(uGlitterTop.r, uGlitterTop.g), max(uGlitterTop.b, 1e-4)) : 0.6 + 0.4 * tint);
     }
     if (i == 3) {
       // A highlight brightens her skin without changing its colour much: where a pale or gold one would (deep, rich
@@ -3450,6 +3472,8 @@ export class MakeupGL {
     gl.uniform4f(this.uni(p, "uBrowDef"), ...((bd ? [...bd.ratio, bd.amount] : [0, 0, 0, 0]) as [number, number, number, number]));
     gl.uniform1f(this.uni(p, "uMineLow"), mine?.shadow?.low ?? 0);
     gl.uniform1f(this.uni(p, "uLidFade"), mine?.shadow?.fade ?? 0.85);
+    const top = mine?.shadow?.glitterTop;
+    gl.uniform4f(this.uni(p, "uGlitterTop"), top?.[0] ?? 0, top?.[1] ?? 0, top?.[2] ?? 0, top ? 1 : 0);
     const lens = prod?.lenses, irises = P.length >= 478 ? [468, 473] : null;
     gl.uniform2f(this.uni(p, "uLensK"), lens && irises ? 1 : 0, lens?.opaque ? 1 : 0);
     if (lens && irises) {

@@ -13,7 +13,7 @@ export type Lashes = "natural" | "volume" | "dramatic";
 export type Brow = "natural" | "bold" | "lifted" | "thin";
 export type Blush = "none" | "apples" | "high" | "draped" | "nose" | "under";
 export type LipFinish = "matte" | "satin" | "gloss" | "ombre" | "lined";
-export type Accent = "shimmer" | "glitter" | "rhinestones" | "freckles" | "contour" | "lowerLiner" | "bottomLashes" | "aegyo" | "kohl" | "lowerShadow";
+export type Accent = "shimmer" | "glitter" | "rhinestones" | "freckles" | "contour" | "lowerLiner" | "bottomLashes" | "aegyo" | "kohl" | "lowerShadow" | "creaseLine";
 
 export type FaceLook = {
   skin: Skin;

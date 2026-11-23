@@ -50,7 +50,7 @@ const LINER_PLACE: Record<Exclude<Liner, "none">, string> = {
 const BLACK_LINER = "#141113";
 
 /** A look's accents the recipe paints (the others are recipeGaps). */
-const PAINTED: ReadonlySet<Accent> = new Set(["shimmer", "contour", "lowerLiner", "bottomLashes", "glitter", "freckles", "aegyo", "rhinestones", "kohl", "lowerShadow"]);
+const PAINTED: ReadonlySet<Accent> = new Set(["shimmer", "contour", "lowerLiner", "bottomLashes", "glitter", "freckles", "aegyo", "rhinestones", "kohl", "lowerShadow", "creaseLine"]);
 
 /**
  * A look's recipe: its FaceLook as her own makeup's steps (amount 1: as the artist put it on in its catalog photo).
@@ -119,7 +119,7 @@ export function recipeOf(look: FaceLook, id?: string): MyMakeup {
     const hex = look.linerColor ?? BLACK_LINER;
     out.liner = { shade: nearestShade(LINERS, hex), hex, tool: look.liner === "smudge" ? "pencil" : "pen", place: LINER_PLACE[look.liner], amount: 1,
       ...(acc.has("lowerLiner") || look.liner === "double" ? { lower: true } : {}), ...(acc.has("rhinestones") ? { stones: true } : {}),
-      ...(acc.has("kohl") ? { kohl: true } : {}) };
+      ...(acc.has("kohl") ? { kohl: true } : {}), ...(acc.has("creaseLine") ? { crease: true } : {}) };
   } else if (acc.has("lowerLiner") || acc.has("kohl")) {
     out.liner = { shade: "black", tool: "pencil", place: "thin", amount: 0.6,
       ...(acc.has("lowerLiner") ? { lower: true } : {}), ...(acc.has("kohl") ? { kohl: true } : {}) };
