@@ -51,6 +51,13 @@ export const FINISH: Record<string, [number, number, number]> = {
 const GLITTER_CELL = 0.02, GLITTER_DENSITY = 0.3, PEARL = 0.55, PEARL_DENSITY = 0.6, MATTE_SHINE = 0.3;
 /** An eyeshadow's glitter: share of grain cells with a grain (denser than a lipstick's; SHADOW_GLITTER in products.py). */
 const SHADOW_GLITTER = 0.75;
+/**
+ * Her own eyeshadow's mica (shimmer, metallic): how strongly its fine grains (the pearl's) sparkle over her lid, as a
+ * share of the lid's own brightness, where her lid is unlit (more where it catches the light). The lid between the
+ * grains is a little darker, by half as much, so its colour holds on average (darkened as much, the shimmer lids came
+ * out 0.8 to 1.4 L* darker than without it).
+ */
+const MICA = [0, 2.4, 1.9];
 /** A look's own eyeshadow finish goes on where the look leaves her lid this bright (of her own) or more, not over its smoky dark. */
 const OWN_LIGHT = [0.3, 0.7];
 /**
@@ -2166,6 +2173,16 @@ vec3 pigments(vec3 base, vec3 lu, float cov[6]) {
         res = res * (1.0 - m) + refl * m;
         // (her lid's fullest part: the light its pearl scatters back, a luminous sheen on top)
         res += tint * L * (litI - lit) * ${LID_GLOW.toFixed(3)} * uPigSheen[i] * a;
+        // (her own eyeshadow's mica: a fine sparkle over her lid in its own colour, brightest where her lid catches the
+        // light; pearl's mean taken off, the lid between its grains darkened by half, so the lid's colour holds)
+        if (uMine == 1 && (i == 0 || i == 4) && fin < 3) {
+          float rr = max(0.28, 0.6 / max(uEw * ${(GLITTER_CELL * PEARL).toFixed(4)}, 1e-3));
+          float gm = ${(PEARL_DENSITY * 0.296 * Math.PI).toFixed(4)} * rr * rr;     // (pearl's mean: 0.296 a grain's mean brightness in grains())
+          // (on a small face its grains are finer than a pixel: a pixel holds several of them, and they average out)
+          float fine = clamp(uEw * ${(GLITTER_CELL * PEARL).toFixed(4)} / 1.3, 0.35, 1.0);
+          float s = (fin == 1 ? ${MICA[1].toFixed(2)} : ${MICA[2].toFixed(2)}) * fine * (pearl - gm) * (0.6 + 1.5 * (litI - lit) + 1.2 * lit + hl) * a * uPigSheen[i];
+          res = res * (1.0 + (s > 0.0 ? s : 0.5 * s)) + mix(tint, vec3(luma(tint)), 0.3) * L * max(s, 0.0) * 0.2;
+        }
       }
       if (k.w > 0.0) res += L * (k.w * (i == 0 || i == 4 ? sparkLid : spark) * glint * a * uPigSheen[i]) * (0.6 + 0.4 * tint);
     }
