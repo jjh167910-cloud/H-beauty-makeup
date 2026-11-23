@@ -53,10 +53,11 @@ const GLITTER_CELL = 0.02, GLITTER_DENSITY = 0.3, PEARL = 0.55, PEARL_DENSITY = 
 const SHADOW_GLITTER = 0.75;
 /**
  * Her own eyeshadow's mica (shimmer, metallic): how strongly its fine grains (the pearl's) sparkle over her lid, as a
- * share of the lid's own brightness, where her lid is unlit (more where it catches the light). Mean-preserving: the
- * grains brighter, the lid between them a little darker, so its colour holds on average.
+ * share of the lid's own brightness, where her lid is unlit (more where it catches the light). The lid between the
+ * grains is a little darker, by half as much, so its colour holds on average (darkened as much, the lids came out 0.8 to
+ * 1.4 L* darker on average in the catalog's photos' terms).
  */
-const MICA = [0, 2.4, 1.9], MINE_GLITTER = 2.2;
+const MICA = [0, 2.4, 1.9];
 /** A look's own eyeshadow finish goes on where the look leaves her lid this bright (of her own) or more, not over its smoky dark. */
 const OWN_LIGHT = [0.3, 0.7];
 /**
@@ -2173,21 +2174,17 @@ vec3 pigments(vec3 base, vec3 lu, float cov[6]) {
         // (her lid's fullest part: the light its pearl scatters back, a luminous sheen on top)
         res += tint * L * (litI - lit) * ${LID_GLOW.toFixed(3)} * uPigSheen[i] * a;
         // (her own eyeshadow's mica: a fine sparkle over her lid in its own colour, brightest where her lid catches the
-        // light; pearl's mean taken off, so the lid's colour holds on average)
+        // light; pearl's mean taken off, the lid between its grains darkened by half, so the lid's colour holds)
         if (uMine == 1 && (i == 0 || i == 4) && fin < 3) {
           float rr = max(0.28, 0.6 / max(uEw * ${(GLITTER_CELL * PEARL).toFixed(4)}, 1e-3));
           float gm = ${(PEARL_DENSITY * 0.296 * Math.PI).toFixed(4)} * rr * rr;
           // (on a small face its grains are finer than a pixel: a pixel holds several of them, and they average out)
           float fine = clamp(uEw * ${(GLITTER_CELL * PEARL).toFixed(4)} / 1.3, 0.35, 1.0);
           float s = (fin == 1 ? ${MICA[1].toFixed(2)} : ${MICA[2].toFixed(2)}) * fine * (pearl - gm) * (0.6 + 1.5 * (litI - lit) + 1.2 * lit + hl) * a * uPigSheen[i];
-          res = max(res * (1.0 + s), vec3(0.0)) + mix(tint, vec3(luma(tint)), 0.3) * L * max(s, 0.0) * 0.2;
+          res = res * (1.0 + (s > 0.0 ? s : 0.5 * s)) + mix(tint, vec3(luma(tint)), 0.3) * L * max(s, 0.0) * 0.2;
         }
       }
-      // (her own eyeshadow's glitter: as dense and bright as the catalog's glitter lids, MINE_GLITTER times a look's)
-      // in its own colour, a little paler (a gold glitter's grains are gold, not white; a deep shade's are a warm light
-      // over it, as a deep green's or plum's glitter is mostly gold)
-      if (k.w > 0.0) res += L * (k.w * (i == 0 || i == 4 ? sparkLid * (uMine == 1 ? ${MINE_GLITTER.toFixed(2)} : 1.0) : spark) * glint * a * uPigSheen[i])
-        * (uMine == 1 ? mix(col / max(cmax, 1e-4), vec3(1.0, 0.93, 0.82), 0.35 + 0.5 * (1.0 - smoothstep(0.015, 0.06, luma(col)))) : 0.6 + 0.4 * tint);
+      if (k.w > 0.0) res += L * (k.w * (i == 0 || i == 4 ? sparkLid : spark) * glint * a * uPigSheen[i]) * (0.6 + 0.4 * tint);
     }
     if (i == 3) {
       // A highlight brightens her skin without changing its colour much: where a pale or gold one would (deep, rich

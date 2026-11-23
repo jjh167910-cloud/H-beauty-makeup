@@ -463,6 +463,24 @@ in makeup-gl.ts):
   1.8 -> 2.5); lips, cheeks and brows as they were. Lids further from their photos: golden-hour 1.8 ->
   3.1, icy 2.5 -> 3.3, grunge-smokey 1.5 -> 2.2, monochrome 1.4 -> 2.0. The catalog engine (the default for the looks)
   paints pixel for pixel as before.
+- **A shimmer that sparkles.** In «میکاپ من» a shimmer eyeshadow came out the same as a matte one: on the catalog
+  model's lid (a gold, all of her lid, no lashes or liner drawn), each pixel against its own local mean (0.03 eye
+  widths) varied by 0.267 matte, 0.277 shimmer, 0.304 metallic, 0.342 glitter (her bare lid 0.397), where the
+  catalog's shimmer lids sparkle all over (the same number on the catalog photos, their lashes and all: 0.41 to 0.43
+  on the matte looks, 0.51 to 0.73 on the shimmer ones, 0.80 to 1.09 on the glitter ones; the bare model 0.38). A
+  shimmer or metallic eyeshadow now carries its mica (`MICA`: 2.4 shimmer, 1.9 metallic): the pearl's fine grains
+  (`grains()`, 0.011 eye widths, on the bare face's coordinates, so they stay put on her skin) brighten her lid where
+  they lie by that share of its own brightness, more where her lid catches the light, in the shade's own colour a
+  little paler, and the lid between them is a little darker, by half as much (darkened as much, the lids came out 0.8 to
+  1.4 L* darker on average: icy's 3.3 -> 4.6 ΔE from its photo); on a face so small its grains are finer than a pixel,
+  they fade (a pixel holds several, and they average out). On the catalog model's lid: shimmer 0.376, metallic 0.389.
+  Eleven shimmer looks' eyeshadow was fitted again for it (`--steps shadow`). All 48 looks as recipes on the catalog
+  model: the lid 2.19 -> 2.12 ΔE from its photo (mean), catalog colour 1.58 -> 1.47 (median; worst tenth 3.41 ->
+  3.42); romantic-bride's lid 2.7 -> 1.7, cut-crease's 2.1 -> 1.5, full-glam's 2.9 -> 2.3, boho-bride's and
+  bronzed-goddess's 2.7 -> 2.2, arabic-glam's 1.8 -> 1.4; icy's 3.3 -> 4.0 (fitted again, 5.1: left as it was) and
+  classic-bride's 0.5 -> 0.6; every other line as it was. Tried and left out: a glitter 2.2 times as bright, its grains
+  in the shade's own colour: the glitter looks' lids went further from their photos (emerald-night's 2.0 -> 5.5 ΔE
+  fitted again, glitter-party's 3.2 -> 4.2). The catalog engine is untouched (her own makeup's eyeshadow only).
 
 The tiny fallback networks learn the look as the engine finishes it: `scripts/tinybeauty/finish.py` paints the
 foundation, this concealer, the layer with each look's strengths, the brows, lipstick and eye detail in the engine's
