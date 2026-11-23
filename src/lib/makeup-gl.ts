@@ -182,6 +182,15 @@ const BALL_SCALE = [0.95, 0.8], BALL_SOFT = 0.015, FEATHER = 0.35, LIP_VOLUME = 
  */
 const WATER_BAND = 0.03, WATER_OPEN = 0.35, WATER_OUT = 0.006, WATER_SOFT = 0.006;
 const WATER_WHITE = [[0.45, 0.75], [0.02, 0.06]], WATER_T = [0.35, 0.6];
+/**
+ * Her own kohl on that band (Mine.liner.kohl), as a soft kohl pencil lies on the wet rim in the catalog photos: its edges
+ * `soft` times softer again below, `out` eye widths further onto her lower lash roots and smudged on down from there
+ * (`smudge`: gone by this many eye widths below her lower lid, at most this share of the rim's), on under her irises too
+ * (the rim runs on in front of them: in the lower `under` of the band there), fading in over her inner corner (`inner`:
+ * shares of the way along her lower lid). Laid as the look's own change is, it came out a crisp black stripe from her
+ * inner corner that stopped at her iris.
+ */
+const KOHL_RIM = { soft: 2.0, out: 0.006, under: 0.25, inner: [0.0, 0.08], smudge: [0.04, 0.5] };
 /** Her lower lids' contours, inner corner first (LOWER_LIDS in teacher.py). */
 const LOWER_LIDS = [[133, 155, 154, 153, 145, 144, 163, 7, 33], [362, 382, 381, 380, 374, 373, 390, 249, 263]];
 /**
@@ -1082,6 +1091,15 @@ const SHADOW_PATTERN_SOFT = [0.075, 0.055, 0.1];
 const SHADOW_PATTERN_PEAK = 0.62, SHADOW_PATTERN_EDGE: Record<string, number> = { cutcrease: 0.55 };
 /** Her crease's ring (inner to outer) per eye: image left, image right (MediaPipe's rightEyeUpper2 / leftEyeUpper2). */
 const CREASE_RING = [[189, 221, 222, 223, 224, 225, 113], [413, 441, 442, 443, 444, 445, 342]];
+/**
+ * A winged liner's wing (degrees up from her eye's own axis, its length past her outer corner as a share of her eye's
+ * width, how far along her lash line its top edge leaves her liner and how far above it, eye widths): a flick that
+ * carries on her lower lash line's direction out past her corner and only a little up, thinning to a point, as the
+ * catalog photos' wings do (their tips 0.35 to 0.45 eye widths past her corner, 5 to 8 degrees up from her eye's axis;
+ * a fox or siren eye's 0.4 to 0.6 and 13 to 18). Drawn at 24 and 30 degrees, 0.3 and 0.42 long, they came out as a short
+ * fat fin pointing up at her brow's tail.
+ */
+const LINER_WING: Record<"wing" | "fox", [number, number, number, number]> = { wing: [8, 0.38, 0.78, 0.045], fox: [15, 0.46, 0.72, 0.05] };
 /** Her eyeshadow's placement (SHADOW_PATTERNS) as triangles for the "pattern" program: x, y, 0, 0, coverage. */
 export function shadowPattern(P: Pt[], place: string, lid = false, lower = false): Float32Array {
   const pat = lid ? LID_PATTERN : place === "none" ? NO_PATTERN : SHADOW_PATTERNS[place] ?? SHADOW_PATTERNS.wash, peak = lid ? 1 : SHADOW_PATTERN_PEAK;
@@ -1269,11 +1287,11 @@ export function mineZones(P: Pt[], m: Mine): { A: StepGeo[]; B: StepGeo[] } {
       if (lift[0] * up[0] + lift[1] * up[1] < 0) lift = mul(lift, -1);
       const turn = (deg: number): V => { const a = (deg * Math.PI) / 180; return unit(add(mul(ax, Math.cos(a)), mul(lift, Math.sin(a)))); };
       const top = (x: number, t: number) => { const [q, n] = along(lid, x, up); return add(q, mul(n, t)); };
-      const wing = (deg: number, len: number, from: number, t: number) => polys.push([top(from, t), add(s.outer, mul(turn(deg), own * len)), s.outer]);
+      const wing = (deg: number, len: number, from: number, t: number) => polys.push([top(from, ew * t), add(s.outer, mul(turn(deg), own * len)), s.outer]);
       if (style === "thin") polys.push(...taper(lid, ew * 0.012, ew * 0.03, under, up));
       else if (style === "fox") {
         polys.push(...taper(lid, ew * 0.014, ew * 0.06, under, up));
-        wing(30, 0.42, 0.75, ew * 0.05);
+        wing(...LINER_WING.fox);
         polys.push([add(s.inner, mul(up, ew * 0.014)), add(add(s.inner, mul(s.out, -ew * 0.09)), mul(down, ew * 0.035)), add(s.inner, mul(down, ew * 0.012))]);
       } else if (style === "puppy") {
         polys.push(...taper(lid, ew * 0.012, ew * 0.05, under, up, 0.1));
@@ -1283,7 +1301,7 @@ export function mineZones(P: Pt[], m: Mine): { A: StepGeo[]; B: StepGeo[] } {
         polys.push(...taper(low, ew * 0.004, ew * 0.03, ew * 0.006, down, 0.45));
       } else {                                                               // the classic wing
         polys.push(...taper(lid, ew * 0.01, ew * 0.055, under, up, 0.08));
-        wing(24, 0.3, 0.84, ew * 0.032);
+        wing(...LINER_WING.wing);
       }
       if (m.liner!.lower && style !== "smudge") polys.push(...taper(low, ew * 0.003, ew * 0.02, ew * 0.006, down, 0.5));
       // (a graphic crease line: over her inner corner, along her crease (CREASE_RING), down to her outer corner's wing)
@@ -2024,7 +2042,7 @@ float rv(int k, float sw) { return shown(k, sw) * uGain[k]; }
 float rl(int k, float sw) { return rv(k, sw) * uLGain[k]; }
 float luma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
 // her waterline band here (0..1) and the look's change there (water_mask, water_colour in teacher.py), from her light lu
-float waterAt(vec2 px, vec3 lu, out vec3 col) {
+float waterAt(vec2 px, vec3 lu, out vec3 col, float kohl) {
   float best = 1e9, sd = 0.0, t = 0.0, hh = 1.0, past = 0.0, seen = 1.0;
   for (int e = 0; e < 2; e++) {
     for (int i = 0; i < 8; i++) {
@@ -2041,15 +2059,25 @@ float waterAt(vec2 px, vec3 lu, out vec3 col) {
       }
     }
   }
-  float soft = uWaterI[0].w, below = ${WATER_OUT.toFixed(4)} * uEw;
-  float m = smoothstep(-below - soft, -below + soft, sd) * (1.0 - smoothstep(hh - soft, hh + soft, sd)) * (1.0 - smoothstep(0.0, 2.0 * soft, past)) * seen;
-  for (int k = 0; k < 2; k++) m *= smoothstep(0.95, 1.1, length(px - uWaterI[k].xy) / max(uWaterI[k].z, 1e-3));
+  // (her own kohl (KOHL_RIM): softer, a little onto her lash roots, on under her irises, fading out at her inner corner)
+  float soft = uWaterI[0].w, low = soft * (1.0 + ${KOHL_RIM.soft.toFixed(2)} * kohl), below = (${WATER_OUT.toFixed(4)} + ${KOHL_RIM.out.toFixed(4)} * kohl) * uEw;
+  float m = smoothstep(-below - low, -below + low, sd) * (1.0 - smoothstep(hh - soft, hh + soft, sd)) * (1.0 - smoothstep(0.0, 2.0 * soft, past)) * seen;
+  float rim = 1.0 - smoothstep(${KOHL_RIM.under.toFixed(2)} * hh - soft, ${KOHL_RIM.under.toFixed(2)} * hh + soft, sd);
+  for (int k = 0; k < 2; k++) {
+    float off = smoothstep(0.95, 1.1, length(px - uWaterI[k].xy) / max(uWaterI[k].z, 1e-3));
+    m *= max(off, kohl * rim);
+  }
+  float inner = mix(1.0, smoothstep(${KOHL_RIM.inner[0].toFixed(2)}, ${KOHL_RIM.inner[1].toFixed(2)}, t), kohl);
+  m *= inner;
   if (uWaterW.w > 0.0) {
     vec3 s = uWaterW.rgb;
     float bright = smoothstep(${WATER_WHITE[0][0].toFixed(3)}, ${WATER_WHITE[0][1].toFixed(3)}, luma(lu) / max(luma(s), 1e-4));
     float red = (lu.r - lu.b) / max(lu.r + lu.g + lu.b, 1e-4) - (s.r - s.b) / max(s.r + s.g + s.b, 1e-4);
     m *= 1.0 - bright * (1.0 - smoothstep(${WATER_WHITE[1][0].toFixed(3)}, ${WATER_WHITE[1][1].toFixed(3)}, red));
   }
+  // (and smudged down onto her lower lash roots, fading out below them: KOHL_RIM.smudge)
+  if (kohl > 0.0 && sd < 0.0) m = max(m, kohl * ${KOHL_RIM.smudge[1].toFixed(2)} * (1.0 - smoothstep(below, ${KOHL_RIM.smudge[0].toFixed(4)} * uEw, -sd))
+    * (1.0 - smoothstep(0.0, 2.0 * low, past)) * seen * inner);
   float k0 = ${(WATER_T[0] / 2).toFixed(4)}, k1 = ${((WATER_T[0] + WATER_T[1]) / 2).toFixed(4)}, k2 = ${((1 + WATER_T[1]) / 2).toFixed(4)};
   col = t < k1 ? mix(uWaterC[0], uWaterC[1], clamp((t - k0) / (k1 - k0), 0.0, 1.0)) : mix(uWaterC[1], uWaterC[2], clamp((t - k1) / (k2 - k1), 0.0, 1.0));
   return m;
@@ -2435,7 +2463,7 @@ void main() {
   vec3 lex = lrs * (1.0 - M.r) * (1.0 - M.g) * uK.x;
   if (uWaterK > 0.0) {             // her lower waterline: the look's own change there (with its liner, step by step)
     vec3 wc;
-    float wm = waterAt(px, pow(src, vec3(2.2)), wc) * uWaterK * (uZonesOn == 1 ? shown(4, sw) : 1.0);
+    float wm = waterAt(px, pow(src, vec3(2.2)), wc, 0.0) * uWaterK * (uZonesOn == 1 ? shown(4, sw) : 1.0);
     lex = mix(lex, wc * uK.x, wm);
   }
   {                                // (LAYER_FLOOR: her brightness rolled off, the change of hue kept, each channel held above it)
@@ -2570,7 +2598,7 @@ void main() {
     res = luma(uLiner) < 0.02 ? min(res, lined) : lined;
     if (uKohl > 0.0) {            // kohl on her lower waterline (Mine.liner.kohl): her liner's colour in her light there
       vec3 wc;
-      float km = clamp(waterAt(px, pow(src, vec3(2.2)), wc) * uKohl * rv(4, sw), 0.0, 1.0);   // (uKohl: its opacity)
+      float km = clamp(waterAt(px, pow(src, vec3(2.2)), wc, 1.0) * uKohl * rv(4, sw), 0.0, 1.0);   // (uKohl: its opacity)
       vec3 kohl = mix(res, pow(clamp(uLiner * lightHere(lu), 0.0, 1.0), vec3(1.0 / 2.2)), km);
       res = luma(uLiner) < 0.02 ? min(res, kohl) : kohl;
     }

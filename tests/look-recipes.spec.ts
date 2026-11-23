@@ -144,9 +144,9 @@ test("?engine=v2 paints a look as its recipe (kept for the tab, ?engine=v1 turns
     const v1 = pixels(await m.paintLook(shot, "hollywood", "natural"));
     let diff = 0;
     for (let i = 0; i < two.length; i += 4) diff += Math.abs(two[i] - v1[i]);
-    // (past her outer corner, where its wing is: her bare skin there)
+    // (past her outer corner, where its wing is, carrying on her lower lash line out and a little up: her bare skin there)
     const ax = [(P[263][0] - P[362][0]) / ew, (P[263][1] - P[362][1]) / ew], lift = [ax[1], -ax[0]];
-    const wx = P[263][0] + ew * (0.12 * ax[0] + 0.07 * lift[0]), wy = P[263][1] + ew * (0.12 * ax[1] + 0.07 * lift[1]);
+    const wx = P[263][0] + ew * (0.14 * ax[0] + 0.04 * lift[0]), wy = P[263][1] + ew * (0.14 * ax[1] + 0.04 * lift[1]);
     const wing = (d: Uint8ClampedArray) => mean(d, w, [wx - 1, wy - 1, wx + 2, wy + 2]);
     return { on, kept, off, offKept, bareLash: mean(bare, w, lash), bareLine: line(bare), line: line(two), bareWing: wing(bare), wing: wing(two), bareLips: mean(bare, w, lips), lips: mean(two, w, lips), lashes, spikes, diff };
   }, photo);
@@ -217,6 +217,7 @@ test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a 
       return s / 9;
     };
     const rim = (d: Uint8ClampedArray) => [381, 382, 390, 249].reduce((s, i) => s + at(d, i, 0.012), 0) / 4;
+    const underIris = (d: Uint8ClampedArray) => [374, 380].reduce((s, i) => s + at(d, i, 0.004), 0) / 2;   // (the rim in front of her iris)
     const white = (d: Uint8ClampedArray) =>     // (from her iris's centre 0.6 of the way to each corner of her eye)
       [362, 263].reduce((s, c) => s + lum(d, P[473][0] + (P[c][0] - P[473][0]) * 0.6, P[473][1] + (P[c][1] - P[473][1]) * 0.6), 0) / 2;
     const iris = (d: Uint8ClampedArray) => lum(d, P[473][0], P[473][1] + down[1] * ew * 0.05);
@@ -243,15 +244,16 @@ test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a 
     return { dots, lighter, band: [band(lid), band(lit)], upper: [upper(lid), upper(lit)], brightest, before,
       under: [under(crease), under(smudged)], lid: [upper(crease), upper(smudged)],
       creaseLine: [ring(lined), ring(creased)], lashLine: [rim(lined), rim(creased)], warmth: [warmth(silver), warmth(gold)],
-      rim: [rim(lined), rim(kohl)], white: [white(lined), white(kohl)], iris: [iris(lined), iris(kohl)], below: [below(lined), below(kohl)] };
+      rim: [rim(lined), rim(kohl)], rimIris: [underIris(lined), underIris(kohl)], white: [white(lined), white(kohl)], iris: [iris(lined), iris(kohl)], below: [below(lined), below(kohl)] };
   }, photo);
-  console.log("kohl", JSON.stringify({ rim: out.rim, white: out.white, iris: out.iris, below: out.below }));
+  console.log("kohl", JSON.stringify({ rim: out.rim, rimIris: out.rimIris, white: out.white, iris: out.iris, below: out.below }));
   expect(out.dots).toBeGreaterThan(15);                       // dotted on
   expect(out.lighter).toBe(0);                               // (and nothing else on her cheek)
   expect(out.band[1]).toBeGreaterThan(out.band[0] + 2);      // her aegyo-sal lit
   expect(Math.abs(out.upper[1] - out.upper[0])).toBeLessThan(1.5);   // her lid as it was
   expect(out.brightest).toBeGreaterThan(Math.min(250, out.before + 25));   // a crystal catching her light
   expect(out.rim[1]).toBeLessThan(out.rim[0] * 0.75);                     // kohl on her waterline
+  expect(out.rimIris[1]).toBeLessThan(out.rimIris[0] * 0.8);             // (on under her iris too: the rim runs on in front of it)
   expect(Math.abs(out.white[1] - out.white[0])).toBeLessThan(1.5);        // (not on the white of her eye,
   expect(Math.abs(out.iris[1] - out.iris[0])).toBeLessThan(1.5);          // nor her iris,
   expect(Math.abs(out.below[1] - out.below[0])).toBeLessThan(1.5);        // nor her skin under her lashes)

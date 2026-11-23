@@ -539,6 +539,24 @@ in makeup-gl.ts):
   on fox-eye (3.5 -> 2.2), mod-60s (3.4 -> 2.4), pin-up (1.9 -> 1.0), bronzed-goddess (2.5 -> 1.7), full-glam (2.5 ->
   1.8), hollywood (2.1 -> 1.6), cut-crease (1.7 -> 1.3), persian-bride (2.0 -> 1.6); further on sunset (1.6 -> 2.1),
   fiery-red (2.7 -> 3.0), classic-bride (1.3 -> 1.5), siren-eyes, nineties and henna-night (0.2 each).
+- **A wing that flicks out, kohl that sits on the rim.** Next to the catalog photos the studio's liner looked drawn on in
+  two places. Its wing was a short fat fin pointing up at her brow's tail (24 degrees up from her eye's axis, 0.3 of her
+  eye's width long; a fox or siren eye's 30 and 0.42), where the photos' wings carry on her lower lash line's direction
+  out past her corner, only a little up, and thin to a point (their tips 0.35 to 0.45 eye widths past her corner, 5 to 8
+  degrees up; a fox or siren eye's 0.4 to 0.6 and 13 to 18). It is now `LINER_WING`: 8 degrees and 0.38 long (fox 15 and
+  0.46), its top edge leaving her liner a little further in and higher, so it is a long tapering flick, not a fin. Her
+  kohl (`Mine.liner.kohl`) lay on her waterline as the catalog looks' own change does: a crisp black stripe from her
+  inner corner that stopped where her iris is (the band keeps off her irises, and the rim runs on in front of their
+  lower edge), with her lash roots under it bare. Now (`KOHL_RIM`) it runs on under her irises (in the lower quarter of
+  the band there), its lower edge three times softer, a little onto her lash roots and smudged on down below them (half
+  as dark, gone by 0.04 eye widths), fading in over her inner corner; and at 0.72 of a liner's opacity (`KOHL`, 0.85:
+  her rim came out darker than the photos', L* 22.8 against 26.8 on the Arabic glam). The catalog looks' own waterline
+  is as it was. A test: kohl darkens her rim under her iris too. All 48 looks as recipes on the catalog model: under the
+  lower lashes 4.64 -> 4.25 ΔE from the photos (median; worst 8.23 -> 7.35: electric-blue 10.0 -> 8.7, siren-eyes 4.9 ->
+  3.7, bold-glam 7.6 -> 6.5), the waterline 3.33 -> 3.29, catalog colour 1.59 -> 1.57 (median), the whole face 2.623 ->
+  2.617, the eye whites' change 1.27 -> 1.17 (worst), the eye placement's overlap a little closer (cat-eye 0.26 -> 0.28,
+  persian-bride 0.59 -> 0.62) but its offset 0.069 -> 0.074 eye widths (median; the liner looks, colour-liner 0.16 ->
+  0.19, cat-eye 0.15 -> 0.17: the longer wing moves the change's centre out past her corner); the lid 2.000 -> 1.996.
 
 The tiny fallback networks learn the look as the engine finishes it: `scripts/tinybeauty/finish.py` paints the
 foundation, this concealer, the layer with each look's strengths, the brows, lipstick and eye detail in the engine's

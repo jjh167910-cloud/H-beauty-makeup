@@ -241,9 +241,11 @@ const STRENGTH: Partial<Record<StepKey, number>> = { contour: 0.6, blush: 1.5, g
 
 /**
  * Kohl on her waterline, at a liner's opacity: a pencil on the wet rim covers less than on skin (a catalog look's kohl
- * leaves its waterline about a fifth of its light: water_profile in teacher.py, `water` in looks.json).
+ * leaves its waterline about a fifth of its light: water_profile in teacher.py, `water` in looks.json). At 0.85 the
+ * rim came out darker than the catalog photos' (L* 22.8 against their 26.8 on the Arabic glam, 24.4 against 25.7 on
+ * the full glam).
  */
-const KOHL = 0.85;
+const KOHL = 0.72;
 
 /** Her aegyo-sal's light when she has no inner-corner light: a pearl shimmer (a champagne one read as a gold stripe). */
 const AEGYO_LIGHT = HIGHLIGHTERS.find((h) => h.id === "pearl")!.hex;
