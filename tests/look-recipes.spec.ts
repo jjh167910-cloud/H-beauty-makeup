@@ -228,6 +228,9 @@ test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a 
     const crease = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow: brown }));
     const smudged = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow: { ...brown, lower: true } }));
     const under = (d: Uint8ClampedArray) => [249, 390, 373].reduce((s, i) => s + at(d, i, -0.06) + at(d, i, -0.09), 0) / 6;
+    // a smoky eye (over its catalog map): its own band under her lower lashes too, packed on, all along them
+    const smoky = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow: { ...brown, place: "smoky" } }));
+    const underAll = (d: Uint8ClampedArray) => [380, 374, 373, 390].reduce((s, i) => s + at(d, i, -0.04) + at(d, i, -0.07), 0) / 8;
     // a graphic crease line with her liner: along her crease (her ring's middle points), darker; her lash line as it was
     const creased = pixels(await m.paintMine(shot, { gain: { liner: 1 }, liner: { ...liner, crease: true } }));
     const ring = (d: Uint8ClampedArray) => {      // (the darkest of a short column across the arc, either side of her crease)
@@ -242,7 +245,7 @@ test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a 
     const gold = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow: { ...glitter, glitter: "#ffe1b4" } }));
     const silver = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow: { ...glitter, glitter: "#f4f4f6" } }));
     return { dots, lighter, band: [band(lid), band(lit)], upper: [upper(lid), upper(lit)], brightest, before,
-      under: [under(crease), under(smudged)], lid: [upper(crease), upper(smudged)],
+      under: [under(crease), under(smudged)], lid: [upper(crease), upper(smudged)], smoky: [underAll(crease), underAll(smoky)],
       creaseLine: [ring(lined), ring(creased)], lashLine: [rim(lined), rim(creased)], warmth: [warmth(silver), warmth(gold)],
       rim: [rim(lined), rim(kohl)], rimIris: [underIris(lined), underIris(kohl)], white: [white(lined), white(kohl)], iris: [iris(lined), iris(kohl)], below: [below(lined), below(kohl)] };
   }, photo);
@@ -257,9 +260,10 @@ test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a 
   expect(Math.abs(out.white[1] - out.white[0])).toBeLessThan(1.5);        // (not on the white of her eye,
   expect(Math.abs(out.iris[1] - out.iris[0])).toBeLessThan(1.5);          // nor her iris,
   expect(Math.abs(out.below[1] - out.below[0])).toBeLessThan(1.5);        // nor her skin under her lashes)
-  console.log("under", JSON.stringify({ under: out.under, lid: out.lid }));
+  console.log("under", JSON.stringify({ under: out.under, lid: out.lid, smoky: out.smoky }));
   expect(out.under[1]).toBeLessThan(out.under[0] - 4);                    // her eyeshadow under her lower lashes
   expect(Math.abs(out.lid[1] - out.lid[0])).toBeLessThan(1.5);            // (her lid as it was)
+  expect(out.smoky[1]).toBeLessThan(out.smoky[0] - 15);                  // a smoky eye's band under her lower lashes
   console.log("crease, glitter", JSON.stringify({ creaseLine: out.creaseLine, lashLine: out.lashLine, warmth: out.warmth }));
   expect(out.creaseLine[1]).toBeLessThan(out.creaseLine[0] - 12);         // a graphic line along her crease
   expect(Math.abs(out.lashLine[1] - out.lashLine[0])).toBeLessThan(1.5);  // (her waterline as it was)

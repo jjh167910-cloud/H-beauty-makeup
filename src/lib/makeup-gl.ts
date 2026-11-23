@@ -675,6 +675,8 @@ export type Mine = {
     drawn?: string;
     /** Smudged along her lower lash line too (LOWER_SMUDGE), over whatever its placement puts there. */
     lower?: boolean;
+    /** Over a catalog look's map: this placement's own band under her lower lashes drawn on too (a smoky eye's). */
+    below?: string;
     /** With two shades: how much her second shade gives way over her mobile lid, where her lid shade goes (0.85). */
     fade?: number;
     /** Her glitter's own colour (linear; a topper over her eyeshadow: gold, silver, rose gold), else her shade's. */
@@ -1043,6 +1045,20 @@ export function lidSpots(P: Pt[]): { lid: Spot[]; inner: Spot[]; low: Spot[]; ae
  * around the socket of her eye (upper2), her brow its lower edge. How much of the eyeshadow each placement lays at (s, t).
  */
 const ss = (a: number, b: number, x: number) => { const k = Math.min(1, Math.max(0, (x - a) / (b - a))); return k * k * (3 - 2 * k); };
+/**
+ * A smoky eye's band under her lower lashes, this much denser than on her lid (at most a full coverage): the catalog's
+ * smoky photos have it packed on there, 10 to 24 L* under her lashes where her lid's outer half is 17 to 36, and laid as
+ * deep as her lid, then blurred by the blending brush, it came out 29 to 34 (the arabic glam's 31 against its photo's
+ * 12; 2026-11).
+ */
+const SMOKY_LOWER = 1.6;
+/**
+ * ...and packed on there: as much more powder as this, under her eye (lidSpots' low band, which her lid's colour never
+ * reaches) where the band is full (its placement from SMOKY_BELOW_CORE[0] to [1] of a full coverage), whatever amount
+ * her lid has; its blended edge below as it was (packed all the way down, her under-eye came out 5 to 6 L* darker than
+ * the photos': theirs is smoked out, not packed); not over her eyeball's soft edge (her brush's blur reaches up onto it).
+ */
+const SMOKY_BELOW = 2.2, SMOKY_BELOW_CORE = [0.45, 0.85], SMOKY_BELOW_MATTE = 0.65;
 const bump = (c: number, w: number, x: number) => Math.exp(-(((x - c) / w) ** 2));
 const SHADOW_PATTERNS: Record<string, { out: number; f: (s: number, t: number) => number }> = {
   // her lid to just past her crease, one colour
@@ -1054,7 +1070,7 @@ const SHADOW_PATTERNS: Record<string, { out: number; f: (s: number, t: number) =
   // her lid right at her lashes and as far down as the catalog's smoky photos take it (full to 0.12 eye widths below her
   // lashes, gone by 0.24, before her brush blurs it: a band a third as tall read as a faint shadow under the blending
   // brush, 4 to 10 ΔE lighter than their photos)
-  smoky: { out: 1.18, f: (s, t) => (t >= 0 ? 1 - ss(0.95, 1.6, t) : (1 - ss(0.75, 1.5, -t)) * (0.6 + 0.4 * ss(0.1, 0.45, s))) },
+  smoky: { out: 1.18, f: (s, t) => (t >= 0 ? 1 - ss(0.95, 1.6, t) : SMOKY_LOWER * (1 - ss(0.75, 1.5, -t)) * (0.6 + 0.4 * ss(0.1, 0.45, s))) },
   // deeper at her inner and outer corners, her lid's middle lighter (the spotlight)
   halo: { out: 1.1, f: (s, t) => (t >= 0 ? (1 - ss(0.85, 1.35, t)) * (1 - 0.65 * bump(0.5, 0.17, s)) : 0.45 * (1 - ss(0, 1, -t)) * (0.4 + 0.6 * ss(0.45, 0.85, s))) },
   // a crisp line in her crease (her lid under it left for her lid shade), blended out above it
@@ -1100,10 +1116,13 @@ const CREASE_RING = [[189, 221, 222, 223, 224, 225, 113], [413, 441, 442, 443, 4
  * fat fin pointing up at her brow's tail.
  */
 const LINER_WING: Record<"wing" | "fox", [number, number, number, number]> = { wing: [8, 0.38, 0.78, 0.045], fox: [15, 0.46, 0.72, 0.05] };
-/** Her eyeshadow's placement (SHADOW_PATTERNS) as triangles for the "pattern" program: x, y, 0, 0, coverage. */
-export function shadowPattern(P: Pt[], place: string, lid = false, lower = false): Float32Array {
+/**
+ * Her eyeshadow's placement (SHADOW_PATTERNS) as triangles for the "pattern" program: x, y, 0, 0, coverage. `below`: only
+ * its part under her lower lashes (drawn over a catalog look's map, which has little there).
+ */
+export function shadowPattern(P: Pt[], place: string, lid = false, lower = false, below = false): Float32Array {
   const pat = lid ? LID_PATTERN : place === "none" ? NO_PATTERN : SHADOW_PATTERNS[place] ?? SHADOW_PATTERNS.wash, peak = lid ? 1 : SHADOW_PATTERN_PEAK;
-  const f = (s: number, t: number) => (lower && t < 0 ? Math.max(pat.f(s, t), LOWER_SMUDGE(s, t)) : pat.f(s, t));
+  const f = (s: number, t: number) => (below && t >= 0 ? 0 : lower && t < 0 ? Math.max(pat.f(s, t), LOWER_SMUDGE(s, t)) : pat.f(s, t));
   const { ew, down, sides } = frame(P), up = mul(down, -1);
   const S = 26, ts = [-1.6, -1.3, -1, -0.66, -0.33, 0, ...Array.from({ length: 21 }, (_, i) => i * 0.1)];
   const out: number[] = [];
@@ -1120,7 +1139,7 @@ export function shadowPattern(P: Pt[], place: string, lid = false, lower = false
       if (t < 0) return add(low(Math.min(s, 1)), mul(down, -t * ew * 0.16));
       return t <= 1 ? lerp(lash(s), crease(s), t) : lerp(crease(s), brow(s), t - 1);
     };
-    const value = (s: number, t: number) => peak * f(s, t) * ss(-0.04, 0.1, s) * (1 - ss(pat.out - 0.1, pat.out, s));
+    const value = (s: number, t: number) => Math.min(1, peak * f(s, t) * ss(-0.04, 0.1, s) * (1 - ss(pat.out - 0.1, pat.out, s)));
     for (let i = 0; i < S; i++) {
       const s0 = -0.04 + (i / S) * (pat.out + 0.04), s1 = -0.04 + ((i + 1) / S) * (pat.out + 0.04);
       for (let j = 0; j + 1 < ts.length; j++) {
@@ -1989,14 +2008,14 @@ uniform float uFreckle;    // her freckles: how strong (0: none)
 const vec3 LASH_COLOUR = vec3(${LASH_COLOUR.map((x) => x.toFixed(4)).join(", ")});
 uniform vec4 uMineK;
 uniform vec3 uConTint, uBrow, uBrowShape;
-uniform float uBrowX, uMineLow, uLidFade;
+uniform float uBrowX, uMineLow, uLidFade, uMineBelow;
 uniform vec4 uGlitterTop;
 uniform vec4 uBrowDef;      // a look's brows: her hairs' colour over her skin's brightness (rgb), how far the gaps fill (a)
 // coloured lenses: each iris (centre in uv, radius in uv x and y), the lens colour (linear, in her light), its amount
 // and whether it covers her iris (1) or tints it (0)
 uniform vec4 uIris[2];
 // her mobile lid (1) to the rest of her eye's shadow placement (0): where her lid shade is packed on
-float gLid = 1.0;
+float gLid = 1.0, gBelow = 1.0;
 uniform vec3 uLens;
 uniform vec2 uLensK;
 // her visible face: 0 everywhere, 1 the coarse map, 2 the guided filter's models (grid over uVisBox: x0, y0, side)
@@ -2227,8 +2246,8 @@ vec3 pigments(vec3 base, vec3 lu, float cov[6]) {
     // (her own eyeshadow as an artist lays it: her lid shade packed on her mobile lid and blended out sheer above it;
     // her crease shade always blended, a soft veil that deepens where it builds up)
     float dense = alpha;
-    if (uMine == 1 && i == 0) dense = alpha * mix(0.5, 1.0, gLid);
-    if (uMine == 1 && i == 4) dense = alpha * ${MINE_CREASE.toFixed(3)};
+    if (uMine == 1 && i == 0) dense = alpha * mix(0.5, 1.0, gLid) * gBelow;
+    if (uMine == 1 && i == 4) dense = alpha * ${MINE_CREASE.toFixed(3)} * gBelow;
     // (her contour and blush: the same amount reads the same on any skin, as a richer formula does on deeper skin)
     if (uMine == 1 && (i == 1 || i == 2)) dense *= mix(${MINE_DEEP_RICH}, 1.0, smoothstep(0.04, 0.25, luma(Rg)));
     vec3 res;
@@ -2264,6 +2283,9 @@ vec3 pigments(vec3 base, vec3 lu, float cov[6]) {
       vec4 k = FREFL[fin];
       float shine = k.x * litI + k.y * hl + k.z * pearl * (glint + 2.0 * (litI - lit));
       float a = clamp(alpha, 0.0, 1.0);
+      // (a smoky band packed in under her lower lashes is a smudge of powder, not a lit lid: its shimmer subdued there,
+      // or the wet rim's own light lit it as a copper line along her lower lashes)
+      if (uMine == 1 && (i == 0 || i == 4)) a *= 1.0 - ${SMOKY_BELOW_MATTE.toFixed(2)} * clamp((gBelow - 1.0) / max(uMineBelow - 1.0, 1e-3), 0.0, 1.0);
       // (a glow's soft veil is light scattered back by the powder: on deeper skin only a little of it, or it reads as ash;
       // the sheen where her face catches the light stays)
       if (fin == 4) {
@@ -2281,7 +2303,7 @@ vec3 pigments(vec3 base, vec3 lu, float cov[6]) {
           q = min(q, 1.25);
           refl = mix(tint, vec3(luma(tint)) * 1.1, 0.3) * (${REFLECT_BASE} * L * q + L * shine);
         }
-        float m = FMIX[fin] * uPigSheen[i] * smoothstep(0.05, 0.6, alpha);
+        float m = FMIX[fin] * uPigSheen[i] * smoothstep(0.05, 0.6, alpha) * a / max(clamp(alpha, 0.0, 1.0), 1e-4);
         res = res * (1.0 - m) + refl * m;
         // (her lid's fullest part: the light its pearl scatters back, a luminous sheen on top)
         res += tint * L * (litI - lit) * ${LID_GLOW.toFixed(3)} * uPigSheen[i] * a;
@@ -2491,6 +2513,8 @@ void main() {
       gLid = clamp(C.g, 0.0, 1.0);
       float two = uPigX[4] > 0.0 ? 1.0 : 0.0, lid = mix(1.0, gLid, two), light = smoothstep(0.04, 0.7, C.b);
       float c = sat(uMineK.z * mix(sh, max(sh, lid), two)) * k3;
+      // (a smoky eye's band under her lower lashes packed on: SMOKY_BELOW, more powder; its shimmer subdued there)
+      gBelow = mix(1.0, uMineBelow, smoothstep(0.08, 0.6, C.a) * smoothstep(${SMOKY_BELOW_CORE[0]}, ${SMOKY_BELOW_CORE[1]}, sh) * (1.0 - smoothstep(0.02, 0.25, M.r)));
       cov = float[6](c * lid, sat(max(ZA.g, 0.0)) * rv(6, sw) * keep, sat(max(ZA.b, 0.0)) * rv(7, sw) * keep,
         sat(max(ZA.a, 0.0)) * rv(8, sw) * keep, two * sat(uMineK.z * sh) * k3 * (1.0 - uLidFade * gLid),
         light * k3 / max(uGain[3], 1e-4) * clamp(uGain[3], ${MINE_LIGHT_GAIN[0]}, ${MINE_LIGHT_GAIN[1]}));
@@ -3294,7 +3318,9 @@ export class MakeupGL {
             const sigma = Math.max(0.8, ew * (SHADOW_PATTERN_SOFT[mine.shadow.pack] ?? 0.075) * edge, 0.9 * (face.blur ?? 0));
             this.blur(T.cov.tex[0], T.covB, [sigma, 0.5, 0.5, 0.5], scissor);
             C = T.covB;
-          } else if (mine.shadow.lower) this.pattern(T.cov, 0, shadowPattern(P, "none", false, true), w, h);   // (over her map)
+          } else if (mine.shadow.lower || mine.shadow.below) {          // (over her map)
+            this.pattern(T.cov, 0, shadowPattern(P, mine.shadow.below ?? "none", false, Boolean(mine.shadow.lower), true), w, h);
+          }
           const m = lidSpots(P);
           this.pattern(C, 1, shadowPattern(P, "", true), w, h);          // (her mobile lid: LID_PATTERN)
           if (prod?.inner && mine.shadow.corners !== false) this.spots(C, 2, m.inner, w, h);
@@ -3564,6 +3590,7 @@ export class MakeupGL {
     gl.uniform4f(this.uni(p, "uBrowDef"), ...((bd ? [...bd.ratio, bd.amount] : [0, 0, 0, 0]) as [number, number, number, number]));
     gl.uniform1f(this.uni(p, "uMineLow"), mine?.shadow?.low ?? 0);
     gl.uniform1f(this.uni(p, "uLidFade"), mine?.shadow?.fade ?? 0.85);
+    gl.uniform1f(this.uni(p, "uMineBelow"), mine?.shadow && (mine.shadow.drawn === "smoky" || mine.shadow.below === "smoky") ? SMOKY_BELOW : 1);
     const top = mine?.shadow?.glitterTop;
     gl.uniform4f(this.uni(p, "uGlitterTop"), top?.[0] ?? 0, top?.[1] ?? 0, top?.[2] ?? 0, top ? 1 : 0);
     const lens = prod?.lenses, irises = P.length >= 478 ? [468, 473] : null;

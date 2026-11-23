@@ -557,6 +557,22 @@ in makeup-gl.ts):
   2.617, the eye whites' change 1.27 -> 1.17 (worst), the eye placement's overlap a little closer (cat-eye 0.26 -> 0.28,
   persian-bride 0.59 -> 0.62) but its offset 0.069 -> 0.074 eye widths (median; the liner looks, colour-liner 0.16 ->
   0.19, cat-eye 0.15 -> 0.17: the longer wing moves the change's centre out past her corner); the lid 2.000 -> 1.996.
+- **A smoky eye's band under her lower lashes.** The catalog's smoky photos have a deep band packed in under the lower
+  lashes (10 to 24 L* there on the catalog model, where her lid's outer half is 17 to 36), and «میکاپ من» left it pale.
+  Drawn from her eye (`?engine=v2`) the band was there but laid as thin as her lid and blurred by the blending brush:
+  29 to 34 L*. Over a catalog look's map (the studio's default) it was gone altogether (the maps hold little under the
+  eye, and `MINE_SHADOW_LOW` took 45% of that away): 38 to 43 L*, her bare skin's 41 to 43; on the synthetic test face a
+  deep brown smoky eye left the band under her lashes as it was (65.9 -> 64.5). Now a smoky eye's band is denser in its
+  placement (`SMOKY_LOWER`: 1.6 times her lid's, at most a full coverage), packed on (`SMOKY_BELOW`: 2.2 times the
+  powder where the band is full, under her eye and off her eyeball's soft edge; its blended edge below as it was, or her
+  under-eye came out 5 to 6 L* darker than the photos'), its shimmer subdued there (`SMOKY_BELOW_MATTE`: a smudge of
+  powder, not a lit lid; the wet rim's own light lit a shimmer band as a copper line on deeper skin), and over a
+  catalog map the smoky placement's own band is drawn on too (`Mine.shadow.below`). Under the lashes now 16 to 28 L*
+  either way (navy-smokey 19 to 21 in its photo, 17 to 21 now); the test face's band 65.9 -> 36.1 (a test). All 48
+  looks as recipes on the catalog model: under the lower lashes 4.25 -> 3.53 ΔE from the photos (median; worst 7.35 ->
+  6.23: navy-smokey 8.8 -> 4.4, classic-smokey 6.7 -> 2.4, arabic-glam 12.1 -> 7.9, twenties 7.5 -> 3.8), the under-eye
+  2.62 -> 2.59, catalog colour 1.569 -> 1.562; the waterline 3.29 -> 3.41 (median; the smoky looks with kohl: their
+  band's blur reaches the rim, navy-smokey 3.3 -> 3.8) and the eye whites' change 1.17 -> 1.21 (worst; the limit 1.5).
 
 The tiny fallback networks learn the look as the engine finishes it: `scripts/tinybeauty/finish.py` paints the
 foundation, this concealer, the layer with each look's strengths, the brows, lipstick and eye detail in the engine's

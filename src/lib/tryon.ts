@@ -997,7 +997,10 @@ async function mineProducts(picks: MinePicks, face: FaceStats, all: LooksMeta): 
     const light = picks.shadow.inner ?? picks.shadow.aegyo;
     if (light) out.inner = { ...shade(pigment("glow", light, "shimmer")), thick: 0.13, sheen: 0.6 };
     // (under her eye: smoky and halo wrap her lower lash line, the others barely touch it unless she smudges it there)
-    mine.shadow = { pack: picks.shadow.pack, low: drawn || picks.shadow.lower ? 0 : MINE_SHADOW_LOW[picks.shadow.place] ?? 0.8, corners: Boolean(picks.shadow.inner),
+    // (a smoky eye over a catalog look's map: its own band under her lower lashes drawn on, at its own depth)
+    const below = !drawn && picks.shadow.place === "smoky" ? "smoky" : null;
+    mine.shadow = { pack: picks.shadow.pack, low: drawn || picks.shadow.lower || below ? 0 : MINE_SHADOW_LOW[picks.shadow.place] ?? 0.8, corners: Boolean(picks.shadow.inner),
+      ...(below ? { below } : {}),
       aegyoSal: Boolean(picks.shadow.aegyo), ...(drawn ? { drawn } : {}), ...(picks.shadow.lower ? { lower: true } : {}), fade: MINE_LID_FADE[picks.shadow.place] ?? 0.85,
       ...(picks.shadow.glitter && picks.shadow.finish === "glitter" ? { glitterTop: linHex(picks.shadow.glitter) } : {}) };
   }
