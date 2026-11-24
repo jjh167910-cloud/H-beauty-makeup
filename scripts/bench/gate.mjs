@@ -1,4 +1,5 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -71,6 +72,14 @@ export function evaluate(baseline, repeat, candidate) {
     if (m.size !== bm.size || [...bm.keys()].some(id => !m.has(id)))
       issues.push(`${name}: incomplete or mismatched render coverage (${m.size} versus ${bm.size})`);
   }
+  if (JSON.stringify(baseline.manifest.photos ?? []) !== JSON.stringify(candidate.manifest.photos ?? [])
+      || JSON.stringify(baseline.manifest.photos ?? []) !== JSON.stringify(repeat.manifest.photos ?? []))
+    issues.push('Benchmark source-photo metadata changed');
+  if ([baseline, repeat, candidate].some(run => run.fingerprints)) {
+    const refs = [baseline, repeat, candidate].map(run => JSON.stringify(run.fingerprints ?? {}));
+    if (refs[0] !== refs[1] || refs[0] !== refs[2])
+      issues.push('Benchmark input-photo or catalog-truth pixels changed');
+  }
   if (issues.length) return { pass: false, issues, inspected };
 
   const sets = [baseline.rows, repeat.rows, candidate.rows];
@@ -140,7 +149,20 @@ export function loadRun(dir) {
   const rows = readFileSync(join(dir, 'scores.jsonl'), 'utf8').trim().split('\n').map((s, i) => {
     try { return JSON.parse(s); } catch { throw new Error(`Malformed scores.jsonl at line ${i + 1}`); }
   });
-  return { rows, summary: read('summary.json'), manifest: read('manifest.json') };
+  const manifest = read('manifest.json');
+  const fingerprints = {};
+  const digest = rel => createHash('sha256').update(readFileSync(join(dir, rel))).digest('hex');
+  for (const photo of manifest.photos ?? []) {
+    if (typeof photo.file !== 'string' || !/^photos\/[a-zA-Z0-9_.-]+\.png$/.test(photo.file))
+      throw new Error('Malformed private benchmark photo manifest');
+    fingerprints[photo.file] = digest(photo.file);
+    if (photo.source === 'catalog') for (const look of manifest.looks) {
+      if (!/^[a-z0-9-]+$/.test(look)) throw new Error('Malformed benchmark look name');
+      const file = `truth/${look}/${photo.id}.png`;
+      fingerprints[file] = existsSync(join(dir, file)) ? digest(file) : null;
+    }
+  }
+  return { rows, summary: read('summary.json'), manifest, fingerprints };
 }
 
 function cli(args) {
