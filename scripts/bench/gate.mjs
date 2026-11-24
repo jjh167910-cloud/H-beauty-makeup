@@ -194,6 +194,43 @@ export function releasePolicy(manifest) {
   return issues;
 }
 
+/**
+ * A manifest alone does not prove that the scorer actually computed useful
+ * metrics. If the exact same fields are absent in all three runs, pure
+ * no-regression comparison would otherwise report a false PASS. This
+ * evidence requirement applies only to release-eligible full comparisons,
+ * not to the synthetic quick tests in CI.
+ */
+export function releaseEvidence(run) {
+  const issues = [];
+  const rows = run.rows ?? [], manifest = run.manifest ?? {};
+  const fields = [
+    ['catalog', r => r.source === 'catalog', ['cat_lip', 'cat_lid', 'cat_face', 'cat_iou_eyes', 'cat_shift_eyes', 'cat_lowlash']],
+    ['light simulation', r => r.light === 'sim' && r.cond !== 'orig', ['light_lip', 'light_lid', 'light_cheek']],
+    ['identity / texture safety', () => true, ['skin_fine', 'skin_shading', 'eye_whites', 'outside', 'clipped', 'drift']],
+  ];
+  for (const engine of manifest.engines ?? []) {
+    const R = rows.filter(r => r.engine === engine);
+    for (const [label, select, metrics] of fields) {
+      const subset = R.filter(select);
+      for (const field of metrics) if (!subset.some(r => num(r[field])))
+        issues.push(engine + ': no finite ' + field + ' evidence in ' + label);
+    }
+    for (const group of ['light', 'medium', 'deep']) {
+      const samples = R.filter(r => r.group === group && r.source === 'mste' && r.cond === 'orig');
+      for (const field of ['skin_fine', 'eye_whites', 'outside']) {
+        const faces = new Set(samples.filter(r => num(r[field])).map(r => r.face).filter(Boolean));
+        if (faces.size < 2)
+          issues.push(engine + ': insufficient ' + field + ' evidence on two real faces in ' + group + ' tone');
+      }
+    }
+    const fairness = run.summary?.[engine]?.lines?.['Skin-tone fairness, lipstick hue gap (°)'];
+    if (!fairness || !num(fairness.worst) || !num(fairness.n) || fairness.n < 1)
+      issues.push(engine + ': missing cross-skin-tone lipstick fairness evidence');
+  }
+  return issues;
+}
+
 export function loadRun(dir) {
   const read = name => JSON.parse(readFileSync(join(dir, name), 'utf8'));
   const rows = readFileSync(join(dir, 'scores.jsonl'), 'utf8').trim().split('\n').map((s, i) => {
@@ -231,6 +268,8 @@ function cli(args) {
   const baseline = loadRun(opts.baseline), repeat = loadRun(opts.repeat), candidate = loadRun(opts.candidate);
   const result = evaluate(baseline, repeat, candidate);
   result.issues.push(...releasePolicy(candidate.manifest));
+  for (const [label, run] of [['baseline', baseline], ['repeat', repeat], ['candidate', candidate]])
+    result.issues.push(...releaseEvidence(run).map(issue => label + ': ' + issue));
   result.pass = result.issues.length === 0;
   const text = `# Private try-on benchmark gate\n\nResult: **${result.pass ? 'PASS' : 'FAIL'}**\n\n` +
     `Compared ${result.inspected.cells} groups and ${result.inspected.metrics} metrics.\n\n` +
