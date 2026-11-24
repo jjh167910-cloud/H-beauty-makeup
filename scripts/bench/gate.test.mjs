@@ -104,3 +104,14 @@ test('CLI fails closed and writes an aggregate-only report', () => {
     assert.ok(!report.includes('light-0') && !report.includes('deep-2'), 'individual photo IDs must be private');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+test('rejects changed photo pixels even if the render IDs are identical', () => {
+  const b = run(), r = run(), c = run();
+  b.fingerprints = { 'photos/p.png': 'aabb' };
+  r.fingerprints = { 'photos/p.png': 'aabb' };
+  c.fingerprints = { 'photos/p.png': 'cdef' };
+  const result = evaluate(b, r, c);
+  assert.equal(result.pass, false);
+  assert.match(result.issues.join('\n'), /input-photo or catalog-truth pixels changed/);
+  assert.ok(!result.issues.join('\n').includes('p.png'));
+});
