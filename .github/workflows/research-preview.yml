@@ -31,7 +31,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.HBEAUTY_PREVIEW_ACCOUNT_ID }}
       REVIEW_URL: https://h-beauty-makeup-review.jjh167910.workers.dev
       EYE_CAP_PREVIEW_GPU_TEST: '1'
-      EYE_CAP_ALL_GPU_TEST: '1'
+      EYE_CAP_ALL_GPU_TEST: '0'
       EYE_CAP_PREVIEW_DIR: /tmp/hbeauty-review-candidate
 
     steps:
@@ -75,7 +75,7 @@ jobs:
           cache: npm
       - name: Install exact app dependencies
         run: npm ci --no-audit --no-fund
-      - name: Verify candidate across all 48 styles on real WebGL2 renderer
+      - name: Generate and verify 3-look GPU gallery (full 48-look CI remains separate)
         run: npm run test:ui -- tests/pale-lids-gpu-preview.spec.ts --workers=1 --reporter=line
       - name: Typecheck
         run: npm run typecheck
@@ -89,6 +89,14 @@ jobs:
             echo "::error::Unexpected source file modification by research overlay"
             exit 1
           fi
+      - name: Include the actual before-and-after gallery in isolated research preview
+        shell: bash
+        run: |
+          test -s test-results/public-eye-cap-visual/index.html
+          test -s test-results/public-eye-cap-visual/metrics.json
+          mkdir -p public/research-preview
+          cp test-results/public-eye-cap-visual/* public/research-preview/
+          test -s public/research-preview/index.html
       - name: Build complete offline-capable research preview
         run: npm run build
       - name: Save mobile-friendly BEFORE / AFTER gallery and build provenance
@@ -96,7 +104,7 @@ jobs:
         run: |
           test -s test-results/public-eye-cap-visual/index.html
           test -s test-results/public-eye-cap-visual/metrics.json
-          node -e 'const fs=require("fs"); const m=JSON.parse(fs.readFileSync("test-results/public-eye-cap-visual/metrics.json","utf8")); if(!m.fullCatalog||m.summary.length!==48)process.exit(2);'
+          node -e 'const fs=require("fs"); const m=JSON.parse(fs.readFileSync("test-results/public-eye-cap-visual/metrics.json","utf8")); if(m.fullCatalog||m.summary.length!==3||m.source!=="public catalog only")process.exit(2);'
           echo "Commit: ${GITHUB_SHA}" > test-results/public-eye-cap-visual/BUILD.txt
           echo "Public-catalog generated preview ONLY, not professionally approved" >> test-results/public-eye-cap-visual/BUILD.txt
       - name: Upload actual-GPU comparison gallery for mobile review
@@ -123,13 +131,15 @@ jobs:
           fi
       - name: Deploy to separate research preview Worker (never production)
         run: npx --yes wrangler@4 deploy --config wrangler.preview.jsonc
-      - name: Verify the live review Worker (and reject production/chat backend)
+      - name: Verify the live review Worker and gallery (and reject production/chat backend)
         shell: bash
         run: |
           curl --fail --show-error --silent --location --retry 3 --retry-delay 4 --max-time 30 "$REVIEW_URL/" -D /tmp/hb-review-headers -o /tmp/hb-review.html
           grep -qi 'x-hbeauty-stage: research-preview' /tmp/hb-review-headers
           grep -q 'data-hbeauty-review="true"' /tmp/hb-review.html
           grep -q 'id="root"' /tmp/hb-review.html
+          curl --fail --show-error --silent --location --max-time 30 "$REVIEW_URL/research-preview/index.html" -o /tmp/hb-before-after.html
+          grep -q 'Makeup, under the microscope' /tmp/hb-before-after.html
           status="$(curl --silent --output /tmp/review-chat.json --write-out '%{http_code}' --max-time 30 "$REVIEW_URL/api/chat")"
           test "$status" = 404
           if grep -q 'data-hbeauty-review="true"' /tmp/hb-review.html; then
