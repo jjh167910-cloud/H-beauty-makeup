@@ -659,6 +659,14 @@ def layer_parts(look: str, fine_sigma=0.02, soft_sigma=0.07, protect_eye_light=F
             hull = cv2.convexHull(np.float32(np.vstack([pl[ring, :2], pl[brow, :2]])))
             cv2.fillConvexPoly(eye_support, np.int32(np.round(hull)), 1)
         eye_support = cv2.GaussianBlur(eye_support, (0, 0), max(1.0, ew * 0.04))
+        # The outer corner of an eye can approach the catalog face's
+        # silhouette. Keep the stronger *experimental* cap at least 0.18 eye
+        # widths inside that contour, rising softly to full strength at 0.30.
+        # Without this guard, icy changed pixels beyond the face outline by
+        # 0.784 L* in the 48-look catalog audit. Existing makeup stays as-is.
+        inside = cv2.distanceTransform((R['face'] > 0.5).astype(np.uint8), cv2.DIST_L2, 5) / max(ew, 1.0)
+        face_safety = np.clip((inside - 0.18) / 0.12, 0, 1)
+        eye_support *= face_safety
         light_cap = EYE_LIGHT + (eye_light_cap - EYE_LIGHT) * eye_support[..., None]
     eye_k = np.where(lum > light_cap, light_cap / np.maximum(lum, 1e-6), 1.0)
     lum = np.minimum(lum, light_cap) * f + np.clip(lum - np.maximum(lb, 0)[..., None] * (1 - BROAD_KEEP), *PLAIN_LUM) * nf
