@@ -129,6 +129,7 @@ test("paired GPU renders improve eyelids without modifying non-eye pixels", asyn
         };
         let changed=0,outsideBoxes=0,outsideFace=0,lipPixels=0,maxDelta=0;
         let outsideBoxOverOne=0,outsideFaceOverOne=0,maxOutsideFaceDelta=0,maxLipDelta=0;
+        const outsideFaceExamples:{x:number,y:number,d:number}[]=[];
         let x0=a.w,y0=a.h,x1=0,y1=0;
         for(let y=0;y<a.h;y++)for(let x=0;x<a.w;x++){
           const k=4*(y*a.w+x);
@@ -143,12 +144,15 @@ test("paired GPU renders improve eyelids without modifying non-eye pixels", asyn
           }
           if(!inside(face,x,y)){
             outsideFace++;maxOutsideFaceDelta=Math.max(maxOutsideFaceDelta,d);
-            if(d>1)outsideFaceOverOne++;
+            if(d>1){
+              outsideFaceOverOne++;
+              if(outsideFaceExamples.length<24)outsideFaceExamples.push({x,y,d});
+            }
           }
           if(inside(lip,x,y)){lipPixels++;maxLipDelta=Math.max(maxLipDelta,d);}
         }
         return {changed,outsideBoxes,outsideFace,lipPixels,maxOutsideDelta:maxDelta,
-          outsideBoxOverOne,outsideFaceOverOne,maxOutsideFaceDelta,maxLipDelta,
+          outsideBoxOverOne,outsideFaceOverOne,maxOutsideFaceDelta,maxLipDelta,outsideFaceExamples,
           outsideBoxBounds:outsideBoxes?[x0,y0,x1,y1]:null};
       }, {left:b.png,right:c.png,boxes:b.boxes,face:b.facePoly,lip:b.lipPoly});
     } finally { await page.close(); }
