@@ -606,7 +606,7 @@ RIDGE = (0.3, 0.6)   # ridges() from which a line is (partly / surely) a strand
 THIN = 0.3   # on plain skin, darker streaks narrower than this (eye widths) are left out
 
 @lru_cache(None)
-def layer_parts(look: str, fine_sigma=0.02, soft_sigma=0.07):
+def layer_parts(look: str, fine_sigma=0.02, soft_sigma=0.07, protect_eye_light=False):
     """The look's makeup as a log-ratio layer (H, W, 3) in the look photo's own coordinates, its points, and its
     complexion (look_tone)."""
     base, pb = _bare()
@@ -687,7 +687,11 @@ def layer_parts(look: str, fine_sigma=0.02, soft_sigma=0.07):
     lr = lr * core[..., None] + sm * (1 - core)[..., None]
     # and no lighter than her skin there: the look's highlights sit inside (cheekbones, nose, forehead); light near the
     # catalog face's edge is its hair or background, not makeup
-    lr = lr - (np.maximum(lr.mean(-1), 0) * (1 - core))[..., None]
+    # Research A/B (off by default): preserve the positive reflectance of eye makeup
+    # outside the inner face core, where the regular skin/hair safety guard is too broad.
+    # Bare skin retains exactly the same guard. Use only after full 48-look regression.
+    plain_edge = (1 - core) * (1 - np.clip(f[..., 0], 0, 1)) if protect_eye_light else (1 - core)
+    lr = lr - (np.maximum(lr.mean(-1), 0) * plain_edge)[..., None]
     # ...and there the look's skin-level colour from inside is carried on to the face's outline (smoothed over
     # FILL eye widths, clipped to EXTEND_T): no stripe where the look would stop short of her face's edge
     # (on plain skin, from plain skin only: the eyeshadow next to a strand doesn't run down her cheek)
