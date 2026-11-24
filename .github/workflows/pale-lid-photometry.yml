@@ -9,6 +9,8 @@ on:
       - 'scripts/bench/build_eye_cap_preview.py'
       - 'scripts/bench/layer_override.cjs'
       - 'scripts/bench/layer_override.test.cjs'
+      - 'scripts/bench/clone_inputs.py'
+      - 'scripts/bench/test_clone_inputs.py'
       - 'scripts/bench/render.cjs'
       - 'tests/pale-lids-gpu-preview.spec.ts'
       - 'scripts/tinybeauty/teacher.py'
@@ -85,6 +87,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Verify privacy-preserving local benchmark triplets (synthetic file bytes only)
+        run: python scripts/bench/test_clone_inputs.py -v
       - name: Install MediaPipe runtime libraries
         run: |
           sudo apt-get update -qq
