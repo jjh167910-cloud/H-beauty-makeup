@@ -176,3 +176,48 @@ test('release policy rejects quick tests and incomplete skin-tone representation
   valid.photos.pop();
   assert.match(releasePolicy(valid).join(' / '), /two independent original-light/);
 });
+
+
+test('real-shaped 40-look scorer bundle passes private file-integrity and release gate end to end', () => {
+  const root = mkdtempSync(join(tmpdir(), 'hbeauty-release-bundle-'));
+  try {
+    const looks = Array.from({ length: 40 }, (_, i) => 'look-' + i);
+    const photos = [{ id: 'catalog__orig', file: 'photos/catalog__orig.png',
+      source: 'catalog', group: 'catalog', face: 'catalog', cond: 'orig' },
+    ...['light', 'medium', 'deep'].flatMap(group => [1, 2].map(n => ({
+      id: group + n, file: 'photos/' + group + n + '.png',
+      source: 'mste', group, face: group + n, cond: 'orig',
+    })))];
+    const manifest = { set: 'looks', looks, engines: ['v1'], photos };
+    for (const variant of ['baseline', 'repeat', 'candidate']) {
+      const dir = join(root, variant);
+      mkdirSync(join(dir, 'photos'), { recursive: true });
+      for (const p of photos) writeFileSync(join(dir, p.file), 'fixture-' + p.id);
+      const rows = [];
+      for (const look of looks) for (const p of photos) {
+        rows.push({ photo: p.id, engine: 'v1', look, group: p.group,
+          source: p.source, skin_fine: 0.8, skin_shading: 0.99,
+          outside: 0, clipped: 0, eye_whites: 0, edge_bleed: 0,
+          ...(p.source === 'catalog' ? { cat_lid: 1.25, cat_lip: 1.0, cat_face: 1.4 } : {}),
+        });
+      }
+      for (const look of looks) {
+        const truth = join(dir, 'truth', look);
+        mkdirSync(truth, { recursive: true });
+        writeFileSync(join(truth, 'catalog__orig.png'), 'fixture-truth-' + look);
+      }
+      writeFileSync(join(dir, 'manifest.json'), JSON.stringify(manifest));
+      writeFileSync(join(dir, 'summary.json'), JSON.stringify({}));
+      writeFileSync(join(dir, 'scores.jsonl'), rows.map(r => JSON.stringify(r)).join('\n') + '\n');
+    }
+    const report = join(root, 'release-report.md');
+    const result = spawnSync(process.execPath, [fileURLToPath(new URL('./gate.mjs', import.meta.url)),
+      '--baseline', join(root, 'baseline'), '--repeat', join(root, 'repeat'),
+      '--candidate', join(root, 'candidate'), '--out', report], { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr + '\n' + result.stdout);
+    assert.match(readFileSync(report, 'utf8'), /PASS/);
+    assert.ok(!readFileSync(report, 'utf8').includes('catalog__orig'));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
