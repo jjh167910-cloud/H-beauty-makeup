@@ -116,6 +116,9 @@ def main() -> int:
         row = inspect(look, a.cap)
         rows.append(row)
         print("PUBLIC_EYE_CAP_AUDIT " + json.dumps(row, sort_keys=True), flush=True)
+        # This research run never needs a previous look's full RGB tensors.
+        # Each entry can exceed tens of MB; release it before the next look.
+        T.layer_parts.cache_clear()
     unsafe = [r["look"] for r in rows if not r["safety"]]
     improving = [r["look"] for r in rows if r["brightness_deficit_before_Lstar"] is not None
                  and r["brightness_deficit_after_Lstar"] is not None
