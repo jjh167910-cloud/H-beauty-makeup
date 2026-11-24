@@ -145,13 +145,26 @@ def inspect(look, sweep=False):
         for cap in (0.8, 1.0, 1.2):
             alternative, _, _ = T.layer_parts(look, eye_light_cap=cap)
             lum_alt = lstar(bw * np.exp(alternative))
-            nonlid = np.abs(lum_alt[outside] - lums["extracted_layer"][outside])
+            abs_shift = np.abs(lum_alt - lums["extracted_layer"])
+            nonlid = abs_shift[outside]
+            # Classify the collateral: is it around other eye makeup, on the
+            # lips, or on truly plain skin? A global 99th percentile of zero
+            # can hide a severe change concentrated on a small organ.
+            lip_zone = T.poly_mask((h, w), pl[:, :2], [T.LIPS_OUT], scale=1.25) > 0.5
+            eye_zone = (R["fine"] > 0.35) & ~lip_zone
+            plain_zone = outside & ~eye_zone & ~lip_zone
+            def max_on(zone):
+                return round(float(abs_shift[zone].max()), 3) if np.any(zone) else None
             result["eye_light_cap_sweep"].append({
                 "eye_light_cap": cap,
                 "deficit_Lstar": round(float(goal - lum_alt[mask].mean()), 3),
                 "nonlid_shift_p90_Lstar": round(float(np.percentile(nonlid, 90)), 3),
                 "nonlid_shift_p99_Lstar": round(float(np.percentile(nonlid, 99)), 3),
                 "nonlid_shift_max_Lstar": round(float(nonlid.max()), 3),
+                "outside_eye_makeup_max_Lstar": max_on(plain_zone),
+                "lip_zone_max_Lstar": max_on(lip_zone),
+                "other_eye_makeup_max_Lstar": max_on(eye_zone & outside),
+                "nonlid_pixels_over_1_Lstar": int(np.count_nonzero(nonlid > 1.0)),
             })
     return result
 
