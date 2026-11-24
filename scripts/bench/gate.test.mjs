@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluate } from './gate.mjs';
+import { evaluate, loadRun } from './gate.mjs';
 
 const RUN_META = { set: 'quick', looks: ['soft-glam', 'icy'], engines: ['v2'],
   photos: ['light', 'deep'].flatMap(group => [0, 1, 2].map(n => ({ id: group + '-' + n, group }))) };
@@ -139,4 +139,25 @@ test('rejects an unexpected render that is not in the manifest', () => {
   const result = evaluate(b, r, c);
   assert.equal(result.pass, false);
   assert.match(result.issues.join('\n'), /scores do not cover every expected manifest/);
+});
+
+test('CLI refuses an absent catalog target even when every run omits it', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'hbeauty-missing-target-'));
+  try {
+    mkdirSync(join(dir, 'photos'));
+    writeFileSync(join(dir, 'photos', 'catalog__orig.png'), Buffer.from('synthetic-public-test'));
+    writeFileSync(join(dir, 'manifest.json'), JSON.stringify({
+      set: 'quick', looks: ['icy'], engines: ['v2'], photos: [
+        { id: 'catalog__orig', file: 'photos/catalog__orig.png', source: 'catalog', group: 'catalog' },
+      ],
+    }));
+    writeFileSync(join(dir, 'scores.jsonl'), JSON.stringify({
+      photo: 'catalog__orig', engine: 'v2', look: 'icy', group: 'catalog',
+      cat_lid: 1.5, outside: 0, clipped: 0, skin_fine: 0.8,
+    }) + '\n');
+    writeFileSync(join(dir, 'summary.json'), JSON.stringify({}));
+    assert.throws(() => loadRun(dir), /Missing catalog reference truth/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
