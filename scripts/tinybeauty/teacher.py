@@ -606,7 +606,7 @@ RIDGE = (0.3, 0.6)   # ridges() from which a line is (partly / surely) a strand
 THIN = 0.3   # on plain skin, darker streaks narrower than this (eye widths) are left out
 
 @lru_cache(None)
-def layer_parts(look: str, fine_sigma=0.02, soft_sigma=0.07, protect_eye_light=False):
+def layer_parts(look: str, fine_sigma=0.02, soft_sigma=0.07, protect_eye_light=False, eye_light_cap=EYE_LIGHT):
     """The look's makeup as a log-ratio layer (H, W, 3) in the look photo's own coordinates, its points, and its
     complexion (look_tone)."""
     base, pb = _bare()
@@ -647,8 +647,8 @@ def layer_parts(look: str, fine_sigma=0.02, soft_sigma=0.07, protect_eye_light=F
     # lightening and the redness taken away are left out. Contour and bronzer (broad, darker), highlights (lighter: the
     # narrow part and BROAD_KEEP of the broad one) and blush (redder) stay.
     lb = cv2.GaussianBlur(lum[..., 0] * sk, (0, 0), ew * PLAIN_BROAD) / np.maximum(cv2.GaussianBlur(sk, (0, 0), ew * PLAIN_BROAD), 1e-3)
-    eye_k = np.where(lum > EYE_LIGHT, EYE_LIGHT / np.maximum(lum, 1e-6), 1.0)
-    lum = np.minimum(lum, EYE_LIGHT) * f + np.clip(lum - np.maximum(lb, 0)[..., None] * (1 - BROAD_KEEP), *PLAIN_LUM) * nf
+    eye_k = np.where(lum > eye_light_cap, eye_light_cap / np.maximum(lum, 1e-6), 1.0)
+    lum = np.minimum(lum, eye_light_cap) * f + np.clip(lum - np.maximum(lb, 0)[..., None] * (1 - BROAD_KEEP), *PLAIN_LUM) * nf
     red = np.float32([2, -1, -1]) / np.sqrt(6)      # (redness taken away: its part along red, where negative)
     plain = chroma - np.minimum(chroma @ red, 0)[..., None] * red
     plain[..., 1:] = np.maximum(plain[..., 1:], PLAIN_CHROMA)
