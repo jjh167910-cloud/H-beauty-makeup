@@ -90,6 +90,14 @@ test('CLI fails closed and writes an aggregate-only report', () => {
       if (r.look === 'icy') r.cat_lid += 0.2;
     })]]) {
       const path = join(root, name); mkdirSync(path);
+      mkdirSync(join(path, 'photos'));
+      data.manifest.photos = data.manifest.photos.map(p => ({
+        ...p, file: 'photos/' + p.id + '.png', source: 'synthetic',
+      }));
+      // Private-data contract: the CLI requires actual bytes for every source photo,
+      // even in synthetic tests; these are not real faces or decodable photographs.
+      for (const p of data.manifest.photos)
+        writeFileSync(join(path, p.file), Buffer.from('deterministic-synthetic-' + p.id));
       writeFileSync(join(path, 'manifest.json'), JSON.stringify(data.manifest));
       writeFileSync(join(path, 'summary.json'), JSON.stringify(data.summary));
       writeFileSync(join(path, 'scores.jsonl'), data.rows.map(x => JSON.stringify(x)).join('\n') + '\n');
