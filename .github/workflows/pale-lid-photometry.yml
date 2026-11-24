@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'tests/pale-lids.spec.ts'
+      - 'scripts/bench/diagnose_pale_lids.py'
       - 'src/lib/makeup-gl.ts'
       - 'public/tryon/layers/**'
       - '.github/workflows/pale-lid-photometry.yml'
