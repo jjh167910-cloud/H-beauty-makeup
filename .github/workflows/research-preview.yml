@@ -32,7 +32,7 @@ jobs:
       REVIEW_URL: https://h-beauty-makeup-review.jjh167910.workers.dev
       EYE_CAP_PREVIEW_GPU_TEST: '1'
       EYE_CAP_ALL_GPU_TEST: '1'
-      EYE_CAP_PREVIEW_DIR: ${{ runner.temp }}/hbeauty-review-candidate
+      EYE_CAP_PREVIEW_DIR: /tmp/hbeauty-review-candidate
 
     steps:
       - uses: actions/checkout@v4
