@@ -1,0 +1,28 @@
+name: Catalog pale-lid photometry
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/pale-lids.spec.ts'
+      - 'src/lib/makeup-gl.ts'
+      - 'public/tryon/layers/**'
+      - '.github/workflows/pale-lid-photometry.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  photometry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install exact app dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Measure the three public catalog eyelids in WebGL
+        run: npm run test:ui -- tests/pale-lids.spec.ts --workers=1 --reporter=line
