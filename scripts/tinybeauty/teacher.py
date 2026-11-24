@@ -729,7 +729,12 @@ def layer_parts(look: str, fine_sigma=0.02, soft_sigma=0.07, protect_eye_light=F
         # Use the unchanged baseline as the literal reference outside the
         # approved eye support. This research path must never modify lipstick,
         # complexion, hair, sclera, backdrop or non-eye regions.
-        unchanged = layer_parts(look, fine_sigma, soft_sigma, protect_eye_light, EYE_LIGHT)[0]
+        # Reuse the existing default call's cache entry (rather than a second
+        # otherwise equivalent five-argument entry) when all settings are stock.
+        if fine_sigma == 0.02 and soft_sigma == 0.07 and not protect_eye_light:
+            unchanged = layer_parts(look)[0]
+        else:
+            unchanged = layer_parts(look, fine_sigma, soft_sigma, protect_eye_light, EYE_LIGHT)[0]
         safe_eye = np.clip((eye_support - 0.05) / 0.95, 0, 1) * (R['face'] > 0.5)
         lr = unchanged + (lr - unchanged) * safe_eye[..., None]
     return lr.astype(np.float32), pl, tone
