@@ -53,3 +53,52 @@ Each render against her photo as the app took it (studio light off), colours in 
 
 The starting guesses move once the artist has scored enough pictures on the bench: each goes to where her scores drop
 below 4. `history.jsonl` keeps every run's summary.
+
+## Regression release gate (private; required for rendering changes)
+
+**Release eligibility:** The command refuses to pass a `quick` or other partial
+benchmark, even when every metric is unchanged. Use `--set looks` or `--set full`
+with at least 40 distinct public catalog looks, at least two distinct
+simulated lighting conditions (e.g. warm and dim), and at least two independent
+original-light MST-E faces in **each** of the light, medium, and deep cohorts.
+The checker now requires **finite evidence**, not just image IDs: catalog lid/lip
+colour and placement, cross-light colours, texture/shading, identity drift, eye
+whites, clipping, scene protection and cross-tone lipstick fairness. It verifies
+measured texture, eye-white and scene-protection scores on two subjects in each
+tone group. These requirements apply equally to baseline, independently repeated
+baseline and candidate. A scorer failure or a missing measurement cannot silently
+look like a clean no-regression result. The command is a no-regression check,
+not permission to skip artist review.
+
+
+After scoring the baseline, a **second unchanged baseline render** (to measure
+render-to-render noise), and the candidate on the **same fixed set of photos**:
+
+```sh
+node scripts/bench/gate.mjs \
+  --baseline /private/bench/baseline \
+  --repeat /private/bench/baseline-repeat \
+  --candidate /private/bench/candidate \
+  --out /private/bench/candidate/gate.md
+```
+
+The command reads each run's `manifest.json`, `scores.jsonl`, and `summary.json`.
+It hashes private input photographs and catalog-truth images locally, rejects changed pixels even when file IDs match, and exits nonzero if render identities differ, metrics disappear, or any quality metric
+regresses beyond the independently measured same-code repeat noise. It evaluates
+the worst tenth of results on the whole benchmark, **each look, each skin-tone
+group, and each look × skin-tone combination**, including both limits of acceptable
+skin texture. Derived lipstick hue fairness is checked from the scorer summary.
+The Markdown report contains only look labels, skin-tone groups and aggregate
+numbers—not client photos, per-person scores, or photo IDs.
+
+**Important:** the GitHub workflow tests the gate's algorithm using synthetic
+numbers only. Neither the private MST-E photos nor scored real images, nor the
+run's manifest, nor its generated report are uploaded to GitHub or CI. A green
+GitHub check does **not** prove a rendering change passed the real benchmark.
+Run the gate locally and review its report before requesting production release.
+The gate is a no-regression safeguard, not a photorealism or artist-approval
+certificate. An artist blind study and the full-set release review remain necessary.
+
+To make the repeat meaningful, render the same code and same manifest independently;
+do not copy its existing score file. If a group has no valid measurements, the gate
+cannot establish quality for that group, so inspect coverage before accepting it.

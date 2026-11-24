@@ -17,5 +17,24 @@ scripts/gpu/results/
 results.zip
 pilot-results.zip
 
+# Local quality-benchmark runs contain consented evaluation faces and private
+# client photos. Keep every image and derived per-photo score out of Git.
+# Use a run directory outside the repository whenever possible.
+/scripts/bench/runs/
+/scripts/bench/data/
+/scripts/bench/**/*.png
+/scripts/bench/**/*.jpg
+/scripts/bench/**/*.jpeg
+/scripts/bench/**/*.webp
+/scripts/bench/**/photos/
+/scripts/bench/**/seen/
+/scripts/bench/**/renders/
+/scripts/bench/**/truth/
+/scripts/bench/**/scores*.jsonl
+/scripts/bench/**/manifest.json
+/scripts/bench/**/summary.json
+/scripts/bench/**/report.html
+/scripts/bench/**/gate.md
+
 # Locally generated public-only eye-cap A/B textures; never ship in production.
 /public/tryon/eye-cap-preview/
