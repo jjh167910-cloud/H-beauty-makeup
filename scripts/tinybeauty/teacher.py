@@ -647,8 +647,21 @@ def layer_parts(look: str, fine_sigma=0.02, soft_sigma=0.07, protect_eye_light=F
     # lightening and the redness taken away are left out. Contour and bronzer (broad, darker), highlights (lighter: the
     # narrow part and BROAD_KEEP of the broad one) and blush (redder) stay.
     lb = cv2.GaussianBlur(lum[..., 0] * sk, (0, 0), ew * PLAIN_BROAD) / np.maximum(cv2.GaussianBlur(sk, (0, 0), ew * PLAIN_BROAD), 1e-3)
-    eye_k = np.where(lum > eye_light_cap, eye_light_cap / np.maximum(lum, 1e-6), 1.0)
-    lum = np.minimum(lum, eye_light_cap) * f + np.clip(lum - np.maximum(lb, 0)[..., None] * (1 - BROAD_KEEP), *PLAIN_LUM) * nf
+    # An opt-in eye-light cap must never brighten lips. The fine source zone
+    # intentionally includes eyes AND lips; raising its cap everywhere changed
+    # icy's lipstick by 5.49 L*. Restrict the research variant to anatomically
+    # identified eye/lid+brow hulls. Keep the original scalar path bit-for-bit
+    # when no opt-in value is supplied.
+    light_cap = EYE_LIGHT
+    if eye_light_cap != EYE_LIGHT:
+        eye_support = np.zeros((H, W), np.float32)
+        for ring, brow in ((EYE_R, BROW_R), (EYE_L, BROW_L)):
+            hull = cv2.convexHull(np.float32(np.vstack([pl[ring, :2], pl[brow, :2]])))
+            cv2.fillConvexPoly(eye_support, np.int32(np.round(hull)), 1)
+        eye_support = cv2.GaussianBlur(eye_support, (0, 0), max(1.0, ew * 0.04))
+        light_cap = EYE_LIGHT + (eye_light_cap - EYE_LIGHT) * eye_support[..., None]
+    eye_k = np.where(lum > light_cap, light_cap / np.maximum(lum, 1e-6), 1.0)
+    lum = np.minimum(lum, light_cap) * f + np.clip(lum - np.maximum(lb, 0)[..., None] * (1 - BROAD_KEEP), *PLAIN_LUM) * nf
     red = np.float32([2, -1, -1]) / np.sqrt(6)      # (redness taken away: its part along red, where negative)
     plain = chroma - np.minimum(chroma @ red, 0)[..., None] * red
     plain[..., 1:] = np.maximum(plain[..., 1:], PLAIN_CHROMA)
