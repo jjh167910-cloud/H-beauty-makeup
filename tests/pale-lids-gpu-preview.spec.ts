@@ -127,7 +127,17 @@ test("paired GPU renders improve eyelids without modifying non-eye pixels", asyn
             if((p[1]>y)!==(q[1]>y)&&x<(q[0]-p[0])*(y-p[1])/(q[1]-p[1])+p[0])included=!included;
           }return included;
         };
+        const contourDistance=(poly:number[][],x:number,y:number)=>{
+          let best=Infinity;
+          for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+            const p=poly[i],q=poly[j],dx=q[0]-p[0],dy=q[1]-p[1];
+            const t=Math.max(0,Math.min(1,((x-p[0])*dx+(y-p[1])*dy)/Math.max(1e-9,dx*dx+dy*dy)));
+            best=Math.min(best,Math.hypot(x-p[0]-t*dx,y-p[1]-t*dy));
+          }
+          return best;
+        };
         let changed=0,outsideBoxes=0,outsideFace=0,lipPixels=0,maxDelta=0;
+        let maxOutsideFaceDistance=0, farOutsideFaceOverOne=0;
         let outsideBoxOverOne=0,outsideFaceOverOne=0,maxOutsideFaceDelta=0,maxLipDelta=0;
         const outsideFaceExamples:{x:number,y:number,d:number}[]=[];
         let x0=a.w,y0=a.h,x1=0,y1=0;
@@ -144,15 +154,19 @@ test("paired GPU renders improve eyelids without modifying non-eye pixels", asyn
           }
           if(!inside(face,x,y)){
             outsideFace++;maxOutsideFaceDelta=Math.max(maxOutsideFaceDelta,d);
+            const dist=contourDistance(face,x,y);
+            maxOutsideFaceDistance=Math.max(maxOutsideFaceDistance,dist);
             if(d>1){
               outsideFaceOverOne++;
-              if(outsideFaceExamples.length<24)outsideFaceExamples.push({x,y,d});
+              if(dist>2)farOutsideFaceOverOne++;
+              if(outsideFaceExamples.length<24)outsideFaceExamples.push({x,y,d,distanceFromFacePx:+dist.toFixed(3)});
             }
           }
           if(inside(lip,x,y)){lipPixels++;maxLipDelta=Math.max(maxLipDelta,d);}
         }
         return {changed,outsideBoxes,outsideFace,lipPixels,maxOutsideDelta:maxDelta,
           outsideBoxOverOne,outsideFaceOverOne,maxOutsideFaceDelta,maxLipDelta,outsideFaceExamples,
+          maxOutsideFaceDistance:+maxOutsideFaceDistance.toFixed(3),farOutsideFaceOverOne,
           outsideBoxBounds:outsideBoxes?[x0,y0,x1,y1]:null};
       }, {left:b.png,right:c.png,boxes:b.boxes,face:b.facePoly,lip:b.lipPoly});
     } finally { await page.close(); }
