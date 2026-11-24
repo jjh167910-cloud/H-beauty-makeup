@@ -735,7 +735,23 @@ def layer_parts(look: str, fine_sigma=0.02, soft_sigma=0.07, protect_eye_light=F
             unchanged = layer_parts(look)[0]
         else:
             unchanged = layer_parts(look, fine_sigma, soft_sigma, protect_eye_light, EYE_LIGHT)[0]
-        safe_eye = np.clip((eye_support - 0.05) / 0.95, 0, 1) * (R['face'] > 0.5)
+        # Restrict experimental pale-lid brightening to feathered mobile-lid
+        # bands. Full eye/brow hulls leaked a few RGB pixels beyond the face
+        # in actual WebGL2 A/B. Preserve liner wings and brow strands.
+        uppers = ([33, 246, 161, 160, 159, 158, 157, 173, 133],
+                  [263, 466, 388, 387, 386, 385, 384, 398, 362])
+        mobile = np.zeros((H, W), np.float32)
+        for ids, brow_ids in zip(uppers, (BROW_LOW_R, BROW_LOW_L)):
+            a = pl[ids, :2]
+            brow = pl[brow_ids, :2]
+            brow = brow[np.argsort(brow[:, 0])]
+            hi_y = np.interp(a[:, 0], brow[:, 0], brow[:, 1])
+            b = np.column_stack([a[:, 0], hi_y])
+            lo = a + (b - a) * 0.14
+            hi = a + (b - a) * 0.69
+            cv2.fillPoly(mobile, [np.int32(np.round(np.vstack([lo, hi[::-1]])))], 1)
+        mobile = cv2.GaussianBlur(mobile, (0, 0), max(1.0, ew * 0.035))
+        safe_eye = np.clip((eye_support - 0.05) / 0.95, 0, 1) * mobile * (R['face'] > 0.5)
         lr = unchanged + (lr - unchanged) * safe_eye[..., None]
     return lr.astype(np.float32), pl, tone
 
