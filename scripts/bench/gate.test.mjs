@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluate, loadRun } from './gate.mjs';
+import { evaluate, loadRun, releasePolicy } from './gate.mjs';
 
 const RUN_META = { set: 'quick', looks: ['soft-glam', 'icy'], engines: ['v2'],
   photos: ['light', 'deep'].flatMap(group => [0, 1, 2].map(n => ({ id: group + '-' + n, group }))) };
@@ -160,4 +160,19 @@ test('CLI refuses an absent catalog target even when every run omits it', () => 
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('release policy rejects quick tests and incomplete skin-tone representation', () => {
+  assert.match(releasePolicy(run().manifest).join(' / '), /Quick or unrecognized/);
+  const looks = Array.from({ length: 48 }, (_, i) => 'look-' + i);
+  const valid = {
+    set: 'looks', looks,
+    photos: [{ source: 'catalog', face: 'catalog', group: 'catalog', cond: 'orig' },
+      ...['light', 'medium', 'deep'].flatMap(group => [1, 2].map(i => ({
+        source: 'mste', group, face: group + '-' + i, cond: 'orig',
+      })))],
+  };
+  assert.deepEqual(releasePolicy(valid), []);
+  valid.photos.pop();
+  assert.match(releasePolicy(valid).join(' / '), /two independent original-light/);
 });
