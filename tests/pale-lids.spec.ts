@@ -23,13 +23,36 @@ test("public catalog pale-lid reference brightness: icy / mod-60s / cut-crease",
       g.drawImage(source, 0, 0, w, h);
       return g.getImageData(0, 0, w, h).data;
     };
+    const originalCatalog = pixels(img);
     const before = pixels(shot.photo);
-    const Y = (d: Uint8ClampedArray, x: number, y: number) => {
+    const lin = (v: number) => { const t = v / 255; return t <= 0.04045 ? t / 12.92 : ((t + 0.055) / 1.055) ** 2.4; };
+    const Y = (d: Uint8ClampedArray, x: number, y: number, gain = [1, 1, 1]) => {
       const i = (Math.min(h - 1, Math.max(0, Math.round(y))) * w
         + Math.min(w - 1, Math.max(0, Math.round(x)))) * 4;
-      const lin = (v: number) => { const t = v / 255; return t <= 0.04045 ? t / 12.92 : ((t + 0.055) / 1.055) ** 2.4; };
-      const z = 0.2126 * lin(d[i]) + 0.7152 * lin(d[i + 1]) + 0.0722 * lin(d[i + 2]);
-      return z > 0.008856 ? 116 * Math.cbrt(z) - 16 : 903.296 * z;
+      const z = 0.2126 * lin(d[i]) / gain[0] + 0.7152 * lin(d[i + 1]) / gain[1] + 0.0722 * lin(d[i + 2]) / gain[2];
+      const corrected = Math.min(1, Math.max(0, z));
+      return corrected > 0.008856 ? 116 * Math.cbrt(corrected) - 16 : 903.296 * corrected;
+    };
+    // Undo whole-photograph exposure/white-balance changes in the AI-edited
+    // catalog reference. The benchmark scorer does the same on the backdrop.
+    // Only bright, approximately neutral pixels in the top outer corners qualify.
+    const grade = (bare: Uint8ClampedArray, target: Uint8ClampedArray) => {
+      const logRatios: number[][] = [[], [], []];
+      for (let y = Math.round(h * 0.04); y < h * 0.20; y += 6)
+        for (let x = 0; x < w; x += 6) {
+          if (x >= w * 0.19 && x <= w * 0.81) continue;
+          const k = (y * w + x) * 4;
+          const b = [lin(bare[k]), lin(bare[k + 1]), lin(bare[k + 2])];
+          const a = [lin(target[k]), lin(target[k + 1]), lin(target[k + 2])];
+          const spread = Math.max(...b) - Math.min(...b);
+          if (Math.min(...b) < 0.40 || spread > 0.10) continue;
+          for (let c = 0; c < 3; c++) logRatios[c].push(Math.log((a[c] + 0.005) / (b[c] + 0.005)));
+        }
+      if (logRatios.some(v => v.length < 20)) throw new Error("Insufficient neutral background to calibrate catalog exposure");
+      return logRatios.map(v => {
+        v.sort((a, b) => a - b);
+        return Math.exp(v[Math.floor(v.length / 2)]);
+      });
     };
     const upper = [
       [33, 246, 161, 160, 159, 158, 157, 173, 133],
@@ -57,8 +80,8 @@ test("public catalog pale-lid reference brightness: icy / mod-60s / cut-crease",
         for (const t of [0.28, 0.40, 0.52]) locations.push([x, lash + (bone - lash) * t]);
       }
     }
-    const mean = (d: Uint8ClampedArray) =>
-      locations.reduce((sum, [x,y]) => sum + Y(d,x,y), 0) / locations.length;
+    const mean = (d: Uint8ClampedArray, gain?: number[]) =>
+      locations.reduce((sum, [x,y]) => sum + Y(d,x,y,gain), 0) / locations.length;
     const reference = async (id: string) => {
       const image = new Image(); image.src = `/makeup/looks/${id}.webp`;
       await image.decode(); return pixels(image);
@@ -66,9 +89,11 @@ test("public catalog pale-lid reference brightness: icy / mod-60s / cut-crease",
     const output = [];
     for (const look of styles) {
       const target = await reference(look);
+      const gain = grade(originalCatalog, target);
       const render = pixels(await m.paintLook(shot, look, "natural"));
-      const bare = mean(before), expected = mean(target), actual = mean(render);
-      output.push({ look, bare, expected, actual, targetLift: expected - bare,
+      const bare = mean(before), expected = mean(target, gain), actual = mean(render);
+      output.push({ look, bare, expected, actual, rawReference: mean(target),
+        grade: gain.map(v => Number(v.toFixed(4))), targetLift: expected - bare,
         renderedLift: actual - bare, residual: expected - actual, points: locations.length });
     }
     return output;
@@ -77,7 +102,7 @@ test("public catalog pale-lid reference brightness: icy / mod-60s / cut-crease",
   expect(report.map(x => x.look)).toEqual(["icy", "mod-60s", "cut-crease"]);
   for (const metric of report) {
     expect(metric.points).toBe(36);
-    for (const key of ["bare", "expected", "actual", "targetLift", "renderedLift", "residual"] as const)
+    for (const key of ["bare", "expected", "actual", "rawReference", "targetLift", "renderedLift", "residual"] as const)
       expect(Number.isFinite(metric[key]), `${metric.look} ${key}`).toBe(true);
   }
 });
