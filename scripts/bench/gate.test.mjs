@@ -74,3 +74,33 @@ test('fails if looks differ between benchmark runs', () => {
   const candidate = run(); candidate.manifest.looks.reverse();
   assert.equal(evaluate(run(), run(), candidate).pass, false);
 });
+
+// Exercise the actual command line and verify reports do not expose photo identities.
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
+
+test('CLI fails closed and writes an aggregate-only report', () => {
+  const root = mkdtempSync(join(tmpdir(), 'hbeauty-gate-'));
+  try {
+    for (const [name, data] of [['old', run()], ['repeat', run()], ['new', run(r => {
+      if (r.look === 'icy') r.cat_lid += 0.2;
+    })]]) {
+      const path = join(root, name); mkdirSync(path);
+      writeFileSync(join(path, 'manifest.json'), JSON.stringify(data.manifest));
+      writeFileSync(join(path, 'summary.json'), JSON.stringify(data.summary));
+      writeFileSync(join(path, 'scores.jsonl'), data.rows.map(x => JSON.stringify(x)).join('\n') + '\n');
+    }
+    const out = join(root, 'gate.md');
+    const result = spawnSync(process.execPath, [fileURLToPath(new URL('./gate.mjs', import.meta.url)),
+      '--baseline', join(root, 'old'), '--repeat', join(root, 'repeat'),
+      '--candidate', join(root, 'new'), '--out', out], { encoding: 'utf8' });
+    assert.equal(result.status, 1, result.stderr);
+    const report = readFileSync(out, 'utf8');
+    assert.match(report, /FAIL/);
+    assert.match(report, /icy/);
+    assert.ok(!report.includes('light-0') && !report.includes('deep-2'), 'individual photo IDs must be private');
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
