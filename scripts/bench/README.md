@@ -53,3 +53,37 @@ Each render against her photo as the app took it (studio light off), colours in 
 
 The starting guesses move once the artist has scored enough pictures on the bench: each goes to where her scores drop
 below 4. `history.jsonl` keeps every run's summary.
+
+## Regression release gate (private; required for rendering changes)
+
+After scoring the baseline, a **second unchanged baseline render** (to measure
+render-to-render noise), and the candidate on the **same fixed set of photos**:
+
+```sh
+node scripts/bench/gate.mjs \
+  --baseline /private/bench/baseline \
+  --repeat /private/bench/baseline-repeat \
+  --candidate /private/bench/candidate \
+  --out /private/bench/candidate/gate.md
+```
+
+The command reads each run's `manifest.json`, `scores.jsonl`, and `summary.json`.
+It exits nonzero if render identities differ, metrics disappear, or any quality metric
+regresses beyond the independently measured same-code repeat noise. It evaluates
+the worst tenth of results on the whole benchmark, **each look, each skin-tone
+group, and each look × skin-tone combination**, including both limits of acceptable
+skin texture. Derived lipstick hue fairness is checked from the scorer summary.
+The Markdown report contains only look labels, skin-tone groups and aggregate
+numbers—not client photos, per-person scores, or photo IDs.
+
+**Important:** the GitHub workflow tests the gate's algorithm using synthetic
+numbers only. Neither the private MST-E photos nor scored real images, nor the
+run's manifest, nor its generated report are uploaded to GitHub or CI. A green
+GitHub check does **not** prove a rendering change passed the real benchmark.
+Run the gate locally and review its report before requesting production release.
+The gate is a no-regression safeguard, not a photorealism or artist-approval
+certificate. An artist blind study and the full-set release review remain necessary.
+
+To make the repeat meaningful, render the same code and same manifest independently;
+do not copy its existing score file. If a group has no valid measurements, the gate
+cannot establish quality for that group, so inspect coverage before accepting it.
