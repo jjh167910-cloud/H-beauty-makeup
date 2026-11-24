@@ -7,6 +7,7 @@ on:
       - 'scripts/bench/diagnose_pale_lids.py'
       - 'scripts/bench/audit_eye_cap.py'
       - 'scripts/bench/build_eye_cap_preview.py'
+      - 'tests/pale-lids-gpu-preview.spec.ts'
       - 'scripts/tinybeauty/teacher.py'
       - 'src/lib/makeup-gl.ts'
       - 'public/tryon/layers/**'
@@ -89,10 +90,22 @@ jobs:
         run: python -m pip install --disable-pip-version-check 'mediapipe>=0.10.20,<0.11' opencv-python-headless numpy
       - name: Verify shipped WebGL atlas parity and build isolated cap 0.8 textures
         run: python scripts/bench/build_eye_cap_preview.py --cap 0.8
-      - name: Store public-only candidate atlas and checksums for review
-        if: success()
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install app dependencies for actual-GPU comparison
+        run: npm ci --no-audit --no-fund
+      - name: Compare default and candidate WebGL2 renders on public catalog model
+        env:
+          EYE_CAP_PREVIEW_GPU_TEST: '1'
+        run: npm run test:ui -- tests/pale-lids-gpu-preview.spec.ts --workers=1 --reporter=line
+      - name: Store public-only candidate atlas, aggregate metrics and test evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: public-eye-cap-gpu-preview
-          path: public/tryon/eye-cap-preview/
+          path: |
+            public/tryon/eye-cap-preview/
+            test-results/
           retention-days: 7
