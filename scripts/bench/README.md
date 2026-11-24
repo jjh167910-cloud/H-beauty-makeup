@@ -56,6 +56,13 @@ below 4. `history.jsonl` keeps every run's summary.
 
 ## Regression release gate (private; required for rendering changes)
 
+**Release eligibility:** The command refuses to pass a `quick` or other partial
+benchmark, even when every metric is unchanged. Use `--set looks` or `--set full`
+with at least 40 distinct public catalog looks and at least two independent
+original-light MST-E faces in **each** of the light, medium, and deep cohorts.
+The command is a no-regression check, not permission to skip artist review.
+
+
 After scoring the baseline, a **second unchanged baseline render** (to measure
 render-to-render noise), and the candidate on the **same fixed set of photos**:
 
