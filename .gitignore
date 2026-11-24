@@ -16,3 +16,6 @@ scripts/gpu/faces/
 scripts/gpu/results/
 results.zip
 pilot-results.zip
+
+# Locally generated public-only eye-cap A/B textures; never ship in production.
+/public/tryon/eye-cap-preview/
