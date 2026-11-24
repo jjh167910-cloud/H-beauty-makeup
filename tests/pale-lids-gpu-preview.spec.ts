@@ -96,22 +96,34 @@ test("paired GPU renders improve eyelids without modifying non-eye pixels", asyn
       return { values, requested };
     } finally { await context.close(); }
   };
-  const baseline=await render(false), candidate=await render(true);
+  // Negative control: a second independent default session must hash
+  // identically before we attribute ANY changed byte to the candidate atlas.
+  const baseline=await render(false), sameCodeRepeat=await render(false), candidate=await render(true);
   expect(candidate.requested.sort()).toEqual([...LOOKS].sort());
   let brighter=0;
   const summary=[];
   for(const id of LOOKS){
     const b=baseline.values.find(v=>v.look===id)!;
+    const repeat=sameCodeRepeat.values.find(v=>v.look===id)!;
     const c=candidate.values.find(v=>v.look===id)!;
-    expect(c.w).toBe(b.w);expect(c.h).toBe(b.h);
-    expect(c.safeHash,`${id}: non-eye/background pixels moved`).toBe(b.safeHash);
-    expect(c.lidLstar,`${id}: eyelid rendered darker`).toBeGreaterThanOrEqual(b.lidLstar-0.2);
-    if(c.lidLstar-b.lidLstar>0.1)brighter++;
-    summary.push({look:id,baselineLstar:b.lidLstar,candidateLstar:c.lidLstar});
+    summary.push({look:id,baselineLstar:b.lidLstar,repeatLstar:repeat.lidLstar,
+      candidateLstar:c.lidLstar,baselineRepeatedSafeHash:b.safeHash===repeat.safeHash,
+      candidateSafeHashMatches:c.safeHash===b.safeHash});
   }
   console.log("EYE_CAP_GPU_PAIRED_AB",JSON.stringify({sampleCount:36,summary}));
   await testInfo.attach("public-eye-cap-GPU-aggregate.json",{
     body:Buffer.from(JSON.stringify({sampleCount:36,summary},null,2)),contentType:"application/json",
   });
+  for(const id of LOOKS){
+    const b=baseline.values.find(v=>v.look===id)!;
+    const repeat=sameCodeRepeat.values.find(v=>v.look===id)!;
+    const c=candidate.values.find(v=>v.look===id)!;
+    expect(b.safeHash,`${id}: two unchanged engine runs diverged; GPU comparison invalid`).toBe(repeat.safeHash);
+    expect(Math.abs(b.lidLstar-repeat.lidLstar),`${id}: unstable unchanged GPU lid L*`).toBeLessThan(0.01);
+    expect(c.w).toBe(b.w);expect(c.h).toBe(b.h);
+    expect(c.safeHash,`${id}: non-eye/background pixels moved`).toBe(b.safeHash);
+    expect(c.lidLstar,`${id}: eyelid rendered darker`).toBeGreaterThanOrEqual(b.lidLstar-0.2);
+    if(c.lidLstar-b.lidLstar>0.1)brighter++;
+  }
   expect(brighter,"At least two of three looks must show better actual-GPU eyelid lightness").toBeGreaterThanOrEqual(2);
 });
