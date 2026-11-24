@@ -58,9 +58,17 @@ below 4. `history.jsonl` keeps every run's summary.
 
 **Release eligibility:** The command refuses to pass a `quick` or other partial
 benchmark, even when every metric is unchanged. Use `--set looks` or `--set full`
-with at least 40 distinct public catalog looks and at least two independent
+with at least 40 distinct public catalog looks, at least two distinct
+simulated lighting conditions (e.g. warm and dim), and at least two independent
 original-light MST-E faces in **each** of the light, medium, and deep cohorts.
-The command is a no-regression check, not permission to skip artist review.
+The checker now requires **finite evidence**, not just image IDs: catalog lid/lip
+colour and placement, cross-light colours, texture/shading, identity drift, eye
+whites, clipping, scene protection and cross-tone lipstick fairness. It verifies
+measured texture, eye-white and scene-protection scores on two subjects in each
+tone group. These requirements apply equally to baseline, independently repeated
+baseline and candidate. A scorer failure or a missing measurement cannot silently
+look like a clean no-regression result. The command is a no-regression check,
+not permission to skip artist review.
 
 
 After scoring the baseline, a **second unchanged baseline render** (to measure
