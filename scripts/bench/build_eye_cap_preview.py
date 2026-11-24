@@ -55,10 +55,23 @@ def create(look: str, cap: float, out: Path) -> dict:
     meta = json.loads((T.TRYON / "looks.json").read_text())["looks"][look]
     expected_uv = np.round(((p[:, :2] - [x0, y0] + 0.5) / [x1 - x0, y1 - y0]).ravel(), 5)
     previous_uv = np.asarray(meta["uv"], np.float32)
-    if previous_uv.shape != expected_uv.shape or np.max(np.abs(previous_uv - expected_uv)) > 1.1e-5:
-        raise RuntimeError("Shipped UV mapping differs from candidate crop for " + look)
+    if previous_uv.shape != expected_uv.shape:
+        raise RuntimeError("Shipped UV vector count differs for " + look)
+    # Existing metadata remains AUTHORITATIVE. MediaPipe can vary by fractions
+    # of a pixel across executions, so do not use fresh UV coordinates to
+    # replace the shipped ones. A > 0.75 px shift indicates invalid alignment.
+    shift = np.abs((previous_uv - expected_uv).reshape(-1, 2)
+                   * np.array([x1 - x0, y1 - y0]))
+    max_uv_shift_px = float(shift.max())
+    if max_uv_shift_px > 0.75:
+        raise RuntimeError("Atlas UV drift for %s is %.3f px (> 0.75); refuse GPU comparison" % (look, max_uv_shift_px))
     if not np.any(crop != baseline_crop):
         raise RuntimeError("Experimental cap had no effect on " + look)
+    # The candidate is exactly the SHIPPED WebP plus the encoded source delta,
+    # not a newly resampled or globally repainted texture. Without this,
+    # rounding/encoder or source re-extraction can alter unrelated regions.
+    delta = crop.astype(np.int16) - baseline_crop.astype(np.int16)
+    crop = np.uint8(np.clip(old[..., ::-1].astype(np.int16) + delta, 0, 255))
     changed = np.abs(candidate - baseline).max(-1) > 1e-6
     # Fail if effect reaches the surrounding blank atlas pixels outside crop.
     outside = changed.copy()
@@ -71,6 +84,7 @@ def create(look: str, cap: float, out: Path) -> dict:
         raise RuntimeError("Could not write preview WebP for " + look)
     return {"look": look, "cap": cap, "width": int(x1 - x0), "height": int(y1 - y0),
             "changed_source_pixels": int(changed.sum()),
+            "max_uv_shift_px": round(max_uv_shift_px, 4),
             "sha256": hashlib.sha256(file.read_bytes()).hexdigest()}
 
 
