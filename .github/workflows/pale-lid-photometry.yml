@@ -15,6 +15,12 @@ on:
 permissions:
   contents: read
 
+# A new experimental change supersedes obsolete 48-look re-renders on the
+# same PR. Preserve a complete run for the current head only.
+concurrency:
+  group: catalog-eye-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   photometry:
     runs-on: ubuntu-latest
