@@ -32,6 +32,10 @@ test("paired GPU renders improve eyelids without modifying non-eye pixels", asyn
           [33,246,161,160,159,158,157,173,133,155,154,153,145,144,163,7,70,63,105,66,107,55,65,52,53,46],
           [263,466,388,387,386,385,384,398,362,382,381,380,374,373,390,249,300,293,334,296,336,285,295,282,283,276],
         ];
+        const faceIds = [10,338,297,332,284,251,389,356,454,323,361,288,397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234,127,162,21,54,103,67,109];
+        const lipIds = [61,185,40,39,37,0,267,269,270,409,291,375,321,405,314,17,84,181,91,146];
+        const facePoly = faceIds.map(i => P[i]);
+        const lipPoly = lipIds.map(i => P[i]);
         const boxes = eyes.map(ids => {
           const xs = ids.map(i => P[i][0]), ys = ids.map(i => P[i][1]);
           const span = Math.max(...xs) - Math.min(...xs);
@@ -89,7 +93,10 @@ test("paired GPU renders improve eyelids without modifying non-eye pixels", asyn
           }
           const sha=await crypto.subtle.digest("SHA-256",masked.subarray(0,k));
           results.push({look,engine:m.engine(),w,h,lidLstar:sample.reduce((sum,[x,y])=>sum+getL(d,x,y),0)/sample.length,
-            safeHash:Array.from(new Uint8Array(sha)).map(b=>b.toString(16).padStart(2,"0")).join("")});
+            safeHash:Array.from(new Uint8Array(sha)).map(b=>b.toString(16).padStart(2,"0")).join(""),
+            // Public-catalog PNG is attached only to isolated research CI, not
+            // uploaded from customer devices or from real-person benchmarks.
+            png:c.toDataURL("image/png"), boxes, facePoly, lipPoly});
         }
         return results;
       }, [...LOOKS]);
@@ -100,15 +107,58 @@ test("paired GPU renders improve eyelids without modifying non-eye pixels", asyn
   // identically before we attribute ANY changed byte to the candidate atlas.
   const baseline=await render(false), sameCodeRepeat=await render(false), candidate=await render(true);
   expect(candidate.requested.sort()).toEqual([...LOOKS].sort());
+  // Compare the exact public GPU frames directly, not just cryptographic
+  // hashes: if a safety check fails, show WHERE and HOW MANY pixels differ.
+  const measure = async (b: (typeof baseline.values)[number], c: (typeof candidate.values)[number]) => {
+    const page = await browser.newPage();
+    try {
+      return await page.evaluate(async ({ left,right,boxes,face,lip }) => {
+        const decode = async (uri:string) => {
+          const im=new Image();im.src=uri;await im.decode();
+          const cv=document.createElement("canvas");cv.width=im.width;cv.height=im.height;
+          const g=cv.getContext("2d",{willReadFrequently:true})!;
+          g.drawImage(im,0,0);return {w:cv.width,h:cv.height,data:g.getImageData(0,0,cv.width,cv.height).data};
+        };
+        const a=await decode(left),b=await decode(right);
+        if(a.w!==b.w||a.h!==b.h)throw new Error("Reference image dimensions changed");
+        const inside=(poly:number[][],x:number,y:number)=>{
+          let included=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+            const p=poly[i],q=poly[j];
+            if((p[1]>y)!==(q[1]>y)&&x<(q[0]-p[0])*(y-p[1])/(q[1]-p[1])+p[0])included=!included;
+          }return included;
+        };
+        let changed=0,outsideBoxes=0,outsideFace=0,lipPixels=0,maxDelta=0;
+        let x0=a.w,y0=a.h,x1=0,y1=0;
+        for(let y=0;y<a.h;y++)for(let x=0;x<a.w;x++){
+          const k=4*(y*a.w+x);
+          const d=Math.max(Math.abs(a.data[k]-b.data[k]),
+            Math.abs(a.data[k+1]-b.data[k+1]),Math.abs(a.data[k+2]-b.data[k+2]));
+          if(d===0)continue;
+          changed++;
+          if(!boxes.some(box=>x>=box[0]&&x<=box[2]&&y>=box[1]&&y<=box[3])){
+            outsideBoxes++;maxDelta=Math.max(maxDelta,d);
+            x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y);
+          }
+          if(!inside(face,x,y))outsideFace++;
+          if(inside(lip,x,y))lipPixels++;
+        }
+        return {changed,outsideBoxes,outsideFace,lipPixels,maxOutsideDelta:maxDelta,
+          outsideBoxBounds:outsideBoxes?[x0,y0,x1,y1]:null};
+      }, {left:b.png,right:c.png,boxes:b.boxes,face:b.facePoly,lip:b.lipPoly});
+    } finally { await page.close(); }
+  };
   let brighter=0;
   const summary=[];
   for(const id of LOOKS){
     const b=baseline.values.find(v=>v.look===id)!;
     const repeat=sameCodeRepeat.values.find(v=>v.look===id)!;
     const c=candidate.values.find(v=>v.look===id)!;
+    const pixels=await measure(b,c);
     summary.push({look:id,baselineLstar:b.lidLstar,repeatLstar:repeat.lidLstar,
       candidateLstar:c.lidLstar,baselineRepeatedSafeHash:b.safeHash===repeat.safeHash,
-      candidateSafeHashMatches:c.safeHash===b.safeHash});
+      candidateSafeHashMatches:c.safeHash===b.safeHash,pixels});
+    await testInfo.attach(id+"-baseline-public.png",{body:Buffer.from(b.png.split(",")[1],"base64"),contentType:"image/png"});
+    await testInfo.attach(id+"-candidate-public.png",{body:Buffer.from(c.png.split(",")[1],"base64"),contentType:"image/png"});
   }
   console.log("EYE_CAP_GPU_PAIRED_AB",JSON.stringify({sampleCount:36,summary}));
   await testInfo.attach("public-eye-cap-GPU-aggregate.json",{
