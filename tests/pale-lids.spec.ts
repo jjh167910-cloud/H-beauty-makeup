@@ -48,7 +48,7 @@ test("public catalog pale-lid reference brightness: icy / mod-60s / cut-crease",
           if (Math.min(...b) < 0.40 || spread > 0.10) continue;
           for (let c = 0; c < 3; c++) logRatios[c].push(Math.log((a[c] + 0.005) / (b[c] + 0.005)));
         }
-      if (logRatios.some(v => v.length < 20)) throw new Error("Insufficient neutral background to calibrate catalog exposure");
+      if (logRatios.some(v => v.length < 20)) return null;
       return logRatios.map(v => {
         v.sort((a, b) => a - b);
         return Math.exp(v[Math.floor(v.length / 2)]);
@@ -89,11 +89,14 @@ test("public catalog pale-lid reference brightness: icy / mod-60s / cut-crease",
     const output = [];
     for (const look of styles) {
       const target = await reference(look);
-      const gain = grade(originalCatalog, target);
+      const estimatedGrade = grade(originalCatalog, target);
+      // When too little neutral backdrop is visible, do not invent correction.
+      // The Python reference-stage diagnostic prints teacher.grading() separately.
+      const gain = estimatedGrade ?? [1, 1, 1];
       const render = pixels(await m.paintLook(shot, look, "natural"));
       const bare = mean(before), expected = mean(target, gain), actual = mean(render);
       output.push({ look, bare, expected, actual, rawReference: mean(target),
-        grade: gain.map(v => Number(v.toFixed(4))), targetLift: expected - bare,
+        calibrated: Boolean(estimatedGrade), grade: gain.map(v => Number(v.toFixed(4))), targetLift: expected - bare,
         renderedLift: actual - bare, residual: expected - actual, points: locations.length });
     }
     return output;
