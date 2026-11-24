@@ -59,7 +59,9 @@ def inspect(look: str, cap: float) -> dict:
         cv2.fillConvexPoly(support, np.int32(np.round(hull)), 1)
     support = cv2.GaussianBlur(support, (0, 0), max(1.0, ew * 0.04))
     plain = face & (support < 0.01) & ~lips
-    nonface = ~face & (support < 0.01)
+    # Do not exempt pixels just because an eye hull reaches beyond the face:
+    # hair, background and every point outside the facial silhouette count.
+    nonface = ~face
 
     # Target is an aligned public catalog image with photographic grading
     # removed, as in make_set.truth and the normal public benchmark.
