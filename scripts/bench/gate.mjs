@@ -64,8 +64,33 @@ export function evaluate(baseline, repeat, candidate) {
   const bm = uniqueRows(baseline.rows, 'baseline');
   const rm = uniqueRows(repeat.rows, 'repeat');
   const cm = uniqueRows(candidate.rows, 'candidate');
+  // Fail closed against the manifest, not merely against the three result sets.
+  // A run that silently omits the SAME 48th look / image on every version must not pass.
+  const checkExpected = (run, found, label) => {
+    const { looks, engines, photos } = run.manifest;
+    if (!Array.isArray(looks) || !looks.length || !Array.isArray(engines) || !engines.length
+        || !Array.isArray(photos) || !photos.length)
+      throw new Error(label + ': incomplete benchmark manifest');
+    const expected = new Set();
+    for (const photo of photos) {
+      if (!photo?.id || typeof photo.id !== 'string') throw new Error(label + ': missing photo id');
+      for (const look of looks) for (const engine of engines) {
+        const id = JSON.stringify([photo.id, engine, look]);
+        if (expected.has(id)) throw new Error(label + ': duplicate expected render identity');
+        expected.add(id);
+      }
+    }
+    if (expected.size !== found.size || [...expected].some(id => !found.has(id)))
+      issues.push(label + ': scores do not cover every expected manifest photo × look × engine ('
+        + found.size + ' of ' + expected.size + ')');
+  };
+  checkExpected(baseline, bm, 'baseline');
+  checkExpected(repeat, rm, 'repeat');
+  checkExpected(candidate, cm, 'candidate');
   if (JSON.stringify(baseline.manifest.looks) !== JSON.stringify(candidate.manifest.looks)
       || JSON.stringify(baseline.manifest.looks) !== JSON.stringify(repeat.manifest.looks)
+      || JSON.stringify(baseline.manifest.engines) !== JSON.stringify(candidate.manifest.engines)
+      || JSON.stringify(baseline.manifest.engines) !== JSON.stringify(repeat.manifest.engines)
       || baseline.manifest.set !== candidate.manifest.set || baseline.manifest.set !== repeat.manifest.set)
     issues.push('Benchmark set or look coverage changed');
   for (const [name, m] of [['repeat', rm], ['candidate', cm]]) {
