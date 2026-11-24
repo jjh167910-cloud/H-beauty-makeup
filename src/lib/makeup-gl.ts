@@ -1550,8 +1550,17 @@ const LASH_STYLES: Record<string, { clumps: number; per: [number, number]; len: 
 const LASH_SEEN = [0.62, 0.45, 0.95];
 /** Which way they point (degrees from her lash line's normal, towards her outer corner): from a little in at her inner corner to swept out at her outer corner. */
 const LASH_FAN = [-12, 82, 2];
-/** Her lower lashes (bottomLashes, or a dramatic look's): from a quarter of the way out, short, pointing down, in twos and threes. */
-const LOWER_LASHES = { clumps: 8, per: [2, 3] as [number, number], from: 0.25, len: 0.085, hw: 0.004, dark: 0.55, pull: 0.6 };
+/**
+ * Her lower lashes (bottomLashes, or a dramatic look's): from a quarter of the way out, short, pointing down, in twos and
+ * threes; with more mascara (volume, dramatic) more of them, longer, darker and pulled into spikes, as the catalog's
+ * photos have them (their lower lash line 3 to 8 L* deeper than her bare skin on most looks with mascara, the studio's
+ * as light as it or lighter).
+ */
+const LOWER_LASHES: Record<string, { clumps: number; per: [number, number]; from: number; len: number; hw: number; dark: number; pull: number }> = {
+  natural: { clumps: 8, per: [2, 3], from: 0.25, len: 0.085, hw: 0.004, dark: 0.55, pull: 0.6 },
+  volume: { clumps: 8, per: [2, 3], from: 0.22, len: 0.13, hw: 0.0038, dark: 0.62, pull: 0.7 },
+  dramatic: { clumps: 8, per: [3, 4], from: 0.18, len: 0.2, hw: 0.0042, dark: 0.85, pull: 0.92 },
+};
 /** A lash's colour (linear reflectance: a black mascara or false lash, a little warm) and how opaque a strand's core is. */
 const LASH_COLOUR = [0.012, 0.0105, 0.01], LASH_OPAQUE = 0.92;
 /**
@@ -1673,12 +1682,12 @@ export function lashStrands(P: Pt[], style: string, lower: boolean, shown: [numb
       }
     }
     if (lower || style === "dramatic") {
-      const low = lashLine(s.lower.map((i) => pt(P, i)), down), K = LOWER_LASHES, wl = (1 - K.from - 0.04) / K.clumps;
+      const low = lashLine(s.lower.map((i) => pt(P, i)), down), K = LOWER_LASHES[style] ?? LOWER_LASHES.natural, wl = (1 - K.from - 0.04) / K.clumps;
       for (let c = 0; c < K.clumps; c++) {
         const r = (k: number) => hash(c + 7, k);
         const tc = K.from + wl * (c + 0.5 + (r(3) - 0.5) * 0.5);
         const Lc = own * K.len * (0.6 + 0.4 * smooth(0.2, 0.8, tc)) * (0.75 + 0.5 * r(1)) * (lower ? 1 : 0.7);
-        const m = K.per[0] + Math.floor(r(2) * (K.per[1] - K.per[0] + 1)), thC = 15 + 30 * tc + (r(4) - 0.5) * 10;
+        const m = K.per[0] + Math.floor(r(2) * (K.per[1] - K.per[0] + 1)), thC = 5 + 32 * tc ** 1.5 + (r(4) - 0.5) * 10;
         const [qC, nC] = low(tc), rootC = add(qC, mul(nC, -ew * 0.003));
         for (let k = 0; k < m; k++) {
           const q = (i: number) => hash(c * 5 + k + 40, i);

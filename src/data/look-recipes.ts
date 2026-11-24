@@ -48,6 +48,16 @@ const LINER_PLACE: Record<Exclude<Liner, "none">, string> = {
   thin: "thin", wing: "wing", fox: "fox", double: "wing", graphic: "wing", puppy: "puppy", smudge: "smudge", siren: "fox",
 };
 const BLACK_LINER = "#141113";
+/**
+ * Looks whose catalog photos have mascara on the lower lashes too (their lower lash line 2.5 L* or more deeper than the
+ * bare face's, measured on the catalog model, 2026-11): their recipes put it on her lower lashes (the studio's «مژه پایین»).
+ */
+const LOWER_MASCARA: ReadonlySet<string> = new Set([
+  "arabic-glam", "mod-60s", "fox-eye", "nineties", "classic-bride", "full-glam", "pin-up", "cat-eye", "boho-bride", "romantic-bride",
+  "soft-glam", "glitter-party", "rhinestone", "lilac-eyes", "twenties", "bold-glam", "henna-night", "bronzed-goddess", "wine-lips",
+  "golden-hour", "winter-goth", "persian-bride", "electric-blue", "monochrome", "brown-smokey", "latte", "classic-smokey",
+  "grunge-smokey", "cut-crease", "navy-smokey", "siren-eyes", "emerald-night", "plum-smokey",
+]);
 
 /** A look's accents the recipe paints (the others are recipeGaps). */
 const PAINTED: ReadonlySet<Accent> = new Set(["shimmer", "contour", "lowerLiner", "bottomLashes", "glitter", "freckles", "aegyo", "rhinestones", "kohl", "lowerShadow", "creaseLine"]);
@@ -110,7 +120,7 @@ export function recipeOf(look: FaceLook, id?: string): MyMakeup {
     out.shadow = {
       shade: nearestShade(SHADOWS, look.lid[0]), hex: look.lid[0], shade2: nearestShade(SHADOWS, look.lid[1]), hex2: look.lid[1],
       finish, tool: blended ? "fluffy" : "flat", place: look.shadow, amount: 1, ...(id ? { from: id } : {}),
-      ...(acc.has("aegyo") ? { aegyo: true } : {}), ...(acc.has("lowerShadow") ? { lower: true } : {}),
+      ...(acc.has("aegyo") ? { aegyo: true } : {}), ...(acc.has("lowerShadow") || (id && LOWER_MASCARA.has(id)) ? { lower: true } : {}),
       // (no inner-corner light: a catalog photo's is a whisper, and at its full amount it read as a white spot)
     };
   }
@@ -125,7 +135,7 @@ export function recipeOf(look: FaceLook, id?: string): MyMakeup {
       ...(acc.has("lowerLiner") ? { lower: true } : {}), ...(acc.has("kohl") ? { kohl: true } : {}) };
   }
 
-  out.lashes = { tool: "wand", place: look.lashes, amount: 1, ...(acc.has("bottomLashes") ? { lower: true } : {}) };
+  out.lashes = { tool: "wand", place: look.lashes, amount: 1, ...(acc.has("bottomLashes") || (id && LOWER_MASCARA.has(id)) ? { lower: true } : {}) };
 
   // (a gradient lip blended out with a lip brush: dabbed on with a fingertip, a sheer 0.7, k-beauty's came out 5 a* paler
   // than its photo all over)

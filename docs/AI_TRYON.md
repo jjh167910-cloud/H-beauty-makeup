@@ -627,6 +627,22 @@ in makeup-gl.ts):
   (mean; worst 2.97 -> 2.03, latte's, as it was). A test: a red gradient lip as red where her lips
   meet as the whole lip, under half of it at her lip line (11 against 100); a brown liner round a nude 16 L* darker just
   inside her lip line, her lips' middle as it was, her skin past it no darker.
+- **The lower lash line as the photos have it: a soft shadow under it, mascara on the lower lashes.** Under the lower
+  lashes was the benchmark's worst line (3.8 ΔE, mean): on most looks with mascara the catalog's photos have that line 3
+  to 8 L* deeper than the bare face (nineties 6.4, classic-bride 6.0, cat-eye 5.0, pin-up 4.8, soft-glam 3.7), the
+  studio's as light as it or lighter, as only looks with a lower-shadow accent had any there. Now the 33 looks whose
+  photos have it 2.5 L* or more deeper (`LOWER_MASCARA` in look-recipes.ts, measured on the catalog model) put their
+  eyeshadow under their lower lashes too («سایه زیر چشم هم») and mascara on them («مژه پایین»). And the lower lashes
+  themselves are drawn per mascara style (`LOWER_LASHES`): natural as before; volume more of them and longer (0.13 eye
+  widths), dramatic in long spikes (0.2, pulled together 0.92: a 60s look's twiggy lower lashes), pointing more straight
+  down in the middle (5 to 37 degrees out, inner to outer); before, every style's were short strokes side by side, a
+  comb along the line.
+  All 48 looks on the catalog model: under the lower lashes 3.80 -> 3.31 ΔE from the photos (mean; p90 6.26 -> 5.85;
+  nineties 6.0 -> 2.0, soft-glam 4.5 -> 2.0, cat-eye 5.2 -> 2.6, wine-lips 3.1 -> 0.5, romantic-bride 7.0 -> 4.1), the lower
+  waterline 3.26 -> 3.05 (p90 5.55 -> 4.99), the under-eye 2.34 -> 2.32, the whole face 2.617 -> 2.607. Worse: electric-blue's
+  lower lash line 9.0 -> 9.6 (its lashes now over a band that is already not blue enough: b* -3.6 against the photo's
+  -14.7), glitter-party 4.9 -> 5.1, full-glam, navy-smokey, bold-glam, cut-crease and monochrome 0.1 each; the eye
+  whites' change 0.572 -> 0.586 (mean, its limit 1.5).
 - **Overlined lips in the studio.** An artist makes thin lips look fuller by drawing her liner a millimetre or two past
   the lip line at the cupid's bow and the lower lip's middle and filling the lipstick up to it, never at the corners; the
   studio's lipstick stopped at her lip line. The lips step's third model, «کمی بزرگ‌تر از خط لب» (`LIP_OVER`): all of

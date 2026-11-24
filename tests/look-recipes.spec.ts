@@ -55,7 +55,8 @@ test("every catalog look is a recipe her own makeup can hold, step by step", asy
     return { sun: lookRecipe("sun-kissed")!.blush, k: lookRecipe("k-beauty")!.shadow, stones: lookRecipe("rhinestone")!.liner,
       kohl: arabic.liner, kohlPick: minePicks(arabic)!.liner, kohlText: recipeLines(arabic).join("\n"), soft: lookRecipe("soft-glam")!.liner,
       under: lookRecipe("cut-crease")!.shadow, underPick: minePicks(lookRecipe("cut-crease")!)!.shadow, underText: recipeLines(lookRecipe("cut-crease")!).join("\n"),
-      softUnder: lookRecipe("soft-glam")!.shadow };
+      softUnder: lookRecipe("soft-glam")!.shadow, softLashes: lookRecipe("soft-glam")!.lashes, hollywoodUnder: lookRecipe("hollywood")!.shadow,
+      cleanLashes: lookRecipe("clean-girl")!.lashes };
   });
   expect(accents.sun).toMatchObject({ freckles: true });
   expect(accents.k).toMatchObject({ aegyo: true });
@@ -67,7 +68,12 @@ test("every catalog look is a recipe her own makeup can hold, step by step", asy
   expect(accents.under).toMatchObject({ lower: true });       // (the cut crease's photo has its eyeshadow under its lower lashes too)
   expect(accents.underPick?.lower).toBe(true);
   expect(accents.underText).toContain("سایه زیر چشم هم");
-  expect(accents.softUnder?.lower).toBeUndefined();           // (a soft glam's has not)
+  // (a soft glam's photo has a soft shadow under its lower lashes and mascara on them too, LOWER_MASCARA; the Hollywood
+  // glam's neither, nor a clean girl's lashes)
+  expect(accents.softUnder?.lower).toBe(true);
+  expect(accents.softLashes?.lower).toBe(true);
+  expect(accents.hollywoodUnder?.lower).toBeUndefined();
+  expect(accents.cleanLashes?.lower).toBeUndefined();
 });
 
 test("?engine=v2 paints a look as its recipe (kept for the tab, ?engine=v1 turns it off), lashes strand by strand", async ({ page }) => {
