@@ -219,7 +219,7 @@ export const MY_STEPS: MyStepDef[] = [
       tool("brush", "براش لب", "brush", 0, 1, 1),
       tool("finger", "نوک انگشت (محو)", "finger", 0, 1, 0.7),
     ],
-    places: opts([["full", "تمام لب"], ["gradient", "گرادیانی (از وسط لب)"]]),
+    places: opts([["full", "تمام لب"], ["gradient", "گرادیانی (از وسط لب)"], ["overline", "کمی بزرگ‌تر از خط لب"]]),
   },
 ];
 
@@ -302,7 +302,7 @@ export function minePicks(recipe: MyMakeup): MinePicks | null {
       case "lips": {
         const pencil = def.pencils?.find((x) => x.id === raw.pencil)?.hex;
         out.lips = { hex: raw.hex ?? shade?.hex ?? "#b8766d", finish: (step.finish ?? "satin") as Finish, ...(raw.from ? { from: raw.from } : {}),
-          ...(step.place === "gradient" ? { place: "gradient" } : {}), ...(pencil ? { liner: pencil } : {}) };
+          ...(step.place === "gradient" || step.place === "overline" ? { place: step.place } : {}), ...(pencil ? { liner: pencil } : {}) };
         break;
       }
       case "lenses": out.lenses = { hex, opaque: step.place === "opaque" }; break;
@@ -404,7 +404,9 @@ const HOW: Partial<Record<StepKey, (s: MyStep) => { how: string; tip?: string }>
     tip: "لنز رنگی را فقط با مشورت چشم‌پزشک و از داروخانه تهیه کنید و قبل از میکاپ بگذارید؛ با لنز نخوابید و آن را با کسی شریک نشوید.",
   }),
   lips: (s) => ({
-    how: (s.pencil ? "اول با مداد خط لب، از کمان لب بالا و وسط لب پایین رو به گوشه‌ها، دقیق روی خط لب بکشید و کمی رو به داخل محو کنید. " : "")
+    how: (s.place === "overline" ? "با مداد خط لب، کمان لب بالا و وسط لب پایین را یکی دو میلی‌متر بیرون‌تر از خط لب خودتان بکشید و رو به گوشه‌ها به خط لب خودتان برگردید؛ "
+        + "گوشه‌ها را بیرون نبرید. بعد داخلش را تا خط تازه پر کنید. "
+      : s.pencil ? "اول با مداد خط لب، از کمان لب بالا و وسط لب پایین رو به گوشه‌ها، دقیق روی خط لب بکشید و کمی رو به داخل محو کنید. " : "")
       + (s.place === "gradient"
         ? "رنگ را فقط روی قسمت داخلی لب‌ها (جایی که لب‌ها به هم می‌رسند) بزنید و با نوک انگشت یا براش رو به بیرون ضربه بزنید تا به خط لب محو شود؛ لبه لب تقریباً بی‌رنگ بماند."
         : s.tool === "finger" ? "رنگ را با نوک انگشت روی وسط لب ضربه بزنید و رو به لبه‌ها محو کنید تا ملایم و محو بنشیند."

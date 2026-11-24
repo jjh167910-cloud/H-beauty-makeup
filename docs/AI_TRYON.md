@@ -627,6 +627,14 @@ in makeup-gl.ts):
   (mean; worst 2.97 -> 2.03, latte's, as it was). A test: a red gradient lip as red where her lips
   meet as the whole lip, under half of it at her lip line (11 against 100); a brown liner round a nude 16 L* darker just
   inside her lip line, her lips' middle as it was, her skin past it no darker.
+- **Overlined lips in the studio.** An artist makes thin lips look fuller by drawing her liner a millimetre or two past
+  the lip line at the cupid's bow and the lower lip's middle and filling the lipstick up to it, never at the corners; the
+  studio's lipstick stopped at her lip line. The lips step's third model, «کمی بزرگ‌تر از خط لب» (`LIP_OVER`): all of
+  her lips inside her lip line (her points), and past it up to 0.06 eye widths at her lips' middle, less towards her
+  mouth's corners (sin^0.7 along her lip line) and none at them, its edge soft over at least a pixel and a half (a
+  smaller face showed steps), the lip liner's crisp edge not applied there for the same reason. No catalog look wears
+  it, so the benchmark doesn't move. A test: a red lipstick overlined, her skin 0.03 eye widths past her lip line at its
+  middle 49 redder than with the whole lip, at her mouth's corners as it was.
 - **A thin brow in the studio: her own brow blocked out, a thin arched one drawn.** The 20s and 90s photos have her thick
   brow gone (glued flat and concealed) and a thin pencil brow drawn along her hairs' darkest band (its middle within
   0.03 eye widths of hers, 0.06 to 0.12 eye widths wide in its outer two thirds where her brow is 0.18 to 0.34); the

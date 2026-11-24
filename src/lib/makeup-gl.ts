@@ -34,7 +34,10 @@ export type LipInfo = {
   /** A lipstick that hardly changes the model's lips changes hers the same way: the change, and how much its own colour
    * counts instead (1: all; look_lips in teacher.py). */
   ratio?: number[]; pigment?: number;
-  /** Where on her lips: "gradient" (the colour where her lips meet, fading out to her lip line), else all of them. */
+  /**
+   * Where on her lips: "gradient" (the colour where her lips meet, fading out to her lip line), "overline" (a little past
+   * her lip line at her lips' middle: LIP_OVER), else all of them.
+   */
   place?: string;
   /** Her lip liner's colour (as `colour`: linear, in the catalog photos' light). */
   liner?: number[];
@@ -103,6 +106,12 @@ const LIP_GRADIENT = { from: 0.25, to: 0.85, edge: 0.12, core: 0.92 };
  * pencil out onto her skin, a dark halo around her mouth).
  */
 const LIP_LINER = { from: 0.68, to: 0.93, crisp: [0.3, 0.65], alpha: 0.85 };
+/**
+ * Overlined lips: her lipstick (and liner) taken a little past her lip line, `reach` eye widths at her lips' middle,
+ * less towards her mouth's corners (sin^`taper` along her lip line) and none at them, as an artist overlines her cupid's
+ * bow and her lower lip's middle to make her lips look fuller.
+ */
+const LIP_OVER = { reach: 0.06, taper: 0.7 };
 /** Her own shimmer and metallic eyeshadow catch the light where her lid is fullest (her eyeball under it): how much. */
 const LID_SHEEN = 0.45, LID_GLOW = 0.6;
 /** Her products: shading blur widths (form, broad light) and the blush's softness, in eye widths (products.py). */
@@ -2155,7 +2164,7 @@ uniform float uAlpha, uGamma, uShine, uRef, uLipPig; uniform vec3 uLipRatio, uLi
 uniform int uFinish;        // 0 plain, 1 lined, 2 ombre, 3 metallic, 4 glitter
 // her lips' lines (LIP_LINES, pixels): where they meet (upper xy, lower zw) and her lip line (upper xy, lower zw)
 uniform vec4 uLipIn[11], uLipOut[11];
-uniform int uLipPlace;      // 1: a gradient lip (LIP_GRADIENT)
+uniform int uLipPlace;      // 1: a gradient lip (LIP_GRADIENT), 2: overlined (LIP_OVER)
 uniform vec4 uLipLiner;     // her lip liner's colour for her light (linear), and 1 when she has one on
 uniform float uMetK, uLight, uEw, uCanonEw, uMatte;
 // the gloss highlights by her lips' shape: lower and upper lip (centre, size along and across her mouth, pixels), her
@@ -2372,6 +2381,23 @@ float lipDepth(vec2 px) {
     dl = min(dl, min(segDist(px, uLipOut[i].xy, uLipOut[i + 1].xy), segDist(px, uLipOut[i].zw, uLipOut[i + 1].zw)));
   }
   return di / max(di + dl, 1e-3);
+}
+// Overlined lips (LIP_OVER): how much of her lipstick goes on a pixel: all of it inside her lip line (her points), some
+// just past it, none further
+float lipOver(vec2 px) {
+  vec2 c0 = uLipOut[0].xy, c1 = uLipOut[10].xy;    // (only near her mouth: within its width of its middle)
+  if (length(px - 0.5 * (c0 + c1)) > length(c1 - c0)) return 0.0;
+  float best = 1e9, along = 0.0; bool inside = false;
+  for (int k = 0; k < 2; k++) for (int i = 0; i < 10; i++) {   // (her lip line: upper, then lower, corner to corner)
+    vec2 a = k == 0 ? uLipOut[i].xy : uLipOut[i].zw, b = k == 0 ? uLipOut[i + 1].xy : uLipOut[i + 1].zw, ab = b - a;
+    float t = clamp(dot(px - a, ab) / max(dot(ab, ab), 1e-6), 0.0, 1.0), d = length(px - a - ab * t);
+    if (d < best) { best = d; along = (float(i) + t) / 10.0; }
+    if ((a.y > px.y) != (b.y > px.y) && px.x < (b.x - a.x) * (px.y - a.y) / (b.y - a.y) + a.x) inside = !inside;
+  }
+  if (inside) return 1.0;     // (her lips as her points have them, all lipstick: no gap between them and the line past them)
+  float reach = ${LIP_OVER.reach.toFixed(3)} * uEw * pow(sin(3.14159 * along), ${LIP_OVER.taper.toFixed(2)});
+  float edge = max(reach * 0.45, 1.5);       // (its edge soft over a pixel and a half at least: no steps on a small face)
+  return reach < 0.5 ? 0.0 : 1.0 - smoothstep(reach - edge, reach, best);
 }
 vec2 canonAt() {
   vec4 t = texelFetch(uCanon, ivec2(v * vec2(uSize)), 0) * 255.0;
@@ -2820,6 +2846,8 @@ void main() {
     vec4 A = texture(uLipM, (v * vec2(uSize) - uLipBox.xy) / uLipBox.z);
     lipF = uLipOn == 2 ? clamp(dot(A.rgb, src - 0.5) + A.a, 0.0, 1.0) : A.r;
   }
+  float lipOwn = lipF, over = uLipPlace == 2 ? lipOver(v * vec2(uSize)) * (1.0 - M.g) : 0.0;
+  lipF = max(lipF, over);                // (overlined: a little past her lip line)
   float Y = luma(lu);
   float broad = Q.x / max(Q.y, 1e-3), fine = Y / max(broad, 1e-4);
   float lm = Q.z / max(Q.w, 1e-3), local = Y / max(lm, 1e-4);
@@ -2878,7 +2906,8 @@ void main() {
   if (uFinish == 2) cover *= pow(uOmbre, vec3(tg - 0.5));
   else if (uLipPlace == 1) a = mix(${LIP_GRADIENT.edge.toFixed(2)}, max(uAlpha, ${LIP_GRADIENT.core.toFixed(2)}), tg);
   // (a lined lip's edge is the liner's: crisp at her lip line, nothing past it)
-  float f = uLipLiner.a > 0.0 ? smoothstep(${LIP_LINER.crisp[0].toFixed(2)}, ${LIP_LINER.crisp[1].toFixed(2)}, lipF) : lipF;
+  // (an overlined edge is soft over a pixel and a half already: made crisper it showed steps)
+  float f = uLipLiner.a > 0.0 ? max(smoothstep(${LIP_LINER.crisp[0].toFixed(2)}, ${LIP_LINER.crisp[1].toFixed(2)}, lipOwn), over) : lipF;
   vec3 c = mix(base, cover, clamp(a * uK.y, 0.0, 0.97) * f * RLips);
   if (uFinish == 1) c = mix(c, cover * 0.62, 4.0 * f * (1.0 - f) * f * 0.45 * min(uK.y, 1.0) * RLips);
   if (uLipLiner.a > 0.0 && lipF > 0.0) {      // her lip liner along her lip line, blended in (LIP_LINER)
@@ -3797,7 +3826,7 @@ export class MakeupGL {
       const line = (a: number[], b: number[]) => new Float32Array(a.flatMap((i, k) => [P[i][0], P[i][1], P[b[k]][0], P[b[k]][1]]));
       gl.uniform4fv(this.uni(p, "uLipIn"), line(LIP_LINES[0], LIP_LINES[1]));
       gl.uniform4fv(this.uni(p, "uLipOut"), line(LIP_LINES[2], LIP_LINES[3]));
-      gl.uniform1i(this.uni(p, "uLipPlace"), lip.place === "gradient" ? 1 : 0);
+      gl.uniform1i(this.uni(p, "uLipPlace"), lip.place === "gradient" ? 1 : lip.place === "overline" ? 2 : 0);
       gl.uniform4f(this.uni(p, "uLipLiner"), ...((linerC ? [linerC[0], linerC[1], linerC[2], 1] : [0, 0, 0, 0]) as [number, number, number, number]));
     }
     gl.uniform1i(this.uni(p, "uStepsOn"), geo && steps ? 1 : 0);
