@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { evaluate } from './gate.mjs';
 
-const RUN_META = { set: 'quick', looks: ['soft-glam', 'icy'] };
+const RUN_META = { set: 'quick', looks: ['soft-glam', 'icy'], engines: ['v2'],
+  photos: ['light', 'deep'].flatMap(group => [0, 1, 2].map(n => ({ id: group + '-' + n, group }))) };
 function run(change = () => {}, fairness = 6) {
   const rows = [];
   for (const look of RUN_META.looks) for (const group of ['light', 'deep']) {
@@ -114,4 +115,20 @@ test('rejects changed photo pixels even if the render IDs are identical', () => 
   assert.equal(result.pass, false);
   assert.match(result.issues.join('\n'), /input-photo or catalog-truth pixels changed/);
   assert.ok(!result.issues.join('\n').includes('p.png'));
+});
+
+test('omitting the same expected render from all three runs fails closed', () => {
+  const b = run(), r = run(), c = run();
+  for (const value of [b, r, c]) value.rows.pop();
+  const result = evaluate(b, r, c);
+  assert.equal(result.pass, false);
+  assert.match(result.issues.join('\n'), /scores do not cover every expected manifest/);
+});
+
+test('rejects an unexpected render that is not in the manifest', () => {
+  const b = run(), r = run(), c = run();
+  c.rows[0].look = 'unexpected';
+  const result = evaluate(b, r, c);
+  assert.equal(result.pass, false);
+  assert.match(result.issues.join('\n'), /scores do not cover every expected manifest/);
 });
