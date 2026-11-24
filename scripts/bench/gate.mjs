@@ -184,6 +184,11 @@ export function releasePolicy(manifest) {
     return [...issues, 'Release gate requires catalog and real-face photos'];
   if (!manifest.photos.some(p => p.source === 'catalog'))
     issues.push('Release gate requires catalog reference photographs');
+  const conditions = new Set(manifest.photos
+    .filter(p => p.light === 'sim' && p.cond && p.cond !== 'orig')
+    .map(p => p.cond));
+  if (conditions.size < 2)
+    issues.push('Release gate requires at least two independent simulated lighting conditions');
   for (const group of ['light', 'medium', 'deep']) {
     const faces = new Set(manifest.photos
       .filter(p => p.group === group && p.source === 'mste' && p.cond === 'orig')
