@@ -17,6 +17,8 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Verify private benchmark regression gate logic (synthetic data only)
+        run: node --test scripts/bench/gate.test.mjs
       - name: Verify offline app shell
         run: node --test tests-node/*.test.mjs
       - name: Install dependencies
