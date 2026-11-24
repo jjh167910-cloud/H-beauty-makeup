@@ -153,10 +153,24 @@ jobs:
               'changed': sum(r['changed_source_pixels'] > 0 for r in rows)})
           PY
           git diff --exit-code -- public/tryon/layers/ public/tryon/looks.json
-      - name: Store public-only candidate pack for PRIVATE local benchmark
-        if: success()
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install app to test entire candidate atlas in actual WebGL2
+        run: npm ci --no-audit --no-fund
+      - name: Verify all 48 looks with paired real WebGL2 renders (public model only)
+        env:
+          EYE_CAP_PREVIEW_GPU_TEST: '1'
+          EYE_CAP_ALL_GPU_TEST: '1'
+          EYE_CAP_PREVIEW_DIR: ${{ runner.temp }}/public-eye-cap-pack
+        run: npm run test:ui -- tests/pale-lids-gpu-preview.spec.ts --workers=1 --reporter=line
+      - name: Store public-only candidate pack and aggregate GPU evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: public-eye-cap-full-48-look-pack
-          path: ${{ runner.temp }}/public-eye-cap-pack/
+          path: |
+            ${{ runner.temp }}/public-eye-cap-pack/
+            test-results/
           retention-days: 7
