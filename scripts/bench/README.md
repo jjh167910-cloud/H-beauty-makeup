@@ -68,7 +68,7 @@ node scripts/bench/gate.mjs \
 ```
 
 The command reads each run's `manifest.json`, `scores.jsonl`, and `summary.json`.
-It exits nonzero if render identities differ, metrics disappear, or any quality metric
+It hashes private input photographs and catalog-truth images locally, rejects changed pixels even when file IDs match, and exits nonzero if render identities differ, metrics disappear, or any quality metric
 regresses beyond the independently measured same-code repeat noise. It evaluates
 the worst tenth of results on the whole benchmark, **each look, each skin-tone
 group, and each look × skin-tone combination**, including both limits of acceptable
