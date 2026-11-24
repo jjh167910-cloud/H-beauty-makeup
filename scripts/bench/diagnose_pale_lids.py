@@ -125,6 +125,18 @@ def inspect(look, sweep=False):
                 "extracted_deficit_Lstar": round(float(goal - proposed_lstar[mask].mean()), 3),
                 "nonlid_shift_p90_Lstar": round(float(np.percentile(shift, 90)), 3),
             })
+    if sweep:
+        exempt, _, _ = T.layer_parts(look, protect_eye_light=True)
+        exempt_lstar = lstar(bw * np.exp(exempt))
+        outside = (T.poly_mask((h, w), pl[:, :2], [T.OVAL]) > 0.5) & ~lid
+        result["core_edge_eye_exemption"] = {
+            "baseline_deficit_Lstar": round(float(goal - lums["extracted_layer"][mask].mean()), 3),
+            "candidate_deficit_Lstar": round(float(goal - exempt_lstar[mask].mean()), 3),
+            "nonlid_shift_p90_Lstar": round(float(np.percentile(
+                np.abs(exempt_lstar[outside] - lums["extracted_layer"][outside]), 90)), 3),
+            "nonlid_shift_max_Lstar": round(float(np.max(
+                np.abs(exempt_lstar[outside] - lums["extracted_layer"][outside]))), 3),
+        }
     return result
 
 
