@@ -42,7 +42,7 @@ def lstar(linear):
     return cv2.cvtColor(rgb, cv2.COLOR_RGB2LAB)[..., 0].astype(np.float32) * 100 / 255
 
 
-def inspect(look):
+def inspect(look, sweep=False):
     base, pb = T._bare()
     image = T.rgb(T.LOOKS / (look + ".webp"))
     pl = T.landmarks3(image)
@@ -103,13 +103,37 @@ def inspect(look):
         for key, x in result["stages_Lstar"].items()
         if key not in ("reference", "bare_warp")
     }
+    if sweep:
+        result["smoothing_sweep"] = []
+        # Test alternatives strictly on the public catalog images, without changing
+        # any application layer or calibration gains. The non-lid shift is the safety
+        # warning: a brighter eyelid is not an improvement if other makeup moves.
+        outside = (T.poly_mask((h, w), pl[:, :2], [T.OVAL]) > 0.5) & ~lid
+        for fine_sigma, soft_sigma in [(0.012, 0.07), (0.008, 0.045)]:
+            proposed, _, _ = T.layer_parts(look, fine_sigma=fine_sigma, soft_sigma=soft_sigma)
+            proposed_lstar = lstar(bw * np.exp(proposed))
+            raw_f = np.log((blur(src, ew * fine_sigma) + eps)
+                           / (blur(bw, ew * fine_sigma) + eps))
+            raw_s = np.log((blur(src, ew * soft_sigma) + eps)
+                           / (blur(bw, ew * soft_sigma) + eps))
+            raw_v = raw_f * f[..., None] + raw_s * (1 - f[..., None]) - grade
+            raw_lstar = lstar(bw * np.exp(raw_v))
+            shift = np.abs(proposed_lstar[outside] - lums["extracted_layer"][outside])
+            result["smoothing_sweep"].append({
+                "fine_sigma": fine_sigma, "soft_sigma": soft_sigma,
+                "raw_deficit_Lstar": round(float(goal - raw_lstar[mask].mean()), 3),
+                "extracted_deficit_Lstar": round(float(goal - proposed_lstar[mask].mean()), 3),
+                "nonlid_shift_p90_Lstar": round(float(np.percentile(shift, 90)), 3),
+            })
     return result
 
 
 def main():
-    looks = sys.argv[1:] or ["icy", "mod-60s", "cut-crease"]
+    args = sys.argv[1:]
+    sweep = "--sweep" in args
+    looks = [a for a in args if not a.startswith("--")] or ["icy", "mod-60s", "cut-crease"]
     for look in looks:
-        print("PALE_LID_SOURCE_STAGE " + json.dumps(inspect(look)), flush=True)
+        print("PALE_LID_SOURCE_STAGE " + json.dumps(inspect(look, sweep=sweep)), flush=True)
 
 
 if __name__ == "__main__":
