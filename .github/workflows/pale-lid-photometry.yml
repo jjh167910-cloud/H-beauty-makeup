@@ -6,6 +6,7 @@ on:
       - 'tests/pale-lids.spec.ts'
       - 'scripts/bench/diagnose_pale_lids.py'
       - 'scripts/bench/audit_eye_cap.py'
+      - 'scripts/bench/build_eye_cap_preview.py'
       - 'scripts/tinybeauty/teacher.py'
       - 'src/lib/makeup-gl.ts'
       - 'public/tryon/layers/**'
@@ -71,3 +72,27 @@ jobs:
         run: |
           python -m py_compile scripts/bench/audit_eye_cap.py
           python scripts/bench/audit_eye_cap.py --all --cap 0.8
+
+  gpu-preview-assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install MediaPipe runtime libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libgles2 libegl1
+      - name: Install public catalog GPU-preview dependencies
+        run: python -m pip install --disable-pip-version-check 'mediapipe>=0.10.20,<0.11' opencv-python-headless numpy
+      - name: Verify shipped WebGL atlas parity and build isolated cap 0.8 textures
+        run: python scripts/bench/build_eye_cap_preview.py --cap 0.8
+      - name: Store public-only candidate atlas and checksums for review
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-eye-cap-gpu-preview
+          path: public/tryon/eye-cap-preview/
+          retention-days: 7
