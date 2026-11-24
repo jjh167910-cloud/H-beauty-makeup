@@ -121,17 +121,22 @@ jobs:
           name: hbeauty-review-offline-build
           path: dist/
           retention-days: 7
-      - name: Require preview-only Cloudflare deployment authorization
+      - name: Inspect dedicated research preview authorization
+        id: review_auth
         if: success()
         shell: bash
         run: |
           if [[ -z "$CLOUDFLARE_API_TOKEN" || -z "$CLOUDFLARE_ACCOUNT_ID" ]]; then
-            echo "::error title=Preview publishing needs authorization::Connect HBEAUTY_PREVIEW_API_TOKEN (preview-worker-only scope) and HBEAUTY_PREVIEW_ACCOUNT_ID repository secrets. Never use production CLOUDFLARE_API_TOKEN. The verified before/after gallery is available as a workflow artifact."
-            exit 1
+            echo "authorized=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Visual evidence ready, cloud preview not published::Configure HBEAUTY_PREVIEW_API_TOKEN and HBEAUTY_PREVIEW_ACCOUNT_ID; no production token is used."
+          else
+            echo "authorized=true" >> "$GITHUB_OUTPUT"
           fi
       - name: Deploy to separate research preview Worker (never production)
+        if: steps.review_auth.outputs.authorized == 'true'
         run: npx --yes wrangler@4 deploy --config wrangler.preview.jsonc
       - name: Verify the live review Worker and gallery (and reject production/chat backend)
+        if: steps.review_auth.outputs.authorized == 'true'
         shell: bash
         run: |
           curl --fail --show-error --silent --location --retry 3 --retry-delay 4 --max-time 30 "$REVIEW_URL/" -D /tmp/hb-review-headers -o /tmp/hb-review.html
@@ -153,9 +158,13 @@ jobs:
             echo '## H-Beauty research preview'
             echo
             echo "Commit: \`$GITHUB_SHA\`"
-            echo 'Preview URL (only if both Deploy and Verify passed):'
-            echo "$REVIEW_URL"
+            if [[ "${{ steps.review_auth.outputs.authorized }}" == true && "${{ job.status }}" == success ]]; then
+              echo "Verified staging Worker: $REVIEW_URL"
+              echo "Gallery: $REVIEW_URL/research-preview/index.html"
+            else
+              echo "Cloud preview not published/verified. No live URL is claimed."
+            fi
             echo
             echo 'Production h-beauty-makeup remains separate. No salon chat backend is attached to preview.'
-            echo 'Download the public before/after gallery artifact to compare verified GPU frames offline.'
+            echo 'The actual GPU before/after gallery remains available in the uploaded artifact, even when no staging credentials exist.'
           } >> "$GITHUB_STEP_SUMMARY"
