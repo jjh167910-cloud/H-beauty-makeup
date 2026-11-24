@@ -721,6 +721,17 @@ def layer_parts(look: str, fine_sigma=0.02, soft_sigma=0.07, protect_eye_light=F
     out = cv2.GaussianBlur(poly_mask((H, W), pl[:, :2], [OVAL], scale=FILL_OUT), (0, 0), ew * 0.05)
     lr = lr * mask[..., None] + fill * ((1 - edge) * out)[..., None]
     lr = lr + accent_layer(look, pl[:, :2], (H, W))     # what the photo can't carry: freckles, aegyo-sal
+    if eye_light_cap != EYE_LIGHT:
+        # Strictly localize the experimental improvement AFTER ALL extraction,
+        # smoothing and edge-fill passes. Those late passes otherwise transport
+        # tiny lightening deltas beyond the face or into plain skin (observed as
+        # 0.784 L* at icy/pin-up in the complete public 48-look audit).
+        # Use the unchanged baseline as the literal reference outside the
+        # approved eye support. This research path must never modify lipstick,
+        # complexion, hair, sclera, backdrop or non-eye regions.
+        unchanged = layer_parts(look, fine_sigma, soft_sigma, protect_eye_light, EYE_LIGHT)[0]
+        safe_eye = np.clip((eye_support - 0.05) / 0.95, 0, 1) * (R['face'] > 0.5)
+        lr = unchanged + (lr - unchanged) * safe_eye[..., None]
     return lr.astype(np.float32), pl, tone
 
 # ------------------------------------------------------------- accents
