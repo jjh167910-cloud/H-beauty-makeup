@@ -137,6 +137,22 @@ def inspect(look, sweep=False):
             "nonlid_shift_max_Lstar": round(float(np.max(
                 np.abs(exempt_lstar[outside] - lums["extracted_layer"][outside]))), 3),
         }
+    if sweep:
+        result["eye_light_cap_sweep"] = []
+        # Opt-in alternatives only. The default cap remains 0.6 and production
+        # assets are untouched. Report collateral shifts on other face pixels.
+        outside = (T.poly_mask((h, w), pl[:, :2], [T.OVAL]) > 0.5) & ~lid
+        for cap in (0.8, 1.0, 1.2):
+            alternative, _, _ = T.layer_parts(look, eye_light_cap=cap)
+            lum_alt = lstar(bw * np.exp(alternative))
+            nonlid = np.abs(lum_alt[outside] - lums["extracted_layer"][outside])
+            result["eye_light_cap_sweep"].append({
+                "eye_light_cap": cap,
+                "deficit_Lstar": round(float(goal - lum_alt[mask].mean()), 3),
+                "nonlid_shift_p90_Lstar": round(float(np.percentile(nonlid, 90)), 3),
+                "nonlid_shift_p99_Lstar": round(float(np.percentile(nonlid, 99)), 3),
+                "nonlid_shift_max_Lstar": round(float(nonlid.max()), 3),
+            })
     return result
 
 
