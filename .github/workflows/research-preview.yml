@@ -27,8 +27,8 @@ jobs:
     # Experimental features never run against or deploy to main.
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.HBEAUTY_PREVIEW_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.HBEAUTY_PREVIEW_ACCOUNT_ID }}
       REVIEW_URL: https://h-beauty-makeup-review.jjh167910.workers.dev
       EYE_CAP_PREVIEW_GPU_TEST: '1'
       EYE_CAP_ALL_GPU_TEST: '1'
@@ -113,12 +113,12 @@ jobs:
           name: hbeauty-review-offline-build
           path: dist/
           retention-days: 7
-      - name: Require isolated Cloudflare deployment authorization
+      - name: Require preview-only Cloudflare deployment authorization
         if: success()
         shell: bash
         run: |
           if [[ -z "$CLOUDFLARE_API_TOKEN" || -z "$CLOUDFLARE_ACCOUNT_ID" ]]; then
-            echo "::error title=Preview publishing needs authorization::Connect the dedicated Cloudflare Workers Edit deployment token and account ID in this repository. The verified before/after gallery is available as a workflow artifact."
+            echo "::error title=Preview publishing needs authorization::Connect HBEAUTY_PREVIEW_API_TOKEN (preview-worker-only scope) and HBEAUTY_PREVIEW_ACCOUNT_ID repository secrets. Never use production CLOUDFLARE_API_TOKEN. The verified before/after gallery is available as a workflow artifact."
             exit 1
           fi
       - name: Deploy to separate research preview Worker (never production)
