@@ -98,7 +98,7 @@ export function recipeOf(look: FaceLook, id?: string): MyMakeup {
     natural: { shade: "own", tool: "pencil", place: "natural", amount: 0.7 },
     bold: { shade: "own", tool: "angled", place: "full", amount: 1 },
     lifted: { shade: "own", tool: "gel", place: "defined", amount: 0.85 },
-    thin: { shade: "own", tool: "pencil", place: "defined", amount: 0.8 },
+    thin: { shade: "own", tool: "pencil", place: "thin", amount: 0.8 },
   }[look.brow] as MyStep;
 
   // eyeshadow: the lid colour on her lid, the deeper one in her crease and outer corner, in the look's placement;

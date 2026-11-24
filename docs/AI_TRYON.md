@@ -627,6 +627,25 @@ in makeup-gl.ts):
   (mean; worst 2.97 -> 2.03, latte's, as it was). A test: a red gradient lip as red where her lips
   meet as the whole lip, under half of it at her lip line (11 against 100); a brown liner round a nude 16 L* darker just
   inside her lip line, her lips' middle as it was, her skin past it no darker.
+- **A thin brow in the studio: her own brow blocked out, a thin arched one drawn.** The 20s and 90s photos have her thick
+  brow gone (glued flat and concealed) and a thin pencil brow drawn along her hairs' darkest band (its middle within
+  0.03 eye widths of hers, 0.06 to 0.12 eye widths wide in its outer two thirds where her brow is 0.18 to 0.34); the
+  studio could only fill her brow in, so their brows were the furthest of all 48 looks from their photos (twenties 16.1,
+  nineties 12.1 ΔE). The brow step has a fourth model, «باریک و کمانی (دهه ۲۰ و ۹۰)». Her brow is measured on her
+  photo as her hairs lie (`browLine`, measureFace: across each pair of her brow's points, where her hairs start, their
+  middle and where they end, each side of them against its own skin, her forehead often in less light than her brow
+  bone; the mesh's brow points sit inside her brow, its tail 0.1 eye widths low on the catalog face). Across that band
+  and a little around (`BROW_BLOCK`, before her eyeshadow goes on) what is darker than her skin just above and below it
+  is taken up to it, its light from her softened skin there (single pixels gave streaks), and a smooth line is drawn
+  through her hairs' middles (`BROW_THIN`: 0.045 to 0.1 eye widths wide, its tail on past hers to a point, fading in at
+  her brow's head, its pencil 2.5 times as dense as a fill between hairs). The two looks' recipes wear it, at the
+  recipe's own amount (their fitted brow amounts, 0.08 and 0.05, were for a fill the photos don't have).
+  twenties' brows 16.07 -> 6.25 ΔE from its photo, nineties' 12.09 -> 6.22; their whole faces 4.96 -> 4.43 and 3.31 ->
+  2.97; all 48 looks' brows 2.79 -> 2.46 (mean; worst 16.07 -> 6.25), the brow fill's spill 0.254 -> 0.263 L* (mean;
+  the limit 1.5). Blocking a little further below her brow and past its head cost 0.2 ΔE there against a narrower
+  block (6.04, 6.06) but left none of her lowest hairs showing under the line.
+  A test: on a synthetic face her brow's lower part 67 lighter with it, the line 22 darker than that, her forehead
+  within 3.
 
 The tiny fallback networks learn the look as the engine finishes it: `scripts/tinybeauty/finish.py` paints the
 foundation, this concealer, the layer with each look's strengths, the brows, lipstick and eye detail in the engine's

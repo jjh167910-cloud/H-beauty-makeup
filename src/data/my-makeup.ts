@@ -177,7 +177,7 @@ export const MY_STEPS: MyStepDef[] = [
       tool("angled", "پماد و براش زاویه‌دار", "angled", 0.02, 1.05, 1, { thick: 0.03 }),
       tool("gel", "ژل رنگی ابرو", "wand", 0.03, 1, 1, { thick: 0.012 }),
     ],
-    places: opts([["natural", "طبیعی"], ["full", "پرپشت"], ["defined", "دقیق و کشیده"]]),
+    places: opts([["natural", "طبیعی"], ["full", "پرپشت"], ["defined", "دقیق و کشیده"], ["thin", "باریک و کمانی (دهه ۲۰ و ۹۰)"]]),
   },
   {
     key: "shadow", title: "سایه چشم", en: "EYESHADOW", hint: "یک رنگ برای پلک، رنگ دوم برای چین پلک و گوشه بیرونی، و نور گوشه چشم؛ مثل کار آرتیست.",
@@ -371,7 +371,11 @@ const HOW: Partial<Record<StepKey, (s: MyStep) => { how: string; tip?: string }>
       : s.place === "full" ? "روی بالای استخوان گونه، تیغه بینی و بالای لب (کمان) بزنید."
       : "روی بالای استخوان گونه، جایی که نور می‌افتد، بزنید و نرم محو کنید.",
   }),
-  brows: (s) => ({ how: (s.place === "full" ? BROWS.bold : s.place === "defined" ? BROWS.thin : BROWS.natural).how }),
+  brows: (s) => (s.place === "thin"
+    ? { how: "ابروی خودتان را با چسب ابرو (یا صابون ابرو) صاف و به پوست بچسبانید، خشک که شد با کانسیلر و کرم‌پودر بپوشانید و پودر بزنید؛ "
+        + "بعد با مداد یک خط نازک و کمانی، بالاتر از ابروی خودتان، از سر ابرو تا دمی کشیده‌تر بکشید.",
+      tip: "سر ابرو را کم‌رنگ‌تر و دم را باریک و تیز تمام کنید." }
+    : { how: (s.place === "full" ? BROWS.bold : s.place === "defined" ? BROWS.thin : BROWS.natural).how }),
   shadow: (s) => {
     const style = (s.place ?? "wash") as keyof typeof SHADOW;
     return {

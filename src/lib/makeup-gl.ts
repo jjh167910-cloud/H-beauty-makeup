@@ -529,6 +529,12 @@ export type LookFiles = {
 /** Her light references, and how soft her photo is around the eyes (`blur`: Gaussian sigma in pixels, photoBlur in tryon.ts). */
 export type FaceStats = {
   sclera: number[] | null; skin: number | null; lipRef: number | null; blur?: number | null;
+  /**
+   * Her brows as her hairs lie (image-left brow, the other): along each pair of her brow's points, tail to head, where
+   * her hairs start, their middle (weighted by how dark) and where they end, across her brow from its lower point (eye
+   * widths); null where it can't be told (a sparse or light brow). A thin brow follows it (BROW_THIN, browBands).
+   */
+  browLine?: (number[] | null)[][] | null;
   /** Her cheek's brightness just under each eye (image-left eye, the other; linear), for the concealer. */
   under?: [number, number] | null;
   /** Her skin's colour (linear, over its luminance), for the concealer's tone. */
@@ -1259,14 +1265,66 @@ export function stoneSpots(P: Pt[]): Spot[] {
 }
 
 /** Her brow fill per style: her hairs' darkness from / to which it is all of her brow, and how much of the zone gets some anyway (browFill). */
-const BROW_SHAPE: Record<string, [number, number, number]> = { natural: [0.05, 0.25, 0], full: [0.02, 0.14, 0.2], defined: [0.04, 0.2, 0.12] };
+const BROW_SHAPE: Record<string, [number, number, number]> = { natural: [0.05, 0.25, 0], full: [0.02, 0.14, 0.2], defined: [0.04, 0.2, 0.12], thin: [0, 0.01, 1] };
+/**
+ * A thin brow (the 20s and 90s brows of the catalog's photos): her own brow blocked out (glued flat and covered with
+ * concealer: her hairs taken up to her skin around, BROW_BLOCK) and a thin, arched brow drawn along it with a pencil.
+ * It follows her own brow's middle line (the photos' thin brows sit where her hairs' darkest band is, ±0.03 eye widths,
+ * 0.06 to 0.12 eye widths wide in its outer two thirds, wider at its head; her brow 0.18 to 0.34), else `at` of the way
+ * up from her brow's lower points; how wide per pair of her brow's points, tail to head (eye widths); its tail drawn on
+ * past hers (eye widths, and down) and `lead` on past her brow's head; its pencil `ink` times as dense as a fill between
+ * hairs (no hairs under it now), fading in towards her brow's head (`head` less there, over `fade` of its length).
+ */
+const BROW_THIN = { at: 0.55, width: [0.045, 0.06, 0.075, 0.09, 0.1], tail: 0.14, drop: 0.05, lead: 0.04, ink: 2.5, head: 0.85, fade: [0.55, 1] };
+/** Her brows' middle line is looked for this far below and above her brow's lower points (eye widths, measureFace). */
+const BROW_SEEK = [-0.08, 0.4];
+/**
+ * ...where her skin is this much darker than her skin along the way (its upper quarter: BROW_SKIN_Q), and enough of it
+ * (else not told); then below and above her hairs' middle each against its own skin (its brightest tenth: BROW_SIDE_Q;
+ * her sparse lowest hairs darken the upper quarter below); her hairs' band runs on from their middle over gaps of at
+ * most BROW_GAP hundredths of an eye width.
+ */
+const BROW_DARK = 0.3, BROW_DARK_MIN = 0.3, BROW_SKIN_Q = 0.75, BROW_SIDE_Q = 0.9, BROW_GAP = 5;
+/**
+ * Her brow blocked out: across her band of hairs (browBands) and `pad` eye widths past it (`below` more under it; softening over `soft`), what
+ * is darker than her skin just above and below it (her hairs: from `hair` darker) is taken up towards it, `cover` of the
+ * way (in log light; a trace of them stays); her skin there as it was.
+ */
+const BROW_BLOCK = { pad: 0.03, below: 0.08, soft: 0.03, cover: 0.95, hair: [0.05, 0.25] };
+
+/**
+ * Her brows' bands (browLine, measureFace), told or not: per brow (image-left, the other), per pair of its points tail to
+ * head, her lower point, across her brow (up), and where her hairs start, their middle and end (eye widths across from
+ * the lower point). A pair not told takes its told neighbours' (else her brow's points: from just below the lower one to
+ * just above the upper one), each its neighbours' mean.
+ */
+export function browBands(P: Pt[], face?: FaceStats | null): { b: V; n: V; band: number[] }[][] {
+  const { ew, down } = frame(P);
+  return [BROW_R, BROW_L].map((B, k) => {
+    const ax = unit(sub(pt(P, B[4]), pt(P, B[0])));
+    let n: V = [ax[1], -ax[0]];
+    if (n[0] * down[0] + n[1] * down[1] > 0) n = mul(n, -1);
+    const seen = face?.browLine?.[k] ?? [];
+    const own = [0, 1, 2, 3, 4].map((j) => {
+      const b = pt(P, B[9 - j]), top = ((pt(P, B[j])[0] - b[0]) * n[0] + (pt(P, B[j])[1] - b[1]) * n[1]) / ew;
+      return [-0.03, top * BROW_THIN.at, top + 0.03];
+    });
+    const told = [0, 1, 2, 3, 4].map((j) => seen[j] ?? null);
+    return [0, 1, 2, 3, 4].map((j) => {
+      const near = [j - 1, j, j + 1].map((i) => told[i]).filter((x): x is number[] => Array.isArray(x));
+      const band = told[j] ? [0, 1, 2].map((c) => near.reduce((a, x) => a + x[c], 0) / near.length)
+        : near.length ? [0, 1, 2].map((c) => near.reduce((a, x) => a + x[c], 0) / near.length) : own[j];
+      return { b: pt(P, B[9 - j]), n, band };
+    });
+  });
+}
 
 /**
  * Her own makeup's shapes (Mine), one per zone channel: zoneA concealer, contour, blush, highlight; zoneB none (her
  * eyeshadow's placement is a catalog coverage map, in uCov), liner, brows, where the lash template's lashes go.
  * Every shape follows her landmarks; polygons of one half of her face stay on that half (ZONE_FS).
  */
-export function mineZones(P: Pt[], m: Mine): { A: StepGeo[]; B: StepGeo[] } {
+export function mineZones(P: Pt[], m: Mine, face?: FaceStats | null): { A: StepGeo[]; B: StepGeo[] } {
   const { ew, across, down, sides, per, tilt } = frame(P);
   const up = mul(down, -1);
   const steps = stepGeometry(P, m.blush?.place ?? "apples");
@@ -1405,6 +1463,34 @@ export function mineZones(P: Pt[], m: Mine): { A: StepGeo[]; B: StepGeo[] } {
   if (m.brows) {
     const style = m.brows.place, k = m.brows.size;
     brows = per((s) => {
+      // (a thin brow along her own brow's middle (browBands): BROW_THIN)
+      if (style === "thin") {
+        // a smooth line through her brow's middles (Catmull-Rom), tail drawn on past hers to a point, as wide as
+        // BROW_THIN along it, in short pieces fading in towards her brow's head
+        const bands = browBands(P, face)[s.brow === BROW_R ? 0 : 1], n = bands[0].n;
+        const mids = bands.map((x) => add(x.b, mul(x.n, x.band[1] * ew)));
+        const tip = add(add(mids[0], mul(unit(sub(mids[0], mids[1])), ew * BROW_THIN.tail)), mul(down, ew * BROW_THIN.drop));
+        // (and a little on past her brow's head, as wide, where it fades out)
+        const head = add(mids[4], mul(unit(sub(mids[4], mids[3])), ew * BROW_THIN.lead));
+        const ctl = [tip, ...mids, head], widths = [0, ...BROW_THIN.width, BROW_THIN.width[4]];
+        const at = (u: number): [V, number] => {        // (u: 0 at the tip .. 6 past her brow's head)
+          const i = Math.min(5, Math.floor(u)), f = u - i, p0 = ctl[Math.max(0, i - 1)], p1 = ctl[i], p2 = ctl[i + 1], p3 = ctl[Math.min(6, i + 2)];
+          const c = (a: number, b: number, c2: number, d: number) => 0.5 * (2 * b + (c2 - a) * f + (2 * a - 5 * b + 4 * c2 - d) * f * f + (3 * b - a - 3 * c2 + d) * f * f * f);
+          return [[c(p0[0], p1[0], p2[0], p3[0]), c(p0[1], p1[1], p2[1], p3[1])], widths[i] + (widths[i + 1] - widths[i]) * f * f * (3 - 2 * f)];
+        };
+        const N = 36, line = Array.from({ length: N + 1 }, (_, i) => at((6 * i) / N));
+        const side = line.map(([c, wd], i) => {
+          const d = unit(sub(line[Math.min(N, i + 1)][0], line[Math.max(0, i - 1)][0]));
+          let m: V = [-d[1], d[0]];
+          if (m[0] * n[0] + m[1] * n[1] < 0) m = mul(m, -1);
+          const hw = (Math.max(wd, 0.004) * ew * k) / 2;
+          return [add(c, mul(m, hw)), add(c, mul(m, -hw))] as [V, V];
+        });
+        const polys = side.slice(0, -1).map(([a, b], i) => [a, side[i + 1][0], side[i + 1][1], b] as Poly);
+        const fade = (x: number) => { const t = Math.min(1, Math.max(0, (x - BROW_THIN.fade[0]) / (BROW_THIN.fade[1] - BROW_THIN.fade[0]))); return t * t * (3 - 2 * t); };
+        return { polys, values: polys.map((_, i) => 1 - BROW_THIN.head * fade(i / (N - 1))), axis: [s.browIn, s.browTail],
+          outline: [[...side.map((q) => q[0]), ...[...side].reverse().map((q) => q[1])]] };
+      }
       const pairs = [0, 1, 2, 3, 4].map((j) => {                    // tail to inner end
         const a = pt(P, s.brow[j]), b = pt(P, s.brow[9 - j]), c = lerp(a, b, 0.5), w = (style === "full" ? 1.3 : 1) * k;
         return [lerp(c, a, w), lerp(c, b, w)] as [V, V];
@@ -1703,7 +1789,50 @@ export function measureFace(source: CanvasImageSource, P: Pt[]): FaceStats {
     const dark = bw.filter((v) => v[3] <= cut);
     brow = [0, 1, 2].map((c) => quantile(Float32Array.from(dark.map((v) => v[c])).sort(), 0.5));
   }
-  return { sclera, skin: skinLum, lipRef, under: under[0] > 0 && under[1] > 0 ? [under[0], under[1]] : null, tone, brow };
+  // her brows as her hairs lie (FaceStats.browLine): across each pair of her brow's points, what is darker than her skin
+  // there by BROW_DARK or more (its middle weighted by how much), BROW_SEEK below and above its lower point
+  const browLine = [BROW_R, BROW_L].map((B) => {
+    const t0 = P[B[0]], t4 = P[B[4]], bl = Math.hypot(t4[0] - t0[0], t4[1] - t0[1]) || 1;
+    let n = [(t4[1] - t0[1]) / bl, -(t4[0] - t0[0]) / bl];
+    if (n[0] * dn[0] + n[1] * dn[1] > 0) n = [-n[0], -n[1]];
+    return [0, 1, 2, 3, 4].map((j) => {
+      const b = P[B[9 - j]], ys: number[] = [], ts: number[] = [];
+      for (let t = BROW_SEEK[0]; t <= BROW_SEEK[1] + 1e-9; t += 0.01) {
+        const [x, y] = at([b[0] + n[0] * ew * t, b[1] + n[1] * ew * t]), xi = Math.round(x), yi = Math.round(y);
+        if (xi < 0 || yi < 0 || xi >= w || yi >= h) continue;
+        const k = (yi * w + xi) * 4;
+        ys.push(0.2126 * LIN[px[k]] + 0.7152 * LIN[px[k + 1]] + 0.0722 * LIN[px[k + 2]]); ts.push(t);
+      }
+      if (ys.length < 10) return null;
+      // (her skin: the upper quarter along the way, not its few highlights; then, her hairs' middle found, below them
+      // and above them each its own: her forehead is often in less light than her brow bone)
+      const dark = (ref: (i: number) => number) => ys.map((y, i) => Math.max(0, 1 - y / Math.max(ref(i), 1e-4) - BROW_DARK));
+      const middle = (ds: number[]) => {
+        let sw = 0, st = 0;
+        ds.forEach((d, i) => { sw += d * d; st += d * d * ts[i]; });
+        return sw > BROW_DARK_MIN ? st / sw : null;
+      };
+      const sk = quantile(Float32Array.from(ys).sort(), BROW_SKIN_Q);
+      const first = middle(dark(() => sk));
+      if (first == null) return null;
+      const part = (f: (t: number) => boolean) => { const v = ys.filter((_, i) => f(ts[i])); return v.length >= 4 ? quantile(Float32Array.from(v).sort(), BROW_SIDE_Q) : sk; };
+      const below = part((t) => t < first), above = part((t) => t > first);
+      const ds = dark((i) => (ts[i] < first ? below : above));
+      const mid = middle(ds) ?? first;
+      // (her hairs: that much darker, on from their middle either way over gaps of at most BROW_GAP steps)
+      let c = 0;
+      ts.forEach((t, i) => { if (Math.abs(t - mid) < Math.abs(ts[c] - mid)) c = i; });
+      const reach = (dir: number) => {
+        let last = c, gap = 0;
+        for (let i = c + dir; i >= 0 && i < ts.length; i += dir) {
+          if (ds[i] > 0) { last = i; gap = 0; } else if (++gap > BROW_GAP) break;
+        }
+        return ts[last];
+      };
+      return [Math.min(mid, reach(-1)), mid, Math.max(mid, reach(1))];
+    });
+  });
+  return { sclera, skin: skinLum, lipRef, under: under[0] > 0 && under[1] > 0 ? [under[0], under[1]] : null, tone, brow, browLine };
 }
 
 
@@ -2072,6 +2201,10 @@ const vec3 LASH_COLOUR = vec3(${LASH_COLOUR.map((x) => x.toFixed(4)).join(", ")}
 uniform vec4 uMineK;
 uniform vec3 uConTint, uBrow, uBrowShape;
 uniform float uBrowX, uMineLow, uLidFade, uMineBelow;
+// a blocked-out brow (BROW_BLOCK): her brows' lower points (pixels) and across them, image-left brow tail to head then
+// the other; her hairs there (from, middle, to: eye widths across from the lower point)
+uniform vec4 uBrowB[10], uBrowBand[10];
+uniform float uBrowBlock;
 uniform vec4 uGlitterTop;
 uniform vec4 uBrowDef;      // a look's brows: her hairs' colour over her skin's brightness (rgb), how far the gaps fill (a)
 // coloured lenses: each iris (centre in uv, radius in uv x and y), the lens colour (linear, in her light), its amount
@@ -2442,6 +2575,54 @@ float mineShadow() {
   }
   return uMineK.y > 0.5 ? mix(c, smoothstep(0.08, 0.7, c), 0.6) : c;
 }
+// Her brow blocked out (BROW_BLOCK): across her brow's band of hairs (uBrowB, uBrowBand: browBands) and a little
+// around, what is darker than her skin just above and below it there (her hairs) taken up towards it
+vec3 browBlock(vec3 base, float k) {
+  vec2 p = v * vec2(uSize);
+  float zone = 0.0; vec3 skin = vec3(1.0);
+  for (int s = 0; s < 2; s++) {
+    float best = 1e9, bt = 0.0; int bj = 0;
+    for (int j = 0; j < 4; j++) {          // (the nearest point along her brow's lower points, a little past either end)
+      vec2 a = uBrowB[s * 5 + j].xy, ab = uBrowB[s * 5 + j + 1].xy - a;
+      float t = clamp(dot(p - a, ab) / max(dot(ab, ab), 1e-6), j == 0 ? -0.8 : 0.0, j == 3 ? 1.9 : 1.0);
+      float d = length(p - a - ab * t);
+      if (d < best) { best = d; bt = t; bj = j; }
+    }
+    vec4 A = uBrowB[s * 5 + bj], B = uBrowB[s * 5 + bj + 1];
+    float t = clamp(bt, 0.0, 1.0);
+    vec2 q = A.xy + (B.xy - A.xy) * bt, n = normalize(mix(A.zw, B.zw, t));
+    vec4 band = mix(uBrowBand[s * 5 + bj], uBrowBand[s * 5 + bj + 1], t);
+    float h = dot(p - q, n) / uEw, pad = ${BROW_BLOCK.pad.toFixed(3)}, soft = ${BROW_BLOCK.soft.toFixed(3)};
+    float lpad = pad + ${BROW_BLOCK.below.toFixed(3)};    // (her sparse lowest hairs: further down)
+    float w = smoothstep(band.x - lpad - soft, band.x - lpad, h) * (1.0 - smoothstep(band.z + pad, band.z + pad + soft, h));
+    w *= bj == 0 && bt < 0.0 ? 1.0 - smoothstep(0.3, 0.8, -bt) : bj == 3 && bt > 1.0 ? 1.0 - smoothstep(1.4, 1.9, bt) : 1.0;
+    if (w > zone) {
+      zone = w;
+      // (her skin just above her hairs and just below them there: its light softened (uShadeF) and its colour, at a few
+      // points each side, a little either way along her brow, the lighter ones counting most)
+      vec2 ax = vec2(n.y, -n.x);
+      float yHi = 0.0, yLo = 0.0, wHi = 0.0, wLo = 0.0; vec3 cHi = vec3(0.0), cLo = vec3(0.0);
+      for (int i = 0; i < 3; i++) for (int e = -1; e <= 1; e++) {
+        float o = pad + soft + 0.01 + 0.025 * float(i);
+        vec2 ph = (q + n * uEw * (band.z + o) + ax * uEw * 0.04 * float(e)) / vec2(uSize);
+        vec2 pl = (q + n * uEw * (band.x - o - ${BROW_BLOCK.below.toFixed(3)}) + ax * uEw * 0.04 * float(e)) / vec2(uSize);
+        vec4 Fh = texture(uShadeF, ph), Fl = texture(uShadeF, pl);
+        float fh = Fh.x / max(Fh.y, 1e-3), fl = Fl.x / max(Fl.y, 1e-3), gh = pow(fh, 6.0), gl = pow(fl, 6.0);
+        yHi += fh * gh; wHi += gh; yLo += fl * gl; wLo += gl;
+        vec3 sh = pow(texture(uSrc, ph).rgb, vec3(2.2)), sl = pow(texture(uSrc, pl).rgb, vec3(2.2));
+        float lh = max(luma(sh), 1e-4), ll = max(luma(sl), 1e-4);
+        cHi += sh / lh * pow(lh, 4.0); cLo += sl / ll * pow(ll, 4.0);
+      }
+      cHi /= max(luma(cHi), 1e-8); cLo /= max(luma(cLo), 1e-8); yHi /= max(wHi, 1e-12); yLo /= max(wLo, 1e-12);
+      skin = mix(cLo * yLo, cHi * yHi, clamp((h - band.x) / max(band.z - band.x, 1e-3), 0.0, 1.0));
+    }
+  }
+  if (zone <= 0.0) return base;
+  float r = clamp(luma(base) / max(luma(skin), 1e-4), 0.02, 1.5);
+  float hair = smoothstep(${BROW_BLOCK.hair[0].toFixed(2)}, ${BROW_BLOCK.hair[1].toFixed(2)}, 1.0 - r);
+  vec3 covered = skin * pow(r, 1.0 - ${BROW_BLOCK.cover.toFixed(2)} * hair);
+  return mix(base, covered, zone * k * hair);
+}
 // Her brow product (her own makeup): a Kubelka-Munk layer that fills in between her hairs and never lightens them,
 // following her own brow: where her skin, softened a little (uGrey.y), is darker than her broad skin around (uShadeB),
 // her hairs are; uBrowShape: that darkness from (x) to (y) is all of her brow, and (z) of the zone gets some anyway.
@@ -2572,6 +2753,9 @@ void main() {
     lex = mix(lex, -fa / pow(vec3(1.0) + pow(fa / FL, vec3(${FLOOR_KNEE.toFixed(1)})), vec3(${(1 / FLOOR_KNEE).toFixed(4)})), step(lex, vec3(0.0)));
   }
   vec3 base = lu * exp(lex);
+  // (her brow blocked out before her products go on (an eyeshadow up to her brow bone stays), however much pencil goes
+  // on after: shown, not her amount)
+  if (uMine == 1 && uBrowBlock > 0.0 && uGain[2] > 0.0) base = browBlock(base, shown(2, sw) * (1.0 - M.r));
   float pigX = 0.0;
   for (int k = 0; k < 6; k++) pigX += uPigX[k];
   if (uZonesOn == 1 && pigX > 0.0) {
@@ -3403,7 +3587,7 @@ export class MakeupGL {
         gl.colorMask(true, true, true, true); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
       }
       if (mine) {          // her own makeup: her steps' shapes
-        const z = mineZones(P, mine);
+        const z = mineZones(P, mine, face);
         z.A.forEach((g, c) => zone("zoneA", c, g));
         z.B.forEach((g, c) => zone("zoneB", c, g));
         const T = this.targets;
@@ -3691,7 +3875,16 @@ export class MakeupGL {
     const conTint = mine?.conceal?.tint ?? [1, 1, 1], brow = prod?.brows?.color ?? [0, 0, 0];
     gl.uniform3f(this.uni(p, "uConTint"), conTint[0], conTint[1], conTint[2]);
     gl.uniform3f(this.uni(p, "uBrow"), brow[0], brow[1], brow[2]);
-    gl.uniform1f(this.uni(p, "uBrowX"), mine && prod?.brows ? prod.brows.thick : 0);
+    gl.uniform1f(this.uni(p, "uBrowX"), mine && prod?.brows ? prod.brows.thick * (mine.brows?.place === "thin" ? BROW_THIN.ink : 1) : 0);
+    {                                  // a blocked-out brow (BROW_BLOCK): her brows' bands
+      const block = mine?.brows?.place === "thin";
+      gl.uniform1f(this.uni(p, "uBrowBlock"), block ? 1 : 0);
+      if (block) {
+        const bands = browBands(P, face).flat();
+        gl.uniform4fv(this.uni(p, "uBrowB"), new Float32Array(bands.flatMap((x) => [x.b[0], x.b[1], x.n[0], x.n[1]])));
+        gl.uniform4fv(this.uni(p, "uBrowBand"), new Float32Array(bands.flatMap((x) => [x.band[0], x.band[1], x.band[2], 1])));
+      }
+    }
     const bd = !mine && lidGeo ? prod?.browDefine : undefined;
     gl.uniform4f(this.uni(p, "uBrowDef"), ...((bd ? [...bd.ratio, bd.amount] : [0, 0, 0, 0]) as [number, number, number, number]));
     gl.uniform1f(this.uni(p, "uMineLow"), mine?.shadow?.low ?? 0);

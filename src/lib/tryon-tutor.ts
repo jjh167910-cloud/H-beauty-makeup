@@ -197,7 +197,7 @@ export class Tutor {
   /** Her own makeup's guides: her steps' own shapes (none where she only painted), the brush moving as in a look's steps. */
   private static mineGeo(shot: Shot, mine: MinePicks): Geo {
     const geo = stepGeometry(shot.points, mine.blush?.place ?? "apples");
-    const z = mineZones(shot.points, mine);
+    const z = mineZones(shot.points, mine, shot.face);
     const own: Array<[StepKey, (typeof z.A)[number]]> = [["conceal", z.A[0]], ["contour", z.A[1]], ["blush", z.A[2]], ["glow", z.A[3]], ["brows", z.B[2]]];
     for (const [k, g] of own) geo[k] = { ...geo[k], polys: g.polys, outline: g.outline ?? g.polys, paths: k === "brows" ? geo.brows.paths : undefined };
     return geo;

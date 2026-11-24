@@ -164,7 +164,7 @@ test("?engine=v2 paints a look as its recipe (kept for the tab, ?engine=v1 turns
   expect(out.spikes[1]).toBeLessThan(0.3);
 });
 
-test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a lit aegyo-sal, rhinestones that sparkle, kohl on her waterline, eyeshadow under her lower lashes, a crease line, a glitter's own colour, a gradient lip, a lip liner", async ({ page }) => {
+test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a lit aegyo-sal, rhinestones that sparkle, kohl on her waterline, eyeshadow under her lower lashes, a crease line, a glitter's own colour, a gradient lip, a lip liner, a thin brow", async ({ page }) => {
   test.setTimeout(300_000);
   await page.goto("/");
   const photo = readFileSync(join(process.cwd(), "tests/fixtures/lit-cheek.jpg")).toString("base64");   // (a synthetic face)
@@ -236,6 +236,20 @@ test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a 
     const lipLine = (d: Uint8ClampedArray, t: number, out = 0) => (lipAt(d, 14, 17, t, out)[1] + lipAt(d, 13, 0, t, out)[1]) / 2;
     const lipLiner = { line: [lipLine(bare, 0.9), lipLine(pencil, 0.9)], middle: [lipLine(bare, 0.45), lipLine(pencil, 0.45)],
       skin: [lipLine(bare, 1, 0.07), lipLine(pencil, 1, 0.07)] };
+    // a thin brow (BROW_THIN, BROW_BLOCK): her own brow blocked out (its lower part near her skin's light), a thin arched
+    // line drawn high in it; her forehead above it as it was
+    const brow = { place: "natural", soft: 0.012, size: 1, hex: "#4c3328", thick: 0.02 };
+    const natural = pixels(await m.paintMine(shot, { gain: { brows: 1 }, brows: brow }));
+    const thinBrow = pixels(await m.paintMine(shot, { gain: { brows: 1 }, brows: { ...brow, place: "thin" } }));
+    const browAt = (d: Uint8ClampedArray, t: number, out = 0) =>      // (her brow's middle points: lower 282, 295; upper 334, 296)
+      [[334, 282], [296, 295]].reduce((s, [a, b]) => {
+        const n = Math.hypot(P[a][0] - P[b][0], P[a][1] - P[b][1]), k = t + (out * ew) / n;
+        let l = 0;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) l += lum(d, P[b][0] + (P[a][0] - P[b][0]) * k + dx, P[b][1] + (P[a][1] - P[b][1]) * k + dy);
+        return s + l / 18;
+      }, 0);
+    const thin = { low: [browAt(natural, 0.2), browAt(thinBrow, 0.2)], line: [browAt(natural, 0.8), browAt(thinBrow, 0.8)],
+      forehead: [browAt(natural, 1, 0.12), browAt(thinBrow, 1, 0.12)] };
     // aegyo-sal: her eyeshadow with it and without: the narrow band under her lower lashes lighter, her lid the same
     const shadow = { hex: "#e0a497", finish: "shimmer", place: "wash", pack: 1 };
     const lid = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow }));
@@ -288,7 +302,7 @@ test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a 
       const j = (Math.round(P[i][1] - ew * k) * w + Math.round(P[i][0] + dx)) * 4; if (d[j] + d[j + 1] + d[j + 2] > 3 * 150) { r += d[j]; b += d[j + 2]; } } return r - b; };
     const gold = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow: { ...glitter, glitter: "#ffe1b4" } }));
     const silver = pixels(await m.paintMine(shot, { gain: { shadow: 1 }, shadow: { ...glitter, glitter: "#f4f4f6" } }));
-    return { dots, lighter, apples, high, shine, gradient, lipLiner, band: [band(lid), band(lit)], upper: [upper(lid), upper(lit)], brightest, before,
+    return { dots, lighter, apples, high, shine, gradient, lipLiner, thin, band: [band(lid), band(lit)], upper: [upper(lid), upper(lit)], brightest, before,
       under: [under(crease), under(smudged)], lid: [upper(crease), upper(smudged)], smoky: [underAll(crease), underAll(smoky)],
       creaseLine: [ring(lined), ring(creased)], lashLine: [rim(lined), rim(creased)], warmth: [warmth(silver), warmth(gold)],
       rim: [rim(lined), rim(kohl)], rimIris: [underIris(lined), underIris(kohl)], white: [white(lined), white(kohl)], iris: [iris(lined), iris(kohl)], below: [below(lined), below(kohl)] };
@@ -307,6 +321,10 @@ test("a recipe's accents on her face: freckles dotted on her nose and cheeks, a 
   expect(out.lipLiner.line[1]).toBeLessThan(out.lipLiner.line[0] - 8);       // her lip liner along her lip line,
   expect(Math.abs(out.lipLiner.middle[1] - out.lipLiner.middle[0])).toBeLessThan(2);   // (not in her lips' middle,
   expect(out.lipLiner.skin[1]).toBeGreaterThan(out.lipLiner.skin[0] - 1.5);   // nor past it on her skin: a crisp edge)
+  console.log("thin brow", JSON.stringify(out.thin));
+  expect(out.thin.low[1]).toBeGreaterThan(out.thin.low[0] + 15);              // a thin brow: her own brow blocked out,
+  expect(out.thin.line[1]).toBeLessThan(out.thin.low[1] - 15);                 // a line drawn high in it
+  expect(Math.abs(out.thin.forehead[1] - out.thin.forehead[0])).toBeLessThan(3);   // (her forehead as it was, near enough)
   expect(out.dots).toBeGreaterThan(15);                       // dotted on
   expect(out.lighter).toBe(0);                               // (and nothing else on her cheek)
   expect(out.band[1]).toBeGreaterThan(out.band[0] + 2);      // her aegyo-sal lit

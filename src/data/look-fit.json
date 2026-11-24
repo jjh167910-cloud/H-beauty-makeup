@@ -953,7 +953,6 @@
    "conceal": 0.05,
    "contour": 0.058,
    "blush": 0.328,
-   "brows": 0.05,
    "shadow": 0.324,
    "liner": 0.569
   },
@@ -978,7 +977,6 @@
    "conceal": 0.188,
    "contour": 0.05,
    "blush": 0.4,
-   "brows": 0.079,
    "shadow": 0.244,
    "liner": 0.615
   },
