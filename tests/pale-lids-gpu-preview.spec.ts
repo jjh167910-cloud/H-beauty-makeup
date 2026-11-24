@@ -1,13 +1,19 @@
 import { join } from "node:path";
+import { readFileSync } from "node:fs";
 import { test, expect } from "playwright/test";
 
 // Actual GPU A/B with PUBLIC catalog pixels only. Runs via dedicated CI opt-in.
-const LOOKS = ["icy", "mod-60s", "cut-crease"] as const;
-const PUBLIC_ATLAS = join(process.cwd(), "public/tryon/eye-cap-preview");
+const ALL_LOOKS = process.env.EYE_CAP_ALL_GPU_TEST === "1";
+const PUBLIC_ATLAS = process.env.EYE_CAP_PREVIEW_DIR || join(process.cwd(), "public/tryon/eye-cap-preview");
+const LOOKS: string[] = ALL_LOOKS
+  ? JSON.parse(readFileSync(join(PUBLIC_ATLAS, "manifest.json"), "utf8")).looks.map((r: { look: string }) => r.look)
+  : ["icy", "mod-60s", "cut-crease"];
+if (ALL_LOOKS && (LOOKS.length < 40 || new Set(LOOKS).size !== LOOKS.length))
+  throw new Error("Full public GPU audit requires the complete distinct catalog atlas set");
 test.skip(process.env.EYE_CAP_PREVIEW_GPU_TEST !== "1", "Requires generated public eye-cap candidate textures.");
 
 test("paired GPU renders improve eyelids without modifying non-eye pixels", async ({ browser }, testInfo) => {
-  test.setTimeout(540_000);
+  test.setTimeout(ALL_LOOKS ? 1_500_000 : 540_000);
   const render = async (candidate: boolean) => {
     const context = await browser.newContext({ serviceWorkers: "block" });
     const requested: string[] = [];
@@ -181,10 +187,15 @@ test("paired GPU renders improve eyelids without modifying non-eye pixels", asyn
     summary.push({look:id,baselineLstar:b.lidLstar,repeatLstar:repeat.lidLstar,
       candidateLstar:c.lidLstar,baselineRepeatedSafeHash:b.safeHash===repeat.safeHash,
       candidateSafeHashMatches:c.safeHash===b.safeHash,pixels});
-    await testInfo.attach(id+"-baseline-public.png",{body:Buffer.from(b.png.split(",")[1],"base64"),contentType:"image/png"});
-    await testInfo.attach(id+"-candidate-public.png",{body:Buffer.from(c.png.split(",")[1],"base64"),contentType:"image/png"});
+    // Attach the three representative public photos, not 96 near-duplicates
+    // during the all-48 regression. Full results still have numeric evidence.
+    if (!ALL_LOOKS || ["icy", "mod-60s", "cut-crease"].includes(id)) {
+      await testInfo.attach(id+"-baseline-public.png",{body:Buffer.from(b.png.split(",")[1],"base64"),contentType:"image/png"});
+      await testInfo.attach(id+"-candidate-public.png",{body:Buffer.from(c.png.split(",")[1],"base64"),contentType:"image/png"});
+    }
   }
-  console.log("EYE_CAP_GPU_PAIRED_AB",JSON.stringify({sampleCount:36,summary}));
+  console.log("EYE_CAP_GPU_PAIRED_AB",JSON.stringify({
+    sampleCount:36,fullCatalog:ALL_LOOKS,looks:LOOKS.length,summary}));
   await testInfo.attach("public-eye-cap-GPU-aggregate.json",{
     body:Buffer.from(JSON.stringify({sampleCount:36,summary},null,2)),contentType:"application/json",
   });
@@ -208,5 +219,5 @@ test("paired GPU renders improve eyelids without modifying non-eye pixels", asyn
     expect(c.lidLstar,`${id}: eyelid rendered darker`).toBeGreaterThanOrEqual(b.lidLstar-0.2);
     if(c.lidLstar-b.lidLstar>0.1)brighter++;
   }
-  expect(brighter,"At least two of three looks must show better actual-GPU eyelid lightness").toBeGreaterThanOrEqual(2);
+  expect(brighter,"At least two looks must show improved measured GPU eyelid lightness").toBeGreaterThanOrEqual(2);
 });
