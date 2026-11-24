@@ -169,6 +169,31 @@ export function evaluate(baseline, repeat, candidate) {
   return { pass: issues.length === 0, issues, inspected };
 }
 
+/**
+ * A quick or partial benchmark can diagnose a change, but must never
+ * authorize a rendering release. The public catalog and all three real-skin
+ * cohorts are mandatory for the minimum release check.
+ */
+export function releasePolicy(manifest) {
+  const issues = [];
+  if (!['looks', 'full'].includes(manifest?.set))
+    issues.push('Quick or unrecognized benchmark set cannot authorize a release');
+  if (!Array.isArray(manifest?.looks) || new Set(manifest.looks).size < 40)
+    issues.push('Release gate requires at least 40 distinct catalog looks');
+  if (!Array.isArray(manifest?.photos))
+    return [...issues, 'Release gate requires catalog and real-face photos'];
+  if (!manifest.photos.some(p => p.source === 'catalog'))
+    issues.push('Release gate requires catalog reference photographs');
+  for (const group of ['light', 'medium', 'deep']) {
+    const faces = new Set(manifest.photos
+      .filter(p => p.group === group && p.source === 'mste' && p.cond === 'orig')
+      .map(p => p.face));
+    if (faces.size < 2)
+      issues.push('Release gate requires two independent original-light MST-E faces in ' + group + ' tone');
+  }
+  return issues;
+}
+
 export function loadRun(dir) {
   const read = name => JSON.parse(readFileSync(join(dir, name), 'utf8'));
   const rows = readFileSync(join(dir, 'scores.jsonl'), 'utf8').trim().split('\n').map((s, i) => {
@@ -203,7 +228,10 @@ function cli(args) {
   }
   if (!opts.baseline || !opts.repeat || !opts.candidate)
     throw new Error('The baseline, same-code repeat and candidate runs are required');
-  const result = evaluate(loadRun(opts.baseline), loadRun(opts.repeat), loadRun(opts.candidate));
+  const baseline = loadRun(opts.baseline), repeat = loadRun(opts.repeat), candidate = loadRun(opts.candidate);
+  const result = evaluate(baseline, repeat, candidate);
+  result.issues.push(...releasePolicy(candidate.manifest));
+  result.pass = result.issues.length === 0;
   const text = `# Private try-on benchmark gate\n\nResult: **${result.pass ? 'PASS' : 'FAIL'}**\n\n` +
     `Compared ${result.inspected.cells} groups and ${result.inspected.metrics} metrics.\n\n` +
     (result.issues.length ? result.issues.map(i => `- ${i}`).join('\n') + '\n' : 'No regression above measured repeat noise.\n');
