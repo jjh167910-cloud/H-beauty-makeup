@@ -14,7 +14,7 @@ export const METRICS = {
   light_lip: 'max', light_lid: 'max', light_cheek: 'max',
   skin_fine: [0.55, 0.95], skin_shading: 'min',
   edge_bleed: 'max', eye_whites: 'max', outside: 'max',
-  clipped: 'max', drift: 'max',
+  clipped: 'max', drift: 'max', skin_blotch: 'max', crushed: 'max',
 };
 
 const num = v => typeof v === 'number' && Number.isFinite(v);
@@ -184,7 +184,11 @@ export function loadRun(dir) {
     if (photo.source === 'catalog') for (const look of manifest.looks) {
       if (!/^[a-z0-9-]+$/.test(look)) throw new Error('Malformed benchmark look name');
       const file = `truth/${look}/${photo.id}.png`;
-      fingerprints[file] = existsSync(join(dir, file)) ? digest(file) : null;
+      // A missing catalog target in all three runs is NOT a valid paired
+      // benchmark: all could match by omitting the same required truth pixels.
+      if (!existsSync(join(dir, file)))
+        throw new Error('Missing catalog reference truth for expected photo × look');
+      fingerprints[file] = digest(file);
     }
   }
   return { rows, summary: read('summary.json'), manifest, fingerprints };
