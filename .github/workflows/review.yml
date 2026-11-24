@@ -8,9 +8,16 @@ on:
 permissions:
   contents: read
 
+# Only the newest code on each PR requires a full multi-hour browser run.
+# Older in-progress reviews are superseded and should not occupy runners.
+concurrency:
+  group: tryon-review-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   review:
     runs-on: ubuntu-latest
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
