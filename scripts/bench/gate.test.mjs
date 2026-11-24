@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluate, loadRun, releasePolicy } from './gate.mjs';
+import { evaluate, loadRun, releasePolicy, releaseEvidence } from './gate.mjs';
 
 const RUN_META = { set: 'quick', looks: ['soft-glam', 'icy'], engines: ['v2'],
   photos: ['light', 'deep'].flatMap(group => [0, 1, 2].map(n => ({ id: group + '-' + n, group }))) };
@@ -168,6 +168,7 @@ test('release policy rejects quick tests and incomplete skin-tone representation
   const valid = {
     set: 'looks', looks,
     photos: [{ source: 'catalog', face: 'catalog', group: 'catalog', cond: 'orig' },
+      ...['warm', 'dim'].map(cond => ({ source: 'catalog', face: 'catalog', group: 'catalog', light: 'sim', cond })),
       ...['light', 'medium', 'deep'].flatMap(group => [1, 2].map(i => ({
         source: 'mste', group, face: group + '-' + i, cond: 'orig',
       })))],
@@ -184,6 +185,9 @@ test('real-shaped 40-look scorer bundle passes private file-integrity and releas
     const looks = Array.from({ length: 40 }, (_, i) => 'look-' + i);
     const photos = [{ id: 'catalog__orig', file: 'photos/catalog__orig.png',
       source: 'catalog', group: 'catalog', face: 'catalog', cond: 'orig' },
+    ...['warm', 'dim'].map(cond => ({ id: 'catalog__' + cond,
+      file: 'photos/catalog__' + cond + '.png', source: 'catalog', group: 'catalog',
+      face: 'catalog', light: 'sim', cond })),
     ...['light', 'medium', 'deep'].flatMap(group => [1, 2].map(n => ({
       id: group + n, file: 'photos/' + group + n + '.png',
       source: 'mste', group, face: group + n, cond: 'orig',
@@ -196,18 +200,24 @@ test('real-shaped 40-look scorer bundle passes private file-integrity and releas
       const rows = [];
       for (const look of looks) for (const p of photos) {
         rows.push({ photo: p.id, engine: 'v1', look, group: p.group,
-          source: p.source, skin_fine: 0.8, skin_shading: 0.99,
+          source: p.source, face: p.face, light: p.light, cond: p.cond,
+          skin_fine: 0.8, skin_shading: 0.99, drift: 0.01,
           outside: 0, clipped: 0, eye_whites: 0, edge_bleed: 0,
-          ...(p.source === 'catalog' ? { cat_lid: 1.25, cat_lip: 1.0, cat_face: 1.4 } : {}),
+          ...(p.source === 'catalog' ? { cat_lid: 1.25, cat_lip: 1.0, cat_face: 1.4,
+            cat_iou_eyes: 0.72, cat_shift_eyes: 0.02, cat_lowlash: 1.1 } : {}),
+          ...(p.light === 'sim' ? { light_lid: 1.2, light_lip: 1.1, light_cheek: 1.3 } : {}),
         });
       }
       for (const look of looks) {
         const truth = join(dir, 'truth', look);
         mkdirSync(truth, { recursive: true });
-        writeFileSync(join(truth, 'catalog__orig.png'), 'fixture-truth-' + look);
+        for (const p of photos.filter(p => p.source === 'catalog'))
+          writeFileSync(join(truth, p.id + '.png'), 'fixture-truth-' + look + '-' + p.id);
       }
       writeFileSync(join(dir, 'manifest.json'), JSON.stringify(manifest));
-      writeFileSync(join(dir, 'summary.json'), JSON.stringify({}));
+      writeFileSync(join(dir, 'summary.json'), JSON.stringify({ v1: { lines: {
+        'Skin-tone fairness, lipstick hue gap (°)': { n: 40, worst: 6.0 },
+      } } }));
       writeFileSync(join(dir, 'scores.jsonl'), rows.map(r => JSON.stringify(r)).join('\n') + '\n');
     }
     const report = join(root, 'release-report.md');
@@ -220,4 +230,21 @@ test('real-shaped 40-look scorer bundle passes private file-integrity and releas
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test('release evidence fails closed if every scored image omits a core metric', () => {
+  const r = run();
+  r.manifest.engines = ['v2'];
+  assert.match(releaseEvidence(r).join(' / '), /no finite cat_face evidence/);
+  assert.match(releaseEvidence(r).join(' / '), /insufficient skin_fine evidence on two real faces/);
+});
+
+test('release lighting policy rejects a one-light public comparison', () => {
+  const photos = [{ source: 'catalog', face: 'catalog', group: 'catalog', cond: 'orig' },
+    { source: 'catalog', face: 'catalog', group: 'catalog', light: 'sim', cond: 'warm' },
+    ...['light','medium','deep'].flatMap(group => [1,2].map(i => ({
+      source: 'mste', face: group + i, group, cond: 'orig',
+    })))];
+  const manifest = { set: 'looks', looks: Array.from({ length: 48 }, (_, i) => 'look-' + i), photos };
+  assert.match(releasePolicy(manifest).join(' / '), /at least two independent simulated lighting/);
 });
