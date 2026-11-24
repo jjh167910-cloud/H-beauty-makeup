@@ -3,7 +3,7 @@ interface PreviewEnv {
   ASSETS: { fetch(request: Request): Promise<Response> };
 }
 
-const LABEL = '<div data-hbeauty-review="true" style="position:fixed;z-index:2147483647;right:12px;bottom:12px;padding:9px 13px;border-radius:12px;background:#241b35;color:#fff;border:1px solid #d3b9ff;box-shadow:0 4px 20px #0005;font:700 12px/1.4 system-ui, sans-serif;pointer-events:none">RESEARCH PREVIEW · NOT PRODUCTION</div>';
+const LABEL = '<a data-hbeauty-review="true" href="/research-preview/index.html" aria-label="Open before and after gallery of verified makeup rendering" style="position:fixed;z-index:2147483647;right:12px;bottom:12px;padding:9px 13px;border-radius:12px;background:#241b35;color:#fff;border:1px solid #d3b9ff;box-shadow:0 4px 20px #0005;font:700 12px/1.4 system-ui, sans-serif;text-decoration:none;max-width:calc(100vw - 24px)">RESEARCH PREVIEW · View before/after</a>';
 
 export default {
   async fetch(request: Request, env: PreviewEnv): Promise<Response> {
