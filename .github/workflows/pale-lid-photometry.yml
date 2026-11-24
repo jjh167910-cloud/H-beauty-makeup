@@ -5,6 +5,8 @@ on:
     paths:
       - 'tests/pale-lids.spec.ts'
       - 'scripts/bench/diagnose_pale_lids.py'
+      - 'scripts/bench/audit_eye_cap.py'
+      - 'scripts/tinybeauty/teacher.py'
       - 'src/lib/makeup-gl.ts'
       - 'public/tryon/layers/**'
       - '.github/workflows/pale-lid-photometry.yml'
@@ -44,3 +46,22 @@ jobs:
         run: python -m pip install --disable-pip-version-check 'mediapipe>=0.10.20,<0.11' opencv-python-headless numpy
       - name: Identify lightness lost while extracting public source makeup layers
         run: python scripts/bench/diagnose_pale_lids.py --sweep
+
+  full-public-eye-cap-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install MediaPipe runtime libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libgles2 libegl1
+      - name: Install public-catalog analysis dependencies
+        run: python -m pip install --disable-pip-version-check 'mediapipe>=0.10.20,<0.11' opencv-python-headless numpy
+      - name: Audit all public catalog looks for eye-only brightness and other-face spill
+        run: |
+          python -m py_compile scripts/bench/audit_eye_cap.py
+          python scripts/bench/audit_eye_cap.py --all --cap 0.8
