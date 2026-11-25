@@ -8,8 +8,10 @@ on:
       - 'scripts/bench/build_eye_cap_preview.py'
       - 'scripts/bench/make_visual_report.mjs'
       - 'scripts/bench/make_blind_review.mjs'
+      - 'scripts/bench/check_review_checks.mjs'
       - 'scripts/bench/blind-review.template.html'
       - 'tests-node/blind-review.test.mjs'
+      - 'tests-node/check-review-checks.test.mjs'
       - 'tests/pale-lids-gpu-preview.spec.ts'
       - 'worker/preview.ts'
       - 'wrangler.preview.jsonc'
@@ -18,6 +20,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: hbeauty-review-only-${{ github.event.pull_request.number || github.ref }}
@@ -142,6 +145,12 @@ jobs:
           else
             echo "authorized=true" >> "$GITHUB_OUTPUT"
           fi
+      - name: Require current-commit full photometry and app review before cloud publishing
+        if: steps.review_auth.outputs.authorized == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HBEAUTY_PREVIEW_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/bench/check_review_checks.mjs
       - name: Deploy to separate research preview Worker (never production)
         if: steps.review_auth.outputs.authorized == 'true'
         run: npx --yes wrangler@4 deploy --config wrangler.preview.jsonc
