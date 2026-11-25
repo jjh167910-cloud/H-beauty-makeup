@@ -421,3 +421,31 @@ test("?engine=v2 draws her eyeshadow's placement from her own eye: her lid for a
   expect(out.crease.crease).toBeGreaterThan(out.crease.lid + 10); // a crease: deepest in her own crease
   expect(out.crease.crease / out.crease.lid).toBeGreaterThan(1.5 * out.wash.crease / out.wash.lid);
 });
+
+
+test("dual lipstick light reference requires agreement and preserves exposure", async ({ page }) => {
+  await page.goto("/");
+  const report=await page.evaluate(async()=>{
+    const {dualLipCast,estimateSpecularConsensus,lipTarget}=await import("/src/lib/makeup-gl.ts");
+    const warm=[1.16,1,.84],cool=[.84,1,1.16];
+    const stable=estimateSpecularConsensus(Array.from({length:20},(_,i)=>warm.map((x,k)=>x+((i+k)%3-1)*.01)));
+    const mixed=estimateSpecularConsensus([...Array.from({length:10},()=>warm),...Array.from({length:10},()=>cool)]);
+    const insufficient=estimateSpecularConsensus([warm]);
+    const cast=dualLipCast(warm,stable);
+    const conflict=dualLipCast(warm,cool),missing=dualLipCast(warm,null);
+    const lip={colour:[.3,.045,.065],sclera:[.5,.5,.5],skin:.2,ombre:[1,1,1],finish:"satin" as const,alpha:1,gamma:1,shine:0,nude:0};
+    const face={sclera:warm.map(x=>.5*x),skin:.2,lipRef:.12,skinSpecular:stable};
+    const baseline=lipTarget(lip,face),candidate=lipTarget(lip,face,true);
+    const fallback=lipTarget(lip,{...face,skinSpecular:cool},true);
+    return {stable,mixed,insufficient,cast,conflict,missing,baseline,candidate,fallback};
+  });
+  expect(report.stable).not.toBeNull();
+  expect(report.mixed).toBeNull();
+  expect(report.insufficient).toBeNull();
+  expect(report.conflict).toBeNull();
+  expect(report.missing).toBeNull();
+  expect(report.cast![0]).toBeGreaterThan(report.cast![2]);
+  expect(report.candidate.rgb[0]-report.candidate.rgb[2]).toBeGreaterThan(report.baseline.rgb[0]-report.baseline.rgb[2]);
+  expect(report.candidate.light).toBeCloseTo(report.baseline.light,10);
+  expect(report.fallback).toEqual(report.baseline);
+});
