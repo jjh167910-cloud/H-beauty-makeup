@@ -1274,7 +1274,7 @@ export function stoneSpots(P: Pt[]): Spot[] {
 }
 
 /** Her brow fill per style: her hairs' darkness from / to which it is all of her brow, and how much of the zone gets some anyway (browFill). */
-const BROW_SHAPE: Record<string, [number, number, number]> = { natural: [0.05, 0.25, 0], full: [0.02, 0.14, 0.2], defined: [0.04, 0.2, 0.12], thin: [0, 0.01, 1] };
+const BROW_SHAPE: Record<string, [number, number, number]> = { natural: [0.05, 0.25, 0], full: [0.02, 0.14, 0.2], defined: [0.04, 0.2, 0.12], thin: [0, 0.01, 1], straight: [0.04, 0.2, 0.16], sculptedFull: [0.02, 0.14, 0.25], sculptedSoft: [0.025, 0.17, 0.18], sculptedBody: [0.02, 0.14, 0.20] };
 /**
  * A thin brow (the 20s and 90s brows of the catalog's photos): her own brow blocked out (glued flat and covered with
  * concealer: her hairs taken up to her skin around, BROW_BLOCK) and a thin, arched brow drawn along it with a pencil.
@@ -1499,6 +1499,28 @@ export function mineZones(P: Pt[], m: Mine, face?: FaceStats | null): { A: StepG
         const fade = (x: number) => { const t = Math.min(1, Math.max(0, (x - BROW_THIN.fade[0]) / (BROW_THIN.fade[1] - BROW_THIN.fade[0]))); return t * t * (3 - 2 * t); };
         return { polys, values: polys.map((_, i) => 1 - BROW_THIN.head * fade(i / (N - 1))), axis: [s.browIn, s.browTail],
           outline: [[...side.map((q) => q[0]), ...[...side].reverse().map((q) => q[1])]] };
+      }
+      // Research shapes follow each brow's own landmarks, not a generic
+      // face template. Flatten the middle towards its end-to-end chord,
+      // but cap displacement to avoid painting a second disconnected brow.
+      if (["straight","sculptedFull","sculptedSoft","sculptedBody"].includes(style)) {
+        const original = [0,1,2,3,4].map(j=>[pt(P,s.brow[j]),pt(P,s.brow[9-j])] as [V,V]);
+        const mids = original.map(([a,b])=>lerp(a,b,.5));
+        const ax=unit(sub(mids[4],mids[0]));
+        let n:V=[-ax[1],ax[0]];
+        if(n[0]*down[0]+n[1]*down[1]>0)n=mul(n,-1);
+        const pairs=original.map(([a,b],j)=>{
+          const c=mids[j],d=sub(c,mids[0]);
+          const height=d[0]*n[0]+d[1]*n[1];
+          const flatten=style==="straight"?Math.max(-.045*ew,Math.min(.045*ew,height*.65)):0;
+          const centre=add(c,mul(n,-flatten));
+          const scale=style==="straight"?[.85,1.03,1.06,1.02,.95][j]:style==="sculptedSoft"?[1.05,1.18,1.25,1.20,1.03][j]:style==="sculptedBody"?[1.08,1.30,1.40,1.28,1.03][j]:[1.12,1.38,1.45,1.38,1.16][j];
+          const half=Math.min(.16*ew,Math.max(.008*ew,Math.hypot(a[0]-b[0],a[1]-b[1])*.5*scale*k));
+          return [add(centre,mul(n,half)),add(centre,mul(n,-half))] as [V,V];
+        });
+        const polys=pairs.slice(0,-1).map(([a,b],j)=>[a,pairs[j+1][0],pairs[j+1][1],b] as Poly);
+        return {polys,values:[.88,1,.85,.48],axis:[s.browIn,s.browTail],
+          outline:[[...pairs.map(q=>q[0]),...[...pairs].reverse().map(q=>q[1])]]};
       }
       const pairs = [0, 1, 2, 3, 4].map((j) => {                    // tail to inner end
         const a = pt(P, s.brow[j]), b = pt(P, s.brow[9 - j]), c = lerp(a, b, 0.5), w = (style === "full" ? 1.3 : 1) * k;
@@ -2224,6 +2246,7 @@ uniform float uBrowX, uMineLow, uLidFade, uMineBelow;
 uniform vec4 uBrowB[10], uBrowBand[10];
 uniform float uBrowBlock;
 uniform vec4 uGlitterTop;
+uniform float uGlitterPilot;
 uniform vec4 uBrowDef;      // a look's brows: her hairs' colour over her skin's brightness (rgb), how far the gaps fill (a)
 // coloured lenses: each iris (centre in uv, radius in uv x and y), the lens colour (linear, in her light), its amount
 // and whether it covers her iris (1) or tints it (0)
@@ -2462,7 +2485,31 @@ vec3 pigments(vec3 base, vec3 lu, float cov[6]) {
     pearl = on * grains(canon, uEw * ${GLITTER_CELL} * ${PEARL}, ${PEARL}, ${PEARL_DENSITY});
     spark = on * grains(canon, uEw * ${GLITTER_CELL}, 1.0, ${GLITTER_DENSITY});
     // (an eyeshadow's glitter is denser)
-    if (uPigFin[0] == 3 || uPigFin[4] == 3) sparkLid = on * grains(canon, uEw * ${GLITTER_CELL}, 1.0, ${SHADOW_GLITTER});
+    if (uPigFin[0] == 3 || uPigFin[4] == 3) {
+      sparkLid = on * grains(canon, uEw * ${GLITTER_CELL}, 1.0, ${SHADOW_GLITTER});
+      // Sparse, larger reflective flakes resolve better on phone-size faces.
+      // Scale by density ratio to keep expected integrated grain energy similar.
+      if (uGlitterPilot > 0.0 && uMine == 1) {
+        float cellPx = uEw * ${GLITTER_CELL} * 1.5;
+        float resolved = smoothstep(0.9, 2.0, cellPx);
+        float sparse = on * grains(canon, cellPx, 1.5, 0.45) * (${SHADOW_GLITTER} / 0.45);
+        // Apply only to the interior upper lid, away from the existing
+        // feathered eye-opening mask. Keep the original grains in its rim,
+        // lower-lash band and feathered shadow perimeter.
+        vec4 C = texture(uCov, v);
+        float guard = max(texture(uMask, v).r, texture(uMask, v).g);
+        float radius = max(2.0, uEw * 0.055);
+        for (int j=0;j<8;j++) {
+          float theta = float(j)*0.785398163;
+          vec2 offset = radius*vec2(cos(theta),sin(theta))/vec2(uSize);
+          vec4 m = texture(uMask,v+offset);
+          guard = max(guard,max(m.r,m.g));
+        }
+        float interior = smoothstep(0.35,0.70,C.g) * smoothstep(0.35,0.70,C.r)
+          * (1.0-smoothstep(0.02,0.15,C.a)) * (1.0-smoothstep(0.0,0.025,guard));
+        sparkLid = mix(sparkLid, sparse, resolved * interior);
+      }
+    }
   }
   for (int n = 0; n < 6; n++) {
     // contour, blush, highlight, then eyeshadow: her crease shade, her lid shade over it (the blend between them is
@@ -3928,6 +3975,9 @@ export class MakeupGL {
     gl.uniform1f(this.uni(p, "uMineLow"), mine?.shadow?.low ?? 0);
     gl.uniform1f(this.uni(p, "uLidFade"), mine?.shadow?.fade ?? 0.85);
     gl.uniform1f(this.uni(p, "uMineBelow"), mine?.shadow && (mine.shadow.drawn === "smoky" || mine.shadow.below === "smoky") ? SMOKY_BELOW : 1);
+    let glitterPilot = false;
+    try { glitterPilot = new URLSearchParams(location.search).get("glitterPilot") === "1"; } catch { /* default off */ }
+    gl.uniform1f(this.uni(p, "uGlitterPilot"), glitterPilot ? 1 : 0);
     const top = mine?.shadow?.glitterTop;
     gl.uniform4f(this.uni(p, "uGlitterTop"), top?.[0] ?? 0, top?.[1] ?? 0, top?.[2] ?? 0, top ? 1 : 0);
     const lens = prod?.lenses, irises = P.length >= 478 ? [468, 473] : null;
