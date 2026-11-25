@@ -12,6 +12,7 @@ test("render paired blush strength sweep on public catalog face", async ({ page 
     const m = await import("/src/lib/tryon.ts");
     const { lookRecipe } = await import("/src/data/look-recipes.ts");
     const { minePicks } = await import("/src/data/my-makeup.ts");
+    if (m.engine() !== "gpu") throw new Error("WebGL2 required; no fallback calibration");
     await m.downloadModels(["no-makeup"], () => {});
     const response = await fetch("/makeup/looks/no-makeup.webp");
     if (!response.ok) throw new Error("Missing public bare photo");
