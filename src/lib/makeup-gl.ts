@@ -2222,7 +2222,7 @@ uniform float uBrowX, uMineLow, uLidFade, uMineBelow;
 // a blocked-out brow (BROW_BLOCK): her brows' lower points (pixels) and across them, image-left brow tail to head then
 // the other; her hairs there (from, middle, to: eye widths across from the lower point)
 uniform vec4 uBrowB[10], uBrowBand[10];
-uniform float uBrowBlock;
+uniform float uBrowBlock, uBrowBlockPilot;
 uniform vec4 uGlitterTop;
 uniform vec4 uBrowDef;      // a look's brows: her hairs' colour over her skin's brightness (rgb), how far the gaps fill (a)
 // coloured lenses: each iris (centre in uv, radius in uv x and y), the lens colour (linear, in her light), its amount
@@ -2637,6 +2637,8 @@ vec3 browBlock(vec3 base, float k) {
       // points each side, a little either way along her brow, the lighter ones counting most)
       vec2 ax = vec2(n.y, -n.x);
       float yHi = 0.0, yLo = 0.0, wHi = 0.0, wLo = 0.0; vec3 cHi = vec3(0.0), cLo = vec3(0.0);
+      float rawHi=0.0, rawLo=0.0, weightHi=0.0, weightLo=0.0, countHi=0.0, countLo=0.0;
+      float minHi=1.0,maxHi=0.0,minLo=1.0,maxLo=0.0;
       for (int i = 0; i < 3; i++) for (int e = -1; e <= 1; e++) {
         float o = pad + soft + 0.01 + 0.025 * float(i);
         vec2 ph = (q + n * uEw * (band.z + o) + ax * uEw * 0.04 * float(e)) / vec2(uSize);
@@ -2647,8 +2649,28 @@ vec3 browBlock(vec3 base, float k) {
         vec3 sh = pow(texture(uSrc, ph).rgb, vec3(2.2)), sl = pow(texture(uSrc, pl).rgb, vec3(2.2));
         float lh = max(luma(sh), 1e-4), ll = max(luma(sl), 1e-4);
         cHi += sh / lh * pow(lh, 4.0); cLo += sl / ll * pow(ll, 4.0);
+        if (uBrowBlockPilot > 0.0) {
+          // Recover local skin light from unclipped samples, independently
+          // on each side of the brow. Reject dark hair and specular peaks.
+          if (lh > 0.06 && max(sh.r,max(sh.g,sh.b)) < 0.88 && lh > 0.9*fh && lh < 1.5*max(fh,0.01)) {
+            float wh=pow(lh,3.0); rawHi+=lh*wh;weightHi+=wh;countHi+=1.0;
+            minHi=min(minHi,lh);maxHi=max(maxHi,lh);
+          }
+          if (ll > 0.06 && max(sl.r,max(sl.g,sl.b)) < 0.88 && ll > 0.9*fl && ll < 1.5*max(fl,0.01)) {
+            float wl=pow(ll,3.0); rawLo+=ll*wl;weightLo+=wl;countLo+=1.0;
+            minLo=min(minLo,ll);maxLo=max(maxLo,ll);
+          }
+        }
       }
       cHi /= max(luma(cHi), 1e-8); cLo /= max(luma(cLo), 1e-8); yHi /= max(wHi, 1e-12); yLo /= max(wLo, 1e-12);
+      if (uBrowBlockPilot > 0.0) {
+        // Limit correction to supported, fairly evenly lit skin samples.
+        // The smoothed reference remains the fallback and bounds the lift.
+        if(countHi>=5.0 && maxHi-minHi<0.18 && weightHi>1e-6)
+          yHi=mix(yHi,clamp(rawHi/weightHi,yHi,1.12*yHi),0.7*smoothstep(0.12,0.35,yHi));
+        if(countLo>=5.0 && maxLo-minLo<0.18 && weightLo>1e-6)
+          yLo=mix(yLo,clamp(rawLo/weightLo,yLo,1.12*yLo),0.7*smoothstep(0.12,0.35,yLo));
+      }
       skin = mix(cLo * yLo, cHi * yHi, clamp((h - band.x) / max(band.z - band.x, 1e-3), 0.0, 1.0));
     }
   }
@@ -3917,6 +3939,9 @@ export class MakeupGL {
     {                                  // a blocked-out brow (BROW_BLOCK): her brows' bands
       const block = mine?.brows?.place === "thin";
       gl.uniform1f(this.uni(p, "uBrowBlock"), block ? 1 : 0);
+      let browBlockPilot = false;
+      try { browBlockPilot = new URLSearchParams(location.search).get("browBlockPilot") === "1"; } catch { /* off */ }
+      gl.uniform1f(this.uni(p, "uBrowBlockPilot"), block && browBlockPilot ? 1 : 0);
       if (block) {
         const bands = browBands(P, face).flat();
         gl.uniform4fv(this.uni(p, "uBrowB"), new Float32Array(bands.flatMap((x) => [x.b[0], x.b[1], x.n[0], x.n[1]])));
