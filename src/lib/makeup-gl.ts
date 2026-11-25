@@ -1766,7 +1766,7 @@ export function measureFace(source: CanvasImageSource, P: Pt[]): FaceStats {
     const i=(y*w+x)*4;
     if(ms[i+3]<250 || Math.max(px[i],px[i+1],px[i+2])>=245) continue;
     const c=[LIN[px[i]],LIN[px[i+1]],LIN[px[i+2]]];
-    const neighbours=[];
+    const neighbours: number[][] = [];
     for(const [dx,dy] of [[-3,0],[3,0],[0,-3],[0,3]]) {
       const j=((y+dy)*w+x+dx)*4;
       if(ms[j+3]<250) continue;
