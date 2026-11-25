@@ -13,6 +13,16 @@ public-catalog-only, self-contained-in-a-folder review pages:
   compute blinded preferences. Images are genuine screenshots of the actual GPU
   renderer, never substitute image-generation outputs.
 
+- `research-preview/blind-review-standalone.html`: the same blinded mobile
+  interface with all six original actual GPU PNG frames embedded byte-for-byte
+  as data URIs. This **single HTML file** can be opened on Android without
+  unzipping or accessing the network. The generated `standalone-integrity.json`
+  contains SHA-256 hashes and dimensions for each of the six original frames.
+  `scripts/bench/package_blind_review.mjs` refuses private-source metrics,
+  incomplete styles or screenshots, incompatible image dimensions, and missing
+  evidence of eye/face/lip safety. It is built only after browser A/B assertions
+  pass; no fabricated or re-rendered evidence is used.
+
 Neither review page transmits photographs, results, comments or metadata. The
 reviewer must download their JSON explicitly. This convenience check samples **one
 public catalog face and three looks only**; it is **not** the independent real-face
@@ -34,7 +44,7 @@ The preview workflow [`.github/workflows/research-preview.yml`](../.github/workf
 - Generates candidate eye-cap layers for all 48 public catalog looks in the CI workspace. It checks the 48-image set and UV/crop compatibility.
 - Generates the visual gallery with actual paired WebGL2 baseline/repeat/candidate renders of Icy, Mod-60s and Cut Crease, measuring eyelid brightness and non-eye/face/lip pixel changes. A separate `Catalog pale-lid photometry` workflow audits all 48 looks; a new exact-head CI gate checks that both this audit and `Try-on review` succeeded before attempting cloud publishing.
 - Writes an **offline interactive before/after comparison** of the three diagnostic public-reference looks into `test-results/public-eye-cap-visual/index.html` and a randomized `blind-review.html`. This artifact contains six actual GPU before/after PNGs, three-look metrics, and locally exported anonymous-review responses; it does not contain 48 GPU screenshots. The independent full-48 workflow produces its own aggregate numeric evidence.
-- Uploads `hbeauty-review-public-before-after` (HTML and actual before/after images) and `hbeauty-review-offline-build` (the isolated build) as GitHub Actions artifacts.
+- Uploads `hbeauty-review-public-before-after` (both review pages, standalone offline HTML, actual PNGs, SHA-256 integrity manifest and metrics) and `hbeauty-review-offline-build` (the isolated app) as GitHub Actions artifacts.
 - Only then creates/updates a **separate** Worker using `wrangler.preview.jsonc` and `worker/preview.ts`, never production `wrangler.jsonc`.
 - Checks live preview HTTP response for `x-hbeauty-stage: research-preview`, the permanent preview badge, SPA root and disabled `/api/chat`.
 
