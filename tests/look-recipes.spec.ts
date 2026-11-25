@@ -439,6 +439,7 @@ test("under-eye chroma pilot preserves deliberate foundation tint and protected 
       history.replaceState(null,"",pilot?"/?engine=v2&underChromaPilot=1":"/?engine=v2");
       return pixels(await m.paintMine(shot,{gain:{base:1},base:{tint,finish:0}}));
     };
+    const source=pixels(shot.photo);
     const a=await render([1,1,1],false),b=await render([1,1,1],true);
     const c=await render([1.06,1,0.94],false),d=await render([1.06,1,0.94],true);
     const P=shot.points,ew=(Math.hypot(P[33][0]-P[133][0],P[33][1]-P[133][1])+Math.hypot(P[263][0]-P[362][0],P[263][1]-P[362][1]))/2;
@@ -447,14 +448,22 @@ test("under-eye chroma pilot preserves deliberate foundation tint and protected 
     const deepest=(ids:number[])=>ids.map(i=>P[i]).reduce((a,b)=>a[0]*down[0]+a[1]*down[1]>b[0]*down[0]+b[1]*down[1]?a:b);
     const centres=[deepest([145,153,144]),deepest([374,380,373])];
     let changed=0,exterior=0,maxOutside=0,tintChanges=0,maxLuma=0;
+    let referenceErrorBefore=0,referenceErrorAfter=0,chromaLossBefore=0,chromaLossAfter=0,improved=0,regressed=0;
     const lin=(v:number)=>(v/255)**2.2;
     const lum=(d:Uint8ClampedArray,i:number)=>.2126*lin(d[i])+.7152*lin(d[i+1])+.0722*lin(d[i+2]);
+    const chroma=(d:Uint8ClampedArray,i:number)=>{const y=Math.max(1e-6,lum(d,i));return [0,1,2].map(j=>lin(d[i+j])/y-1);};
     for(let y=0;y<a.height;y++)for(let x=0;x<a.width;x++){
       const i=4*(y*a.width+x);
       if([0,1,2].some(j=>c.data[i+j]!==d.data[i+j]))tintChanges++;
       const delta=Math.max(...[0,1,2].map(j=>Math.abs(a.data[i+j]-b.data[i+j])));
       if(!delta)continue;
       changed++;maxLuma=Math.max(maxLuma,Math.abs(lum(a.data,i)-lum(b.data,i)));
+      const orig=chroma(source.data,i),old=chroma(a.data,i),next=chroma(b.data,i);
+      const e0=Math.hypot(...orig.map((v,j)=>v-old[j])),e1=Math.hypot(...orig.map((v,j)=>v-next[j]));
+      referenceErrorBefore+=e0;referenceErrorAfter+=e1;
+      chromaLossBefore+=Math.max(0,Math.hypot(...orig)-Math.hypot(...old));
+      chromaLossAfter+=Math.max(0,Math.hypot(...orig)-Math.hypot(...next));
+      if(e1<e0)improved++;else if(e1>e0)regressed++;
       const inside=centres.some(p=>{
         const xx=(x+.5-p[0])/ew,yy=(y+.5-p[1])/ew;
         const v=xx*down[0]+yy*down[1],u=Math.abs(xx*down[1]-yy*down[0]);
@@ -462,13 +471,21 @@ test("under-eye chroma pilot preserves deliberate foundation tint and protected 
       });
       if(!inside){exterior++;maxOutside=Math.max(maxOutside,delta);}
     }
-    return {changed,exterior,maxOutside,tintChanges,maxLuma};
+    const n=Math.max(changed,1);
+    return {changed,exterior,maxOutside,tintChanges,maxLuma,improved,regressed,
+      meanReferenceErrorBefore:referenceErrorBefore/n,meanReferenceErrorAfter:referenceErrorAfter/n,
+      meanChromaLossBefore:chromaLossBefore/n,meanChromaLossAfter:chromaLossAfter/n};
   },photo);
   console.log("UNDER_CHROMA_PUBLIC_GPU_AB",JSON.stringify(out));
   expect(out.maxOutside).toBe(0);
   expect(out.tintChanges).toBe(0);
   // 8-bit conversion may perturb linear luminance even at constant shader Y.
   expect(out.maxLuma).toBeLessThanOrEqual(.012);
-  // This public light-skin fixture is a protection control, not an activation
-  // requirement. Activation and efficacy require the private medium/deep set.
+  // Local source chroma is a mechanistic target for neutral foundation, not
+  // a substitute for a real made-up reference. Require activation on this
+  // known public fixture, then quantify recovery among changed pixels.
+  expect(out.changed).toBeGreaterThan(100);
+  expect(out.meanReferenceErrorAfter).toBeLessThan(out.meanReferenceErrorBefore);
+  expect(out.meanChromaLossAfter).toBeLessThan(out.meanChromaLossBefore);
+  // Actual medium/deep skin efficacy still requires the private benchmark.
 });
