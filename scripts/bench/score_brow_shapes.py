@@ -43,6 +43,10 @@ def main(root):
     print("BROW_SHAPES_CALIBRATION "+json.dumps(report),flush=True)
     if any(x["changed"] for x in rows if x["look"] in ("soft-glam","nineties")):
         raise RuntimeError("Control look changed")
+    for look,place in (("k-beauty","straight"),("hollywood","sculptedSoft")):
+        selected=[r for r in rows if r["look"]==look and r["place"]==place]
+        if len(selected)!=1 or selected[0]["candidate_accepted"] is not True:
+            raise RuntimeError("Integrated brow candidate rejected: "+look+" / "+place)
 
 if __name__=="__main__":
     main(Path(sys.argv[1]))
