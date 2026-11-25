@@ -29,8 +29,15 @@ test("render paired blush strength sweep on public catalog face", async ({ page 
       for (const amount of [base, ...[1.15,1.30,1.45].map(k=>Math.min(1.3,Math.round(base*k*1000)/1000))].filter((v,i,a)=>a.indexOf(v)===i)) {
         const next = {...recipe,blush:{...recipe.blush,amount}};
         const picks = minePicks(next)!;
+        history.replaceState(null,"","/?engine=v2");
         const canvas = await m.paintMine(shot,picks);
-        rows.push({id,amount,base,image:capture(canvas)});
+        rows.push({id,amount,base,mode:"global",image:capture(canvas)});
+        if(amount!==base){
+          const boost=amount/base-1;
+          history.replaceState(null,"","/?engine=v2&blushCoreBoost="+boost);
+          const local = await m.paintMine(shot,minePicks(recipe)!);
+          rows.push({id,amount,base,mode:"core",image:capture(local)});
+        }
       }
     }
     return {bare:capture(shot.photo),points:shot.points,rows};
