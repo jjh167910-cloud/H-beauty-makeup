@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>H-Beauty · Blinded GPU Review</title>
+<style>
+:root{font:16px/1.55 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#f5f2fb;background:#121218}
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;background:radial-gradient(ellipse at 50% -5%,#292335 0%,#121218 56%)}
+.wrap{max-width:840px;margin:auto;padding:24px 16px 55px}
+header{padding:12px 0 24px}h1{font-size:clamp(27px,6vw,43px);line-height:1.12;letter-spacing:-.04em;margin:10px 0}
+.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.18em;font-weight:800;color:#c7b1f7}
+.sub{max-width:690px;font-size:14px;color:#c5c1ce}
+.card{background:#201f28;border:1px solid #494352;border-radius:22px;padding:17px;box-shadow:0 12px 40px #0004}
+.progress{font-size:12px;letter-spacing:.06em;font-weight:800;color:#d2bfdc}
+h2{font-size:18px;margin:7px 0 14px}
+.compare{aspect-ratio:3/4;max-height:64vh;position:relative;overflow:hidden;border-radius:15px;background:#312d34;isolation:isolate}
+.compare img{display:block;width:100%;height:100%;object-fit:contain;position:absolute;inset:0}
+.compare .b{clip-path:inset(0 0 0 var(--split,50%))}
+.compare .line{position:absolute;left:var(--split,50%);top:0;bottom:0;width:2px;transform:translateX(-50%);background:#fff;box-shadow:0 0 2px #0008;pointer-events:none}
+.compare .line:after{content:"↔";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#17121c;background:#fff;border-radius:50%;width:38px;height:38px;display:grid;place-items:center;font-weight:900}
+.compare input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:ew-resize;touch-action:pan-y}
+.tag{position:absolute;top:12px;border-radius:8px;background:#151218bd;padding:5px 11px;font-size:12px;font-weight:800;pointer-events:none}
+.tag.a{left:12px}.tag.b{right:12px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+button{font:inherit;color:inherit;cursor:pointer;border:1px solid #6c607a;background:#342e42;padding:12px 16px;border-radius:12px;font-size:14px;font-weight:750}
+button:hover{background:#483858}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #d8b3ff;outline-offset:2px}
+button.primary{background:#ad92fa;border-color:#ad92fa;color:#181326}
+button:disabled{opacity:.35;cursor:not-allowed}
+.question{margin:12px 0 7px;font-weight:760;font-size:15px}
+.choices{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.choice{font-size:12px;min-height:54px;padding:10px 5px}
+.choice[aria-pressed="true"]{background:#ae92fa;color:#171121;border-color:#ae92fa}
+label{display:block;font-size:12px;color:#c7c0d4;margin:16px 0 6px}
+textarea{width:100%;min-height:72px;border:1px solid #605669;border-radius:12px;background:#14131b;padding:10px;color:white;font:14px system-ui;resize:vertical}
+.next{display:flex;align-items:center;gap:12px;margin-top:15px}.next button{flex:1}
+.note{font-size:12px;color:#aba5b6}.hidden{display:none!important}
+#done p{color:#ccc5d4;max-width:600px}
+footer{color:#a59eaf;font-size:12px;line-height:1.7;padding:23px 1px}
+@media(max-width:390px){.choices{grid-template-columns:1fr}.choice{min-height:40px}.compare{max-height:53vh}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<div class="eyebrow">H-BEAUTY / BLIND RESEARCH REVIEW</div>
+<h1>Which image feels more real?</h1>
+<p class="sub">Compare A and B without knowing which is experimental. Drag the dividing line to inspect identical areas of the same public reference portrait. Choose the more photorealistic result or no difference. Nothing is sent online.</p>
+</header>
+<section class="card" id="study" aria-labelledby="lookTitle">
+<div class="progress" id="progress" aria-live="polite"></div>
+<h2 id="lookTitle"></h2>
+<div class="compare" id="compare" style="--split:50%">
+<img class="a" id="imgA" alt="Public reference portrait rendered as anonymous version A">
+<img class="b" id="imgB" alt="Same public reference portrait rendered as anonymous version B">
+<div class="line" aria-hidden="true"></div>
+<span class="tag a">A</span><span class="tag b">B</span>
+<input id="slider" type="range" min="0" max="100" value="50" aria-label="Reveal more of version A or B">
+</div>
+<div class="controls">
+<button id="showA" type="button">View only A</button>
+<button id="split" type="button">Split 50/50</button>
+<button id="showB" type="button">View only B</button>
+</div>
+<div class="question">Which result looks more natural and professionally applied?</div>
+<div class="choices" role="group" aria-label="Preferred visual result">
+<button type="button" class="choice" data-answer="A" aria-pressed="false">A looks better</button>
+<button type="button" class="choice" data-answer="B" aria-pressed="false">B looks better</button>
+<button type="button" class="choice" data-answer="same" aria-pressed="false">No difference</button>
+</div>
+<label for="note">Optional observation (for example, eyeliner edge or skin texture)</label>
+<textarea id="note" maxlength="500" placeholder="What influenced your choice?"></textarea>
+<div class="next"><button id="next" class="primary" type="button" disabled>Save choice and continue</button></div>
+</section>
+<section id="done" class="card hidden" aria-live="polite">
+<h2>Review complete</h2>
+<p>Your selections are held only in this browser tab. Download the JSON evidence to share it with the project owner. The A/B mapping is revealed only in the downloaded JSON, not on this screen.</p>
+<button id="export" type="button" class="primary">Download blind-review JSON</button>
+<button id="restart" type="button">Start a new blinded round</button>
+</section>
+<footer>Three diagnostic looks only · Public catalog portrait · Not sufficient for a professional blind study or diversity validation · No cookies, accounts, tracking, telemetry, network uploads or private customer images.</footer>
+</div>
+<script>
+(() => {
+  'use strict';
+  const looks = ['icy', 'mod-60s', 'cut-crease'];
+  const byId = id => document.getElementById(id);
+  const shuffle = a => {
+    for (let i = a.length - 1; i > 0; --i) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+  let trials = [];
+  let index = 0;
+  let selection = null;
+  const stage = byId('study');
+  const done = byId('done');
+  const votes = [];
+  const compare = byId('compare');
+  const slider = byId('slider');
+  function split(value) {
+    slider.value = String(value);
+    compare.style.setProperty('--split', value + '%');
+  }
+  slider.addEventListener('input', () => split(Number(slider.value)));
+  byId('showA').addEventListener('click', () => split(100));
+  byId('showB').addEventListener('click', () => split(0));
+  byId('split').addEventListener('click', () => split(50));
+  for (const button of document.querySelectorAll('[data-answer]')) {
+    button.addEventListener('click', () => {
+      selection = button.dataset.answer;
+      for (const x of document.querySelectorAll('[data-answer]'))
+        x.setAttribute('aria-pressed', String(x.dataset.answer === selection));
+      byId('next').disabled = false;
+    });
+  }
+  function show() {
+    const trial = trials[index];
+    byId('progress').textContent = 'COMPARISON ' + (index + 1) + ' OF ' + trials.length;
+    byId('lookTitle').textContent = trial.look.replaceAll('-', ' ').toUpperCase();
+    byId('imgA').src = trial.look + '-' + trial.roleA + '.png';
+    byId('imgB').src = trial.look + '-' + trial.roleB + '.png';
+    split(50);
+    byId('note').value = '';
+    selection = null;
+    byId('next').disabled = true;
+    byId('next').textContent = index === trials.length - 1 ? 'Finish review' : 'Save choice and continue';
+    for (const x of document.querySelectorAll('[data-answer]')) x.setAttribute('aria-pressed', 'false');
+  }
+  byId('next').addEventListener('click', () => {
+    if (!selection) return;
+    const t = trials[index];
+    votes.push({
+      look: t.look,
+      shown_as_A: t.roleA,
+      shown_as_B: t.roleB,
+      preference: selection,
+      note: byId('note').value.trim().slice(0, 500)
+    });
+    index++;
+    if (index < trials.length) show();
+    else { stage.classList.add('hidden'); done.classList.remove('hidden'); byId('export').focus(); }
+  });
+  byId('export').addEventListener('click', () => {
+    const result = {
+      schema: 'hbeauty-public-blind-review-v1',
+      review_mode: 'public catalog: only 3 diagnostic looks',
+      generated_at_utc: new Date().toISOString(),
+      votes
+    };
+    const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'hbeauty-blind-review.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+  function start() {
+    trials = shuffle(looks.map(look => {
+      const swapped = Math.random() < 0.5;
+      return { look, roleA: swapped ? 'after' : 'before', roleB: swapped ? 'before' : 'after' };
+    }));
+    votes.length = 0;
+    index = 0;
+    done.classList.add('hidden');
+    stage.classList.remove('hidden');
+    show();
+  }
+  byId('restart').addEventListener('click', start);
+  start();
+})();
+</script>
+</body>
+</html>
