@@ -1,5 +1,29 @@
 # Visible staging after each verified research milestone
 
+## Blind mobile review — actual GPU evidence
+
+After the automated WebGL safety assertions pass, the preview workflow publishes two
+public-catalog-only, self-contained-in-a-folder review pages:
+
+- `research-preview/index.html`: labeled before/after slider and measured eyelid L* changes
+- `research-preview/blind-review.html`: randomized A/B assessment of Icy, Mod-60s,
+  and Cut Crease, with a split-view slider, A/B/no-difference voting, optional notes
+  and local JSON export. The experimental variant's identity is not displayed to
+  the reviewer; the exported file retains the A/B assignment so an evaluator can
+  compute blinded preferences. Images are genuine screenshots of the actual GPU
+  renderer, never substitute image-generation outputs.
+
+Neither review page transmits photographs, results, comments or metadata. The
+reviewer must download their JSON explicitly. This convenience check samples **one
+public catalog face and three looks only**; it is **not** the independent real-face
+multi-tone benchmark or a professional artist blind panel.
+
+The test now **creates the published visual files only after all GPU protection
+assertions have passed**. A failed browser check therefore cannot produce
+misleading "verified" before/after files in the workflow artifact. Additional
+unit tests reject partial/private screenshot sets and an actual mobile Playwright
+test exercises the randomized voting interface and JSON export.
+
 This repository has **two distinct release channels**:
 
 1. **Production**: the existing `main` branch and `h-beauty-makeup` Worker. Customer-facing changes follow the private no-regression, blind-artist and Android acceptance gates.
