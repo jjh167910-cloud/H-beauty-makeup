@@ -7,6 +7,9 @@ on:
       - 'scripts/tinybeauty/teacher.py'
       - 'scripts/bench/build_eye_cap_preview.py'
       - 'scripts/bench/make_visual_report.mjs'
+      - 'scripts/bench/make_blind_review.mjs'
+      - 'scripts/bench/blind-review.template.html'
+      - 'tests-node/blind-review.test.mjs'
       - 'tests/pale-lids-gpu-preview.spec.ts'
       - 'worker/preview.ts'
       - 'wrangler.preview.jsonc'
@@ -89,14 +92,21 @@ jobs:
             echo "::error::Unexpected source file modification by research overlay"
             exit 1
           fi
+      - name: Create a blind A/B human review page from validated public GPU screenshots
+        shell: bash
+        run: |
+          node --input-type=module -e "import {makeBlindReview} from './scripts/bench/make_blind_review.mjs'; makeBlindReview('test-results/public-eye-cap-visual')"
+          test -s test-results/public-eye-cap-visual/blind-review.html
       - name: Include the actual before-and-after gallery in isolated research preview
         shell: bash
         run: |
           test -s test-results/public-eye-cap-visual/index.html
+          test -s test-results/public-eye-cap-visual/blind-review.html
           test -s test-results/public-eye-cap-visual/metrics.json
           mkdir -p public/research-preview
           cp test-results/public-eye-cap-visual/* public/research-preview/
           test -s public/research-preview/index.html
+          test -s public/research-preview/blind-review.html
       - name: Build complete offline-capable research preview
         run: npm run build
       - name: Save mobile-friendly BEFORE / AFTER gallery and build provenance
@@ -145,6 +155,8 @@ jobs:
           grep -q 'id="root"' /tmp/hb-review.html
           curl --fail --show-error --silent --location --max-time 30 "$REVIEW_URL/research-preview/index.html" -o /tmp/hb-before-after.html
           grep -q 'Makeup, under the microscope' /tmp/hb-before-after.html
+          curl --fail --show-error --silent --location --max-time 30 "$REVIEW_URL/research-preview/blind-review.html" -o /tmp/hb-blind-review.html
+          grep -q 'BLIND RESEARCH REVIEW' /tmp/hb-blind-review.html
           status="$(curl --silent --output /tmp/review-chat.json --write-out '%{http_code}' --max-time 30 "$REVIEW_URL/api/chat")"
           test "$status" = 404
           if grep -q 'data-hbeauty-review="true"' /tmp/hb-review.html; then
@@ -161,6 +173,7 @@ jobs:
             if [[ "${{ steps.review_auth.outputs.authorized }}" == true && "${{ job.status }}" == success ]]; then
               echo "Verified staging Worker: $REVIEW_URL"
               echo "Gallery: $REVIEW_URL/research-preview/index.html"
+              echo "Blinded review: $REVIEW_URL/research-preview/blind-review.html"
             else
               echo "Cloud preview not published/verified. No live URL is claimed."
             fi
