@@ -1,0 +1,60 @@
+name: Public historical catalog regression audit
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/catalog-regression-audit.spec.ts'
+      - 'scripts/bench/catalog_regression_audit.py'
+      - '.github/workflows/catalog-regression-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq libgles2 libegl1
+      - run: python -m pip install 'mediapipe>=0.10.20,<0.11' opencv-python-headless numpy scikit-image
+      - name: Prepare identical public input and aligned colour-corrected targets
+        run: python scripts/bench/catalog_regression_audit.py prepare "$RUNNER_TEMP/catalog-audit"
+      - name: Checkout exact pre-lash revision
+        uses: actions/checkout@v4
+        with:
+          ref: 3ce3923bda9cdee3434f7ab9922b9d4369c79ce9
+          path: audit-before
+      - name: Checkout exact lash revision
+        uses: actions/checkout@v4
+        with:
+          ref: 7950db268b390b83ec4709956c7a3f766e1b409f
+          path: audit-after
+      - name: Render three revisions on the same runner
+        env:
+          HB_CATALOG_AUDIT_DIR: ${{ runner.temp }}/catalog-audit
+        run: |
+          set -euo pipefail
+          for v in before after; do
+            cp tests/catalog-regression-audit.spec.ts "audit-$v/tests/"
+            (cd "audit-$v" && npm ci && HB_CATALOG_AUDIT_VERSION="$v" npx playwright test tests/catalog-regression-audit.spec.ts --workers=1)
+          done
+          rm -rf audit-before audit-after
+          npm ci
+          HB_CATALOG_AUDIT_VERSION=current npx playwright test tests/catalog-regression-audit.spec.ts --workers=1
+      - name: Compare historical and current region scores
+        run: python scripts/bench/catalog_regression_audit.py score "$RUNNER_TEMP/catalog-audit"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-catalog-regression-audit
+          path: ${{ runner.temp }}/catalog-audit
+          if-no-files-found: warn
+          retention-days: 7
