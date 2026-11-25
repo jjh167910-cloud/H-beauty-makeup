@@ -2202,6 +2202,8 @@ uniform float uLGain[11];   // the look's own layer, eye detail and lipstick per
 // (slots 4 and 5, her own makeup only: her second eyeshadow on her crease and outer corner, her inner-corner light)
 uniform vec4 uOwn;
 uniform float uPigX[6], uPigDeep[6], uPigSheen[6];
+uniform float uBlushCoreBoost;
+uniform vec3 uBlushCorePlanes[22]; // inward unit normal and offset, two convex cheek hulls
 uniform vec3 uPig[6];
 uniform int uPigFin[6], uPigOwn[6];
 uniform sampler2D uCov, uShadeF, uShadeB;
@@ -2688,6 +2690,14 @@ vec3 browDefine(vec3 base, vec3 lu, float a) {
   float gap = clamp((y - yh) / max(broad - yh, 1e-4), 0.0, 1.0);
   return mix(base, hairC, a * uBrowDef.w * gap);
 }
+float blushCore(vec2 px) {
+  float a=1e6,b=1e6;
+  for(int j=0;j<11;j++) {
+    a=min(a,dot(uBlushCorePlanes[j].xy,px)+uBlushCorePlanes[j].z);
+    b=min(b,dot(uBlushCorePlanes[11+j].xy,px)+uBlushCorePlanes[11+j].z);
+  }
+  return smoothstep(max(2.0,uEw*.025),max(4.0,uEw*.12),max(a,b));
+}
 void main() {
   vec3 src = texture(uSrc, v).rgb;
   vec2 px = v * vec2(uSize);
@@ -2815,6 +2825,11 @@ void main() {
         light * k3 / max(uGain[3], 1e-4) * clamp(uGain[3], ${MINE_LIGHT_GAIN[0]}, ${MINE_LIGHT_GAIN[1]}));
     } else {
       cov = float[6](texture(uCov, v).r * rv(3, sw) * uK.x * hairK * lineK, ZA.g * rv(6, sw) * uK.x, ZB.b * rv(7, sw) * uK.x, ZA.a * rv(8, sw) * uK.x, 0.0, 0.0);
+    }
+    if (uMine == 1 && uBlushCoreBoost > 0.0) {
+      float protectedRegion = max(max(M.r,M.g),max(M.b,M.a));
+      float local = blushCore(px) * (1.0-smoothstep(0.0,0.02,protectedRegion));
+      cov[2] *= 1.0 + uBlushCoreBoost * local;
     }
     vec3 pre = base;
     base = pigments(base, lu, cov);
@@ -3896,6 +3911,32 @@ export class MakeupGL {
     const six = [0, 1, 2, 3, 4, 5], pigOf = (i: number) => pigs[i];
     gl.uniform3fv(this.uni(p, "uPig"), new Float32Array(six.flatMap((i) => pigOf(i)?.color ?? [0, 0, 0])));
     gl.uniform1fv(this.uni(p, "uPigX"), new Float32Array(six.map((i) => pigOf(i)?.thick ?? 0)));
+    let boost=0;
+    try {
+      const value=Number(new URLSearchParams(location.search).get("blushCoreBoost") ?? 0);
+      if(Number.isFinite(value)&&mine?.blush)boost=Math.max(0,Math.min(.45,value));
+    } catch { /* default off */ }
+    if(boost>0) {
+      const ids=[116,117,118,100,126,142,36,205,187,147,123];
+      const planes:number[]=[];
+      for(const group of [ids,ids.map(i=>MIRROR[i])]) {
+        const h=hull(group.map(i=>pt(P,i)));
+        if(h.length<3||h.length>11||h.some(q=>q.some(v=>!Number.isFinite(v)))){boost=0;break;}
+        const cx=h.reduce((v,q)=>v+q[0],0)/h.length,cy=h.reduce((v,q)=>v+q[1],0)/h.length;
+        for(let j=0;j<11;j++){
+          if(j>=h.length){planes.push(0,0,1e6);continue;}
+          const a=h[j],b=h[(j+1)%h.length],dx=b[0]-a[0],dy=b[1]-a[1],n=Math.hypot(dx,dy);
+          if(n<1e-5){boost=0;break;}
+          let nx=-dy/n,ny=dx/n;
+          if(nx*(cx-a[0])+ny*(cy-a[1])<0){nx=-nx;ny=-ny;}
+          planes.push(nx,ny,-nx*a[0]-ny*a[1]);
+        }
+        if(!boost)break;
+      }
+      if(boost&&planes.length===66)gl.uniform3fv(this.uni(p,"uBlushCorePlanes"),new Float32Array(planes));
+      else boost=0;
+    }
+    gl.uniform1f(this.uni(p,"uBlushCoreBoost"),boost);
     gl.uniform1fv(this.uni(p, "uPigDeep"), new Float32Array(six.map((i) => pigOf(i)?.deep ?? 0)));
     gl.uniform1fv(this.uni(p, "uPigSheen"), new Float32Array(six.map((i) => pigOf(i)?.sheen ?? 0)));
     gl.uniform1iv(this.uni(p, "uPigFin"), new Int32Array(six.map((i) => (grains ? pigOf(i)?.finish ?? 0 : 0))));
