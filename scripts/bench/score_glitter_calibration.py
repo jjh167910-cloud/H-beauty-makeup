@@ -42,6 +42,9 @@ def main(root):
         rows[finish]=dict(before=old,after=new,changed=int(np.count_nonzero(diff)),
                           protected_changed=int(np.count_nonzero(diff[protected])),
                           protected_max=int(diff[protected].max()),
+                          eye_changed=int(np.count_nonzero(diff[f.balls>.5])),
+                          lip_changed=int(np.count_nonzero(diff[f.lips>.5])),
+                          exterior_changed=int(np.count_nonzero(diff[f.face<.5])),
                           cheek_de00=de(mean_lab(a,f.cheeks),mean_lab(b,f.cheeks)),
                           lid_de00=de(mean_lab(a,region),mean_lab(b,region)))
     g=rows["glitter"]
