@@ -736,6 +736,8 @@ export type Mine = {
     below?: string;
     /** With two shades: how much her second shade gives way over her mobile lid, where her lid shade goes (0.85). */
     fade?: number;
+    /** Research-only extra lower-lash pigment density, 0 to 0.5. */
+    smokeBandBoost?: number;
     /** Her glitter's own colour (linear; a topper over her eyeshadow: gold, silver, rose gold), else her shade's. */
     glitterTop?: number[] };
   /**
@@ -2219,6 +2221,8 @@ const vec3 LASH_COLOUR = vec3(${LASH_COLOUR.map((x) => x.toFixed(4)).join(", ")}
 uniform vec4 uMineK;
 uniform vec3 uConTint, uBrow, uBrowShape;
 uniform float uBrowX, uMineLow, uLidFade, uMineBelow;
+uniform float uSmokeBoost;
+uniform vec4 uSmokeBand[2]; // lower lid midpoint (pixels), face-down unit vector
 // a blocked-out brow (BROW_BLOCK): her brows' lower points (pixels) and across them, image-left brow tail to head then
 // the other; her hairs there (from, middle, to: eye widths across from the lower point)
 uniform vec4 uBrowB[10], uBrowBand[10];
@@ -2810,6 +2814,17 @@ void main() {
       float c = sat(uMineK.z * mix(sh, max(sh, lid), two)) * k3;
       // (a smoky eye's band under her lower lashes packed on: SMOKY_BELOW, more powder; its shimmer subdued there)
       gBelow = mix(1.0, uMineBelow, smoothstep(0.08, 0.6, C.a) * smoothstep(${SMOKY_BELOW_CORE[0]}, ${SMOKY_BELOW_CORE[1]}, sh) * (1.0 - smoothstep(0.02, 0.25, M.r)));
+      if (uSmokeBoost > 0.0) {
+        float band = 0.0;
+        for (int eye = 0; eye < 2; eye++) {
+          vec4 b = uSmokeBand[eye];
+          vec2 d = (px - b.xy) / max(uEw, 1.0);
+          float y = dot(d, b.zw), x = abs(dot(d, vec2(b.w, -b.z)));
+          // Stay strictly below the deepest sampled lower lid, fade before the cheek.
+          band = max(band, smoothstep(0.015, 0.055, y) * (1.0 - smoothstep(0.13, 0.25, y)) * (1.0 - smoothstep(0.38, 0.58, x)));
+        }
+        gBelow += uSmokeBoost * band * smoothstep(0.25, 0.75, sh) * (1.0 - smoothstep(0.0, 0.05, M.r)) * (1.0 - smoothstep(0.01, 0.15, C.g));
+      }
       cov = float[6](c * lid, sat(max(ZA.g, 0.0)) * rv(6, sw) * keep, sat(max(ZA.b, 0.0)) * rv(7, sw) * keep,
         sat(max(ZA.a, 0.0)) * rv(8, sw) * keep, two * sat(uMineK.z * sh) * k3 * (1.0 - uLidFade * gLid),
         light * k3 / max(uGain[3], 1e-4) * clamp(uGain[3], ${MINE_LIGHT_GAIN[0]}, ${MINE_LIGHT_GAIN[1]}));
@@ -3928,6 +3943,24 @@ export class MakeupGL {
     gl.uniform1f(this.uni(p, "uMineLow"), mine?.shadow?.low ?? 0);
     gl.uniform1f(this.uni(p, "uLidFade"), mine?.shadow?.fade ?? 0.85);
     gl.uniform1f(this.uni(p, "uMineBelow"), mine?.shadow && (mine.shadow.drawn === "smoky" || mine.shadow.below === "smoky") ? SMOKY_BELOW : 1);
+    const requestedBoost = mine?.shadow?.smokeBandBoost ?? 0;
+    const smoke = mine?.shadow && (mine.shadow.drawn === "smoky" || mine.shadow.below === "smoky") && Number.isFinite(requestedBoost) ? Math.min(0.5, Math.max(0, requestedBoost)) : 0;
+    let validSmoke = smoke;
+    if (smoke > 0) {
+      const ids = [33, 263, 145, 374, 153, 144, 380, 373];
+      if (ids.some(i => !P[i] || !Number.isFinite(P[i][0]) || !Number.isFinite(P[i][1]))) validSmoke = 0;
+      else {
+        const dx = P[263][0] - P[33][0], dy = P[263][1] - P[33][1], n = Math.hypot(dx, dy);
+        if (!(n > 1 && ew > 1)) validSmoke = 0;
+        else {
+          const down = [-dy / n, dx / n];
+          const deepest = (indices: number[]) => indices.map(i => P[i]).reduce((a,b) => a[0]*down[0]+a[1]*down[1] > b[0]*down[0]+b[1]*down[1] ? a : b);
+          const left = deepest([145,153,144]), right = deepest([374,380,373]);
+          gl.uniform4fv(this.uni(p, "uSmokeBand"), new Float32Array([left[0],left[1],...down,right[0],right[1],...down]));
+        }
+      }
+    }
+    gl.uniform1f(this.uni(p, "uSmokeBoost"), validSmoke);
     const top = mine?.shadow?.glitterTop;
     gl.uniform4f(this.uni(p, "uGlitterTop"), top?.[0] ?? 0, top?.[1] ?? 0, top?.[2] ?? 0, top ? 1 : 0);
     const lens = prod?.lenses, irises = P.length >= 478 ? [468, 473] : null;
