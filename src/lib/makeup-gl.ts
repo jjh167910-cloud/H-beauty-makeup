@@ -279,11 +279,17 @@ const SHADOW_LASH = [0.45, 0.8];
  */
 const LAYER_FLOOR = 0.04, FLOOR_KNEE = 4;
 /** shoulder(): her camera's white (SHOULDER), in the foundation and main passes; never below her own pixel (own). */
-const SHOULDER_GLSL = `vec3 shoulder(vec3 c, vec3 own) {
+// The benchmark counts newly reached codes >=254, not only 255.
+// Leave a full code of headroom below that boundary after 8-bit conversion.
+const SHOULDER_SAFE_TOP = (253 / 255) ** 2.2;
+const SHOULDER_GLSL = `uniform float uHighlightPilot;
+vec3 shoulder(vec3 c, vec3 own) {
   float m = max(c.r, max(c.g, c.b));
   if (m <= ${SHOULDER[0]}) return c;
   // (its brightest channel rolls off and the others with it in proportion: her skin's hue kept, not greyed)
-  float s = ${SHOULDER[0]} + ${(SHOULDER[1] - SHOULDER[0]).toFixed(3)} * (1.0 - exp(-(m - ${SHOULDER[0]}) / ${(SHOULDER[1] - SHOULDER[0]).toFixed(3)}));
+  float top = mix(${SHOULDER[1]}, ${SHOULDER_SAFE_TOP.toFixed(7)}, uHighlightPilot);
+  float span = top - ${SHOULDER[0]};
+  float s = ${SHOULDER[0]} + span * (1.0 - exp(-(m - ${SHOULDER[0]}) / span));
   return max(c * (s / m), min(c, own));
 }`;
 /** The lens (Gaussian sigma, px) the look still needs on a photo of blur `blur` whose eye width is `ew` (lens_sigma in teacher.py). */
@@ -3759,6 +3765,9 @@ export class MakeupGL {
       this.bindTex(p, "uF", T.fndF.tex[0], 7);
       this.bindTex(p, "uM", T.fndB.tex[0], 8);
       this.bindTex(p, "uRet", skin ? this.skinTex! : this.src, 9);
+      let highlightPilot = false;
+      try { highlightPilot = new URLSearchParams(location.search).get("highlightPilot") === "1"; } catch { /* off */ }
+      gl.uniform1f(this.uni(p, "uHighlightPilot"), highlightPilot ? 1 : 0);
       gl.uniform1f(this.uni(p, "uCover"), cover);
       gl.uniform1f(this.uni(p, "uRetK"), skin ? Math.min(1, cover / RETOUCH_FULL) : 0);
       gl.uniform1i(this.uni(p, "uFaceOn"), vis ? 1 : 0);
@@ -3826,6 +3835,9 @@ export class MakeupGL {
       gl.uniform4f(this.uni(p, "uLidDir"), r.ax[0], r.ax[1], l.ax[0], l.ax[1]);
     }
     gl.uniform1f(this.uni(p, "uEw"), ew);
+    let highlightPilot = false;
+    try { highlightPilot = new URLSearchParams(location.search).get("highlightPilot") === "1"; } catch { /* off */ }
+    gl.uniform1f(this.uni(p, "uHighlightPilot"), highlightPilot ? 1 : 0);
     gl.uniform1f(this.uni(p, "uCanonEw"), canon?.ew ?? 1);
     gl.uniform2i(this.uni(p, "uSize"), w, h);
     gl.uniform1f(this.uni(p, "uRef"), Math.max(1e-4, face.lipRef ?? 0.1));
