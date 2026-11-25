@@ -49,6 +49,10 @@ def main(root):
     report=dict(scope="public catalog only",metric="CIEDE2000 on existing cheek mask",results=results,selections=selections)
     (root/"report.json").write_text(json.dumps(report,indent=2))
     print("BLUSH_CALIBRATION",json.dumps(report),flush=True)
+    chosen=[r for r in results if r["look"]=="pin-up" and r["mode"]=="core" and abs(r["amount"]-1.3)<1e-6]
+    base=next(r for r in results if r["look"]=="pin-up" and r["baseline"])
+    if len(chosen)!=1 or chosen[0]["protected_changed"]!=0 or chosen[0]["outside_cheek_changed"]!=0 or chosen[0]["cheek_de00"]>=base["cheek_de00"]-.05:
+        raise RuntimeError("Integrated Pin-Up core candidate rejected; see saved report")
 
 if __name__=="__main__":
     main(Path(sys.argv[1]))
