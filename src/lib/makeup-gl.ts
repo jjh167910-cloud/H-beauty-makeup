@@ -2224,6 +2224,7 @@ uniform float uBrowX, uMineLow, uLidFade, uMineBelow;
 uniform vec4 uBrowB[10], uBrowBand[10];
 uniform float uBrowBlock;
 uniform vec4 uGlitterTop;
+uniform float uGlitterPilot;
 uniform vec4 uBrowDef;      // a look's brows: her hairs' colour over her skin's brightness (rgb), how far the gaps fill (a)
 // coloured lenses: each iris (centre in uv, radius in uv x and y), the lens colour (linear, in her light), its amount
 // and whether it covers her iris (1) or tints it (0)
@@ -2462,7 +2463,17 @@ vec3 pigments(vec3 base, vec3 lu, float cov[6]) {
     pearl = on * grains(canon, uEw * ${GLITTER_CELL} * ${PEARL}, ${PEARL}, ${PEARL_DENSITY});
     spark = on * grains(canon, uEw * ${GLITTER_CELL}, 1.0, ${GLITTER_DENSITY});
     // (an eyeshadow's glitter is denser)
-    if (uPigFin[0] == 3 || uPigFin[4] == 3) sparkLid = on * grains(canon, uEw * ${GLITTER_CELL}, 1.0, ${SHADOW_GLITTER});
+    if (uPigFin[0] == 3 || uPigFin[4] == 3) {
+      sparkLid = on * grains(canon, uEw * ${GLITTER_CELL}, 1.0, ${SHADOW_GLITTER});
+      // Sparse, larger reflective flakes resolve better on phone-size faces.
+      // Scale by density ratio to keep expected integrated grain energy similar.
+      if (uGlitterPilot > 0.0 && uMine == 1) {
+        float cellPx = uEw * ${GLITTER_CELL} * 1.5;
+        float resolved = smoothstep(0.9, 2.0, cellPx);
+        float sparse = on * grains(canon, cellPx, 1.5, 0.45) * (${SHADOW_GLITTER} / 0.45);
+        sparkLid = mix(sparkLid, sparse, resolved);
+      }
+    }
   }
   for (int n = 0; n < 6; n++) {
     // contour, blush, highlight, then eyeshadow: her crease shade, her lid shade over it (the blend between them is
@@ -3928,6 +3939,9 @@ export class MakeupGL {
     gl.uniform1f(this.uni(p, "uMineLow"), mine?.shadow?.low ?? 0);
     gl.uniform1f(this.uni(p, "uLidFade"), mine?.shadow?.fade ?? 0.85);
     gl.uniform1f(this.uni(p, "uMineBelow"), mine?.shadow && (mine.shadow.drawn === "smoky" || mine.shadow.below === "smoky") ? SMOKY_BELOW : 1);
+    let glitterPilot = false;
+    try { glitterPilot = new URLSearchParams(location.search).get("glitterPilot") === "1"; } catch { /* default off */ }
+    gl.uniform1f(this.uni(p, "uGlitterPilot"), glitterPilot ? 1 : 0);
     const top = mine?.shadow?.glitterTop;
     gl.uniform4f(this.uni(p, "uGlitterTop"), top?.[0] ?? 0, top?.[1] ?? 0, top?.[2] ?? 0, top ? 1 : 0);
     const lens = prod?.lenses, irises = P.length >= 478 ? [468, 473] : null;
