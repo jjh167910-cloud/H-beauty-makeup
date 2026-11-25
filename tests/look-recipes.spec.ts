@@ -421,3 +421,54 @@ test("?engine=v2 draws her eyeshadow's placement from her own eye: her lid for a
   expect(out.crease.crease).toBeGreaterThan(out.crease.lid + 10); // a crease: deepest in her own crease
   expect(out.crease.crease / out.crease.lid).toBeGreaterThan(1.5 * out.wash.crease / out.wash.lid);
 });
+
+
+test("under-eye chroma pilot preserves deliberate foundation tint and protected areas", async ({ page }) => {
+  test.setTimeout(300_000);
+  await page.goto("/?engine=v2");
+  const photo = readFileSync(join(process.cwd(),"tests/fixtures/lit-cheek.jpg")).toString("base64");
+  const out = await page.evaluate(async b64 => {
+    const m=await import("/src/lib/tryon.ts");
+    await m.downloadModels(["no-makeup"],()=>{});
+    const shot=(await m.preparePhoto(await (await fetch("data:image/jpeg;base64,"+b64)).blob())).plain;
+    const pixels=(c:HTMLCanvasElement)=>{
+      const t=document.createElement("canvas");t.width=c.width;t.height=c.height;
+      const g=t.getContext("2d")!;g.drawImage(c,0,0);return g.getImageData(0,0,t.width,t.height);
+    };
+    const render=async (tint:number[],pilot:boolean)=>{
+      history.replaceState(null,"",pilot?"/?engine=v2&underChromaPilot=1":"/?engine=v2");
+      return pixels(await m.paintMine(shot,{gain:{base:1},base:{tint,finish:0}}));
+    };
+    const a=await render([1,1,1],false),b=await render([1,1,1],true);
+    const c=await render([1.06,1,0.94],false),d=await render([1.06,1,0.94],true);
+    const P=shot.points,ew=(Math.hypot(P[33][0]-P[133][0],P[33][1]-P[133][1])+Math.hypot(P[263][0]-P[362][0],P[263][1]-P[362][1]))/2;
+    const dx=P[263][0]-P[33][0],dy=P[263][1]-P[33][1],n=Math.hypot(dx,dy);
+    let down=[-dy/n,dx/n];if(down[0]*(P[152][0]-P[10][0])+down[1]*(P[152][1]-P[10][1])<0)down=down.map(x=>-x);
+    const deepest=(ids:number[])=>ids.map(i=>P[i]).reduce((a,b)=>a[0]*down[0]+a[1]*down[1]>b[0]*down[0]+b[1]*down[1]?a:b);
+    const centres=[deepest([145,153,144]),deepest([374,380,373])];
+    let changed=0,exterior=0,maxOutside=0,tintChanges=0,maxLuma=0;
+    const lin=(v:number)=>(v/255)**2.2;
+    const lum=(d:Uint8ClampedArray,i:number)=>.2126*lin(d[i])+.7152*lin(d[i+1])+.0722*lin(d[i+2]);
+    for(let y=0;y<a.height;y++)for(let x=0;x<a.width;x++){
+      const i=4*(y*a.width+x);
+      if([0,1,2].some(j=>c.data[i+j]!==d.data[i+j]))tintChanges++;
+      const delta=Math.max(...[0,1,2].map(j=>Math.abs(a.data[i+j]-b.data[i+j])));
+      if(!delta)continue;
+      changed++;maxLuma=Math.max(maxLuma,Math.abs(lum(a.data,i)-lum(b.data,i)));
+      const inside=centres.some(p=>{
+        const xx=(x+.5-p[0])/ew,yy=(y+.5-p[1])/ew;
+        const v=xx*down[0]+yy*down[1],u=Math.abs(xx*down[1]-yy*down[0]);
+        return v>=.12&&v<=.64&&u<=.62;
+      });
+      if(!inside){exterior++;maxOutside=Math.max(maxOutside,delta);}
+    }
+    return {changed,exterior,maxOutside,tintChanges,maxLuma};
+  },photo);
+  console.log("UNDER_CHROMA_PUBLIC_GPU_AB",JSON.stringify(out));
+  expect(out.maxOutside).toBe(0);
+  expect(out.tintChanges).toBe(0);
+  // 8-bit conversion may perturb linear luminance even at constant shader Y.
+  expect(out.maxLuma).toBeLessThanOrEqual(.012);
+  // This public light-skin fixture is a protection control, not an activation
+  // requirement. Activation and efficacy require the private medium/deep set.
+});
