@@ -421,3 +421,115 @@ test("?engine=v2 draws her eyeshadow's placement from her own eye: her lid for a
   expect(out.crease.crease).toBeGreaterThan(out.crease.lid + 10); // a crease: deepest in her own crease
   expect(out.crease.crease / out.crease.lid).toBeGreaterThan(1.5 * out.wash.crease / out.wash.lid);
 });
+
+
+// Experimental fitted-colour candidate, public catalog model only. Keep
+// the old colour as an explicit A/B control rather than moving the target.
+test("electric-blue lower-lash pigment moves toward its public catalog colour", async ({ page }) => {
+  test.setTimeout(300_000);
+  await page.goto("/?engine=v2");
+  const result = await page.evaluate(async () => {
+    const m = await import("/src/lib/tryon.ts");
+    const { lookRecipe } = await import("/src/data/look-recipes.ts");
+    const { minePicks } = await import("/src/data/my-makeup.ts");
+    if (m.engine() !== "gpu") throw new Error("Requires actual WebGL2");
+    await m.downloadModels(["no-makeup", "electric-blue"], () => {});
+    const load = async (id: string) => {
+      const response = await fetch("/makeup/looks/" + id + ".webp");
+      if (!response.ok) throw new Error("Missing public catalog " + id);
+      return (await m.preparePhoto(await response.blob())).plain;
+    };
+    const shot = await load("no-makeup"), truth = await load("electric-blue");
+    const recipe = lookRecipe("electric-blue")!;
+    if (!recipe.shadow?.lower || recipe.shadow.hex2 !== "#2569b4")
+      throw new Error("Candidate lower-shadow recipe absent");
+    const candidate = minePicks(recipe)!;
+    if (!candidate.shadow) throw new Error("Candidate shadow unavailable");
+    const prior = { ...candidate, shadow: { ...candidate.shadow, hex2: "#24557b" } };
+    const pixels = (c: HTMLCanvasElement) => {
+      const t = document.createElement("canvas"); t.width = c.width; t.height = c.height;
+      const g = t.getContext("2d", { willReadFrequently: true })!;
+      g.drawImage(c, 0, 0);
+      return g.getImageData(0, 0, t.width, t.height);
+    };
+    const before = pixels(await m.paintMine(shot, prior));
+    const after = pixels(await m.paintMine(shot, candidate));
+    const reference = pixels(truth.photo);
+    const lin = (n: number) => { const x = n / 255; return x <= .04045 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4; };
+    const f = (x: number) => x > .008856 ? Math.cbrt(x) : 7.787 * x + 16 / 116;
+    const lab = (d: Uint8ClampedArray, k: number) => {
+      const r = lin(d[k]), g = lin(d[k+1]), b = lin(d[k+2]);
+      const X = f((.4124564*r + .3575761*g + .1804375*b) / .95047);
+      const Y = f(.2126729*r + .7151522*g + .0721750*b);
+      const Z = f((.0193339*r + .1191920*g + .9503041*b) / 1.08883);
+      return [116*Y-16, 500*(X-Y), 200*(Y-Z)];
+    };
+    const band = (im: ImageData, p: typeof shot.points, lower: boolean) => {
+      const span = Math.hypot(p[263][0]-p[362][0], p[263][1]-p[362][1]);
+      const ax = p[263][0]-p[33][0], ay = p[263][1]-p[33][1], length = Math.hypot(ax, ay);
+      if (!(span > 0 && length > 0)) throw new Error("Invalid public face geometry");
+      const nx = -ay/length, ny = ax/length;
+      const ids = lower ? [145,153,154,155,374,380,381,382] : [160,159,158,157,385,386,387,388];
+      let sum = [0,0,0], n = 0;
+      for (const id of ids) for (const off of (lower ? [.045,.075,.105] : [-.09,-.15,-.21])) {
+        const x = Math.round(p[id][0]+nx*span*off), y = Math.round(p[id][1]+ny*span*off);
+        if (x < 0 || y < 0 || x >= im.width || y >= im.height) throw new Error("Sample outside image");
+        const v = lab(im.data, 4*(y*im.width+x));
+        sum = sum.map((a,i) => a+v[i]); n++;
+      }
+      return sum.map(v => v/n);
+    };
+    const low = [band(before,shot.points,true),band(after,shot.points,true),band(reference,truth.points,true)];
+    const upper = [band(before,shot.points,false),band(after,shot.points,false),band(reference,truth.points,false)];
+    const lip = [61,185,40,39,37,0,267,269,270,409,291,375,321,405,314,17,84,181,91,146].map(i=>shot.points[i]);
+    const inside = (poly: typeof lip, x: number, y: number) => {
+      let yes = false;
+      for (let i=0,j=poly.length-1;i<poly.length;j=i++) {
+        const a=poly[i], b=poly[j];
+        if ((a[1]>y)!==(b[1]>y) && x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0]) yes=!yes;
+      }
+      return yes;
+    };
+    let lipChanges = 0;
+    for (let y=0;y<before.height;y++) for (let x=0;x<before.width;x++) {
+      const k=4*(y*before.width+x);
+      if ((before.data[k]!==after.data[k] || before.data[k+1]!==after.data[k+1] || before.data[k+2]!==after.data[k+2]) && inside(lip,x,y)) lipChanges++;
+    }
+    return { low, upper, lipChanges };
+  });
+  console.log("ELECTRIC_BLUE_PUBLIC_AB", JSON.stringify(result));
+  expect(result.lipChanges).toBe(0);
+  expect(result.low.flat().every(Number.isFinite)).toBe(true);
+  // The shared second shade can also influence the crease. Record both
+  // bands, and reject any candidate that moves the lower b* away from truth.
+  const [old, trial, reference] = result.low;
+  expect(Math.abs(trial[2]-reference[2])).toBeLessThan(Math.abs(old[2]-reference[2]));
+});
+
+
+test("soft catalog liners use a brown pencil without changing thin geometry or other looks", async ({ page }) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const { MAKEUP_STYLES } = await import("/src/data/makeup-styles.ts");
+    const { lookRecipe, recipeOf } = await import("/src/data/look-recipes.ts");
+    const { minePicks, cleanRecipe } = await import("/src/data/my-makeup.ts");
+    const controls = ["romantic-bride", "nineties"];
+    const candidates = controls.map(id => {
+      const r = lookRecipe(id)!;
+      const candidate = minePicks(r)!.liner!;
+      const previous = minePicks({ ...r, liner: { ...r.liner!, hex: "#141113", shade: "black", tool: "pen" } })!.liner!;
+      return { id, recipe: r.liner, candidate, previous, roundtrip: cleanRecipe(JSON.parse(JSON.stringify(r))).liner };
+    });
+    const unexpected = MAKEUP_STYLES.filter(s => !controls.includes(s.id)).filter(s =>
+      JSON.stringify(recipeOf(s.look, s.id).liner) !== JSON.stringify(recipeOf(s.look).liner)).map(s => s.id);
+    return { candidates, unexpected };
+  });
+  expect(result.unexpected).toEqual([]);
+  for (const item of result.candidates) {
+    expect(item.recipe).toMatchObject({ hex: "#4a2c20", shade: "brown", tool: "pencil", place: "thin" });
+    expect(item.roundtrip).toMatchObject({ hex: "#4a2c20", shade: "brown", tool: "pencil", place: "thin" });
+    expect(item.candidate.soft).toBeGreaterThan(item.previous.soft);
+    expect(item.candidate.opacity).toBeLessThan(item.previous.opacity);
+    expect(item.candidate.place).toBe(item.previous.place);
+  }
+});
