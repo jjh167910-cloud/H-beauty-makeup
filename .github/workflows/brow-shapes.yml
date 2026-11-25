@@ -1,0 +1,42 @@
+name: Public brow shape calibration
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/brow-shapes.spec.ts'
+      - 'scripts/bench/score_brow_shapes.py'
+      - '.github/workflows/brow-shapes.yml'
+      - 'src/lib/makeup-gl.ts'
+      - 'src/lib/tryon.ts'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  calibrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq libgles2 libegl1
+      - run: python -m pip install 'mediapipe>=0.10.20,<0.11' opencv-python-headless numpy scikit-image
+      - run: npm ci
+      - name: Render paired public brow styles
+        env:
+          HB_BROW_SHAPES_DIR: ${{ runner.temp }}/brow-shapes
+        run: npx playwright test tests/brow-shapes.spec.ts --workers=1
+      - name: Score brow accuracy and safety controls
+        run: python scripts/bench/score_brow_shapes.py "$RUNNER_TEMP/brow-shapes"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-brow-shapes
+          path: ${{ runner.temp }}/brow-shapes
+          if-no-files-found: warn
+          retention-days: 7
