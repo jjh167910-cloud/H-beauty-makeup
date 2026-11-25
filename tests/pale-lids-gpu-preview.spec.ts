@@ -199,21 +199,6 @@ test("paired GPU renders improve eyelids without modifying non-eye pixels", asyn
   await testInfo.attach("public-eye-cap-GPU-aggregate.json",{
     body:Buffer.from(JSON.stringify({sampleCount:36,summary},null,2)),contentType:"application/json",
   });
-  // A human-reviewable, OFFLINE gallery of the same real GPU frames. PUBLIC
-  // catalog reference only: no private user/client photos ever enter artifacts.
-  const visualDir = join(process.cwd(), "test-results", "public-eye-cap-visual");
-  mkdirSync(visualDir, { recursive: true });
-  for (const id of LOOKS) {
-    if (ALL_LOOKS && !["icy", "mod-60s", "cut-crease"].includes(id)) continue;
-    const baselineFrame = baseline.values.find(v => v.look === id)!;
-    const candidateFrame = candidate.values.find(v => v.look === id)!;
-    writeFileSync(join(visualDir, id + "-before.png"), Buffer.from(baselineFrame.png.split(",")[1], "base64"));
-    writeFileSync(join(visualDir, id + "-after.png"), Buffer.from(candidateFrame.png.split(",")[1], "base64"));
-  }
-  writeFileSync(join(visualDir, "metrics.json"), JSON.stringify({ fullCatalog: ALL_LOOKS,
-    source: "public catalog only", sampleCount: 36, summary }, null, 2));
-  const { makeVisualReport } = await import("../scripts/bench/make_visual_report.mjs");
-  makeVisualReport(visualDir);
   for(const id of LOOKS){
     const b=baseline.values.find(v=>v.look===id)!;
     const repeat=sameCodeRepeat.values.find(v=>v.look===id)!;
@@ -235,4 +220,22 @@ test("paired GPU renders improve eyelids without modifying non-eye pixels", asyn
     if(c.lidLstar-b.lidLstar>0.1)brighter++;
   }
   expect(brighter,"At least two looks must show improved measured GPU eyelid lightness").toBeGreaterThanOrEqual(2);
+  // Emit public comparison files ONLY after every actual GPU protection and
+  // brightness assertion has passed. A failing test must not publish frames
+  // as though they were validated evidence.
+  // A human-reviewable, OFFLINE gallery of the same real GPU frames. PUBLIC
+  // catalog reference only: no private user/client photos ever enter artifacts.
+  const visualDir = join(process.cwd(), "test-results", "public-eye-cap-visual");
+  mkdirSync(visualDir, { recursive: true });
+  for (const id of LOOKS) {
+    if (ALL_LOOKS && !["icy", "mod-60s", "cut-crease"].includes(id)) continue;
+    const baselineFrame = baseline.values.find(v => v.look === id)!;
+    const candidateFrame = candidate.values.find(v => v.look === id)!;
+    writeFileSync(join(visualDir, id + "-before.png"), Buffer.from(baselineFrame.png.split(",")[1], "base64"));
+    writeFileSync(join(visualDir, id + "-after.png"), Buffer.from(candidateFrame.png.split(",")[1], "base64"));
+  }
+  writeFileSync(join(visualDir, "metrics.json"), JSON.stringify({ fullCatalog: ALL_LOOKS,
+    source: "public catalog only", sampleCount: 36, summary }, null, 2));
+  const { makeVisualReport } = await import("../scripts/bench/make_visual_report.mjs");
+  makeVisualReport(visualDir);
 });
