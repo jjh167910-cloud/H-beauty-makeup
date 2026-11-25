@@ -863,7 +863,7 @@ export type MinePicks = {
   /** Contour: her own skin's reflectance times this (deeper, cool / neutral / warm, or a bronzer). */
   contour?: MineZone & { tint: number[] };
   /** Blush; freckles dotted across her nose and cheeks with it (how strong: 1 as an artist dots them). */
-  blush?: MineZone & { hex: string; finish: string; freckles?: number };
+  blush?: MineZone & { hex: string; finish: string; freckles?: number; coreBoost?: number };
   glow?: MineZone & { hex: string; finish: string };
   /** Brows: their colour, or her own brows' (own: measured on her face, a little deeper). */
   brows?: MineZone & { hex: string; thick: number; own?: boolean };
@@ -964,7 +964,7 @@ async function mineProducts(picks: MinePicks, face: FaceStats, all: LooksMeta): 
   if (picks.contour) { out.contour = { ...pigment("contour", "#000000"), color: picks.contour.tint }; mine.contour = zone(picks.contour); }
   if (picks.blush) {
     out.blush = { ...pigment("blush", picks.blush.hex, picks.blush.finish), style: picks.blush.place };
-    mine.blush = zone(picks.blush);
+    mine.blush = { ...zone(picks.blush), coreBoost: picks.blush.coreBoost };
     if (picks.blush.freckles) mine.freckles = picks.blush.freckles;
   }
   if (picks.glow) {        // a highlighter's shimmer is a fine pearl over her skin, never a sheet of metal
@@ -1106,6 +1106,10 @@ export function v2Picks(look: string, level: Level, picks?: ProductPicks | null)
     if(look==="k-beauty")out.brows.place="straight";
     if(look==="hollywood")out.brows.place="sculptedSoft";
   }
+  // Enable only the accepted localized Pin-Up candidate, not a global blush increase.
+  let blushCorePilot=false;
+  try { blushCorePilot=new URLSearchParams(location.search).get("blushCorePilot")==="1"; } catch { /* off */ }
+  if(blushCorePilot && look==="pin-up" && out.blush && !picks?.blush && picks?.gain?.blush == null) out.blush.coreBoost=1.3/.898-1;
   if (out.shadow) out.shadow.relative = V2_SHADOW_RELATIVE;
   if (out.blush?.freckles) out.blush.freckles *= V2_LEVEL[level] * (picks?.gain?.blush ?? 1);     // (her level and her blush: fainter or bolder freckles too)
   for (const k of STEP_KEYS) {
