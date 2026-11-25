@@ -5,11 +5,18 @@ import { test, expect } from "playwright/test";
 // Actual GPU A/B with PUBLIC catalog pixels only. Runs via dedicated CI opt-in.
 const ALL_LOOKS = process.env.EYE_CAP_ALL_GPU_TEST === "1";
 const PUBLIC_ATLAS = process.env.EYE_CAP_PREVIEW_DIR || join(process.cwd(), "public/tryon/eye-cap-preview");
-const LOOKS: string[] = ALL_LOOKS
+const CATALOG_LOOKS: string[] = ALL_LOOKS
   ? JSON.parse(readFileSync(join(PUBLIC_ATLAS, "manifest.json"), "utf8")).looks.map((r: { look: string }) => r.look)
   : ["icy", "mod-60s", "cut-crease"];
-if (ALL_LOOKS && (LOOKS.length < 40 || new Set(LOOKS).size !== LOOKS.length))
-  throw new Error("Full public GPU audit requires the complete distinct catalog atlas set");
+if (ALL_LOOKS && (CATALOG_LOOKS.length !== 48 || new Set(CATALOG_LOOKS).size !== CATALOG_LOOKS.length))
+  throw new Error("Full public GPU audit requires exactly 48 distinct catalog looks");
+// Four deterministic disjoint partitions; the CI aggregate verifies exact union.
+const shardValue = process.env.EYE_CAP_GPU_SHARD;
+if (shardValue !== undefined && (!ALL_LOOKS || !/^[1-4]$/.test(shardValue)))
+  throw new Error("EYE_CAP_GPU_SHARD requires full-catalog mode and an integer 1–4");
+const SHARD = shardValue === undefined ? 0 : Number(shardValue);
+const LOOKS = SHARD ? [...CATALOG_LOOKS].sort().filter((_, i) => i % 4 === SHARD - 1) : CATALOG_LOOKS;
+if (SHARD && LOOKS.length !== 12) throw new Error("Incomplete GPU audit shard");
 test.skip(process.env.EYE_CAP_PREVIEW_GPU_TEST !== "1", "Requires generated public eye-cap candidate textures.");
 
 test("paired GPU renders improve eyelids without modifying non-eye pixels", async ({ browser }, testInfo) => {
@@ -219,12 +226,23 @@ test("paired GPU renders improve eyelids without modifying non-eye pixels", asyn
     expect(c.lidLstar,`${id}: eyelid rendered darker`).toBeGreaterThanOrEqual(b.lidLstar-0.2);
     if(c.lidLstar-b.lidLstar>0.1)brighter++;
   }
-  expect(brighter,"At least two looks must show improved measured GPU eyelid lightness").toBeGreaterThanOrEqual(2);
+  // Shards may contain no pale look. The full-catalog aggregate enforces the
+  // original two-improvement criterion across all four shards.
+  if (!SHARD) expect(brighter,"At least two looks must show improved measured GPU eyelid lightness").toBeGreaterThanOrEqual(2);
   // Emit public comparison files ONLY after every actual GPU protection and
   // brightness assertion has passed. A failing test must not publish frames
   // as though they were validated evidence.
   // A human-reviewable, OFFLINE gallery of the same real GPU frames. PUBLIC
   // catalog reference only: no private user/client photos ever enter artifacts.
+  if (SHARD) {
+    const dir = join(process.cwd(), "test-results", "public-eye-cap-shards");
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, `shard-${SHARD}.json`), JSON.stringify({
+      fullCatalog: true, source: "public catalog only", sampleCount: 36,
+      shard: SHARD, shardCount: 4, catalog: [...CATALOG_LOOKS].sort(), summary,
+    }, null, 2));
+    return;
+  }
   const visualDir = join(process.cwd(), "test-results", "public-eye-cap-visual");
   mkdirSync(visualDir, { recursive: true });
   for (const id of LOOKS) {
