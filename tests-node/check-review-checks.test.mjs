@@ -12,15 +12,14 @@ function run(name, id, state = 'success', sha = SHA, event = 'pull_request') {
   };
 }
 
-test('accepts only two successful exact-head PR review workflows', () => {
+test('requires every exact-head integrated acceptance workflow', () => {
   const state = evaluateRequiredChecks([
-    run(REQUIRED_CHECKS[0], 10),
-    run(REQUIRED_CHECKS[1], 11),
+    ...REQUIRED_CHECKS.map((name,i)=>run(name,10+i)),
     run('Research preview', 12, 'failure'),
   ], SHA);
   assert.equal(state.passed, true);
   assert.equal(state.failed, false);
-  assert.equal(state.checks.length, 2);
+  assert.equal(state.checks.length, 5);
 });
 
 test('refuses stale green runs from any other commit', () => {
@@ -65,4 +64,20 @@ test('an unfinished required audit cannot authorize a live preview', () => {
 test('invalid or missing evidence fails closed', () => {
   assert.throws(() => evaluateRequiredChecks([], 'wrong'), /Invalid/);
   assert.throws(() => evaluateRequiredChecks({}, SHA), /array/);
+});
+
+test('missing any new calibration blocks integrated preview', () => {
+  for (const omitted of REQUIRED_CHECKS) {
+    const state=evaluateRequiredChecks(REQUIRED_CHECKS.filter(n=>n!==omitted).map((n,i)=>run(n,100+i)),SHA);
+    assert.equal(state.passed,false);
+    assert.equal(state.checks.find(c=>c.name===omitted).state,'pending');
+  }
+});
+
+test('a rejected integrated calibration prevents publication even when other checks pass', () => {
+  for(const failed of REQUIRED_CHECKS.slice(2)){
+    const state=evaluateRequiredChecks(REQUIRED_CHECKS.map((n,i)=>run(n,200+i,n===failed?'failure':'success')),SHA);
+    assert.equal(state.passed,false);
+    assert.equal(state.failed,true);
+  }
 });
