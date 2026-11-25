@@ -1,0 +1,39 @@
+name: Public lower-lash calibration
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/lower-lash-calibration.spec.ts'
+      - 'scripts/bench/score_lower_lash_calibration.py'
+      - '.github/workflows/lower-lash-calibration.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  calibrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq libgles2 libegl1
+      - run: python -m pip install 'mediapipe>=0.10.20,<0.11' opencv-python-headless numpy scikit-image
+      - run: python scripts/bench/catalog_regression_audit.py prepare "$RUNNER_TEMP/lash-calibration"
+      - run: npm ci
+      - name: Render 35 public eye-product ablations
+        env:
+          HB_LASH_CALIBRATION_DIR: ${{ runner.temp }}/lash-calibration
+        run: npm run test:ui -- tests/lower-lash-calibration.spec.ts --workers=1 --reporter=line
+      - run: python scripts/bench/score_lower_lash_calibration.py "$RUNNER_TEMP/lash-calibration"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-lower-lash-calibration
+          path: ${{ runner.temp }}/lash-calibration
+          retention-days: 7
