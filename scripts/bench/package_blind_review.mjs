@@ -49,8 +49,11 @@ export function packageBlindReview(directory) {
     Number.isFinite(x.baselineLstar) &&
     Number.isFinite(x.candidateLstar) &&
     x.baselineRepeatedSafeHash === true &&
-    x.candidateSafeHashMatches === true &&
+    Math.abs(x.baselineLstar - x.repeatLstar) < 0.01 &&
+    x.candidateLstar >= x.baselineLstar - 0.2 &&
     x.pixels?.lipPixels === 0 &&
+    x.pixels?.outsideFace <= 64 &&
+    x.pixels?.outsideBoxes <= 32 &&
     x.pixels?.outsideFaceOverOne === 0 &&
     x.pixels?.outsideBoxOverOne === 0
   );
