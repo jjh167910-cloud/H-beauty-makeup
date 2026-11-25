@@ -33,15 +33,19 @@ def main(root):
             error=de(mean_lab(im,f.cheeks),wanted)
             if error is None or not np.isfinite(error): raise RuntimeError("No finite cheek color")
             results.append(dict(look=look,amount=row["amount"],baseline=row["amount"]==row["base"],
-                cheek_de00=error,protected_changed=int(np.count_nonzero(diff[protected])),
+                mode=row["mode"],cheek_de00=error,protected_changed=int(np.count_nonzero(diff[protected])),
+                eye_changed=int(np.count_nonzero(diff[f.balls>.5])),
+                lip_changed=int(np.count_nonzero(diff[f.lips>.5])),
+                exterior_changed=int(np.count_nonzero(diff[f.face<.5])),
+                outside_cheek_changed=int(np.count_nonzero(diff[f.cheeks<.5])),
                 protected_max=int(diff[protected].max())))
     selections=[]
     for look in ("pin-up","golden-hour"):
         group=[r for r in results if r["look"]==look]
         baseline=next(r for r in group if r["baseline"])
-        accepted=[r for r in group if not r["baseline"] and r["protected_changed"]==0 and r["cheek_de00"]<baseline["cheek_de00"]-.05]
+        accepted=[r for r in group if not r["baseline"] and r["protected_changed"]==0 and (r["mode"]!="core" or r["outside_cheek_changed"]==0) and r["cheek_de00"]<baseline["cheek_de00"]-.05]
         selected=min(accepted,key=lambda x:x["cheek_de00"]) if accepted else baseline
-        selections.append(dict(look=look,before=baseline["cheek_de00"],after=selected["cheek_de00"],selected_amount=selected["amount"],candidate_accepted=bool(accepted)))
+        selections.append(dict(look=look,before=baseline["cheek_de00"],after=selected["cheek_de00"],selected_amount=selected["amount"],selected_mode=selected["mode"],candidate_accepted=bool(accepted)))
     report=dict(scope="public catalog only",metric="CIEDE2000 on existing cheek mask",results=results,selections=selections)
     (root/"report.json").write_text(json.dumps(report,indent=2))
     print("BLUSH_CALIBRATION",json.dumps(report),flush=True)
