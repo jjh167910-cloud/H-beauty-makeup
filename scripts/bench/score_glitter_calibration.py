@@ -58,8 +58,8 @@ def main(root):
                 limitation="Bright high-pass tails are a sparkle proxy, not proof of realistic glitter; artist review required.")
     (root/"report.json").write_text(json.dumps(report,indent=2))
     print("GLITTER_CALIBRATION "+json.dumps(report),flush=True)
-    if any(rows[x]["changed"] for x in ("matte","shimmer")):
-        raise RuntimeError("Non-glitter finish changed")
+    if not accepted:
+        raise RuntimeError("Integrated glitter candidate failed acceptance; see saved report")
 
 if __name__=="__main__":
     main(Path(sys.argv[1]))
