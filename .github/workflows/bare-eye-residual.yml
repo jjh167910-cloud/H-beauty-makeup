@@ -1,0 +1,39 @@
+name: Public bare-eye residual research
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/bench/audit_bare_eye_residual.py'
+      - 'scripts/tinybeauty/teacher.py'
+      - '.github/workflows/bare-eye-residual.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: bare-eye-residual-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  source-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install MediaPipe runtime libraries
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libgles2 libegl1
+      - name: Install source audit dependencies
+        run: python -m pip install --disable-pip-version-check 'mediapipe>=0.10.20,<0.11' opencv-python-headless numpy
+      - name: Test halo removal, dark-line preservation and exact protected pixels
+        run: python scripts/bench/audit_bare_eye_residual.py --self-test
+      - name: Audit 48 public catalog source layers without exporting candidate assets
+        run: |
+          python scripts/bench/audit_bare_eye_residual.py --all --out "$RUNNER_TEMP/bare-eye-residual-report.json"
+          git diff --exit-code -- public/tryon/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: public-bare-eye-residual-report
+          path: ${{ runner.temp }}/bare-eye-residual-report.json
+          if-no-files-found: error
+          retention-days: 7
