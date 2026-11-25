@@ -20,10 +20,19 @@ def suppress(layer, bare_lum, target_lum, support, ew):
         x.shape != layer.shape[:2] for x in (bare_lum, target_lum, support)
     ):
         raise ValueError("incompatible eye residual inputs")
-    if not np.isfinite(ew) or ew < 4 or not all(
-        np.isfinite(x).all() for x in (layer, bare_lum, target_lum, support)
-    ) or np.any((support < 0) | (support > 1)):
-        raise ValueError("invalid eye residual inputs")
+    if not np.isfinite(ew) or ew < 4:
+        raise ValueError(f"invalid eye width: {ew}")
+    for name, arr in (("layer", layer), ("bare_lum", bare_lum),
+                      ("target_lum", target_lum), ("support", support)):
+        if not np.isfinite(arr).all():
+            raise ValueError(f"nonfinite {name}")
+    if np.any(bare_lum < 0) or np.any(target_lum < 0):
+        raise ValueError("negative linear-light luminance")
+    if np.any((support < -1e-6) | (support > 1+1e-6)):
+        raise ValueError(f"invalid support range: {support.min()} to {support.max()}")
+    # OpenCV float32 Gaussian convolution can overshoot unity by a few ULPs.
+    # Clamp only that numerical roundoff, never material invalid mask values.
+    support = np.clip(support, 0, 1)
     # A local darkness ratio is exposure-invariant. Only the *bare* ridge is
     # evidence for source identity detail, never a new dark target line alone.
     sigma = max(1.0, ew * 0.035)
@@ -59,6 +68,15 @@ def self_test():
                        layer-layer.mean(-1,keepdims=True),atol=1e-6), "chroma changed"
     flat=np.full_like(layer,.2)
     assert not np.any(suppress(flat,bare,target,mask,80)[1] > 1e-6), "broad pigment removed"
+    roundoff=mask.copy(); roundoff[35,40]=np.nextafter(np.float32(1),np.float32(2))
+    assert np.array_equal(suppress(layer,bare,target,roundoff,80)[0],candidate)
+    invalid=mask.copy(); invalid[35,40]=1.01
+    try:
+        suppress(layer,bare,target,invalid,80)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("materially invalid support accepted")
     common=target.copy(); common[35,25:105]=.09
     assert suppress(layer,bare,common,mask,80)[1][35,40] < delta[35,40], "shared dark line not protected"
     try:
