@@ -18,20 +18,26 @@ def main(root):
     rows=[]
     for look in ("k-beauty","hollywood","soft-glam","nineties"):
         pair=[x for x in manifest["rows"] if x["id"]==look]
-        if len(pair)!=2: raise RuntimeError("Incomplete pair")
-        a=T.rgb(root/next(x["file"] for x in pair if not x["pilot"]))
-        b=T.rgb(root/next(x["file"] for x in pair if x["pilot"]))
-        if a.shape!=bare.shape or b.shape!=bare.shape: raise RuntimeError("Geometry changed")
+        if len(pair)!=(4 if look=="hollywood" else 2): raise RuntimeError("Incomplete comparison")
+        baseline=[x for x in pair if not x["pilot"]]
+        if len(baseline)!=1: raise RuntimeError("Invalid baseline")
+        a=T.rgb(root/baseline[0]["file"])
         target=truth(look,original,ew)
         target=cv2.resize(target,(bare.shape[1],bare.shape[0]),interpolation=cv2.INTER_AREA)
-        scores=[float(de_map(im,target,max(1.,f.ew*.05))[mask].mean()) for im in (a,b)]
-        diff=np.max(np.abs(a.astype(np.int16)-b.astype(np.int16)),axis=-1)
+        if a.shape!=bare.shape: raise RuntimeError("Geometry changed")
+        before=float(de_map(a,target,max(1.,f.ew*.05))[mask].mean())
         protected=(f.balls>.5)|(f.lips>.5)|(f.outside>.5)
-        row=dict(look=look,before=scores[0],after=scores[1],changed=int(np.count_nonzero(diff)),
-                 protected_changed=int(np.count_nonzero(diff[protected])))
-        row["candidate_accepted"]=bool(look in ("k-beauty","hollywood") and row["changed"]>0 and
-            row["protected_changed"]==0 and scores[1]<scores[0]-.05)
-        rows.append(row)
+        for candidate in (x for x in pair if x["pilot"]):
+            b=T.rgb(root/candidate["file"])
+            if b.shape!=bare.shape: raise RuntimeError("Geometry changed")
+            after=float(de_map(b,target,max(1.,f.ew*.05))[mask].mean())
+            if not np.isfinite([before,after]).all(): raise RuntimeError("Nonfinite metric")
+            diff=np.max(np.abs(a.astype(np.int16)-b.astype(np.int16)),axis=-1)
+            row=dict(look=look,place=candidate["place"],before=before,after=after,changed=int(np.count_nonzero(diff)),
+                     protected_changed=int(np.count_nonzero(diff[protected])))
+            row["candidate_accepted"]=bool(look in ("k-beauty","hollywood") and row["changed"]>0 and
+                row["protected_changed"]==0 and after<before-.05)
+            rows.append(row)
     report=dict(scope="public original-light catalog only",rows=rows)
     (root/"report.json").write_text(json.dumps(report,indent=2))
     print("BROW_SHAPES_CALIBRATION "+json.dumps(report),flush=True)
