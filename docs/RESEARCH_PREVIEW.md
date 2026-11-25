@@ -27,18 +27,18 @@ test exercises the randomized voting interface and JSON export.
 This repository has **two distinct release channels**:
 
 1. **Production**: the existing `main` branch and `h-beauty-makeup` Worker. Customer-facing changes follow the private no-regression, blind-artist and Android acceptance gates.
-2. **Research preview**: PR #26 and `h-beauty-makeup-review`, deployed from a disposable GitHub runner **only after the 48-look real WebGL2 A/B check passes**. It never connects to the production salon chat/Durable Object and displays a permanent review badge.
+2. **Research preview**: PR #26 and the optional `h-beauty-makeup-review` Worker. The mobile gallery is generated from a three-look, actual-WebGL2 paired baseline/repeat/candidate test. A separate full 48-look photometry workflow and the full app review must both pass on the **exact same PR head SHA** before cloud publication is allowed. Research hosting does not connect to the salon chat/Durable Object and displays a permanent review badge.
 
 The preview workflow [`.github/workflows/research-preview.yml`](../.github/workflows/research-preview.yml) runs on changes to the research code in a same-repository pull request. It:
 
 - Generates candidate eye-cap layers for all 48 public catalog looks in the CI workspace. It checks the 48-image set and UV/crop compatibility.
-- Runs actual paired WebGL2 baseline/repeat/candidate rendering across 48 looks, measuring eyelid brightness and non-eye/face/lip pixel changes. It fails without those checks.
-- Writes an **offline interactive before/after comparison** of the three diagnostic public-reference looks into `test-results/public-eye-cap-visual/index.html`. It saves actual GPU before and candidate PNGs and per-look measurements for all 48, not illustrative, synthetic or AI-generated replacements.
+- Generates the visual gallery with actual paired WebGL2 baseline/repeat/candidate renders of Icy, Mod-60s and Cut Crease, measuring eyelid brightness and non-eye/face/lip pixel changes. A separate `Catalog pale-lid photometry` workflow audits all 48 looks; a new exact-head CI gate checks that both this audit and `Try-on review` succeeded before attempting cloud publishing.
+- Writes an **offline interactive before/after comparison** of the three diagnostic public-reference looks into `test-results/public-eye-cap-visual/index.html` and a randomized `blind-review.html`. This artifact contains six actual GPU before/after PNGs, three-look metrics, and locally exported anonymous-review responses; it does not contain 48 GPU screenshots. The independent full-48 workflow produces its own aggregate numeric evidence.
 - Uploads `hbeauty-review-public-before-after` (HTML and actual before/after images) and `hbeauty-review-offline-build` (the isolated build) as GitHub Actions artifacts.
 - Only then creates/updates a **separate** Worker using `wrangler.preview.jsonc` and `worker/preview.ts`, never production `wrangler.jsonc`.
 - Checks live preview HTTP response for `x-hbeauty-stage: research-preview`, the permanent preview badge, SPA root and disabled `/api/chat`.
 
-**To authorize cloud publishing**, configure the two independent GitHub repository secrets: `HBEAUTY_PREVIEW_API_TOKEN` and `HBEAUTY_PREVIEW_ACCOUNT_ID`. The token must be limited to this disposable preview Worker where Cloudflare permits resource scoping. **Do not copy or reuse `CLOUDFLARE_API_TOKEN`** from production into a PR preview workflow. A missing preview token makes the deployment step fail clearly, but the earlier comparison artifact remains accessible.
+**To authorize cloud publishing**, configure the two independent GitHub repository secrets: `HBEAUTY_PREVIEW_API_TOKEN` and `HBEAUTY_PREVIEW_ACCOUNT_ID`. The token must be limited to this disposable preview Worker where Cloudflare permits resource scoping. **Do not copy or reuse `CLOUDFLARE_API_TOKEN`** from production into a PR preview workflow. Missing preview credentials deliberately skip cloud publication and leave the verified, downloadable visual artifacts marked successful; they never imply that a live URL exists. With credentials, `scripts/bench/check_review_checks.mjs` waits for and validates both required **same-head** CI successes, refusing stale, missing, failed or cancelled runs.
 
 The expected link, **only after the deployment and public smoke checks succeed**, is:
 
