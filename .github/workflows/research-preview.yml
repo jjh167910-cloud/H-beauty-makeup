@@ -1,0 +1,205 @@
+
+name: Review-only makeup preview (never production)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/tinybeauty/teacher.py'
+      - 'scripts/bench/build_eye_cap_preview.py'
+      - 'scripts/bench/make_visual_report.mjs'
+      - 'scripts/bench/make_blind_review.mjs'
+      - 'scripts/bench/check_review_checks.mjs'
+      - 'scripts/bench/package_blind_review.mjs'
+      - 'scripts/bench/blind-review.template.html'
+      - 'tests-node/blind-review.test.mjs'
+      - 'tests-node/check-review-checks.test.mjs'
+      - 'tests-node/package-blind-review.test.mjs'
+      - 'tests/pale-lids-gpu-preview.spec.ts'
+      - 'worker/preview.ts'
+      - 'wrangler.preview.jsonc'
+      - '.github/workflows/research-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: hbeauty-review-only-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    # Experimental features never run against or deploy to main.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.HBEAUTY_PREVIEW_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.HBEAUTY_PREVIEW_ACCOUNT_ID }}
+      REVIEW_URL: https://h-beauty-makeup-review.jjh167910.workers.dev
+      EYE_CAP_PREVIEW_GPU_TEST: '1'
+      EYE_CAP_ALL_GPU_TEST: '0'
+      EYE_CAP_PREVIEW_DIR: /tmp/hbeauty-review-candidate
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify the branch targets the dedicated review Worker, not production
+        shell: bash
+        run: |
+          node - <<'JS'
+          const fs = require('node:fs');
+          const j = JSON.parse(fs.readFileSync('wrangler.preview.jsonc', 'utf8'));
+          if (j.name !== 'h-beauty-makeup-review' || j.main !== 'worker/preview.ts')
+            throw new Error('Refusing non-isolated preview Worker configuration');
+          if (j.durable_objects || j.vars || j.services || j.kv_namespaces || j.r2_buckets)
+            throw new Error('Refusing preview with production bindings');
+          console.log('Research Worker isolated:', j.name);
+          JS
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install MediaPipe runtime libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libgles2 libegl1
+      - name: Install public-only research dependencies
+        run: python -m pip install --disable-pip-version-check 'mediapipe>=0.10.20,<0.11' opencv-python-headless numpy
+      - name: Generate complete 48-style experimental candidate pack (public references only)
+        run: |
+          python scripts/bench/build_eye_cap_preview.py --all --cap 0.8 --out "$EYE_CAP_PREVIEW_DIR"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p = Path(os.environ["EYE_CAP_PREVIEW_DIR"])
+          m = json.loads((p / "manifest.json").read_text())
+          assert m["complete_catalog"] and m["production_assets_unchanged"]
+          assert len(m["looks"]) == 48
+          assert all((p / (row["look"] + ".webp")).is_file() for row in m["looks"])
+          PY
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install exact app dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Generate and verify 3-look GPU gallery (full 48-look CI remains separate)
+        run: npm run test:ui -- tests/pale-lids-gpu-preview.spec.ts --workers=1 --reporter=line
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Apply approved experimental atlas only in disposable CI checkout
+        shell: bash
+        run: |
+          cp -- "$EYE_CAP_PREVIEW_DIR"/*.webp public/tryon/layers/
+          test "$(find "$EYE_CAP_PREVIEW_DIR" -maxdepth 1 -name '*.webp' | wc -l)" -eq 48
+          git diff --name-only | tee /tmp/review-overlay-changes.txt
+          if grep -v '^public/tryon/layers/.*\.webp$' /tmp/review-overlay-changes.txt | grep -q .; then
+            echo "::error::Unexpected source file modification by research overlay"
+            exit 1
+          fi
+      - name: Create a blind A/B human review page from validated public GPU screenshots
+        shell: bash
+        run: |
+          node --input-type=module -e "import {makeBlindReview} from './scripts/bench/make_blind_review.mjs'; makeBlindReview('test-results/public-eye-cap-visual')"
+          test -s test-results/public-eye-cap-visual/blind-review.html
+      - name: Bundle a standalone offline blind-review HTML for Android
+        shell: bash
+        run: |
+          node scripts/bench/package_blind_review.mjs test-results/public-eye-cap-visual
+          test -s test-results/public-eye-cap-visual/blind-review-standalone.html
+          test -s test-results/public-eye-cap-visual/standalone-integrity.json
+      - name: Include the actual before-and-after gallery in isolated research preview
+        shell: bash
+        run: |
+          test -s test-results/public-eye-cap-visual/index.html
+          test -s test-results/public-eye-cap-visual/blind-review.html
+          test -s test-results/public-eye-cap-visual/metrics.json
+          mkdir -p public/research-preview
+          cp test-results/public-eye-cap-visual/* public/research-preview/
+          test -s public/research-preview/index.html
+          test -s public/research-preview/blind-review.html
+          test -s public/research-preview/blind-review-standalone.html
+          test -s public/research-preview/standalone-integrity.json
+      - name: Build complete offline-capable research preview
+        run: npm run build
+      - name: Save mobile-friendly BEFORE / AFTER gallery and build provenance
+        shell: bash
+        run: |
+          test -s test-results/public-eye-cap-visual/index.html
+          test -s test-results/public-eye-cap-visual/metrics.json
+          node -e 'const fs=require("fs"); const m=JSON.parse(fs.readFileSync("test-results/public-eye-cap-visual/metrics.json","utf8")); if(m.fullCatalog||m.summary.length!==3||m.source!=="public catalog only")process.exit(2);'
+          echo "Commit: ${GITHUB_SHA}" > test-results/public-eye-cap-visual/BUILD.txt
+          echo "Public-catalog generated preview ONLY, not professionally approved" >> test-results/public-eye-cap-visual/BUILD.txt
+      - name: Upload actual-GPU comparison gallery for mobile review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hbeauty-review-public-before-after
+          path: test-results/public-eye-cap-visual/
+          retention-days: 14
+      - name: Upload complete offline preview for independent inspection
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hbeauty-review-offline-build
+          path: dist/
+          retention-days: 7
+      - name: Inspect dedicated research preview authorization
+        id: review_auth
+        if: success()
+        shell: bash
+        run: |
+          if [[ -z "$CLOUDFLARE_API_TOKEN" || -z "$CLOUDFLARE_ACCOUNT_ID" ]]; then
+            echo "authorized=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Visual evidence ready, cloud preview not published::Configure HBEAUTY_PREVIEW_API_TOKEN and HBEAUTY_PREVIEW_ACCOUNT_ID; no production token is used."
+          else
+            echo "authorized=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Require current-commit full photometry and app review before cloud publishing
+        if: steps.review_auth.outputs.authorized == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          HBEAUTY_PREVIEW_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/bench/check_review_checks.mjs
+      - name: Deploy to separate research preview Worker (never production)
+        if: steps.review_auth.outputs.authorized == 'true'
+        run: npx --yes wrangler@4 deploy --config wrangler.preview.jsonc
+      - name: Verify the live review Worker and gallery (and reject production/chat backend)
+        if: steps.review_auth.outputs.authorized == 'true'
+        shell: bash
+        run: |
+          curl --fail --show-error --silent --location --retry 3 --retry-delay 4 --max-time 30 "$REVIEW_URL/" -D /tmp/hb-review-headers -o /tmp/hb-review.html
+          grep -qi 'x-hbeauty-stage: research-preview' /tmp/hb-review-headers
+          grep -q 'data-hbeauty-review="true"' /tmp/hb-review.html
+          grep -q 'id="root"' /tmp/hb-review.html
+          curl --fail --show-error --silent --location --max-time 30 "$REVIEW_URL/research-preview/index.html" -o /tmp/hb-before-after.html
+          grep -q 'Makeup, under the microscope' /tmp/hb-before-after.html
+          curl --fail --show-error --silent --location --max-time 30 "$REVIEW_URL/research-preview/blind-review-standalone.html" -o /tmp/hb-blind-review-standalone.html
+          grep -q 'embeddedImages' /tmp/hb-blind-review-standalone.html
+          curl --fail --show-error --silent --location --max-time 30 "$REVIEW_URL/research-preview/blind-review.html" -o /tmp/hb-blind-review.html
+          grep -q 'BLIND RESEARCH REVIEW' /tmp/hb-blind-review.html
+          status="$(curl --silent --output /tmp/review-chat.json --write-out '%{http_code}' --max-time 30 "$REVIEW_URL/api/chat")"
+          test "$status" = 404
+          if grep -q 'data-hbeauty-review="true"' /tmp/hb-review.html; then
+            echo "Verified separate review URL: $REVIEW_URL"
+          fi
+      - name: Report exact review URL
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '## H-Beauty research preview'
+            echo
+            echo "Commit: \`$GITHUB_SHA\`"
+            if [[ "${{ steps.review_auth.outputs.authorized }}" == true && "${{ job.status }}" == success ]]; then
+              echo "Verified staging Worker: $REVIEW_URL"
+              echo "Gallery: $REVIEW_URL/research-preview/index.html"
+              echo "Blinded review: $REVIEW_URL/research-preview/blind-review.html"
+              echo "Single-file Android offline review: $REVIEW_URL/research-preview/blind-review-standalone.html"
+            else
+              echo "Cloud preview not published/verified. No live URL is claimed."
+            fi
+            echo
+            echo 'Production h-beauty-makeup remains separate. No salon chat backend is attached to preview.'
+            echo 'The actual GPU before/after gallery remains available in the uploaded artifact, even when no staging credentials exist.'
+          } >> "$GITHUB_STEP_SUMMARY"

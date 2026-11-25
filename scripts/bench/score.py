@@ -519,6 +519,8 @@ def report(run: Path, rows, S, baseline=None, note=''):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument('run'); ap.add_argument('--baseline'); ap.add_argument('--note', default='')
+    ap.add_argument('--no-history', action='store_true',
+                    help='keep this private benchmark from touching the Git-tracked history.jsonl')
     ap.add_argument('--rescore', action='store_true', help='score again even if scores.jsonl exists')
     ap.add_argument('--resume', action='store_true', help='go on with a scoring run that was cut off (scores.partial.jsonl)')
     ap.add_argument('--photos', default='', help='score again only the photos whose id starts with this (e.g. catalog__), '
@@ -539,9 +541,10 @@ def main():
     base = json.loads((Path(a.baseline) / 'summary.json').read_text()) if a.baseline else None
     report(run, rows, S, base, a.note)
     commit = subprocess.run(['git', '-C', str(REPO), 'rev-parse', '--short', 'HEAD'], capture_output=True, text=True).stdout.strip()
-    with open(HERE / 'history.jsonl', 'a') as fh:
-        fh.write(json.dumps(dict(when=f'{datetime.datetime.now(datetime.UTC):%Y-%m-%dT%H:%M}Z', commit=commit, set=M['set'], run=run.name, note=a.note,
-                                 lines={e: {n: {k: v for k, v in x.items() if k in ('median', 'worst', 'ok')} for n, x in s['lines'].items()} for e, s in S.items()})) + '\n')
+    if not a.no_history:
+        with open(HERE / 'history.jsonl', 'a') as fh:
+            fh.write(json.dumps(dict(when=f'{datetime.datetime.now(datetime.UTC):%Y-%m-%dT%H:%M}Z', commit=commit, set=M['set'], run=run.name, note=a.note,
+                                     lines={e: {n: {k: v for k, v in x.items() if k in ('median', 'worst', 'ok')} for n, x in s['lines'].items()} for e, s in S.items()})) + '\n')
     for e, s in S.items():
         print(e, ' '.join(f"{n.split(' (')[0]}={'ok' if x.get('ok') else 'NO'}" for n, x in s['lines'].items() if x.get('n')))
     sys.stdout.flush()

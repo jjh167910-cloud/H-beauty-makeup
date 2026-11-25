@@ -35,3 +35,6 @@ pilot-results.zip
 /scripts/bench/**/summary.json
 /scripts/bench/**/report.html
 /scripts/bench/**/gate.md
+
+# Locally generated public-only eye-cap A/B textures; never ship in production.
+/public/tryon/eye-cap-preview/

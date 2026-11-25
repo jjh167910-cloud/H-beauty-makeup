@@ -4,6 +4,11 @@
  * on disk is skipped, so a run cut off by the time limit goes on where it stopped.
  *
  *   node scripts/bench/render.cjs RUN_DIR [--url http://127.0.0.1:4180/] [--minutes 110] [--only orig]
+ *   node scripts/bench/render.cjs RUN_DIR --layer-dir /private/eye-cap-layers   # v1-only, candidate variant
+ *
+ * The candidate override is a Playwright request route applied BEFORE loading
+ * any AI files. No WebP in public/tryon/layers, no looks.json, no production
+ * cache version and no app source is modified by the private experiment.
  *
  * RUN_DIR/manifest.json (make_set.py): { photos: [{ id, file }], looks: [...], engines: ["v1", "v2"] }. Writes
  * RUN_DIR/renders/<engine>/<look>/<photo id>.png (cropped to her face with a margin: seen/<photo id>.json's crop, x y w h),
@@ -12,13 +17,21 @@
 const { chromium } = require("playwright");
 const fs = require("fs");
 const path = require("path");
+const { prepareLayerOverride, resolveLayerRequest } = require("./layer_override.cjs");
 const arg = (name, d) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : d; };
 const RUN = process.argv[2];
 const URL_ = arg("url", "http://127.0.0.1:4180/");
 const MINUTES = Number(arg("minutes", "110"));
 const ONLY = arg("only", "");
+const LAYER_DIR = arg("layer-dir", "");
 if (!RUN || !fs.existsSync(path.join(RUN, "manifest.json"))) { console.error("usage: render.cjs RUN_DIR (manifest.json first)"); process.exit(2); }
 const M = JSON.parse(fs.readFileSync(path.join(RUN, "manifest.json"), "utf8"));
+if (LAYER_DIR && (M.engines.length !== 1 || M.engines[0] !== "v1")) {
+  console.error("--layer-dir supports only the v1 GPU catalog engine; use --engines v1 for all three benchmark runs");
+  process.exit(2);
+}
+const layerFiles = LAYER_DIR ? prepareLayerOverride(LAYER_DIR, M.looks) : null;
+const routedLayers = new Set();
 const started = Date.now();
 const late = () => (Date.now() - started) / 60000 > MINUTES;
 const out = (...p) => path.join(RUN, ...p);
@@ -28,12 +41,29 @@ const save = (file, dataUrl) => { fs.mkdirSync(path.dirname(file), { recursive: 
   const browser = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
   const page = await (await browser.newContext({ viewport: { width: 393, height: 852 }, serviceWorkers: "block" })).newPage();
   page.on("pageerror", (e) => console.log("pageerror", e.message));
+  if (layerFiles) {
+    await page.route("**/tryon/layers/*.webp*", async route => {
+      const hit = resolveLayerRequest(route.request().url(), layerFiles);
+      if (!hit) return route.continue();
+      routedLayers.add(hit.id);
+      await route.fulfill({ path: hit.file, contentType: "image/webp" });
+    });
+  }
   await page.goto(URL_);
   await page.evaluate(async (looks) => {
     const m = await import("/src/lib/tryon.ts");
     await m.downloadModels([...looks, "no-makeup"], () => {});
     window.__m = m;
   }, M.looks);
+  if (layerFiles) {
+    const missing = M.looks.filter(id => !routedLayers.has(id));
+    if (missing.length) {
+      await browser.close();
+      throw new Error("Candidate atlas route never activated for looks: " + missing.join(", ")
+        + " (cache or engine mismatch; refusing baseline-contaminated benchmark)");
+    }
+    console.log("private benchmark candidate atlases active:", routedLayers.size, "looks; production assets unchanged");
+  }
   const times = fs.openSync(out("render-times.jsonl"), "a");
   let done = 0, skipped = 0;
   for (const photo of M.photos) {

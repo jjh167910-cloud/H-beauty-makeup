@@ -1,0 +1,11 @@
+{
+  "name": "h-beauty-makeup-review",
+  "compatibility_date": "2026-10-21",
+  "main": "worker/preview.ts",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/*"]
+  }
+}
