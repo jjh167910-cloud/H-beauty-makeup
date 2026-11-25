@@ -25,16 +25,22 @@ test("public Korean and Hollywood brow geometry paired GPU calibration",async({p
         const picks=m.v2Picks(id,"natural")!;
         if(!picks.brows)throw Error("Missing brows");
         rows.push({id,pilot,place:picks.brows.place,image:capture(await m.paintMine(shot,picks))});
+        if(id==="hollywood"&&pilot){
+          for(const place of ["sculptedSoft","sculptedBody"]){
+            const variant={...picks,brows:{...picks.brows,place}};
+            rows.push({id,pilot,place,image:capture(await m.paintMine(shot,variant))});
+          }
+        }
       }
     }
     return {bare:capture(shot.photo),points:shot.points,rows};
   });
-  expect(data.rows).toHaveLength(8);
+  expect(data.rows).toHaveLength(10);
   expect(data.rows.find(r=>r.id==="k-beauty"&&r.pilot)?.place).toBe("straight");
   expect(data.rows.find(r=>r.id==="hollywood"&&r.pilot)?.place).toBe("sculptedFull");
   writeFileSync(join(dir!,"bare.png"),Buffer.from(data.bare,"base64"));
   const rows=data.rows.map(({image,...row})=>{
-    const file=row.id+(row.pilot?"-pilot":"-baseline")+".png";
+    const file=row.id+(row.pilot?"-"+row.place:"-baseline")+".png";
     writeFileSync(join(dir!,file),Buffer.from(image,"base64"));return {...row,file};
   });
   writeFileSync(join(dir!,"manifest.json"),JSON.stringify({points:data.points,rows},null,2));
