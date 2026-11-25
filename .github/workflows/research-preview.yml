@@ -9,9 +9,11 @@ on:
       - 'scripts/bench/make_visual_report.mjs'
       - 'scripts/bench/make_blind_review.mjs'
       - 'scripts/bench/check_review_checks.mjs'
+      - 'scripts/bench/package_blind_review.mjs'
       - 'scripts/bench/blind-review.template.html'
       - 'tests-node/blind-review.test.mjs'
       - 'tests-node/check-review-checks.test.mjs'
+      - 'tests-node/package-blind-review.test.mjs'
       - 'tests/pale-lids-gpu-preview.spec.ts'
       - 'worker/preview.ts'
       - 'wrangler.preview.jsonc'
@@ -100,6 +102,12 @@ jobs:
         run: |
           node --input-type=module -e "import {makeBlindReview} from './scripts/bench/make_blind_review.mjs'; makeBlindReview('test-results/public-eye-cap-visual')"
           test -s test-results/public-eye-cap-visual/blind-review.html
+      - name: Bundle a standalone offline blind-review HTML for Android
+        shell: bash
+        run: |
+          node scripts/bench/package_blind_review.mjs test-results/public-eye-cap-visual
+          test -s test-results/public-eye-cap-visual/blind-review-standalone.html
+          test -s test-results/public-eye-cap-visual/standalone-integrity.json
       - name: Include the actual before-and-after gallery in isolated research preview
         shell: bash
         run: |
@@ -110,6 +118,8 @@ jobs:
           cp test-results/public-eye-cap-visual/* public/research-preview/
           test -s public/research-preview/index.html
           test -s public/research-preview/blind-review.html
+          test -s public/research-preview/blind-review-standalone.html
+          test -s public/research-preview/standalone-integrity.json
       - name: Build complete offline-capable research preview
         run: npm run build
       - name: Save mobile-friendly BEFORE / AFTER gallery and build provenance
@@ -164,6 +174,8 @@ jobs:
           grep -q 'id="root"' /tmp/hb-review.html
           curl --fail --show-error --silent --location --max-time 30 "$REVIEW_URL/research-preview/index.html" -o /tmp/hb-before-after.html
           grep -q 'Makeup, under the microscope' /tmp/hb-before-after.html
+          curl --fail --show-error --silent --location --max-time 30 "$REVIEW_URL/research-preview/blind-review-standalone.html" -o /tmp/hb-blind-review-standalone.html
+          grep -q 'embeddedImages' /tmp/hb-blind-review-standalone.html
           curl --fail --show-error --silent --location --max-time 30 "$REVIEW_URL/research-preview/blind-review.html" -o /tmp/hb-blind-review.html
           grep -q 'BLIND RESEARCH REVIEW' /tmp/hb-blind-review.html
           status="$(curl --silent --output /tmp/review-chat.json --write-out '%{http_code}' --max-time 30 "$REVIEW_URL/api/chat")"
@@ -183,6 +195,7 @@ jobs:
               echo "Verified staging Worker: $REVIEW_URL"
               echo "Gallery: $REVIEW_URL/research-preview/index.html"
               echo "Blinded review: $REVIEW_URL/research-preview/blind-review.html"
+              echo "Single-file Android offline review: $REVIEW_URL/research-preview/blind-review-standalone.html"
             else
               echo "Cloud preview not published/verified. No live URL is claimed."
             fi
