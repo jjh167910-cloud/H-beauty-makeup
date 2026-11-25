@@ -746,7 +746,7 @@ export type Mine = {
     /** A graphic line along her crease too (a 60s banana), from over her inner corner to her outer corner. */
     crease?: boolean };
   /** Lashes strand by strand (lashStrands): natural / volume / dramatic, her lower lashes too. */
-  lashes?: { place: string; lower?: boolean };
+  lashes?: { place: string; lower?: boolean; lowerStrength?: number };
   /** Freckles dotted across her nose and upper cheeks (freckleSpots): how strong (1 = as an artist dots them). */
   freckles?: number;
   /** Rhinestones at her outer eye corners (stoneSpots): how bright (1 = as they catch her light). */
@@ -1608,7 +1608,7 @@ function lashLine(line: V[], side: V): (x: number) => [V, V] {
  * Her lashes as strands, triangles in pixels for the "strand" program: per vertex x, y, its distance across the strand
  * and the strand's half-width there (pixels), how dark. `shown`: how much of each eye is seen (image-left eye, the other).
  */
-export function lashStrands(P: Pt[], style: string, lower: boolean, shown: [number, number] = [1, 1]): Float32Array {
+export function lashStrands(P: Pt[], style: string, lower: boolean, shown: [number, number] = [1, 1], lowerStrength = 1): Float32Array {
   const { ew, down, sides } = frame(P), up = mul(down, -1);
   const S = LASH_STYLES[style] ?? LASH_STYLES.natural;
   const out: number[] = [];
@@ -1681,7 +1681,8 @@ export function lashStrands(P: Pt[], style: string, lower: boolean, shown: [numb
         strand(root, c1, c2, tip, S.hw * own * (1 - LASH_VARY.width / 2 + LASH_VARY.width * q(6)), S.dark * seen * (1 - LASH_VARY.dark * q(7)));
       }
     }
-    if (lower || style === "dramatic") {
+    const lowerK = Number.isFinite(lowerStrength) ? Math.max(0, Math.min(1, lowerStrength)) : 1;
+    if (lowerK > 0 && (lower || style === "dramatic")) {
       const low = lashLine(s.lower.map((i) => pt(P, i)), down), K = LOWER_LASHES[style] ?? LOWER_LASHES.natural, wl = (1 - K.from - 0.04) / K.clumps;
       for (let c = 0; c < K.clumps; c++) {
         const r = (k: number) => hash(c + 7, k);
@@ -1696,7 +1697,7 @@ export function lashStrands(P: Pt[], style: string, lower: boolean, shown: [numb
           const tipC = add(rootC, mul(turn(nC, s.out, thC - 6), L)), own_ = add(root, mul(turn(n, s.out, th - 6), L));
           const pull = mul(sub(tipC, own_), K.pull);
           strand(root, add(root, mul(turn(n, s.out, th + 2), L * 0.35)), add(add(root, mul(turn(n, s.out, th - 2), L * 0.7)), mul(pull, 0.45)),
-            add(own_, pull), K.hw * own * (0.8 + 0.4 * q(3)), K.dark * seen * (lower ? 1 : 0.7));
+            add(own_, pull), K.hw * own * (0.8 + 0.4 * q(3)), K.dark * seen * (lower ? 1 : 0.7) * lowerK);
         }
       }
     }
@@ -3503,7 +3504,7 @@ export class MakeupGL {
     gl.colorMask(true, true, true, true);
     if (lashes) {        // her lashes strand by strand, on her own lash lines
       gl.disable(gl.DEPTH_TEST);
-      this.strands(lashStrands(P, lashes.place, Boolean(lashes.lower), shown), w, h);
+      this.strands(lashStrands(P, lashes.place, Boolean(lashes.lower), shown, lashes.lowerStrength), w, h);
       gl.enable(gl.DEPTH_TEST);
       p = this.use("mesh");
     }
