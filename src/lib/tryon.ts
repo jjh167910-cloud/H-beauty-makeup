@@ -1098,6 +1098,14 @@ export function v2Picks(look: string, level: Level, picks?: ProductPicks | null)
   if (picks?.glow) recipe.glow = { ...(recipe.glow ?? { amount: 1, tool: "fan", finish: "glow", place: "cheek" }), shade: nearestShade(HIGHLIGHTERS, picks.glow.hex), hex: picks.glow.hex };
   const out = minePicks(recipe);
   if (!out) return null;
+  // Public-calibrated review geometries; preserve existing default unless
+  // the research flag is enabled. Only the best accepted Hollywood shape.
+  let browShapePilot=false;
+  try { browShapePilot=new URLSearchParams(location.search).get("browShapePilot")==="1"; } catch { /* off */ }
+  if(browShapePilot && out.brows){
+    if(look==="k-beauty")out.brows.place="straight";
+    if(look==="hollywood")out.brows.place="sculptedSoft";
+  }
   if (out.shadow) out.shadow.relative = V2_SHADOW_RELATIVE;
   if (out.blush?.freckles) out.blush.freckles *= V2_LEVEL[level] * (picks?.gain?.blush ?? 1);     // (her level and her blush: fainter or bolder freckles too)
   for (const k of STEP_KEYS) {
