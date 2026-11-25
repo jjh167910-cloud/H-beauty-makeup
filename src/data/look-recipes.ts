@@ -48,6 +48,10 @@ const LINER_PLACE: Record<Exclude<Liner, "none">, string> = {
   thin: "thin", wing: "wing", fox: "fox", double: "wing", graphic: "wing", puppy: "puppy", smudge: "smudge", siren: "fox",
 };
 const BLACK_LINER = "#141113";
+/** Experimental soft-liner candidates: the catalog shows a brown, diffused line rather than black pen.
+ * Use the existing brown pencil, preserving each look's thin placement and other products.
+ * Candidate colours still require public-catalog photometry and private acceptance. */
+const SOFT_LINER: Readonly<Record<string, string>> = { "romantic-bride": "#4a2c20", nineties: "#4a2c20" };
 /**
  * Looks whose catalog photos have mascara on the lower lashes too (their lower lash line 2.5 L* or more deeper than the
  * bare face's, measured on the catalog model, 2026-11): their recipes put it on her lower lashes (the studio's «مژه پایین»).
@@ -126,8 +130,9 @@ export function recipeOf(look: FaceLook, id?: string): MyMakeup {
   }
 
   if (look.liner !== "none") {
-    const hex = look.linerColor ?? BLACK_LINER;
-    out.liner = { shade: nearestShade(LINERS, hex), hex, tool: look.liner === "smudge" ? "pencil" : "pen", place: LINER_PLACE[look.liner], amount: 1,
+    const soft = id && Object.prototype.hasOwnProperty.call(SOFT_LINER, id) ? SOFT_LINER[id] : undefined;
+    const hex = look.linerColor ?? soft ?? BLACK_LINER;
+    out.liner = { shade: nearestShade(LINERS, hex), hex, tool: look.liner === "smudge" || soft ? "pencil" : "pen", place: LINER_PLACE[look.liner], amount: 1,
       ...(acc.has("lowerLiner") || look.liner === "double" ? { lower: true } : {}), ...(acc.has("rhinestones") ? { stones: true } : {}),
       ...(acc.has("kohl") ? { kohl: true } : {}), ...(acc.has("creaseLine") ? { crease: true } : {}) };
   } else if (acc.has("lowerLiner") || acc.has("kohl")) {
