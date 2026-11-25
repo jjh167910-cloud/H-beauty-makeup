@@ -2471,7 +2471,21 @@ vec3 pigments(vec3 base, vec3 lu, float cov[6]) {
         float cellPx = uEw * ${GLITTER_CELL} * 1.5;
         float resolved = smoothstep(0.9, 2.0, cellPx);
         float sparse = on * grains(canon, cellPx, 1.5, 0.45) * (${SHADOW_GLITTER} / 0.45);
-        sparkLid = mix(sparkLid, sparse, resolved);
+        // Apply only to the interior upper lid, away from the existing
+        // feathered eye-opening mask. Keep the original grains in its rim,
+        // lower-lash band and feathered shadow perimeter.
+        vec4 C = texture(uCov, v);
+        float guard = max(texture(uMask, v).r, texture(uMask, v).g);
+        float radius = max(2.0, uEw * 0.055);
+        for (int j=0;j<8;j++) {
+          float theta = float(j)*0.785398163;
+          vec2 offset = radius*vec2(cos(theta),sin(theta))/vec2(uSize);
+          vec4 m = texture(uMask,v+offset);
+          guard = max(guard,max(m.r,m.g));
+        }
+        float interior = smoothstep(0.35,0.70,C.g) * smoothstep(0.35,0.70,C.r)
+          * (1.0-smoothstep(0.02,0.15,C.a)) * (1.0-smoothstep(0.0,0.025,guard));
+        sparkLid = mix(sparkLid, sparse, resolved * interior);
       }
     }
   }
