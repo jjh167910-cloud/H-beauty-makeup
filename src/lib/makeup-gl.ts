@@ -1274,7 +1274,7 @@ export function stoneSpots(P: Pt[]): Spot[] {
 }
 
 /** Her brow fill per style: her hairs' darkness from / to which it is all of her brow, and how much of the zone gets some anyway (browFill). */
-const BROW_SHAPE: Record<string, [number, number, number]> = { natural: [0.05, 0.25, 0], full: [0.02, 0.14, 0.2], defined: [0.04, 0.2, 0.12], thin: [0, 0.01, 1] };
+const BROW_SHAPE: Record<string, [number, number, number]> = { natural: [0.05, 0.25, 0], full: [0.02, 0.14, 0.2], defined: [0.04, 0.2, 0.12], thin: [0, 0.01, 1], straight: [0.04, 0.2, 0.16], sculptedFull: [0.02, 0.14, 0.25], sculptedSoft: [0.025, 0.17, 0.18], sculptedBody: [0.02, 0.14, 0.20] };
 /**
  * A thin brow (the 20s and 90s brows of the catalog's photos): her own brow blocked out (glued flat and covered with
  * concealer: her hairs taken up to her skin around, BROW_BLOCK) and a thin, arched brow drawn along it with a pencil.
@@ -1499,6 +1499,28 @@ export function mineZones(P: Pt[], m: Mine, face?: FaceStats | null): { A: StepG
         const fade = (x: number) => { const t = Math.min(1, Math.max(0, (x - BROW_THIN.fade[0]) / (BROW_THIN.fade[1] - BROW_THIN.fade[0]))); return t * t * (3 - 2 * t); };
         return { polys, values: polys.map((_, i) => 1 - BROW_THIN.head * fade(i / (N - 1))), axis: [s.browIn, s.browTail],
           outline: [[...side.map((q) => q[0]), ...[...side].reverse().map((q) => q[1])]] };
+      }
+      // Research shapes follow each brow's own landmarks, not a generic
+      // face template. Flatten the middle towards its end-to-end chord,
+      // but cap displacement to avoid painting a second disconnected brow.
+      if (["straight","sculptedFull","sculptedSoft","sculptedBody"].includes(style)) {
+        const original = [0,1,2,3,4].map(j=>[pt(P,s.brow[j]),pt(P,s.brow[9-j])] as [V,V]);
+        const mids = original.map(([a,b])=>lerp(a,b,.5));
+        const ax=unit(sub(mids[4],mids[0]));
+        let n:V=[-ax[1],ax[0]];
+        if(n[0]*down[0]+n[1]*down[1]>0)n=mul(n,-1);
+        const pairs=original.map(([a,b],j)=>{
+          const c=mids[j],d=sub(c,mids[0]);
+          const height=d[0]*n[0]+d[1]*n[1];
+          const flatten=style==="straight"?Math.max(-.045*ew,Math.min(.045*ew,height*.65)):0;
+          const centre=add(c,mul(n,-flatten));
+          const scale=style==="straight"?[.85,1.03,1.06,1.02,.95][j]:style==="sculptedSoft"?[1.05,1.18,1.25,1.20,1.03][j]:style==="sculptedBody"?[1.08,1.30,1.40,1.28,1.03][j]:[1.12,1.38,1.45,1.38,1.16][j];
+          const half=Math.min(.16*ew,Math.max(.008*ew,Math.hypot(a[0]-b[0],a[1]-b[1])*.5*scale*k));
+          return [add(centre,mul(n,half)),add(centre,mul(n,-half))] as [V,V];
+        });
+        const polys=pairs.slice(0,-1).map(([a,b],j)=>[a,pairs[j+1][0],pairs[j+1][1],b] as Poly);
+        return {polys,values:[.88,1,.85,.48],axis:[s.browIn,s.browTail],
+          outline:[[...pairs.map(q=>q[0]),...[...pairs].reverse().map(q=>q[1])]]};
       }
       const pairs = [0, 1, 2, 3, 4].map((j) => {                    // tail to inner end
         const a = pt(P, s.brow[j]), b = pt(P, s.brow[9 - j]), c = lerp(a, b, 0.5), w = (style === "full" ? 1.3 : 1) * k;
