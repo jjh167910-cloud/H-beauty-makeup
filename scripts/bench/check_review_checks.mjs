@@ -8,6 +8,9 @@ import { fileURLToPath } from 'node:url';
 export const REQUIRED_CHECKS = [
   'Try-on review',
   'Catalog pale-lid photometry',
+  'Public glitter calibration',
+  'Public brow shape calibration',
+  'Public blush calibration',
 ];
 
 export function evaluateRequiredChecks(runs, headSha, names = REQUIRED_CHECKS) {
@@ -57,7 +60,7 @@ async function pollExactHead() {
   const url = 'https://api.github.com/repos/' + repo +
     '/actions/runs?head_sha=' + encodeURIComponent(sha) +
     '&event=pull_request&per_page=100';
-  const maxAttempts = 90;
+  const maxAttempts = 180;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const response = await fetch(url, {
       headers: {
@@ -76,7 +79,7 @@ async function pollExactHead() {
       await new Promise(resolve => setTimeout(resolve, 20000));
     }
   }
-  throw new Error('Timed out before both required checks completed on exact PR head SHA');
+  throw new Error('Timed out before all required checks completed on exact PR head SHA');
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === fileURLToPath(new URL('file://' + process.argv[1]))) {
