@@ -1,0 +1,39 @@
+name: Public blush calibration
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/blush-calibration.spec.ts'
+      - 'scripts/bench/score_blush_calibration.py'
+      - '.github/workflows/blush-calibration.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  calibrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq libgles2 libegl1
+      - run: python -m pip install 'mediapipe>=0.10.20,<0.11' opencv-python-headless numpy scikit-image
+      - run: npm ci
+      - name: Render public catalog sweep
+        env:
+          HB_BLUSH_CALIBRATION_DIR: ${{ runner.temp }}/blush-calibration
+        run: npx playwright test tests/blush-calibration.spec.ts --workers=1
+      - name: Score grade-corrected catalog cheek colour and protection
+        run: python scripts/bench/score_blush_calibration.py "$RUNNER_TEMP/blush-calibration"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: public-blush-calibration
+          path: ${{ runner.temp }}/blush-calibration
+          if-no-files-found: error
+          retention-days: 7
