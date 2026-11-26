@@ -421,3 +421,88 @@ test("?engine=v2 draws her eyeshadow's placement from her own eye: her lid for a
   expect(out.crease.crease).toBeGreaterThan(out.crease.lid + 10); // a crease: deepest in her own crease
   expect(out.crease.crease / out.crease.lid).toBeGreaterThan(1.5 * out.wash.crease / out.wash.lid);
 });
+
+
+test("opt-in smoky lower-band pilot is confined below the eyes and preserves other looks", async ({ page }) => {
+  test.setTimeout(420_000);
+  await page.goto("/?engine=v2");
+  const report = await page.evaluate(async () => {
+    const m = await import("/src/lib/tryon.ts");
+    if (m.engine() !== "gpu") throw new Error("Actual GPU required");
+    await m.downloadModels(["no-makeup", "arabic-glam", "navy-smokey"], () => {});
+    const load = async (id: string) => {
+      const r = await fetch("/makeup/looks/" + id + ".webp");
+      if (!r.ok) throw new Error("Missing public catalog photo: " + id);
+      return (await m.preparePhoto(await r.blob())).plain;
+    };
+    const shot = await load("no-makeup");
+    const pixels = (c: HTMLCanvasElement) => {
+      const t = document.createElement("canvas"); t.width=c.width; t.height=c.height;
+      const g=t.getContext("2d",{willReadFrequently:true})!; g.drawImage(c,0,0);
+      return g.getImageData(0,0,t.width,t.height);
+    };
+    const geometry = (P: typeof shot.points) => {
+      const ax=P[263][0]-P[33][0], ay=P[263][1]-P[33][1], n=Math.hypot(ax,ay);
+      const down=[-ay/n,ax/n], across=[ax/n,ay/n];
+      const ew=(Math.hypot(P[33][0]-P[133][0],P[33][1]-P[133][1])+Math.hypot(P[263][0]-P[362][0],P[263][1]-P[362][1]))/2;
+      const deepest=(ids:number[])=>ids.map(i=>P[i]).reduce((a,b)=>a[0]*down[0]+a[1]*down[1]>b[0]*down[0]+b[1]*down[1]?a:b);
+      return {down,across,ew,centres:[deepest([145,153,144]),deepest([374,380,373])]};
+    };
+    const lum=(a:Uint8ClampedArray,i:number)=>{
+      const lin=(v:number)=>{const t=v/255;return t<=.04045?t/12.92:((t+.055)/1.055)**2.4};
+      const y=.2126*lin(a[i])+.7152*lin(a[i+1])+.0722*lin(a[i+2]);
+      return y>.008856?116*Math.cbrt(y)-16:903.296*y;
+    };
+    const sample=(im:ImageData,g:ReturnType<typeof geometry>)=>{
+      let sum=0,n=0;
+      for(const c of g.centres) for(const dx of [-.24,-.12,0,.12,.24]) for(const dy of [.055,.085,.115]){
+        const x=Math.round(c[0]+g.ew*(g.across[0]*dx+g.down[0]*dy));
+        const y=Math.round(c[1]+g.ew*(g.across[1]*dx+g.down[1]*dy));
+        if(x<0||y<0||x>=im.width||y>=im.height)throw new Error("Invalid sample");
+        sum+=lum(im.data,4*(y*im.width+x));n++;
+      }
+      return sum/n;
+    };
+    const geom=geometry(shot.points);
+    const results=[];
+    for(const id of ["arabic-glam","navy-smokey"]){
+      history.replaceState(null,"","/?engine=v2");
+      const old=m.v2Picks(id,"natural")!;
+      history.replaceState(null,"","/?engine=v2&smokeBandPilot=1");
+      const candidate=m.v2Picks(id,"natural")!;
+      const expected = id==="arabic-glam" ? .4 : undefined;
+      if(old.shadow?.smokeBandBoost!==undefined||candidate.shadow?.smokeBandBoost!==expected)throw new Error("Pilot isolation failed");
+      const control=m.v2Picks("classic-smokey","natural")!;
+      if(control.shadow?.smokeBandBoost!==undefined)throw new Error("Unrelated look affected");
+      const a=pixels(await m.paintMine(shot,old)), b=pixels(await m.paintMine(shot,candidate));
+      const t=await load(id), truth=pixels(t.photo);
+      let changed=0,outside=0,maxOutside=0;
+      for(let y=0;y<a.height;y++)for(let x=0;x<a.width;x++){
+        const i=4*(y*a.width+x);
+        const d=Math.max(...[0,1,2].map(j=>Math.abs(a.data[i+j]-b.data[i+j])));
+        if(!d)continue;
+        changed++;
+        const inside=geom.centres.some(c=>{
+          const dx=(x+.5-c[0])/geom.ew,dy=(y+.5-c[1])/geom.ew;
+          const v=dx*geom.down[0]+dy*geom.down[1],u=Math.abs(dx*geom.across[0]+dy*geom.across[1]);
+          return v>=0&&v<=.27&&u<=.60;
+        });
+        if(!inside){outside++;maxOutside=Math.max(maxOutside,d);}
+      }
+      results.push({id,changed,outside,maxOutside,before:sample(a,geom),after:sample(b,geom),reference:sample(truth,geometry(t.points))});
+    }
+    return results;
+  });
+  console.log("SMOKY_BAND_PUBLIC_GPU_AB",JSON.stringify(report));
+  for(const row of report){
+    expect(row.maxOutside,row.id).toBe(0);
+    if(row.id==="navy-smokey"){
+      expect(row.changed,row.id).toBe(0);
+      expect(row.after,row.id).toBe(row.before);
+      continue;
+    }
+    expect(row.changed,row.id).toBeGreaterThan(0);
+    expect(row.after,row.id).toBeLessThan(row.before);
+    expect(Math.abs(row.after-row.reference),row.id).toBeLessThan(Math.abs(row.before-row.reference));
+  }
+});
