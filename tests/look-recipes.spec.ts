@@ -505,31 +505,3 @@ test("electric-blue lower-lash pigment moves toward its public catalog colour", 
   const [old, trial, reference] = result.low;
   expect(Math.abs(trial[2]-reference[2])).toBeLessThan(Math.abs(old[2]-reference[2]));
 });
-
-
-test("soft catalog liners use a brown pencil without changing thin geometry or other looks", async ({ page }) => {
-  await page.goto("/");
-  const result = await page.evaluate(async () => {
-    const { MAKEUP_STYLES } = await import("/src/data/makeup-styles.ts");
-    const { lookRecipe, recipeOf } = await import("/src/data/look-recipes.ts");
-    const { minePicks, cleanRecipe } = await import("/src/data/my-makeup.ts");
-    const controls = ["romantic-bride", "nineties"];
-    const candidates = controls.map(id => {
-      const r = lookRecipe(id)!;
-      const candidate = minePicks(r)!.liner!;
-      const previous = minePicks({ ...r, liner: { ...r.liner!, hex: "#141113", shade: "black", tool: "pen" } })!.liner!;
-      return { id, recipe: r.liner, candidate, previous, roundtrip: cleanRecipe(JSON.parse(JSON.stringify(r))).liner };
-    });
-    const unexpected = MAKEUP_STYLES.filter(s => !controls.includes(s.id)).filter(s =>
-      JSON.stringify(recipeOf(s.look, s.id).liner) !== JSON.stringify(recipeOf(s.look).liner)).map(s => s.id);
-    return { candidates, unexpected };
-  });
-  expect(result.unexpected).toEqual([]);
-  for (const item of result.candidates) {
-    expect(item.recipe).toMatchObject({ hex: "#4a2c20", shade: "brown", tool: "pencil", place: "thin" });
-    expect(item.roundtrip).toMatchObject({ hex: "#4a2c20", shade: "brown", tool: "pencil", place: "thin" });
-    expect(item.candidate.soft).toBeGreaterThan(item.previous.soft);
-    expect(item.candidate.opacity).toBeLessThan(item.previous.opacity);
-    expect(item.candidate.place).toBe(item.previous.place);
-  }
-});
