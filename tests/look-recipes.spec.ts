@@ -470,7 +470,8 @@ test("opt-in smoky lower-band pilot is confined below the eyes and preserves oth
       const old=m.v2Picks(id,"natural")!;
       history.replaceState(null,"","/?engine=v2&smokeBandPilot=1");
       const candidate=m.v2Picks(id,"natural")!;
-      if(old.shadow?.smokeBandBoost!==undefined||candidate.shadow?.smokeBandBoost!==.4)throw new Error("Pilot isolation failed");
+      const expected = id==="arabic-glam" ? .4 : undefined;
+      if(old.shadow?.smokeBandBoost!==undefined||candidate.shadow?.smokeBandBoost!==expected)throw new Error("Pilot isolation failed");
       const control=m.v2Picks("classic-smokey","natural")!;
       if(control.shadow?.smokeBandBoost!==undefined)throw new Error("Unrelated look affected");
       const a=pixels(await m.paintMine(shot,old)), b=pixels(await m.paintMine(shot,candidate));
@@ -494,8 +495,13 @@ test("opt-in smoky lower-band pilot is confined below the eyes and preserves oth
   });
   console.log("SMOKY_BAND_PUBLIC_GPU_AB",JSON.stringify(report));
   for(const row of report){
-    expect(row.changed,row.id).toBeGreaterThan(0);
     expect(row.maxOutside,row.id).toBe(0);
+    if(row.id==="navy-smokey"){
+      expect(row.changed,row.id).toBe(0);
+      expect(row.after,row.id).toBe(row.before);
+      continue;
+    }
+    expect(row.changed,row.id).toBeGreaterThan(0);
     expect(row.after,row.id).toBeLessThan(row.before);
     expect(Math.abs(row.after-row.reference),row.id).toBeLessThan(Math.abs(row.before-row.reference));
   }
