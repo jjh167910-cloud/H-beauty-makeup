@@ -1,5 +1,5 @@
 {
-  "name": "h-beauty-makeup-review",
+  "name": "h-beauty-review",
   "compatibility_date": "2026-10-21",
   "main": "worker/preview.ts",
   "assets": {
