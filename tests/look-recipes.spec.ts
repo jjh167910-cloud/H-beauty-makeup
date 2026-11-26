@@ -471,10 +471,10 @@ test("under-eye chroma pilot preserves deliberate foundation tint and protected 
       });
       if(!inside){exterior++;maxOutside=Math.max(maxOutside,delta);}
     }
-    const n=Math.max(changed,1);
+    const changedCount=Math.max(changed,1);
     return {changed,exterior,maxOutside,tintChanges,maxLuma,improved,regressed,
-      meanReferenceErrorBefore:referenceErrorBefore/n,meanReferenceErrorAfter:referenceErrorAfter/n,
-      meanChromaLossBefore:chromaLossBefore/n,meanChromaLossAfter:chromaLossAfter/n};
+      meanReferenceErrorBefore:referenceErrorBefore/changedCount,meanReferenceErrorAfter:referenceErrorAfter/changedCount,
+      meanChromaLossBefore:chromaLossBefore/changedCount,meanChromaLossAfter:chromaLossAfter/changedCount};
   },photo);
   console.log("UNDER_CHROMA_PUBLIC_GPU_AB",JSON.stringify(out));
   expect(out.maxOutside).toBe(0);
