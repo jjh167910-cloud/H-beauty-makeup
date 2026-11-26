@@ -1104,7 +1104,7 @@ export function v2Picks(look: string, level: Level, picks?: ProductPicks | null)
   if (out.shadow) {
     out.shadow.relative = V2_SHADOW_RELATIVE;
     // Explicit research-only photo/catalog flag. No change to normal recipes.
-    if (!picks?.shadow && out.shadow.place === "smoky" && (look === "arabic-glam" || look === "navy-smokey")) {
+    if (!picks?.shadow && out.shadow.place === "smoky" && look === "arabic-glam") {
       try { if (new URLSearchParams(location.search).get("smokeBandPilot") === "1") out.shadow.smokeBandBoost = 0.4; } catch { /* leave default unchanged */ }
     }
   }
