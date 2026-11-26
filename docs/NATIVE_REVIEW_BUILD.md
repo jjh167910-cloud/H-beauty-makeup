@@ -1,41 +1,47 @@
 # Native Cloudflare research preview
 
-The production Worker `h-beauty-makeup` and its Git integration remain unchanged.
-The dedicated review Worker is `h-beauty-makeup-review`; its config is
-`wrangler.preview.jsonc`. Use the existing Cloudflare Workers Builds GitHub
-connection, not a second production token.
+Production Worker `h-beauty-makeup` remains unchanged. Review Worker:
+`h-beauty-makeup-review`. No additional Cloudflare API credentials are needed
+for native Workers Builds.
 
-## Current implementation
+## Cloudflare dashboard (review Worker only)
 
-`node scripts/bench/check_native_review.mjs` is a tokenless preflight for a
-native build of `quality/integrated-review-20261126`. Cloudflare supplies
-`WORKERS_CI_BRANCH` and `WORKERS_CI_COMMIT_SHA`. The script checks the actual Git
-checkout, isolated Worker configuration and latest exact-head pull-request
-runs of all five required validation workflows plus the review artifact build.
-Missing, failed, pending, stale, or inaccessible evidence stops the build.
+- Git repository: `jjh167910-cloud/H-beauty-makeup`
+- Production branch of **review Worker only**: `quality/integrated-review-20261126`
+- Root directory: `/`
+- Build command: `node scripts/bench/fetch_native_review.mjs`
+- Deploy command: `npx wrangler deploy --config wrangler.preview.jsonc`
+- Non-production branch builds: disabled.
 
-The public GitHub REST API can supply workflow metadata without credentials.
-This does not make the Actions artifact archive anonymously downloadable.
-Do not replace the full offline artifact with an ordinary Vite build: it would
-omit the generated 48-style atlas and the actual GPU comparison gallery.
+Workers Builds provides WORKERS_CI_BRANCH and WORKERS_CI_COMMIT_SHA. Do not
+override them. Use Node 22 or later.
 
-## Remaining connection and artifact delivery requirements
+## Publication protocol
 
-1. In Workers Builds, use a separate review Worker, connect the existing GitHub
-   repository, and restrict the deployment branch to the dedicated review
-   branch. Never change the production Worker's settings or bindings.
-2. Run the native review preflight before any deploy. If triggered before CI
-   completes, the build must stop; retry only once the exact head is green.
-3. Supply the exact validated offline dist artifact through an authorized
-   delivery mechanism; validate provenance and integrity before deploying.
-   The existing GitHub Actions artifact is available for signed-in review.
-   A tokenless artifact delivery mechanism is not yet implemented.
-4. Only after these requirements are met, use
-   `npx wrangler deploy --config wrangler.preview.jsonc` for the review Worker.
-   Verify stage headers, review gallery, and 404 on salon API routes.
+The PR workflow builds public catalog-only assets and checks that the tested
+merge tree is identical to the exact PR head. The second job waits for all
+five independent exact-head workflows to succeed. It publishes a distinct
+public GitHub prerelease named `hbeauty-review-<40-character SHA>`, with
+the complete dist tarball and its SHA256. Only the integrated review branch
+may publish the package; it never overwrites an existing release.
 
-Do not configure a production deploy command or deploy a plain build to the
-review Worker. The preflight does not itself generate assets or publish a URL.
+The native build script verifies the dedicated branch and configuration,
+actual Git HEAD, all six latest exact-head PR checks, GitHub release identity,
+asset metadata/digest, checksum, size, safe archive paths and embedded SHA.
+It restores the exact packaged dist, not an ordinary Vite rebuild.
+On any failure it exits nonzero. No Cloudflare token is passed into Actions.
 
-Cloudflare reference:
+**Before clicking Deploy:** wait for all six checks and the public prerelease
+to be available for the current head. A Git-triggered build that starts
+before the package is ready will fail closed; retry that same commit after CI
+has finished. Never bypass this safeguard by deploying an ordinary Vite build.
+
+After deployment verify x-hbeauty-stage: research-preview, the embedded
+/research-preview/REVIEW_SHA.txt, the gallery at /research-preview/index.html,
+and HTTP 404 at /api/chat. No production salon data is attached.
+
+This is experimental review, not production acceptance. The public package
+publication and Cloudflare restoration must be verified end to end.
+
+Cloudflare documentation:
 https://developers.cloudflare.com/workers/ci-cd/builds/configuration/
