@@ -498,7 +498,8 @@ test("dual lipstick illumination: actual WebGL2 known-light fixed-lip comparison
       if(!picks.lips)throw Error("Missing lipstick recipe");
       return pixels(await m.paintMine(s,{gain:{lips:1},lips:picks.lips}));
     };
-    const lights=[{id:"warm",f:[1.16,1,.84]},{id:"cool",f:[.84,1,1.16]},{id:"dim-warm",f:[.58,.50,.42]}];
+    // All transforms are invertible without source clipping, including highlights.
+    const lights=[{id:"warm",f:[1,.862069,.724138]},{id:"cool",f:[.724138,.862069,1]},{id:"dim-warm",f:[.58,.50,.42]}];
     const rows=[];
     for(const look of ["hollywood","no-makeup","wine-lips"]){
       const neutral=await render(shot,look,false);
@@ -538,6 +539,7 @@ test("dual lipstick illumination: actual WebGL2 known-light fixed-lip comparison
     expect(row.outside).toBe(0);
     expect(row.fallbackChanged).toBe(0);
     expect(row.newClip).toBe(0);
+    expect(row.sourceClipped).toBe(0);
   }
   // Fail closed for promotion: absent activation, or any fidelity regression,
   // is not evidence of efficacy. This diagnostic never enables the pilot.
