@@ -538,6 +538,8 @@ export type LookFiles = {
 /** Her light references, and how soft her photo is around the eyes (`blur`: Gaussian sigma in pixels, photoBlur in tryon.ts). */
 export type FaceStats = {
   sclera: number[] | null; skin: number | null; lipRef: number | null; blur?: number | null;
+  /** Experimental secondary illuminant estimate: skin specular excess, normalized RGB. */
+  skinSpecular?: number[] | null;
   /**
    * Her brows as her hairs lie (image-left brow, the other): along each pair of her brow's points, tail to head, where
    * her hairs start, their middle (weighted by how dark) and where they end, across her brow from its lower point (eye
@@ -1756,6 +1758,27 @@ export function measureFace(source: CanvasImageSource, P: Pt[]): FaceStats {
     if (ml[o + 3] > 127) lipY.push(Y);
     if (ms[o + 3] > 127) skinY.push(Y);
   }
+  // A dielectric skin highlight adds a component of the illuminant to
+  // the diffuse skin colour. Estimate that excess using small local pairs;
+  // reject clipped, weak and contradictory observations. No skin-tone prior.
+  const specular: number[][] = [];
+  for (let y=3;y<h-3;y+=2) for(let x=3;x<w-3;x+=2) {
+    const i=(y*w+x)*4;
+    if(ms[i+3]<250 || Math.max(px[i],px[i+1],px[i+2])>=245) continue;
+    const c=[LIN[px[i]],LIN[px[i+1]],LIN[px[i+2]]];
+    const neighbours: number[][] = [];
+    for(const [dx,dy] of [[-3,0],[3,0],[0,-3],[0,3]]) {
+      const j=((y+dy)*w+x+dx)*4;
+      if(ms[j+3]<250) continue;
+      neighbours.push([LIN[px[j]],LIN[px[j+1]],LIN[px[j+2]]]);
+    }
+    if(neighbours.length!==4) continue;
+    const d=c.map((v,k)=>v-neighbours.reduce((a,b)=>a+b[k],0)/4);
+    const mean=d.reduce((a,b)=>a+b,0)/3;
+    if(mean<0.025 || mean>0.25 || d.some(v=>v<=0) || Math.max(...d)/Math.min(...d)>1.8) continue;
+    specular.push(d.map(v=>v/mean));
+  }
+  const skinSpecular=estimateSpecularConsensus(specular);
   let sclera: number[] | null = null;
   if (sc.length >= 30) {
     const ys = Float32Array.from(sc.map((v) => v[3])).sort();
@@ -1850,12 +1873,38 @@ export function measureFace(source: CanvasImageSource, P: Pt[]): FaceStats {
       return [Math.min(mid, reach(-1)), mid, Math.max(mid, reach(1))];
     });
   });
-  return { sclera, skin: skinLum, lipRef, under: under[0] > 0 && under[1] > 0 ? [under[0], under[1]] : null, tone, brow, browLine };
+  return { sclera, skin: skinLum, lipRef, skinSpecular, under: under[0] > 0 && under[1] > 0 ? [under[0], under[1]] : null, tone, brow, browLine };
 }
 
 
 /** At most this much more (or less) of one colour in her light than the mean (her eye whites over the catalog's). */
 const LIGHT_CAST = 1.08;
+
+/** Robust consensus across independent local highlight observations. */
+export function estimateSpecularConsensus(samples: number[][]): number[] | null {
+  const valid=samples.filter(v=>v.length===3&&v.every(x=>Number.isFinite(x)&&x>0&&x<2));
+  if(valid.length<12) return null;
+  const median=(a:number[])=>{const v=a.slice().sort((x,y)=>x-y);return v[Math.floor(v.length/2)];};
+  const med=[0,1,2].map(i=>median(valid.map(v=>v[i])));
+  const inliers=valid.filter(v=>Math.max(...v.map((x,i)=>Math.abs(x-med[i])))<=.08);
+  if(inliers.length<12 || inliers.length<valid.length*.7) return null;
+  const c=[0,1,2].map(i=>median(inliers.map(v=>v[i])));
+  const mean=c.reduce((a,b)=>a+b,0)/3;
+  return c.map(v=>v/mean);
+}
+
+/** Only relax the existing cast clamp when two independent cues agree. */
+export function dualLipCast(scleraRatio: number[], skinSpecular?: number[] | null): number[] | null {
+  if(!skinSpecular||scleraRatio.length!==3||skinSpecular.length!==3||
+      [...scleraRatio,...skinSpecular].some(x=>!Number.isFinite(x)||x<=0)) return null;
+  const norm=(a:number[])=>{const m=a.reduce((s,x)=>s+x,0)/3;return a.map(x=>x/m);};
+  const a=norm(scleraRatio),b=norm(skinSpecular);
+  // Both signals must agree on the cast, including its direction.
+  if(Math.max(...a.map((v,i)=>Math.abs(v-b[i])))>.10) return null;
+  if(a.reduce((s,v,i)=>s+(v-1)*(b[i]-1),0)<=0) return null;
+  const c=a.map((v,i)=>Math.min(1.18,Math.max(1/1.18, .65*v+.35*b[i]))**.8);
+  return norm(c);
+}
 /**
  * Her light can be this dim against the catalog photo's, no dimmer (her skin bounds it first: FAIREST). It was 0.3: in a
  * dark photo (a dim room, the benchmark's poorly lit faces at 0.01-0.03) the lipstick then came out 10 to 40 times
@@ -1867,7 +1916,7 @@ const LIGHT_MIN = 0.005;
  * lipstick in her light (her eye whites over the catalog's); nude shades also follow her skin's own depth (her skin over
  * the catalog model's, her light taken out: a nude chosen for the model becomes the same nude for her), deep ones not.
  */
-export function lipTarget(lip: LipInfo, face: FaceStats): { colour: number[]; light: number; rgb: number[]; liner: number[] | null } {
+export function lipTarget(lip: LipInfo, face: FaceStats, dualReference = false): { colour: number[]; light: number; rgb: number[]; liner: number[] | null } {
   let colour = lip.colour.slice();
   let light = [1, 1, 1], g = 1;
   if (face.sclera && lip.sclera) {
@@ -1879,6 +1928,14 @@ export function lipTarget(lip: LipInfo, face: FaceStats): { colour: number[]; li
     g = Math.min(2, Math.max(LIGHT_MIN, Math.min(mean, ceiling), floor)) ** 0.85;
     // (her eye whites are a rough white: their own tint and reflections mustn't turn every product cold or warm)
     light = e.map((v) => g * Math.min(LIGHT_CAST, Math.max(1 / LIGHT_CAST, v / mean)) ** 0.8);
+    if (dualReference) {
+      const cast=dualLipCast(e,face.skinSpecular);
+      if(cast) {
+        // Retain the original exposure estimate exactly.
+        const oldMean=light.reduce((a,b)=>a+b,0)/3;
+        light=cast.map(v=>v*oldMean);
+      }
+    }
   }
   if (face.skin && lip.skin) {
     const depth = Math.min(2.5, Math.max(0.15, face.skin / lip.skin / g)) ** 0.6;
@@ -3791,7 +3848,9 @@ export class MakeupGL {
     this.bindTex(p, "uLip", this.targets.lipB.tex[0], 3);
     this.bindTex(p, "uGrey", this.targets.greyB.tex[0], 4);
     this.bindTex(p, "uCanon", this.targets.canon.tex[0], 5);
-    const { colour, light, rgb, liner: linerC } = lipTarget(lip, face);
+    let dualLipPilot=false;
+    try { dualLipPilot=new URLSearchParams(location.search).get("lipLightPilot")==="1"; } catch { /* off */ }
+    const { colour, light, rgb, liner: linerC } = lipTarget(lip, face, dualLipPilot);
     const mean = (lip.colour[0] + lip.colour[1] + lip.colour[2]) / 3;
     gl.uniform3f(this.uni(p, "uK"), kLayer, kLip, look.eyes ? kEye : 0);
     gl.uniform1f(this.uni(p, "uLipTint"), extendOn ? 0 : 1);

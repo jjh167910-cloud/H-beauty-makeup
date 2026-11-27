@@ -436,8 +436,13 @@ test("HD face: a soft face is redrawn in HD on the phone, her face's shape and c
 
   // In the app: the same photo, «وضوح بیشتر» switches it off and on.
   await page.locator(".tryon input[type=file]:not([capture])").setInputFiles({ name: "soft.jpg", mimeType: "image/jpeg", buffer: Buffer.from(soft.split(",")[1], "base64") });
-  await expect(page.getByText("در حال ساختن چهره HD با هوش مصنوعی…")).toBeVisible({ timeout: 120_000 });
   const stage = page.locator(".tryon__stage");
+  // A fast/cached inference can finish between Playwright polls. The HD
+  // status message is transient; require the actual completed HD result.
+  await expect.poll(async () => {
+    const ms = Number(await stage.getAttribute("data-hd-ms", { timeout: 1000 }).catch(() => null));
+    return Number.isFinite(ms) ? ms : 0;
+  }, { timeout: 900_000, message: "Uploaded photo must complete actual HD processing" }).toBeGreaterThan(0);
   await expect(page.locator(".tryon__img--after")).toBeVisible({ timeout: 900_000 });
   expect(Number(await stage.getAttribute("data-hd-ms"))).toBeGreaterThan(0);
   await expect(stage).toHaveAttribute("data-sharp", "");
