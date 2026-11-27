@@ -449,3 +449,99 @@ test("dual lipstick light reference requires agreement and preserves exposure", 
   expect(report.candidate.light).toBeCloseTo(report.baseline.light,10);
   expect(report.fallback).toEqual(report.baseline);
 });
+
+test("dual lipstick illumination: actual WebGL2 known-light fixed-lip comparison", async ({page})=>{
+  test.setTimeout(600_000);
+  await page.goto("/?engine=v2");
+  const report=await page.evaluate(async()=>{
+    const m=await import("/src/lib/tryon.ts");
+    const {measureFace,LIPS_OUT,LIPS_IN}=await import("/src/lib/makeup-gl.ts");
+    if(m.engine()!=="gpu")throw Error("Actual WebGL2 required");
+    await m.downloadModels(["no-makeup"],()=>{});
+    const res=await fetch("/makeup/looks/no-makeup.webp");
+    if(!res.ok)throw Error("Missing public catalog portrait");
+    const shot=(await m.preparePhoto(await res.blob())).plain;
+    const w=shot.photo.width,h=shot.photo.height,P=shot.points;
+    const canvas=()=>{const c=document.createElement("canvas");c.width=w;c.height=h;return c;};
+    const pixels=(c:HTMLCanvasElement)=>{const t=canvas(),g=t.getContext("2d",{willReadFrequently:true})!;g.drawImage(c,0,0);return g.getImageData(0,0,w,h);};
+    const bare=pixels(shot.photo);
+    // Fixed support shared by every render: eroded outer lip, minus mouth.
+    const mask=canvas(),ctx=mask.getContext("2d")!;
+    const poly=(ids:number[])=>{ctx.beginPath();ids.forEach((id,i)=>{const [x,y]=P[id];if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y);});ctx.closePath();ctx.fill();};
+    ctx.fillStyle="#fff";poly(LIPS_OUT);ctx.globalCompositeOperation="destination-out";poly(LIPS_IN);
+    const alpha=ctx.getImageData(0,0,w,h).data;
+    const indices:number[]=[];
+    const xs=LIPS_OUT.map(id=>P[id][0]),ys=LIPS_OUT.map(id=>P[id][1]);
+    const pad=Math.max(4,(Math.max(...xs)-Math.min(...xs))*.3);
+    const box=[Math.min(...xs)-pad,Math.min(...ys)-pad,Math.max(...xs)+pad,Math.max(...ys)+pad];
+    for(let y=2;y<h-2;y++)for(let x=2;x<w-2;x++){
+      const i=y*w+x;
+      if([i,i-2,i+2,i-2*w,i+2*w].every(j=>alpha[j*4+3]===255))indices.push(i*4);
+    }
+    if(indices.length<100)throw Error("Missing fixed lip measurement support");
+    const lin=(v:number)=>Math.pow(v/255,2.2);
+    const lab=(d:Uint8ClampedArray,i:number,factors:number[])=>{
+      const [r,g,b]=[0,1,2].map(j=>lin(d[i+j])/factors[j]);
+      const x=(.4124564*r+.3575761*g+.1804375*b)/.95047;
+      const y=.2126729*r+.7151522*g+.072175*b;
+      const z=(.0193339*r+.119192*g+.9503041*b)/1.08883;
+      const f=(v:number)=>v>.008856?Math.cbrt(v):7.787*v+16/116;
+      return [116*f(y)-16,500*(f(x)-f(y)),200*(f(y)-f(z))];
+    };
+    const error=(im:ImageData,target:ImageData,factors:number[])=>indices.reduce((sum,i)=>{
+      const a=lab(im.data,i,factors),b=lab(target.data,i,[1,1,1]);return sum+Math.hypot(...a.map((v,j)=>v-b[j]));
+    },0)/indices.length;
+    const render=async (s:typeof shot,hex:string,pilot:boolean)=>{
+      history.replaceState(null,"",pilot?"/?engine=v2&lipLightPilot=1":"/?engine=v2");
+      const {v2Picks}=m;
+      const picks=v2Picks(hex,"natural")!;
+      if(!picks.lips)throw Error("Missing lipstick recipe");
+      return pixels(await m.paintMine(s,{gain:{lips:1},lips:picks.lips}));
+    };
+    const lights=[{id:"warm",f:[1.16,1,.84]},{id:"cool",f:[.84,1,1.16]},{id:"dim-warm",f:[.58,.50,.42]}];
+    const rows=[];
+    for(const look of ["hollywood","no-makeup","wine-lips"]){
+      const neutral=await render(shot,look,false);
+      for(const light of lights){
+        const c=canvas(),g=c.getContext("2d")!,im=new ImageData(new Uint8ClampedArray(bare.data),w,h);
+        let sourceClipped=0;
+        for(let i=0;i<im.data.length;i+=4)for(let j=0;j<3;j++){
+          const v=lin(im.data[i+j])*light.f[j];
+          if(v>1)sourceClipped++;
+          im.data[i+j]=Math.round(255*Math.pow(Math.min(1,v),1/2.2));
+        }
+        g.putImageData(im,0,0);
+        // Keep landmarks and visibility fixed: this isolates photometry, not detection.
+        const face=measureFace(c,P);
+        const s={...shot,photo:c,face};
+        const a=await render(s,look,false),b=await render(s,look,true);
+        const fallback=await render({...s,face:{...face,skinSpecular:null}},look,true);
+        let changed=0,outside=0,newClip=0,fallbackChanged=0;
+        for(let i=0;i<a.data.length;i+=4){
+          const x=(i/4)%w,y=Math.floor(i/4/w);
+          if([0,1,2].some(j=>a.data[i+j]!==fallback.data[i+j]))fallbackChanged++;
+          if(![0,1,2].some(j=>a.data[i+j]!==b.data[i+j]))continue;
+          changed++;
+          if(x<box[0]||x>box[2]||y<box[1]||y>box[3])outside++;
+          if([0,1,2].some(j=>a.data[i+j]<254&&b.data[i+j]>=254))newClip++;
+        }
+        rows.push({look,light:light.id,changed,outside,newClip,fallbackChanged,sourceClipped,
+          sclera:face.sclera,skinSpecular:face.skinSpecular,baseline:error(a,neutral,light.f),candidate:error(b,neutral,light.f)});
+      }
+    }
+    return {support:indices.length,metric:"mean CIE76 after inverse known gamma-2.2 lighting; not roadmap CIEDE2000",rows};
+  });
+  console.log("LIP_LIGHT_PUBLIC_GPU_AB",JSON.stringify(report));
+  expect(report.rows).toHaveLength(9);
+  for(const row of report.rows){
+    expect(Number.isFinite(row.baseline)&&Number.isFinite(row.candidate)).toBe(true);
+    expect(row.outside).toBe(0);
+    expect(row.fallbackChanged).toBe(0);
+    expect(row.newClip).toBe(0);
+  }
+  // Fail closed for promotion: absent activation, or any fidelity regression,
+  // is not evidence of efficacy. This diagnostic never enables the pilot.
+  const eligible=report.rows.some(r=>r.changed>0&&r.candidate<r.baseline-.05)&&
+    report.rows.every(r=>r.candidate<=r.baseline+.05);
+  console.log("LIP_LIGHT_DIAGNOSTIC_ELIGIBLE",eligible);
+});
