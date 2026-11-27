@@ -167,7 +167,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Require all five independent exact-head validation workflows
+      - name: Require all six independent exact-head validation workflows
         run: node scripts/bench/check_review_checks.mjs
       - uses: actions/download-artifact@v4
         with:
