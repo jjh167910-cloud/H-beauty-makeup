@@ -19,7 +19,8 @@ test('requires every exact-head integrated acceptance workflow', () => {
   ], SHA);
   assert.equal(state.passed, true);
   assert.equal(state.failed, false);
-  assert.equal(state.checks.length, 5);
+  assert.equal(state.checks.length, 6);
+  assert.ok(REQUIRED_CHECKS.includes('Public soft-liner calibration'));
 });
 
 test('refuses stale green runs from any other commit', () => {
