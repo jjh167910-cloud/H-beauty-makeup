@@ -11,6 +11,7 @@ export const REQUIRED_CHECKS = [
   'Public glitter calibration',
   'Public brow shape calibration',
   'Public blush calibration',
+  'Public soft-liner calibration',
 ];
 
 export function evaluateRequiredChecks(runs, headSha, names = REQUIRED_CHECKS) {
