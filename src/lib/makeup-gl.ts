@@ -2250,6 +2250,7 @@ uniform vec4 uBrowB[10], uBrowBand[10];
 uniform float uBrowBlock;
 uniform vec4 uGlitterTop;
 uniform float uGlitterPilot;
+uniform float uSoftLinerPilot;
 uniform vec4 uBrowDef;      // a look's brows: her hairs' colour over her skin's brightness (rgb), how far the gaps fill (a)
 // coloured lenses: each iris (centre in uv, radius in uv x and y), the lens colour (linear, in her light), its amount
 // and whether it covers her iris (1) or tints it (0)
@@ -3015,6 +3016,18 @@ void main() {
   float dk = min(0.0, -texture(uDetail, v).a * lashK * (1.0 - M.r) * (uMine == 1 && uStrands == 0 ? clamp(ZB.a, 0.0, 1.0) : 1.0) - own * 0.6);
   if (uMine == 1) {               // her liner in its colour, then her lashes over it
     float dl = clamp(ZB.g * rv(4, sw) * uMineK.w, 0.0, 1.0) * (1.0 - M.r);
+    // Research opt-in: contain diffused liner pigment outside the protected opening.
+    // Sample the existing blurred mask conservatively before applying the pigment.
+    if (uSoftLinerPilot > 0.0) {
+      float guard = M.r;
+      float radius = max(2.0, uEw * 0.025);
+      for (int j=0; j<8; ++j) {
+        float theta = float(j)*0.785398163;
+        vec2 offset = radius*vec2(cos(theta),sin(theta))/vec2(uSize);
+        guard = max(guard,texture(uMask,v+offset).r);
+      }
+      dl *= 1.0-smoothstep(0.035,0.20,guard);
+    }
     // (a dark liner never lightens her own lash line, already darker than it in her light)
     vec3 lined = mix(res, pow(clamp(uLiner * lightHere(lu), 0.0, 1.0), vec3(1.0 / 2.2)), dl);
     res = luma(uLiner) < 0.02 ? min(res, lined) : lined;
@@ -4035,6 +4048,9 @@ export class MakeupGL {
     let glitterPilot = false;
     try { glitterPilot = new URLSearchParams(location.search).get("glitterPilot") === "1"; } catch { /* default off */ }
     gl.uniform1f(this.uni(p, "uGlitterPilot"), glitterPilot ? 1 : 0);
+    let softLinerPilot = false;
+    try { softLinerPilot = new URLSearchParams(location.search).get("softLinerPilot") === "1"; } catch { /* default off */ }
+    gl.uniform1f(this.uni(p, "uSoftLinerPilot"), softLinerPilot && mine?.liner?.place === "thin" && !mine.liner.lower && !mine.liner.kohl && !mine.liner.crease ? 1 : 0);
     const top = mine?.shadow?.glitterTop;
     gl.uniform4f(this.uni(p, "uGlitterTop"), top?.[0] ?? 0, top?.[1] ?? 0, top?.[2] ?? 0, top ? 1 : 0);
     const lens = prod?.lenses, irises = P.length >= 478 ? [468, 473] : null;
