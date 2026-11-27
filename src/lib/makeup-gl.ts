@@ -1988,6 +1988,9 @@ const FOUND_FS = `#version 300 es
 precision highp float; in vec2 v; uniform sampler2D uSrc, uR, uN, uC, uL, uVis, uFace, uF, uM, uRet; uniform int uVisMode, uFaceOn;
 uniform vec3 uVisBox; uniform vec2 uSize; uniform vec4 uWork; uniform float uK, uSkinY; uniform vec3 uFTint; uniform float uFFinish, uCover, uRetK;
 uniform vec4 uNeck; uniform vec2 uNeckW; out vec4 o;
+uniform float uUnderChroma;
+uniform vec4 uUnderBand[2]; // deepest lower-lid point and downward unit axis
+uniform float uUnderEw;
 float luma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
 ${SHOULDER_GLSL}
 void main() {
@@ -2037,6 +2040,32 @@ void main() {
   }
   float w = shape * clamp(N.a / 0.1, 0.0, 1.0) * vis;
   lu *= 1.0 + (cg - 1.0) * w;
+  // Opt-in research: recover part of local source chroma lost by foundation
+  // averaging. Work at unchanged linear luminance, on neutral foundation
+  // only, below the lash region. Never boost beyond original saturation.
+  if (uUnderChroma > 0.0) {
+    float band = 0.0;
+    for (int e = 0; e < 2; e++) {
+      vec4 b = uUnderBand[e];
+      vec2 d = (px-b.xy)/max(uUnderEw,1.0);
+      float y = dot(d,b.zw), x = abs(dot(d,vec2(b.w,-b.z)));
+      band = max(band,smoothstep(0.14,0.23,y)*(1.0-smoothstep(0.42,0.62,y))*(1.0-smoothstep(0.35,0.60,x)));
+    }
+    vec3 original = pow(texture(uSrc,v).rgb,vec3(2.2));
+    float oy = luma(original), yy = luma(lu);
+    if (band > 0.0 && oy > 0.008 && yy > 0.008 && yy < 0.6) {
+      vec3 a = original/oy-vec3(1.0), b = lu/yy-vec3(1.0);
+      float na=length(a), nb=length(b);
+      // Only restore when foundation has reduced chroma along the same
+      // general hue direction; no forced warmth or global saturation boost.
+      float aligned=dot(a,b)/max(na*nb,1e-5);
+      float loss=smoothstep(0.015,0.12,na-nb)*smoothstep(0.55,0.9,aligned);
+      float k=band*clamp(w,0.0,1.0)*uUnderChroma*loss;
+      vec3 candidate=mix(lu,original*(yy/oy),k);
+      if (min(candidate.r,min(candidate.g,candidate.b))>=0.0 && max(candidate.r,max(candidate.g,candidate.b))<0.8)
+        lu=candidate;
+    }
+  }
   if (uFaceOn == 1 && uNeckW.x > 0.0) {   // her neck: her body skin below her jaw, outside the foundation's shape
     vec2 r = px - uNeck.xy;
     float d = dot(r, uNeck.zw) / uNeckW.x, side = abs(dot(r, vec2(-uNeck.w, uNeck.z))) / uNeckW.y;
@@ -3878,6 +3907,28 @@ export class MakeupGL {
       // little down her neck
       const tint = mine ? mine.base?.tint ?? [1, 1, 1] : (look.tint ?? [1, 1, 1]).map((v) => v ** foundK);
       gl.uniform3f(this.uni(p, "uFTint"), tint[0], tint[1], tint[2]);
+      // Pilot defaults off, and deliberately excludes coloured foundation.
+      let pilot = false;
+      try { pilot = new URLSearchParams(location.search).get("underChromaPilot") === "1"; } catch { /* off */ }
+      let under = pilot && tint.every(v => Math.abs(v-1)<1e-5) && face.skin != null && face.skin>0
+        ? 0.65 * (1-Math.min(1,Math.max(0,(face.skin-0.25)/0.20))) : 0;
+      if (under>0) {
+        const ids=[33,263,145,153,144,374,380,373,152,10];
+        if (ids.some(i=>!P[i]||!Number.isFinite(P[i][0])||!Number.isFinite(P[i][1]))||!(ew>1)) under=0;
+        else {
+          const x=P[263][0]-P[33][0],y=P[263][1]-P[33][1],n=Math.hypot(x,y);
+          if (!(n>1)) under=0;
+          else {
+            let down=[-y/n,x/n];
+            if (down[0]*(P[152][0]-P[10][0])+down[1]*(P[152][1]-P[10][1])<0) down=down.map(v=>-v);
+            const deepest=(indices:number[])=>indices.map(i=>P[i]).reduce((a,b)=>a[0]*down[0]+a[1]*down[1]>b[0]*down[0]+b[1]*down[1]?a:b);
+            const a=deepest([145,153,144]),b=deepest([374,380,373]);
+            gl.uniform4fv(this.uni(p,"uUnderBand"),new Float32Array([a[0],a[1],...down,b[0],b[1],...down]));
+            gl.uniform1f(this.uni(p,"uUnderEw"),ew);
+          }
+        }
+      }
+      gl.uniform1f(this.uni(p,"uUnderChroma"),under);
       const dx = P[152][0] - P[10][0], dy = P[152][1] - P[10][1], dl = Math.hypot(dx, dy) || 1;
       const jaw = Math.abs((P[397][0] - P[172][0]) * -dy / dl + (P[397][1] - P[172][1]) * dx / dl) / 2;
       gl.uniform4f(this.uni(p, "uNeck"), P[152][0], P[152][1], dx / dl, dy / dl);
