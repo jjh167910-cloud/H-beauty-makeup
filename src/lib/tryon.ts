@@ -881,7 +881,9 @@ export type MinePicks = {
     /** A catalog look whose own eyeshadow places it (where its photo has eyeshadow, when it has enough: else the place's template). */
     from?: string;
     /** Its colours (its inner-corner light too) made deeper on deeper skin, as an artist picks a look's shades for her (RECIPE_SKIN; this power of it). */
-    relative?: number };
+    relative?: number;
+    /** Explicit experimental lower-lash density; never applied by default. */
+    smokeBandBoost?: number };
   /** Liner; rhinestones at her outer eye corners with it (stones: how bright, 1 as they catch her light). */
   liner?: NonNullable<Mine["liner"]> & { hex: string; stones?: number };
   /** natural, volume or dramatic, drawn strand by strand on her own lash lines (lashStrands in makeup-gl.ts); her lower lashes too. */
@@ -1002,6 +1004,7 @@ async function mineProducts(picks: MinePicks, face: FaceStats, all: LooksMeta): 
     const below = !drawn && picks.shadow.place === "smoky" ? "smoky" : null;
     mine.shadow = { pack: picks.shadow.pack, low: drawn || picks.shadow.lower || below ? 0 : MINE_SHADOW_LOW[picks.shadow.place] ?? 0.8, corners: Boolean(picks.shadow.inner),
       ...(below ? { below } : {}),
+      ...(picks.shadow.place === "smoky" && Number.isFinite(picks.shadow.smokeBandBoost) ? { smokeBandBoost: picks.shadow.smokeBandBoost } : {}),
       aegyoSal: Boolean(picks.shadow.aegyo), ...(drawn ? { drawn } : {}), ...(picks.shadow.lower ? { lower: true } : {}), fade: MINE_LID_FADE[picks.shadow.place] ?? 0.85,
       ...(picks.shadow.glitter && picks.shadow.finish === "glitter" ? { glitterTop: linHex(picks.shadow.glitter) } : {}) };
   }
@@ -1110,7 +1113,13 @@ export function v2Picks(look: string, level: Level, picks?: ProductPicks | null)
   let blushCorePilot=false;
   try { blushCorePilot=new URLSearchParams(location.search).get("blushCorePilot")==="1"; } catch { /* off */ }
   if(blushCorePilot && look==="pin-up" && out.blush && !picks?.blush && picks?.gain?.blush == null) out.blush.coreBoost=1.3/.898-1;
-  if (out.shadow) out.shadow.relative = V2_SHADOW_RELATIVE;
+  if (out.shadow) {
+    out.shadow.relative = V2_SHADOW_RELATIVE;
+    // Explicit research-only photo/catalog flag. No change to normal recipes.
+    if (!picks?.shadow && out.shadow.place === "smoky" && look === "arabic-glam") {
+      try { if (new URLSearchParams(location.search).get("smokeBandPilot") === "1") out.shadow.smokeBandBoost = 0.4; } catch { /* leave default unchanged */ }
+    }
+  }
   if (out.blush?.freckles) out.blush.freckles *= V2_LEVEL[level] * (picks?.gain?.blush ?? 1);     // (her level and her blush: fainter or bolder freckles too)
   for (const k of STEP_KEYS) {
     const g = out.gain[k];
