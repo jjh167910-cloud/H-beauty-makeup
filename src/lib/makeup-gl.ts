@@ -279,13 +279,26 @@ const SHADOW_LASH = [0.45, 0.8];
  */
 const LAYER_FLOOR = 0.04, FLOOR_KNEE = 4;
 /** shoulder(): her camera's white (SHOULDER), in the foundation and main passes; never below her own pixel (own). */
-const SHOULDER_GLSL = `vec3 shoulder(vec3 c, vec3 own) {
+// The benchmark counts newly reached codes >=254, not only 255.
+// Leave a full code of headroom below that boundary after 8-bit conversion.
+const SHOULDER_GLSL = `uniform float uHighlightPilot;
+vec3 shoulder(vec3 c, vec3 own) {
   float m = max(c.r, max(c.g, c.b));
   if (m <= ${SHOULDER[0]}) return c;
   // (its brightest channel rolls off and the others with it in proportion: her skin's hue kept, not greyed)
   float s = ${SHOULDER[0]} + ${(SHOULDER[1] - SHOULDER[0]).toFixed(3)} * (1.0 - exp(-(m - ${SHOULDER[0]}) / ${(SHOULDER[1] - SHOULDER[0]).toFixed(3)}));
   return max(c * (s / m), min(c, own));
-}`;
+}
+// Apply only at the final encoded output, not the broad highlight shoulder.
+// Existing saturated source pixels are never treated as newly clipped.
+vec3 preventNewClip(vec3 result, vec3 source) {
+  if(uHighlightPilot<=0.0)return result;
+  float peak=max(result.r,max(result.g,result.b));
+  float own=max(source.r,max(source.g,source.b));
+  if(own>=253.5/255.0 || peak<253.5/255.0)return result;
+  return max(result*(253.0/255.0)/peak,min(result,source));
+}
+`;
 /** The lens (Gaussian sigma, px) the look still needs on a photo of blur `blur` whose eye width is `ew` (lens_sigma in teacher.py). */
 export function lensSigma(blur: number, ew: number, canonEw?: number): number {
   const own = Math.max(LENS_OWN, canonEw ? (CATALOG_BLUR * ew) / canonEw : 0.75);
@@ -2074,7 +2087,8 @@ void main() {
       * (1.0 - smoothstep(0.9, 1.1, side));
     lu *= 1.0 + (uFTint - 1.0) * wn;
   }
-  o = vec4(pow(clamp(shoulder(lu, pow(src, vec3(2.2))), 0.0, 1.0), vec3(1.0 / 2.2)), 1.0);   // (her camera's white)
+  vec3 encoded = pow(clamp(shoulder(lu, pow(src, vec3(2.2))), 0.0, 1.0), vec3(1.0 / 2.2));
+  o = vec4(preventNewClip(encoded,texture(uSrc,v).rgb), 1.0);   // (her camera's white)
 }`;
 
 // Bare-face coordinates (pixels, per mesh vertex) as two 16-bit numbers, for the glitter grains.
@@ -3096,7 +3110,7 @@ void main() {
     vec4 A = texture(uVis, (v * vec2(uSize) - uVisBox.xy) / uVisBox.z);
     vis = uVisMode == 2 ? clamp(dot(A.rgb, src - 0.5) + A.a, 0.0, 1.0) : A.r;
   }
-  o = vec4(mix(src, res, vis), 1.0);
+  o = vec4(preventNewClip(mix(src, res, vis),src), 1.0);
 }`;
 
 /* --------------------------------------------------------------- renderer */
@@ -3894,6 +3908,9 @@ export class MakeupGL {
       this.bindTex(p, "uF", T.fndF.tex[0], 7);
       this.bindTex(p, "uM", T.fndB.tex[0], 8);
       this.bindTex(p, "uRet", skin ? this.skinTex! : this.src, 9);
+      let highlightPilot = false;
+      try { highlightPilot = new URLSearchParams(location.search).get("highlightPilot") === "1"; } catch { /* off */ }
+      gl.uniform1f(this.uni(p, "uHighlightPilot"), highlightPilot ? 1 : 0);
       gl.uniform1f(this.uni(p, "uCover"), cover);
       gl.uniform1f(this.uni(p, "uRetK"), skin ? Math.min(1, cover / RETOUCH_FULL) : 0);
       gl.uniform1i(this.uni(p, "uFaceOn"), vis ? 1 : 0);
@@ -3983,6 +4000,9 @@ export class MakeupGL {
       gl.uniform4f(this.uni(p, "uLidDir"), r.ax[0], r.ax[1], l.ax[0], l.ax[1]);
     }
     gl.uniform1f(this.uni(p, "uEw"), ew);
+    let highlightPilot = false;
+    try { highlightPilot = new URLSearchParams(location.search).get("highlightPilot") === "1"; } catch { /* off */ }
+    gl.uniform1f(this.uni(p, "uHighlightPilot"), highlightPilot ? 1 : 0);
     gl.uniform1f(this.uni(p, "uCanonEw"), canon?.ew ?? 1);
     gl.uniform2i(this.uni(p, "uSize"), w, h);
     gl.uniform1f(this.uni(p, "uRef"), Math.max(1e-4, face.lipRef ?? 0.1));
