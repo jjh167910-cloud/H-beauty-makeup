@@ -421,3 +421,270 @@ test("?engine=v2 draws her eyeshadow's placement from her own eye: her lid for a
   expect(out.crease.crease).toBeGreaterThan(out.crease.lid + 10); // a crease: deepest in her own crease
   expect(out.crease.crease / out.crease.lid).toBeGreaterThan(1.5 * out.wash.crease / out.wash.lid);
 });
+
+
+// Experimental fitted-colour candidate, public catalog model only. Keep
+// the old colour as an explicit A/B control rather than moving the target.
+test("electric-blue lower-lash pigment moves toward its public catalog colour", async ({ page }) => {
+  test.setTimeout(300_000);
+  await page.goto("/?engine=v2");
+  const result = await page.evaluate(async () => {
+    const m = await import("/src/lib/tryon.ts");
+    const { lookRecipe } = await import("/src/data/look-recipes.ts");
+    const { minePicks } = await import("/src/data/my-makeup.ts");
+    if (m.engine() !== "gpu") throw new Error("Requires actual WebGL2");
+    await m.downloadModels(["no-makeup", "electric-blue"], () => {});
+    const load = async (id: string) => {
+      const response = await fetch("/makeup/looks/" + id + ".webp");
+      if (!response.ok) throw new Error("Missing public catalog " + id);
+      return (await m.preparePhoto(await response.blob())).plain;
+    };
+    const shot = await load("no-makeup"), truth = await load("electric-blue");
+    const recipe = lookRecipe("electric-blue")!;
+    if (!recipe.shadow?.lower || recipe.shadow.hex2 !== "#2569b4")
+      throw new Error("Candidate lower-shadow recipe absent");
+    const candidate = minePicks(recipe)!;
+    if (!candidate.shadow) throw new Error("Candidate shadow unavailable");
+    const prior = { ...candidate, shadow: { ...candidate.shadow, hex2: "#24557b" } };
+    const pixels = (c: HTMLCanvasElement) => {
+      const t = document.createElement("canvas"); t.width = c.width; t.height = c.height;
+      const g = t.getContext("2d", { willReadFrequently: true })!;
+      g.drawImage(c, 0, 0);
+      return g.getImageData(0, 0, t.width, t.height);
+    };
+    const before = pixels(await m.paintMine(shot, prior));
+    const after = pixels(await m.paintMine(shot, candidate));
+    const reference = pixels(truth.photo);
+    const lin = (n: number) => { const x = n / 255; return x <= .04045 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4; };
+    const f = (x: number) => x > .008856 ? Math.cbrt(x) : 7.787 * x + 16 / 116;
+    const lab = (d: Uint8ClampedArray, k: number) => {
+      const r = lin(d[k]), g = lin(d[k+1]), b = lin(d[k+2]);
+      const X = f((.4124564*r + .3575761*g + .1804375*b) / .95047);
+      const Y = f(.2126729*r + .7151522*g + .0721750*b);
+      const Z = f((.0193339*r + .1191920*g + .9503041*b) / 1.08883);
+      return [116*Y-16, 500*(X-Y), 200*(Y-Z)];
+    };
+    const band = (im: ImageData, p: typeof shot.points, lower: boolean) => {
+      const span = Math.hypot(p[263][0]-p[362][0], p[263][1]-p[362][1]);
+      const ax = p[263][0]-p[33][0], ay = p[263][1]-p[33][1], length = Math.hypot(ax, ay);
+      if (!(span > 0 && length > 0)) throw new Error("Invalid public face geometry");
+      const nx = -ay/length, ny = ax/length;
+      const ids = lower ? [145,153,154,155,374,380,381,382] : [160,159,158,157,385,386,387,388];
+      let sum = [0,0,0], n = 0;
+      for (const id of ids) for (const off of (lower ? [.045,.075,.105] : [-.09,-.15,-.21])) {
+        const x = Math.round(p[id][0]+nx*span*off), y = Math.round(p[id][1]+ny*span*off);
+        if (x < 0 || y < 0 || x >= im.width || y >= im.height) throw new Error("Sample outside image");
+        const v = lab(im.data, 4*(y*im.width+x));
+        sum = sum.map((a,i) => a+v[i]); n++;
+      }
+      return sum.map(v => v/n);
+    };
+    const low = [band(before,shot.points,true),band(after,shot.points,true),band(reference,truth.points,true)];
+    const upper = [band(before,shot.points,false),band(after,shot.points,false),band(reference,truth.points,false)];
+    const lip = [61,185,40,39,37,0,267,269,270,409,291,375,321,405,314,17,84,181,91,146].map(i=>shot.points[i]);
+    const inside = (poly: typeof lip, x: number, y: number) => {
+      let yes = false;
+      for (let i=0,j=poly.length-1;i<poly.length;j=i++) {
+        const a=poly[i], b=poly[j];
+        if ((a[1]>y)!==(b[1]>y) && x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0]) yes=!yes;
+      }
+      return yes;
+    };
+    let lipChanges = 0;
+    for (let y=0;y<before.height;y++) for (let x=0;x<before.width;x++) {
+      const k=4*(y*before.width+x);
+      if ((before.data[k]!==after.data[k] || before.data[k+1]!==after.data[k+1] || before.data[k+2]!==after.data[k+2]) && inside(lip,x,y)) lipChanges++;
+    }
+    return { low, upper, lipChanges };
+  });
+  console.log("ELECTRIC_BLUE_PUBLIC_AB", JSON.stringify(result));
+  expect(result.lipChanges).toBe(0);
+  expect(result.low.flat().every(Number.isFinite)).toBe(true);
+  // The shared second shade can also influence the crease. Record both
+  // bands, and reject any candidate that moves the lower b* away from truth.
+  const [old, trial, reference] = result.low;
+  expect(Math.abs(trial[2]-reference[2])).toBeLessThan(Math.abs(old[2]-reference[2]));
+});
+
+test("opt-in smoky lower-band pilot is confined below the eyes and preserves other looks", async ({ page }) => {
+  test.setTimeout(420_000);
+  await page.goto("/?engine=v2");
+  const report = await page.evaluate(async () => {
+    const m = await import("/src/lib/tryon.ts");
+    if (m.engine() !== "gpu") throw new Error("Actual GPU required");
+    await m.downloadModels(["no-makeup", "arabic-glam", "navy-smokey"], () => {});
+    const load = async (id: string) => {
+      const r = await fetch("/makeup/looks/" + id + ".webp");
+      if (!r.ok) throw new Error("Missing public catalog photo: " + id);
+      return (await m.preparePhoto(await r.blob())).plain;
+    };
+    const shot = await load("no-makeup");
+    const pixels = (c: HTMLCanvasElement) => {
+      const t = document.createElement("canvas"); t.width=c.width; t.height=c.height;
+      const g=t.getContext("2d",{willReadFrequently:true})!; g.drawImage(c,0,0);
+      return g.getImageData(0,0,t.width,t.height);
+    };
+    const geometry = (P: typeof shot.points) => {
+      const ax=P[263][0]-P[33][0], ay=P[263][1]-P[33][1], n=Math.hypot(ax,ay);
+      const down=[-ay/n,ax/n], across=[ax/n,ay/n];
+      const ew=(Math.hypot(P[33][0]-P[133][0],P[33][1]-P[133][1])+Math.hypot(P[263][0]-P[362][0],P[263][1]-P[362][1]))/2;
+      const deepest=(ids:number[])=>ids.map(i=>P[i]).reduce((a,b)=>a[0]*down[0]+a[1]*down[1]>b[0]*down[0]+b[1]*down[1]?a:b);
+      return {down,across,ew,centres:[deepest([145,153,144]),deepest([374,380,373])]};
+    };
+    const lum=(a:Uint8ClampedArray,i:number)=>{
+      const lin=(v:number)=>{const t=v/255;return t<=.04045?t/12.92:((t+.055)/1.055)**2.4};
+      const y=.2126*lin(a[i])+.7152*lin(a[i+1])+.0722*lin(a[i+2]);
+      return y>.008856?116*Math.cbrt(y)-16:903.296*y;
+    };
+    const sample=(im:ImageData,g:ReturnType<typeof geometry>)=>{
+      let sum=0,n=0;
+      for(const c of g.centres) for(const dx of [-.24,-.12,0,.12,.24]) for(const dy of [.055,.085,.115]){
+        const x=Math.round(c[0]+g.ew*(g.across[0]*dx+g.down[0]*dy));
+        const y=Math.round(c[1]+g.ew*(g.across[1]*dx+g.down[1]*dy));
+        if(x<0||y<0||x>=im.width||y>=im.height)throw new Error("Invalid sample");
+        sum+=lum(im.data,4*(y*im.width+x));n++;
+      }
+      return sum/n;
+    };
+    const geom=geometry(shot.points);
+    const results=[];
+    for(const id of ["arabic-glam","navy-smokey"]){
+      history.replaceState(null,"","/?engine=v2");
+      const old=m.v2Picks(id,"natural")!;
+      history.replaceState(null,"","/?engine=v2&smokeBandPilot=1");
+      const candidate=m.v2Picks(id,"natural")!;
+      const expected = id==="arabic-glam" ? .4 : undefined;
+      if(old.shadow?.smokeBandBoost!==undefined||candidate.shadow?.smokeBandBoost!==expected)throw new Error("Pilot isolation failed");
+      const control=m.v2Picks("classic-smokey","natural")!;
+      if(control.shadow?.smokeBandBoost!==undefined)throw new Error("Unrelated look affected");
+      const a=pixels(await m.paintMine(shot,old)), b=pixels(await m.paintMine(shot,candidate));
+      const t=await load(id), truth=pixels(t.photo);
+      let changed=0,outside=0,maxOutside=0;
+      for(let y=0;y<a.height;y++)for(let x=0;x<a.width;x++){
+        const i=4*(y*a.width+x);
+        const d=Math.max(...[0,1,2].map(j=>Math.abs(a.data[i+j]-b.data[i+j])));
+        if(!d)continue;
+        changed++;
+        const inside=geom.centres.some(c=>{
+          const dx=(x+.5-c[0])/geom.ew,dy=(y+.5-c[1])/geom.ew;
+          const v=dx*geom.down[0]+dy*geom.down[1],u=Math.abs(dx*geom.across[0]+dy*geom.across[1]);
+          return v>=0&&v<=.27&&u<=.60;
+        });
+        if(!inside){outside++;maxOutside=Math.max(maxOutside,d);}
+      }
+      results.push({id,changed,outside,maxOutside,before:sample(a,geom),after:sample(b,geom),reference:sample(truth,geometry(t.points))});
+    }
+    return results;
+  });
+  console.log("SMOKY_BAND_PUBLIC_GPU_AB",JSON.stringify(report));
+  for(const row of report){
+    expect(row.maxOutside,row.id).toBe(0);
+    if(row.id==="navy-smokey"){
+      expect(row.changed,row.id).toBe(0);
+      expect(row.after,row.id).toBe(row.before);
+      continue;
+    }
+    expect(row.changed,row.id).toBeGreaterThan(0);
+    expect(row.after,row.id).toBeLessThan(row.before);
+    expect(Math.abs(row.after-row.reference),row.id).toBeLessThan(Math.abs(row.before-row.reference));
+  }
+});
+
+for (const lighting of [{id:"normal", factors:[1,1,1]}, {id:"dim", factors:[.55,.55,.55]}, {id:"warm", factors:[1.08,.82,.59]}]) {
+test(`under-eye chroma pilot: fixed-region safety and fidelity in ${lighting.id} light`, async ({ page }) => {
+  test.setTimeout(300_000);
+  await page.goto("/?engine=v2");
+  const photo = readFileSync(join(process.cwd(),"tests/fixtures/lit-cheek.jpg")).toString("base64");
+  const out = await page.evaluate(async ({b64,factors}) => {
+    const m=await import("/src/lib/tryon.ts");
+    if(m.engine()!=="gpu")throw Error("Actual WebGL2 required");
+    await m.downloadModels(["no-makeup"],()=>{});
+    let input=await (await fetch("data:image/jpeg;base64,"+b64)).blob();
+    if(factors.some(v=>v!==1)){
+      const bitmap=await createImageBitmap(input);
+      const canvas=document.createElement("canvas");canvas.width=bitmap.width;canvas.height=bitmap.height;
+      const ctx=canvas.getContext("2d")!;ctx.drawImage(bitmap,0,0);bitmap.close();
+      const im=ctx.getImageData(0,0,canvas.width,canvas.height);
+      for(let i=0;i<im.data.length;i+=4)for(let j=0;j<3;j++)
+        im.data[i+j]=Math.round(255*Math.pow(Math.min(1,Math.pow(im.data[i+j]/255,2.2)*factors[j]),1/2.2));
+      ctx.putImageData(im,0,0);
+      input=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error("PNG encode failed")),"image/png"));
+    }
+    const shot=(await m.preparePhoto(input)).plain;
+    const pixels=(c:HTMLCanvasElement)=>{
+      const t=document.createElement("canvas");t.width=c.width;t.height=c.height;
+      const g=t.getContext("2d")!;g.drawImage(c,0,0);return g.getImageData(0,0,t.width,t.height);
+    };
+    const render=async (tint:number[],pilot:boolean)=>{
+      history.replaceState(null,"",pilot?"/?engine=v2&underChromaPilot=1":"/?engine=v2");
+      return pixels(await m.paintMine(shot,{gain:{base:1},base:{tint,finish:0}}));
+    };
+    const source=pixels(shot.photo);
+    const a=await render([1,1,1],false),b=await render([1,1,1],true);
+    const c=await render([1.06,1,0.94],false),d=await render([1.06,1,0.94],true);
+    const P=shot.points,ew=(Math.hypot(P[33][0]-P[133][0],P[33][1]-P[133][1])+Math.hypot(P[263][0]-P[362][0],P[263][1]-P[362][1]))/2;
+    const dx=P[263][0]-P[33][0],dy=P[263][1]-P[33][1],n=Math.hypot(dx,dy);
+    let down=[-dy/n,dx/n];if(down[0]*(P[152][0]-P[10][0])+down[1]*(P[152][1]-P[10][1])<0)down=down.map(x=>-x);
+    const deepest=(ids:number[])=>ids.map(i=>P[i]).reduce((a,b)=>a[0]*down[0]+a[1]*down[1]>b[0]*down[0]+b[1]*down[1]?a:b);
+    const centres=[deepest([145,153,144]),deepest([374,380,373])];
+    let changed=0,exterior=0,maxOutside=0,tintChanges=0,maxLuma=0,newClipped=0;
+    let fixedCount=0,fixedBefore=0,fixedAfter=0,fixedLossBefore=0,fixedLossAfter=0;
+    let referenceErrorBefore=0,referenceErrorAfter=0,chromaLossBefore=0,chromaLossAfter=0,improved=0,regressed=0;
+    const lin=(v:number)=>(v/255)**2.2;
+    const lum=(d:Uint8ClampedArray,i:number)=>.2126*lin(d[i])+.7152*lin(d[i+1])+.0722*lin(d[i+2]);
+    const chroma=(d:Uint8ClampedArray,i:number)=>{const y=Math.max(1e-6,lum(d,i));return [0,1,2].map(j=>lin(d[i+j])/y-1);};
+    for(let y=0;y<a.height;y++)for(let x=0;x<a.width;x++){
+      const i=4*(y*a.width+x);
+      if([0,1,2].some(j=>c.data[i+j]!==d.data[i+j]))tintChanges++;
+      const delta=Math.max(...[0,1,2].map(j=>Math.abs(a.data[i+j]-b.data[i+j])));
+      const inside=centres.some(p=>{
+        const xx=(x+.5-p[0])/ew,yy=(y+.5-p[1])/ew;
+        const v=xx*down[0]+yy*down[1],u=Math.abs(xx*down[1]-yy*down[0]);
+        return v>=.12&&v<=.64&&u<=.62;
+      });
+      if(!inside&&!delta)continue;
+      const orig=chroma(source.data,i),old=chroma(a.data,i),next=chroma(b.data,i);
+      const e0=Math.hypot(...orig.map((v,j)=>v-old[j])),e1=Math.hypot(...orig.map((v,j)=>v-next[j]));
+      if(inside){
+        fixedCount++;fixedBefore+=e0;fixedAfter+=e1;
+        fixedLossBefore+=Math.max(0,Math.hypot(...orig)-Math.hypot(...old));
+        fixedLossAfter+=Math.max(0,Math.hypot(...orig)-Math.hypot(...next));
+      }
+      if(!delta)continue;
+      changed++;maxLuma=Math.max(maxLuma,Math.abs(lum(a.data,i)-lum(b.data,i)));
+      if([0,1,2].some(j=>a.data[i+j]<254&&b.data[i+j]>=254))newClipped++;
+      referenceErrorBefore+=e0;referenceErrorAfter+=e1;
+      chromaLossBefore+=Math.max(0,Math.hypot(...orig)-Math.hypot(...old));
+      chromaLossAfter+=Math.max(0,Math.hypot(...orig)-Math.hypot(...next));
+      if(e1<e0)improved++;else if(e1>e0)regressed++;
+
+      if(!inside){exterior++;maxOutside=Math.max(maxOutside,delta);}
+    }
+    const changedCount=Math.max(changed,1);
+    if(fixedCount<100)throw Error("Missing fixed anatomical support");
+    return {changed,exterior,maxOutside,tintChanges,maxLuma,improved,regressed,newClipped,fixedCount,
+      fixedBefore:fixedBefore/fixedCount,fixedAfter:fixedAfter/fixedCount,
+      fixedLossBefore:fixedLossBefore/fixedCount,fixedLossAfter:fixedLossAfter/fixedCount,
+      meanReferenceErrorBefore:referenceErrorBefore/changedCount,meanReferenceErrorAfter:referenceErrorAfter/changedCount,
+      meanChromaLossBefore:chromaLossBefore/changedCount,meanChromaLossAfter:chromaLossAfter/changedCount};
+  },{b64:photo,factors:lighting.factors});
+  console.log("UNDER_CHROMA_PUBLIC_GPU_AB",JSON.stringify({lighting:lighting.id,...out}));
+  expect(out.maxOutside).toBe(0);
+  expect(out.tintChanges).toBe(0);
+  // 8-bit conversion may perturb linear luminance even at constant shader Y.
+  expect(out.maxLuma).toBeLessThanOrEqual(.012);
+  // Local source chroma is a mechanistic target for neutral foundation, not
+  // a substitute for a real made-up reference. Require activation on this
+  // known public fixture, then quantify recovery among changed pixels.
+  expect(out.newClipped).toBe(0);
+  expect(out.fixedAfter).toBeLessThanOrEqual(out.fixedBefore+1e-8);
+  expect(out.fixedLossAfter).toBeLessThanOrEqual(out.fixedLossBefore+1e-8);
+  if(lighting.id==="normal"){
+    expect(out.changed).toBeGreaterThan(100);
+    expect(out.fixedAfter).toBeLessThan(out.fixedBefore);
+    expect(out.fixedLossAfter).toBeLessThan(out.fixedLossBefore);
+  }
+  // No activation on relit synthetic inputs is only safety evidence.
+  // Actual medium/deep skin efficacy still requires the private benchmark.
+});
+}

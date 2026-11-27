@@ -606,7 +606,7 @@ RIDGE = (0.3, 0.6)   # ridges() from which a line is (partly / surely) a strand
 THIN = 0.3   # on plain skin, darker streaks narrower than this (eye widths) are left out
 
 @lru_cache(None)
-def layer_parts(look: str, fine_sigma=0.02, soft_sigma=0.07):
+def layer_parts(look: str, fine_sigma=0.02, soft_sigma=0.07, protect_eye_light=False, eye_light_cap=EYE_LIGHT):
     """The look's makeup as a log-ratio layer (H, W, 3) in the look photo's own coordinates, its points, and its
     complexion (look_tone)."""
     base, pb = _bare()
@@ -647,8 +647,29 @@ def layer_parts(look: str, fine_sigma=0.02, soft_sigma=0.07):
     # lightening and the redness taken away are left out. Contour and bronzer (broad, darker), highlights (lighter: the
     # narrow part and BROAD_KEEP of the broad one) and blush (redder) stay.
     lb = cv2.GaussianBlur(lum[..., 0] * sk, (0, 0), ew * PLAIN_BROAD) / np.maximum(cv2.GaussianBlur(sk, (0, 0), ew * PLAIN_BROAD), 1e-3)
-    eye_k = np.where(lum > EYE_LIGHT, EYE_LIGHT / np.maximum(lum, 1e-6), 1.0)
-    lum = np.minimum(lum, EYE_LIGHT) * f + np.clip(lum - np.maximum(lb, 0)[..., None] * (1 - BROAD_KEEP), *PLAIN_LUM) * nf
+    # An opt-in eye-light cap must never brighten lips. The fine source zone
+    # intentionally includes eyes AND lips; raising its cap everywhere changed
+    # icy's lipstick by 5.49 L*. Restrict the research variant to anatomically
+    # identified eye/lid+brow hulls. Keep the original scalar path bit-for-bit
+    # when no opt-in value is supplied.
+    light_cap = EYE_LIGHT
+    if eye_light_cap != EYE_LIGHT:
+        eye_support = np.zeros((H, W), np.float32)
+        for ring, brow in ((EYE_R, BROW_R), (EYE_L, BROW_L)):
+            hull = cv2.convexHull(np.float32(np.vstack([pl[ring, :2], pl[brow, :2]])))
+            cv2.fillConvexPoly(eye_support, np.int32(np.round(hull)), 1)
+        eye_support = cv2.GaussianBlur(eye_support, (0, 0), max(1.0, ew * 0.04))
+        # The outer corner of an eye can approach the catalog face's
+        # silhouette. Keep the stronger *experimental* cap at least 0.35 eye
+        # widths inside that contour, rising softly to full strength at 0.55.
+        # Without this guard, icy changed pixels beyond the face outline by
+        # 0.784 L* in the 48-look catalog audit. Existing makeup stays as-is.
+        inside = cv2.distanceTransform((R['face'] > 0.5).astype(np.uint8), cv2.DIST_L2, 5) / max(ew, 1.0)
+        face_safety = np.clip((inside - 0.35) / 0.20, 0, 1)
+        eye_support *= face_safety
+        light_cap = EYE_LIGHT + (eye_light_cap - EYE_LIGHT) * eye_support[..., None]
+    eye_k = np.where(lum > light_cap, light_cap / np.maximum(lum, 1e-6), 1.0)
+    lum = np.minimum(lum, light_cap) * f + np.clip(lum - np.maximum(lb, 0)[..., None] * (1 - BROAD_KEEP), *PLAIN_LUM) * nf
     red = np.float32([2, -1, -1]) / np.sqrt(6)      # (redness taken away: its part along red, where negative)
     plain = chroma - np.minimum(chroma @ red, 0)[..., None] * red
     plain[..., 1:] = np.maximum(plain[..., 1:], PLAIN_CHROMA)
@@ -687,7 +708,11 @@ def layer_parts(look: str, fine_sigma=0.02, soft_sigma=0.07):
     lr = lr * core[..., None] + sm * (1 - core)[..., None]
     # and no lighter than her skin there: the look's highlights sit inside (cheekbones, nose, forehead); light near the
     # catalog face's edge is its hair or background, not makeup
-    lr = lr - (np.maximum(lr.mean(-1), 0) * (1 - core))[..., None]
+    # Research A/B (off by default): preserve the positive reflectance of eye makeup
+    # outside the inner face core, where the regular skin/hair safety guard is too broad.
+    # Bare skin retains exactly the same guard. Use only after full 48-look regression.
+    plain_edge = (1 - core) * (1 - np.clip(f[..., 0], 0, 1)) if protect_eye_light else (1 - core)
+    lr = lr - (np.maximum(lr.mean(-1), 0) * plain_edge)[..., None]
     # ...and there the look's skin-level colour from inside is carried on to the face's outline (smoothed over
     # FILL eye widths, clipped to EXTEND_T): no stripe where the look would stop short of her face's edge
     # (on plain skin, from plain skin only: the eyeshadow next to a strand doesn't run down her cheek)
@@ -696,6 +721,38 @@ def layer_parts(look: str, fine_sigma=0.02, soft_sigma=0.07):
     out = cv2.GaussianBlur(poly_mask((H, W), pl[:, :2], [OVAL], scale=FILL_OUT), (0, 0), ew * 0.05)
     lr = lr * mask[..., None] + fill * ((1 - edge) * out)[..., None]
     lr = lr + accent_layer(look, pl[:, :2], (H, W))     # what the photo can't carry: freckles, aegyo-sal
+    if eye_light_cap != EYE_LIGHT:
+        # Strictly localize the experimental improvement AFTER ALL extraction,
+        # smoothing and edge-fill passes. Those late passes otherwise transport
+        # tiny lightening deltas beyond the face or into plain skin (observed as
+        # 0.784 L* at icy/pin-up in the complete public 48-look audit).
+        # Use the unchanged baseline as the literal reference outside the
+        # approved eye support. This research path must never modify lipstick,
+        # complexion, hair, sclera, backdrop or non-eye regions.
+        # Reuse the existing default call's cache entry (rather than a second
+        # otherwise equivalent five-argument entry) when all settings are stock.
+        if fine_sigma == 0.02 and soft_sigma == 0.07 and not protect_eye_light:
+            unchanged = layer_parts(look)[0]
+        else:
+            unchanged = layer_parts(look, fine_sigma, soft_sigma, protect_eye_light, EYE_LIGHT)[0]
+        # Restrict experimental pale-lid brightening to feathered mobile-lid
+        # bands. Full eye/brow hulls leaked a few RGB pixels beyond the face
+        # in actual WebGL2 A/B. Preserve liner wings and brow strands.
+        uppers = ([33, 246, 161, 160, 159, 158, 157, 173, 133],
+                  [263, 466, 388, 387, 386, 385, 384, 398, 362])
+        mobile = np.zeros((H, W), np.float32)
+        for ids, brow_ids in zip(uppers, (BROW_LOW_R, BROW_LOW_L)):
+            a = pl[ids, :2]
+            brow = pl[brow_ids, :2]
+            brow = brow[np.argsort(brow[:, 0])]
+            hi_y = np.interp(a[:, 0], brow[:, 0], brow[:, 1])
+            b = np.column_stack([a[:, 0], hi_y])
+            lo = a + (b - a) * 0.14
+            hi = a + (b - a) * 0.69
+            cv2.fillPoly(mobile, [np.int32(np.round(np.vstack([lo, hi[::-1]])))], 1)
+        mobile = cv2.GaussianBlur(mobile, (0, 0), max(1.0, ew * 0.035))
+        safe_eye = np.clip((eye_support - 0.05) / 0.95, 0, 1) * mobile * (R['face'] > 0.5)
+        lr = unchanged + (lr - unchanged) * safe_eye[..., None]
     return lr.astype(np.float32), pl, tone
 
 # ------------------------------------------------------------- accents

@@ -279,13 +279,26 @@ const SHADOW_LASH = [0.45, 0.8];
  */
 const LAYER_FLOOR = 0.04, FLOOR_KNEE = 4;
 /** shoulder(): her camera's white (SHOULDER), in the foundation and main passes; never below her own pixel (own). */
-const SHOULDER_GLSL = `vec3 shoulder(vec3 c, vec3 own) {
+// The benchmark counts newly reached codes >=254, not only 255.
+// Leave a full code of headroom below that boundary after 8-bit conversion.
+const SHOULDER_GLSL = `uniform float uHighlightPilot;
+vec3 shoulder(vec3 c, vec3 own) {
   float m = max(c.r, max(c.g, c.b));
   if (m <= ${SHOULDER[0]}) return c;
   // (its brightest channel rolls off and the others with it in proportion: her skin's hue kept, not greyed)
   float s = ${SHOULDER[0]} + ${(SHOULDER[1] - SHOULDER[0]).toFixed(3)} * (1.0 - exp(-(m - ${SHOULDER[0]}) / ${(SHOULDER[1] - SHOULDER[0]).toFixed(3)}));
   return max(c * (s / m), min(c, own));
-}`;
+}
+// Apply only at the final encoded output, not the broad highlight shoulder.
+// Existing saturated source pixels are never treated as newly clipped.
+vec3 preventNewClip(vec3 result, vec3 source) {
+  if(uHighlightPilot<=0.0)return result;
+  float peak=max(result.r,max(result.g,result.b));
+  float own=max(source.r,max(source.g,source.b));
+  if(own>=253.5/255.0 || peak<253.5/255.0)return result;
+  return max(result*(253.0/255.0)/peak,min(result,source));
+}
+`;
 /** The lens (Gaussian sigma, px) the look still needs on a photo of blur `blur` whose eye width is `ew` (lens_sigma in teacher.py). */
 export function lensSigma(blur: number, ew: number, canonEw?: number): number {
   const own = Math.max(LENS_OWN, canonEw ? (CATALOG_BLUR * ew) / canonEw : 0.75);
@@ -718,7 +731,7 @@ export type Mine = {
   /** Concealer: how far above her skin's median it brightens (1 = up to it) and its colour (peach corrector...). */
   conceal?: MineZone & { lift: number; tint: number[] };
   contour?: MineZone;
-  blush?: MineZone;
+  blush?: MineZone & { coreBoost?: number };
   glow?: MineZone;
   /** Brows: natural / full / defined. */
   brows?: MineZone;
@@ -736,6 +749,8 @@ export type Mine = {
     below?: string;
     /** With two shades: how much her second shade gives way over her mobile lid, where her lid shade goes (0.85). */
     fade?: number;
+    /** Research-only extra lower-lash pigment density, 0 to 0.5. */
+    smokeBandBoost?: number;
     /** Her glitter's own colour (linear; a topper over her eyeshadow: gold, silver, rose gold), else her shade's. */
     glitterTop?: number[] };
   /**
@@ -1274,7 +1289,7 @@ export function stoneSpots(P: Pt[]): Spot[] {
 }
 
 /** Her brow fill per style: her hairs' darkness from / to which it is all of her brow, and how much of the zone gets some anyway (browFill). */
-const BROW_SHAPE: Record<string, [number, number, number]> = { natural: [0.05, 0.25, 0], full: [0.02, 0.14, 0.2], defined: [0.04, 0.2, 0.12], thin: [0, 0.01, 1] };
+const BROW_SHAPE: Record<string, [number, number, number]> = { natural: [0.05, 0.25, 0], full: [0.02, 0.14, 0.2], defined: [0.04, 0.2, 0.12], thin: [0, 0.01, 1], straight: [0.04, 0.2, 0.16], sculptedFull: [0.02, 0.14, 0.25], sculptedSoft: [0.025, 0.17, 0.18], sculptedBody: [0.02, 0.14, 0.20] };
 /**
  * A thin brow (the 20s and 90s brows of the catalog's photos): her own brow blocked out (glued flat and covered with
  * concealer: her hairs taken up to her skin around, BROW_BLOCK) and a thin, arched brow drawn along it with a pencil.
@@ -1499,6 +1514,28 @@ export function mineZones(P: Pt[], m: Mine, face?: FaceStats | null): { A: StepG
         const fade = (x: number) => { const t = Math.min(1, Math.max(0, (x - BROW_THIN.fade[0]) / (BROW_THIN.fade[1] - BROW_THIN.fade[0]))); return t * t * (3 - 2 * t); };
         return { polys, values: polys.map((_, i) => 1 - BROW_THIN.head * fade(i / (N - 1))), axis: [s.browIn, s.browTail],
           outline: [[...side.map((q) => q[0]), ...[...side].reverse().map((q) => q[1])]] };
+      }
+      // Research shapes follow each brow's own landmarks, not a generic
+      // face template. Flatten the middle towards its end-to-end chord,
+      // but cap displacement to avoid painting a second disconnected brow.
+      if (["straight","sculptedFull","sculptedSoft","sculptedBody"].includes(style)) {
+        const original = [0,1,2,3,4].map(j=>[pt(P,s.brow[j]),pt(P,s.brow[9-j])] as [V,V]);
+        const mids = original.map(([a,b])=>lerp(a,b,.5));
+        const ax=unit(sub(mids[4],mids[0]));
+        let n:V=[-ax[1],ax[0]];
+        if(n[0]*down[0]+n[1]*down[1]>0)n=mul(n,-1);
+        const pairs=original.map(([a,b],j)=>{
+          const c=mids[j],d=sub(c,mids[0]);
+          const height=d[0]*n[0]+d[1]*n[1];
+          const flatten=style==="straight"?Math.max(-.045*ew,Math.min(.045*ew,height*.65)):0;
+          const centre=add(c,mul(n,-flatten));
+          const scale=style==="straight"?[.85,1.03,1.06,1.02,.95][j]:style==="sculptedSoft"?[1.05,1.18,1.25,1.20,1.03][j]:style==="sculptedBody"?[1.08,1.30,1.40,1.28,1.03][j]:[1.12,1.38,1.45,1.38,1.16][j];
+          const half=Math.min(.16*ew,Math.max(.008*ew,Math.hypot(a[0]-b[0],a[1]-b[1])*.5*scale*k));
+          return [add(centre,mul(n,half)),add(centre,mul(n,-half))] as [V,V];
+        });
+        const polys=pairs.slice(0,-1).map(([a,b],j)=>[a,pairs[j+1][0],pairs[j+1][1],b] as Poly);
+        return {polys,values:[.88,1,.85,.48],axis:[s.browIn,s.browTail],
+          outline:[[...pairs.map(q=>q[0]),...[...pairs].reverse().map(q=>q[1])]]};
       }
       const pairs = [0, 1, 2, 3, 4].map((j) => {                    // tail to inner end
         const a = pt(P, s.brow[j]), b = pt(P, s.brow[9 - j]), c = lerp(a, b, 0.5), w = (style === "full" ? 1.3 : 1) * k;
@@ -1964,6 +2001,9 @@ const FOUND_FS = `#version 300 es
 precision highp float; in vec2 v; uniform sampler2D uSrc, uR, uN, uC, uL, uVis, uFace, uF, uM, uRet; uniform int uVisMode, uFaceOn;
 uniform vec3 uVisBox; uniform vec2 uSize; uniform vec4 uWork; uniform float uK, uSkinY; uniform vec3 uFTint; uniform float uFFinish, uCover, uRetK;
 uniform vec4 uNeck; uniform vec2 uNeckW; out vec4 o;
+uniform float uUnderChroma;
+uniform vec4 uUnderBand[2]; // deepest lower-lid point and downward unit axis
+uniform float uUnderEw;
 float luma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
 ${SHOULDER_GLSL}
 void main() {
@@ -2013,6 +2053,32 @@ void main() {
   }
   float w = shape * clamp(N.a / 0.1, 0.0, 1.0) * vis;
   lu *= 1.0 + (cg - 1.0) * w;
+  // Opt-in research: recover part of local source chroma lost by foundation
+  // averaging. Work at unchanged linear luminance, on neutral foundation
+  // only, below the lash region. Never boost beyond original saturation.
+  if (uUnderChroma > 0.0) {
+    float band = 0.0;
+    for (int e = 0; e < 2; e++) {
+      vec4 b = uUnderBand[e];
+      vec2 d = (px-b.xy)/max(uUnderEw,1.0);
+      float y = dot(d,b.zw), x = abs(dot(d,vec2(b.w,-b.z)));
+      band = max(band,smoothstep(0.14,0.23,y)*(1.0-smoothstep(0.42,0.62,y))*(1.0-smoothstep(0.35,0.60,x)));
+    }
+    vec3 original = pow(texture(uSrc,v).rgb,vec3(2.2));
+    float oy = luma(original), yy = luma(lu);
+    if (band > 0.0 && oy > 0.008 && yy > 0.008 && yy < 0.6) {
+      vec3 a = original/oy-vec3(1.0), b = lu/yy-vec3(1.0);
+      float na=length(a), nb=length(b);
+      // Only restore when foundation has reduced chroma along the same
+      // general hue direction; no forced warmth or global saturation boost.
+      float aligned=dot(a,b)/max(na*nb,1e-5);
+      float loss=smoothstep(0.015,0.12,na-nb)*smoothstep(0.55,0.9,aligned);
+      float k=band*clamp(w,0.0,1.0)*uUnderChroma*loss;
+      vec3 candidate=mix(lu,original*(yy/oy),k);
+      if (min(candidate.r,min(candidate.g,candidate.b))>=0.0 && max(candidate.r,max(candidate.g,candidate.b))<0.8)
+        lu=candidate;
+    }
+  }
   if (uFaceOn == 1 && uNeckW.x > 0.0) {   // her neck: her body skin below her jaw, outside the foundation's shape
     vec2 r = px - uNeck.xy;
     float d = dot(r, uNeck.zw) / uNeckW.x, side = abs(dot(r, vec2(-uNeck.w, uNeck.z))) / uNeckW.y;
@@ -2021,7 +2087,8 @@ void main() {
       * (1.0 - smoothstep(0.9, 1.1, side));
     lu *= 1.0 + (uFTint - 1.0) * wn;
   }
-  o = vec4(pow(clamp(shoulder(lu, pow(src, vec3(2.2))), 0.0, 1.0), vec3(1.0 / 2.2)), 1.0);   // (her camera's white)
+  vec3 encoded = pow(clamp(shoulder(lu, pow(src, vec3(2.2))), 0.0, 1.0), vec3(1.0 / 2.2));
+  o = vec4(preventNewClip(encoded,texture(uSrc,v).rgb), 1.0);   // (her camera's white)
 }`;
 
 // Bare-face coordinates (pixels, per mesh vertex) as two 16-bit numbers, for the glitter grains.
@@ -2202,6 +2269,9 @@ uniform float uLGain[11];   // the look's own layer, eye detail and lipstick per
 // (slots 4 and 5, her own makeup only: her second eyeshadow on her crease and outer corner, her inner-corner light)
 uniform vec4 uOwn;
 uniform float uPigX[6], uPigDeep[6], uPigSheen[6];
+uniform float uBlushCoreBoost;
+uniform vec2 uBlushFaceOutline[36];
+uniform vec3 uBlushCorePlanes[22]; // inward unit normal and offset, two convex cheek hulls
 uniform vec3 uPig[6];
 uniform int uPigFin[6], uPigOwn[6];
 uniform sampler2D uCov, uShadeF, uShadeB;
@@ -2219,11 +2289,15 @@ const vec3 LASH_COLOUR = vec3(${LASH_COLOUR.map((x) => x.toFixed(4)).join(", ")}
 uniform vec4 uMineK;
 uniform vec3 uConTint, uBrow, uBrowShape;
 uniform float uBrowX, uMineLow, uLidFade, uMineBelow;
+uniform float uSmokeBoost;
+uniform vec4 uSmokeBand[2]; // lower lid midpoint (pixels), face-down unit vector
 // a blocked-out brow (BROW_BLOCK): her brows' lower points (pixels) and across them, image-left brow tail to head then
 // the other; her hairs there (from, middle, to: eye widths across from the lower point)
 uniform vec4 uBrowB[10], uBrowBand[10];
 uniform float uBrowBlock;
 uniform vec4 uGlitterTop;
+uniform float uGlitterPilot;
+uniform float uSoftLinerPilot;
 uniform vec4 uBrowDef;      // a look's brows: her hairs' colour over her skin's brightness (rgb), how far the gaps fill (a)
 // coloured lenses: each iris (centre in uv, radius in uv x and y), the lens colour (linear, in her light), its amount
 // and whether it covers her iris (1) or tints it (0)
@@ -2462,7 +2536,31 @@ vec3 pigments(vec3 base, vec3 lu, float cov[6]) {
     pearl = on * grains(canon, uEw * ${GLITTER_CELL} * ${PEARL}, ${PEARL}, ${PEARL_DENSITY});
     spark = on * grains(canon, uEw * ${GLITTER_CELL}, 1.0, ${GLITTER_DENSITY});
     // (an eyeshadow's glitter is denser)
-    if (uPigFin[0] == 3 || uPigFin[4] == 3) sparkLid = on * grains(canon, uEw * ${GLITTER_CELL}, 1.0, ${SHADOW_GLITTER});
+    if (uPigFin[0] == 3 || uPigFin[4] == 3) {
+      sparkLid = on * grains(canon, uEw * ${GLITTER_CELL}, 1.0, ${SHADOW_GLITTER});
+      // Sparse, larger reflective flakes resolve better on phone-size faces.
+      // Scale by density ratio to keep expected integrated grain energy similar.
+      if (uGlitterPilot > 0.0 && uMine == 1) {
+        float cellPx = uEw * ${GLITTER_CELL} * 1.5;
+        float resolved = smoothstep(0.9, 2.0, cellPx);
+        float sparse = on * grains(canon, cellPx, 1.5, 0.45) * (${SHADOW_GLITTER} / 0.45);
+        // Apply only to the interior upper lid, away from the existing
+        // feathered eye-opening mask. Keep the original grains in its rim,
+        // lower-lash band and feathered shadow perimeter.
+        vec4 C = texture(uCov, v);
+        float guard = max(texture(uMask, v).r, texture(uMask, v).g);
+        float radius = max(2.0, uEw * 0.055);
+        for (int j=0;j<8;j++) {
+          float theta = float(j)*0.785398163;
+          vec2 offset = radius*vec2(cos(theta),sin(theta))/vec2(uSize);
+          vec4 m = texture(uMask,v+offset);
+          guard = max(guard,max(m.r,m.g));
+        }
+        float interior = smoothstep(0.35,0.70,C.g) * smoothstep(0.35,0.70,C.r)
+          * (1.0-smoothstep(0.02,0.15,C.a)) * (1.0-smoothstep(0.0,0.025,guard));
+        sparkLid = mix(sparkLid, sparse, resolved * interior);
+      }
+    }
   }
   for (int n = 0; n < 6; n++) {
     // contour, blush, highlight, then eyeshadow: her crease shade, her lid shade over it (the blend between them is
@@ -2688,6 +2786,29 @@ vec3 browDefine(vec3 base, vec3 lu, float a) {
   float gap = clamp((y - yh) / max(broad - yh, 1e-4), 0.0, 1.0);
   return mix(base, hairC, a * uBrowDef.w * gap);
 }
+float blushCore(vec2 px) {
+  float a=1e6,b=1e6;
+  for(int j=0;j<11;j++) {
+    a=min(a,dot(uBlushCorePlanes[j].xy,px)+uBlushCorePlanes[j].z);
+    b=min(b,dot(uBlushCorePlanes[11+j].xy,px)+uBlushCorePlanes[11+j].z);
+  }
+  float core=smoothstep(max(2.0,uEw*.025),max(4.0,uEw*.12),max(a,b));
+  if(core<=0.0)return 0.0;
+  // Independent face-oval intersection: cheek landmarks can extend beyond
+  // the face silhouette. Even the added pigment must remain inside it.
+  bool inside=false;
+  float edge=1e6;
+  for(int j=0;j<36;j++){
+    vec2 p=uBlushFaceOutline[j],q=uBlushFaceOutline[(j+1)%36],d=q-p;
+    if((p.y>px.y)!=(q.y>px.y)){
+      float crossX=p.x+(px.y-p.y)*d.x/d.y;
+      if(px.x<crossX)inside=!inside;
+    }
+    float t=clamp(dot(px-p,d)/max(dot(d,d),1e-6),0.0,1.0);
+    edge=min(edge,length(px-(p+t*d)));
+  }
+  return inside?core*smoothstep(max(3.0,uEw*.035),max(5.0,uEw*.13),edge):0.0;
+}
 void main() {
   vec3 src = texture(uSrc, v).rgb;
   vec2 px = v * vec2(uSize);
@@ -2810,11 +2931,27 @@ void main() {
       float c = sat(uMineK.z * mix(sh, max(sh, lid), two)) * k3;
       // (a smoky eye's band under her lower lashes packed on: SMOKY_BELOW, more powder; its shimmer subdued there)
       gBelow = mix(1.0, uMineBelow, smoothstep(0.08, 0.6, C.a) * smoothstep(${SMOKY_BELOW_CORE[0]}, ${SMOKY_BELOW_CORE[1]}, sh) * (1.0 - smoothstep(0.02, 0.25, M.r)));
+      if (uSmokeBoost > 0.0) {
+        float band = 0.0;
+        for (int eye = 0; eye < 2; eye++) {
+          vec4 b = uSmokeBand[eye];
+          vec2 d = (px - b.xy) / max(uEw, 1.0);
+          float y = dot(d, b.zw), x = abs(dot(d, vec2(b.w, -b.z)));
+          // Stay strictly below the deepest sampled lower lid, fade before the cheek.
+          band = max(band, smoothstep(0.015, 0.055, y) * (1.0 - smoothstep(0.13, 0.25, y)) * (1.0 - smoothstep(0.38, 0.58, x)));
+        }
+        gBelow += uSmokeBoost * band * smoothstep(0.25, 0.75, sh) * (1.0 - smoothstep(0.0, 0.05, M.r)) * (1.0 - smoothstep(0.01, 0.15, C.g));
+      }
       cov = float[6](c * lid, sat(max(ZA.g, 0.0)) * rv(6, sw) * keep, sat(max(ZA.b, 0.0)) * rv(7, sw) * keep,
         sat(max(ZA.a, 0.0)) * rv(8, sw) * keep, two * sat(uMineK.z * sh) * k3 * (1.0 - uLidFade * gLid),
         light * k3 / max(uGain[3], 1e-4) * clamp(uGain[3], ${MINE_LIGHT_GAIN[0]}, ${MINE_LIGHT_GAIN[1]}));
     } else {
       cov = float[6](texture(uCov, v).r * rv(3, sw) * uK.x * hairK * lineK, ZA.g * rv(6, sw) * uK.x, ZB.b * rv(7, sw) * uK.x, ZA.a * rv(8, sw) * uK.x, 0.0, 0.0);
+    }
+    if (uMine == 1 && uBlushCoreBoost > 0.0) {
+      float protectedRegion = max(max(M.r,M.g),max(M.b,M.a));
+      float local = blushCore(px) * (1.0-smoothstep(0.0,0.02,protectedRegion));
+      cov[2] *= 1.0 + uBlushCoreBoost * local;
     }
     vec3 pre = base;
     base = pigments(base, lu, cov);
@@ -2937,6 +3074,18 @@ void main() {
   float dk = min(0.0, -texture(uDetail, v).a * lashK * (1.0 - M.r) * (uMine == 1 && uStrands == 0 ? clamp(ZB.a, 0.0, 1.0) : 1.0) - own * 0.6);
   if (uMine == 1) {               // her liner in its colour, then her lashes over it
     float dl = clamp(ZB.g * rv(4, sw) * uMineK.w, 0.0, 1.0) * (1.0 - M.r);
+    // Research opt-in: contain diffused liner pigment outside the protected opening.
+    // Sample the existing blurred mask conservatively before applying the pigment.
+    if (uSoftLinerPilot > 0.0) {
+      float guard = M.r;
+      float radius = max(2.0, uEw * 0.025);
+      for (int j=0; j<8; ++j) {
+        float theta = float(j)*0.785398163;
+        vec2 offset = radius*vec2(cos(theta),sin(theta))/vec2(uSize);
+        guard = max(guard,texture(uMask,v+offset).r);
+      }
+      dl *= 1.0-smoothstep(0.035,0.20,guard);
+    }
     // (a dark liner never lightens her own lash line, already darker than it in her light)
     vec3 lined = mix(res, pow(clamp(uLiner * lightHere(lu), 0.0, 1.0), vec3(1.0 / 2.2)), dl);
     res = luma(uLiner) < 0.02 ? min(res, lined) : lined;
@@ -2961,7 +3110,7 @@ void main() {
     vec4 A = texture(uVis, (v * vec2(uSize) - uVisBox.xy) / uVisBox.z);
     vis = uVisMode == 2 ? clamp(dot(A.rgb, src - 0.5) + A.a, 0.0, 1.0) : A.r;
   }
-  o = vec4(mix(src, res, vis), 1.0);
+  o = vec4(preventNewClip(mix(src, res, vis),src), 1.0);
 }`;
 
 /* --------------------------------------------------------------- renderer */
@@ -3759,6 +3908,9 @@ export class MakeupGL {
       this.bindTex(p, "uF", T.fndF.tex[0], 7);
       this.bindTex(p, "uM", T.fndB.tex[0], 8);
       this.bindTex(p, "uRet", skin ? this.skinTex! : this.src, 9);
+      let highlightPilot = false;
+      try { highlightPilot = new URLSearchParams(location.search).get("highlightPilot") === "1"; } catch { /* off */ }
+      gl.uniform1f(this.uni(p, "uHighlightPilot"), highlightPilot ? 1 : 0);
       gl.uniform1f(this.uni(p, "uCover"), cover);
       gl.uniform1f(this.uni(p, "uRetK"), skin ? Math.min(1, cover / RETOUCH_FULL) : 0);
       gl.uniform1i(this.uni(p, "uFaceOn"), vis ? 1 : 0);
@@ -3772,6 +3924,28 @@ export class MakeupGL {
       // little down her neck
       const tint = mine ? mine.base?.tint ?? [1, 1, 1] : (look.tint ?? [1, 1, 1]).map((v) => v ** foundK);
       gl.uniform3f(this.uni(p, "uFTint"), tint[0], tint[1], tint[2]);
+      // Pilot defaults off, and deliberately excludes coloured foundation.
+      let pilot = false;
+      try { pilot = new URLSearchParams(location.search).get("underChromaPilot") === "1"; } catch { /* off */ }
+      let under = pilot && tint.every(v => Math.abs(v-1)<1e-5) && face.skin != null && face.skin>0
+        ? 0.65 * (1-Math.min(1,Math.max(0,(face.skin-0.25)/0.20))) : 0;
+      if (under>0) {
+        const ids=[33,263,145,153,144,374,380,373,152,10];
+        if (ids.some(i=>!P[i]||!Number.isFinite(P[i][0])||!Number.isFinite(P[i][1]))||!(ew>1)) under=0;
+        else {
+          const x=P[263][0]-P[33][0],y=P[263][1]-P[33][1],n=Math.hypot(x,y);
+          if (!(n>1)) under=0;
+          else {
+            let down=[-y/n,x/n];
+            if (down[0]*(P[152][0]-P[10][0])+down[1]*(P[152][1]-P[10][1])<0) down=down.map(v=>-v);
+            const deepest=(indices:number[])=>indices.map(i=>P[i]).reduce((a,b)=>a[0]*down[0]+a[1]*down[1]>b[0]*down[0]+b[1]*down[1]?a:b);
+            const a=deepest([145,153,144]),b=deepest([374,380,373]);
+            gl.uniform4fv(this.uni(p,"uUnderBand"),new Float32Array([a[0],a[1],...down,b[0],b[1],...down]));
+            gl.uniform1f(this.uni(p,"uUnderEw"),ew);
+          }
+        }
+      }
+      gl.uniform1f(this.uni(p,"uUnderChroma"),under);
       const dx = P[152][0] - P[10][0], dy = P[152][1] - P[10][1], dl = Math.hypot(dx, dy) || 1;
       const jaw = Math.abs((P[397][0] - P[172][0]) * -dy / dl + (P[397][1] - P[172][1]) * dx / dl) / 2;
       gl.uniform4f(this.uni(p, "uNeck"), P[152][0], P[152][1], dx / dl, dy / dl);
@@ -3826,6 +4000,9 @@ export class MakeupGL {
       gl.uniform4f(this.uni(p, "uLidDir"), r.ax[0], r.ax[1], l.ax[0], l.ax[1]);
     }
     gl.uniform1f(this.uni(p, "uEw"), ew);
+    let highlightPilot = false;
+    try { highlightPilot = new URLSearchParams(location.search).get("highlightPilot") === "1"; } catch { /* off */ }
+    gl.uniform1f(this.uni(p, "uHighlightPilot"), highlightPilot ? 1 : 0);
     gl.uniform1f(this.uni(p, "uCanonEw"), canon?.ew ?? 1);
     gl.uniform2i(this.uni(p, "uSize"), w, h);
     gl.uniform1f(this.uni(p, "uRef"), Math.max(1e-4, face.lipRef ?? 0.1));
@@ -3896,6 +4073,32 @@ export class MakeupGL {
     const six = [0, 1, 2, 3, 4, 5], pigOf = (i: number) => pigs[i];
     gl.uniform3fv(this.uni(p, "uPig"), new Float32Array(six.flatMap((i) => pigOf(i)?.color ?? [0, 0, 0])));
     gl.uniform1fv(this.uni(p, "uPigX"), new Float32Array(six.map((i) => pigOf(i)?.thick ?? 0)));
+    const value=mine?.blush?.coreBoost ?? 0;
+    let boost=Number.isFinite(value)?Math.max(0,Math.min(.45,value)):0;
+    if(boost>0) {
+      const ids=[116,117,118,100,126,142,36,205,187,147,123];
+      const planes:number[]=[];
+      for(const group of [ids,ids.map(i=>MIRROR[i])]) {
+        const h=hull(group.map(i=>pt(P,i)));
+        if(h.length<3||h.length>11||h.some(q=>q.some(v=>!Number.isFinite(v)))){boost=0;break;}
+        const cx=h.reduce((v,q)=>v+q[0],0)/h.length,cy=h.reduce((v,q)=>v+q[1],0)/h.length;
+        for(let j=0;j<11;j++){
+          if(j>=h.length){planes.push(0,0,1e6);continue;}
+          const a=h[j],b=h[(j+1)%h.length],dx=b[0]-a[0],dy=b[1]-a[1],n=Math.hypot(dx,dy);
+          if(n<1e-5){boost=0;break;}
+          let nx=-dy/n,ny=dx/n;
+          if(nx*(cx-a[0])+ny*(cy-a[1])<0){nx=-nx;ny=-ny;}
+          planes.push(nx,ny,-nx*a[0]-ny*a[1]);
+        }
+        if(!boost)break;
+      }
+      const outline=OVAL.flatMap(i=>pt(P,i));
+      if(boost&&planes.length===66&&outline.length===72&&outline.every(Number.isFinite)){
+        gl.uniform3fv(this.uni(p,"uBlushCorePlanes"),new Float32Array(planes));
+        gl.uniform2fv(this.uni(p,"uBlushFaceOutline"),new Float32Array(outline));
+      } else boost=0;
+    }
+    gl.uniform1f(this.uni(p,"uBlushCoreBoost"),boost);
     gl.uniform1fv(this.uni(p, "uPigDeep"), new Float32Array(six.map((i) => pigOf(i)?.deep ?? 0)));
     gl.uniform1fv(this.uni(p, "uPigSheen"), new Float32Array(six.map((i) => pigOf(i)?.sheen ?? 0)));
     gl.uniform1iv(this.uni(p, "uPigFin"), new Int32Array(six.map((i) => (grains ? pigOf(i)?.finish ?? 0 : 0))));
@@ -3928,6 +4131,30 @@ export class MakeupGL {
     gl.uniform1f(this.uni(p, "uMineLow"), mine?.shadow?.low ?? 0);
     gl.uniform1f(this.uni(p, "uLidFade"), mine?.shadow?.fade ?? 0.85);
     gl.uniform1f(this.uni(p, "uMineBelow"), mine?.shadow && (mine.shadow.drawn === "smoky" || mine.shadow.below === "smoky") ? SMOKY_BELOW : 1);
+    const requestedBoost = mine?.shadow?.smokeBandBoost ?? 0;
+    const smoke = mine?.shadow && (mine.shadow.drawn === "smoky" || mine.shadow.below === "smoky") && Number.isFinite(requestedBoost) ? Math.min(0.5, Math.max(0, requestedBoost)) : 0;
+    let validSmoke = smoke;
+    if (smoke > 0) {
+      const ids = [33, 263, 145, 374, 153, 144, 380, 373];
+      if (ids.some(i => !P[i] || !Number.isFinite(P[i][0]) || !Number.isFinite(P[i][1]))) validSmoke = 0;
+      else {
+        const dx = P[263][0] - P[33][0], dy = P[263][1] - P[33][1], n = Math.hypot(dx, dy);
+        if (!(n > 1 && ew > 1)) validSmoke = 0;
+        else {
+          const down = [-dy / n, dx / n];
+          const deepest = (indices: number[]) => indices.map(i => P[i]).reduce((a,b) => a[0]*down[0]+a[1]*down[1] > b[0]*down[0]+b[1]*down[1] ? a : b);
+          const left = deepest([145,153,144]), right = deepest([374,380,373]);
+          gl.uniform4fv(this.uni(p, "uSmokeBand"), new Float32Array([left[0],left[1],...down,right[0],right[1],...down]));
+        }
+      }
+    }
+    gl.uniform1f(this.uni(p, "uSmokeBoost"), validSmoke);
+    let glitterPilot = false;
+    try { glitterPilot = new URLSearchParams(location.search).get("glitterPilot") === "1"; } catch { /* default off */ }
+    gl.uniform1f(this.uni(p, "uGlitterPilot"), glitterPilot ? 1 : 0);
+    let softLinerPilot = false;
+    try { softLinerPilot = new URLSearchParams(location.search).get("softLinerPilot") === "1"; } catch { /* default off */ }
+    gl.uniform1f(this.uni(p, "uSoftLinerPilot"), softLinerPilot && mine?.liner?.place === "thin" && !mine.liner.lower && !mine.liner.kohl && !mine.liner.crease ? 1 : 0);
     const top = mine?.shadow?.glitterTop;
     gl.uniform4f(this.uni(p, "uGlitterTop"), top?.[0] ?? 0, top?.[1] ?? 0, top?.[2] ?? 0, top ? 1 : 0);
     const lens = prod?.lenses, irises = P.length >= 478 ? [468, 473] : null;

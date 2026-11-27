@@ -102,3 +102,71 @@ certificate. An artist blind study and the full-set release review remain necess
 To make the repeat meaningful, render the same code and same manifest independently;
 do not copy its existing score file. If a group has no valid measurements, the gate
 cannot establish quality for that group, so inspect coverage before accepting it.
+
+
+## Private A/B of the experimental mobile-eyelid correction (not for production)
+
+The public-catalog source and WebGL tests are insufficient to prove realism on other
+faces. The next release check requires a true matched **baseline → independently
+rerendered baseline repeat → candidate** evaluation under the existing private gate.
+
+All commands below run **only on a trusted local machine** with licensed/consented
+evaluation images. Nothing in these steps sends an evaluation photo to GitHub.
+Use a folder outside the repository; the example `/private/hb` is illustrative.
+On Windows, substitute an appropriate absolute private path.
+
+First, obtain and configure the MST-E evaluation dataset locally as described
+above (set `MSTE_DIR` to its existing directory). Generate all 48 catalog looks
+and the three benchmark runs from **one immutable input set**:
+
+```sh
+python scripts/bench/make_set.py /private/hb/seed --set looks --engines v1
+python scripts/bench/clone_inputs.py /private/hb/seed /private/hb/comparison
+python scripts/bench/build_eye_cap_preview.py --all --cap 0.8 --out /private/hb/eye-cap-layers
+```
+
+The last command generates a full, standalone **public-only** experimental
+WebP atlas pack. It refuses wrong atlas dimensions/UVs, records checksums, and
+copies unaffected shipped layers byte-for-byte. It does **not** overwrite
+`public/tryon/layers`, `looks.json`, or any customer data.
+
+Start the dev server in a second terminal:
+
+```sh
+npm run dev -- --host 127.0.0.1 --port 4180 --strictPort
+```
+
+Render each run (repeat commands as often as required; they resume completed
+frames without overwriting them):
+
+```sh
+node scripts/bench/render.cjs /private/hb/comparison/baseline --minutes 110
+node scripts/bench/render.cjs /private/hb/comparison/repeat --minutes 110
+node scripts/bench/render.cjs /private/hb/comparison/candidate --minutes 110 --layer-dir /private/hb/eye-cap-layers
+```
+
+The `--layer-dir` flag works on the **v1 GPU catalog renderer only**. It
+intercepts only experimental atlas WebP requests before model download, refuses
+missing/malformed files, and asserts every expected look was actually served
+from the private candidate pack. Without it, no production texture is changed.
+
+Score and perform the release regression check entirely locally:
+
+```sh
+python scripts/bench/score.py /private/hb/comparison/baseline --no-history
+python scripts/bench/score.py /private/hb/comparison/repeat --no-history
+python scripts/bench/score.py /private/hb/comparison/candidate --no-history
+node scripts/bench/gate.mjs --baseline /private/hb/comparison/baseline --repeat /private/hb/comparison/repeat --candidate /private/hb/comparison/candidate --out /private/hb/comparison/candidate/gate.md
+```
+
+`--no-history` prevents this private evaluation from modifying the Git-tracked
+`scripts/bench/history.jsonl`. The triplet utility verifies SHA-256 of copied
+input images, manifest and catalog truth in all runs and refuses to replace any
+altered or symlinked input. **Do not upload the run folders, private gate report,
+score rows, or customer/evaluation photos into CI, GitHub, or a public website.**
+
+A PASS certifies *measured no regression against the specified baseline and
+repeat noise on that exact sampled dataset*, not photo-realism or professional
+makeup quality. Artist-blind review, device acceptance, latency, offline cache
+and rollback checks remain independent requirements. Do not ship the
+experimental WebP pack merely because its public tests are green.

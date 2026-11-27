@@ -1,0 +1,263 @@
+name: Catalog pale-lid photometry
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/pale-lids.spec.ts'
+      - 'scripts/bench/diagnose_pale_lids.py'
+      - 'scripts/bench/audit_eye_cap.py'
+      - 'scripts/bench/build_eye_cap_preview.py'
+      - 'scripts/bench/layer_override.cjs'
+      - 'scripts/bench/layer_override.test.cjs'
+      - 'scripts/bench/clone_inputs.py'
+      - 'scripts/bench/test_clone_inputs.py'
+      - 'scripts/bench/render.cjs'
+      - 'tests/pale-lids-gpu-preview.spec.ts'
+      - 'scripts/tinybeauty/teacher.py'
+      - 'src/lib/makeup-gl.ts'
+      - 'public/tryon/layers/**'
+      - '.github/workflows/pale-lid-photometry.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A new experimental change supersedes obsolete 48-look re-renders on the
+# same PR. Preserve a complete run for the current head only.
+concurrency:
+  group: catalog-eye-audit-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  photometry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install exact app dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Measure the three public catalog eyelids in WebGL
+        run: npm run test:ui -- tests/pale-lids.spec.ts --workers=1 --reporter=line
+
+  source-layer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install MediaPipe's Linux GPU loader libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libgles2 libegl1
+      - name: Install catalog diagnostic dependencies (public assets only)
+        run: python -m pip install --disable-pip-version-check 'mediapipe>=0.10.20,<0.11' opencv-python-headless numpy
+      - name: Identify lightness lost while extracting public source makeup layers
+        run: python scripts/bench/diagnose_pale_lids.py --sweep
+
+  full-public-eye-cap-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install MediaPipe runtime libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libgles2 libegl1
+      - name: Install public-catalog analysis dependencies
+        run: python -m pip install --disable-pip-version-check 'mediapipe>=0.10.20,<0.11' opencv-python-headless numpy
+      - name: Audit all public catalog looks for eye-only brightness and other-face spill
+        run: |
+          python -m py_compile scripts/bench/audit_eye_cap.py
+          python scripts/bench/audit_eye_cap.py --all --cap 0.8
+
+  gpu-preview-assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify privacy-preserving local benchmark triplets (synthetic file bytes only)
+        run: python scripts/bench/test_clone_inputs.py -v
+      - name: Install MediaPipe runtime libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libgles2 libegl1
+      - name: Install public catalog GPU-preview dependencies
+        run: python -m pip install --disable-pip-version-check 'mediapipe>=0.10.20,<0.11' opencv-python-headless numpy
+      - name: Verify shipped WebGL atlas parity and build isolated cap 0.8 textures
+        run: python scripts/bench/build_eye_cap_preview.py --cap 0.8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Verify private benchmark atlas routing (synthetic local data only)
+        run: node --test scripts/bench/layer_override.test.cjs
+      - name: Install app dependencies for actual-GPU comparison
+        run: npm ci --no-audit --no-fund
+      - name: Compare default and candidate WebGL2 renders on public catalog model
+        env:
+          EYE_CAP_PREVIEW_GPU_TEST: '1'
+        run: npm run test:ui -- tests/pale-lids-gpu-preview.spec.ts --workers=1 --reporter=line
+      - name: Store public-only candidate atlas, aggregate metrics and test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-eye-cap-gpu-preview
+          path: |
+            public/tryon/eye-cap-preview/
+            test-results/
+          retention-days: 7
+
+  full-public-candidate-pack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install MediaPipe runtime libraries
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libgles2 libegl1
+      - name: Install public catalog atlas dependencies
+        run: python -m pip install --disable-pip-version-check 'mediapipe>=0.10.20,<0.11' opencv-python-headless numpy
+      - name: Build 48-look eye-cap pack in temporary workspace only
+        env:
+          PACK_DIR: ${{ runner.temp }}/public-eye-cap-pack
+        run: |
+          python scripts/bench/build_eye_cap_preview.py --all --cap 0.8 --out "$PACK_DIR"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['PACK_DIR'])
+          doc = json.loads((root / 'manifest.json').read_text())
+          rows = doc['looks']
+          assert doc['production_assets_unchanged'] is True and doc['complete_catalog'] is True
+          assert len(rows) >= 40 and len({r['look'] for r in rows}) == len(rows)
+          assert all((root / (r['look'] + '.webp')).is_file() for r in rows)
+          assert all(r['sha256'] and r['shipped_sha256'] for r in rows)
+          assert any(r['changed_source_pixels'] > 0 for r in rows)
+          print('FULL_PUBLIC_CANDIDATE_PACK', {'looks': len(rows),
+              'changed': sum(r['changed_source_pixels'] > 0 for r in rows)})
+          PY
+          git diff --exit-code -- public/tryon/layers/ public/tryon/looks.json
+      - name: Store complete public-only candidate pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-eye-cap-full-48-look-pack
+          path: ${{ runner.temp }}/public-eye-cap-pack/
+          if-no-files-found: error
+          retention-days: 7
+
+  full-public-gpu-shard:
+    needs: full-public-candidate-pack
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: public-eye-cap-full-48-look-pack
+          path: ${{ runner.temp }}/public-eye-cap-pack
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install exact app dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify 12 looks with baseline, repeat and candidate actual WebGL2
+        env:
+          EYE_CAP_PREVIEW_GPU_TEST: '1'
+          EYE_CAP_ALL_GPU_TEST: '1'
+          EYE_CAP_GPU_SHARD: ${{ matrix.shard }}
+          EYE_CAP_PREVIEW_DIR: ${{ runner.temp }}/public-eye-cap-pack
+        run: npm run test:ui -- tests/pale-lids-gpu-preview.spec.ts --workers=1 --reporter=line
+      - name: Store validated public-only GPU shard evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-eye-cap-gpu-shard-${{ matrix.shard }}
+          path: test-results/public-eye-cap-shards/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Store failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-eye-cap-gpu-failure-${{ matrix.shard }}
+          path: test-results/
+          retention-days: 7
+
+  full-public-gpu-aggregate:
+    needs: [full-public-candidate-pack, full-public-gpu-shard]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: public-eye-cap-full-48-look-pack
+          path: pack
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: public-eye-cap-gpu-shard-*
+          path: shards
+          merge-multiple: true
+      - name: Require complete nonoverlapping 48-look evidence and original improvement gate
+        run: |
+          python - <<'PY'
+          import json, math
+          from pathlib import Path
+          def require(condition, message):
+              if not condition:
+                  raise SystemExit(message)
+          catalog = sorted(r['look'] for r in json.loads(Path('pack/manifest.json').read_text())['looks'])
+          require(len(catalog) == len(set(catalog)) == 48, 'Invalid catalog manifest')
+          files = sorted(Path('shards').glob('*.json'))
+          require(len(files) == 4, 'Missing or extra shard results')
+          all_rows = []
+          for n in range(1, 5):
+              d = json.loads(Path(f'shards/shard-{n}.json').read_text())
+              require(d['fullCatalog'] is True and d['source'] == 'public catalog only', 'Wrong evidence scope')
+              require(d['sampleCount'] == 36 and d['shard'] == n and d['shardCount'] == 4, 'Wrong shard metadata')
+              require(d['catalog'] == catalog, 'Mismatched catalog')
+              rows = d['summary']
+              require(sorted(r['look'] for r in rows) == catalog[n-1::4], 'Incomplete or overlapping shard')
+              for r in rows:
+                  b, repeat, c = (r[k] for k in ('baselineLstar', 'repeatLstar', 'candidateLstar'))
+                  require(all(math.isfinite(v) for v in (b, repeat, c)), 'Nonfinite L*')
+                  require(r['baselineRepeatedSafeHash'] is True and abs(b-repeat) < .01, 'Unstable control')
+                  require(c >= b-.2, 'Lid regression')
+                  p = r['pixels']
+                  for key, limit in [('outsideBoxes',32),('outsideBoxOverOne',0),('outsideFace',64),('outsideFaceOverOne',0),('lipPixels',0)]:
+                      require(type(p[key]) is int and 0 <= p[key] <= limit, f"{r['look']}: {key} exceeds budget")
+              all_rows.extend(rows)
+          require(sorted(r['look'] for r in all_rows) == catalog, 'Full catalog coverage failed')
+          brighter = sum(r['candidateLstar']-r['baselineLstar'] > .1 for r in all_rows)
+          require(brighter >= 2, 'Original minimum improvement gate failed')
+          report = {'fullCatalog':True,'source':'public catalog only','sampleCount':36,'looks':48,'brighter':brighter,'summary':sorted(all_rows,key=lambda r:r['look'])}
+          Path('full-public-gpu-report.json').write_text(json.dumps(report,indent=2))
+          print(f'Full actual GPU audit: 48/48 looks; {brighter} brighter; all protection checks passed')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: public-eye-cap-full-gpu-report
+          path: full-public-gpu-report.json
+          if-no-files-found: error
+          retention-days: 7
