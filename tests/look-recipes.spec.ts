@@ -423,14 +423,27 @@ test("?engine=v2 draws her eyeshadow's placement from her own eye: her lid for a
 });
 
 
-test("under-eye chroma pilot preserves deliberate foundation tint and protected areas", async ({ page }) => {
+for (const lighting of [{id:"normal", factors:[1,1,1]}, {id:"dim", factors:[.55,.55,.55]}, {id:"warm", factors:[1.08,.82,.59]}]) {
+test(`under-eye chroma pilot: fixed-region safety and fidelity in ${lighting.id} light`, async ({ page }) => {
   test.setTimeout(300_000);
   await page.goto("/?engine=v2");
   const photo = readFileSync(join(process.cwd(),"tests/fixtures/lit-cheek.jpg")).toString("base64");
-  const out = await page.evaluate(async b64 => {
+  const out = await page.evaluate(async ({b64,factors}) => {
     const m=await import("/src/lib/tryon.ts");
+    if(m.engine()!=="gpu")throw Error("Actual WebGL2 required");
     await m.downloadModels(["no-makeup"],()=>{});
-    const shot=(await m.preparePhoto(await (await fetch("data:image/jpeg;base64,"+b64)).blob())).plain;
+    let input=await (await fetch("data:image/jpeg;base64,"+b64)).blob();
+    if(factors.some(v=>v!==1)){
+      const bitmap=await createImageBitmap(input);
+      const canvas=document.createElement("canvas");canvas.width=bitmap.width;canvas.height=bitmap.height;
+      const ctx=canvas.getContext("2d")!;ctx.drawImage(bitmap,0,0);bitmap.close();
+      const im=ctx.getImageData(0,0,canvas.width,canvas.height);
+      for(let i=0;i<im.data.length;i+=4)for(let j=0;j<3;j++)
+        im.data[i+j]=Math.round(255*Math.pow(Math.min(1,Math.pow(im.data[i+j]/255,2.2)*factors[j]),1/2.2));
+      ctx.putImageData(im,0,0);
+      input=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(Error("PNG encode failed")),"image/png"));
+    }
+    const shot=(await m.preparePhoto(input)).plain;
     const pixels=(c:HTMLCanvasElement)=>{
       const t=document.createElement("canvas");t.width=c.width;t.height=c.height;
       const g=t.getContext("2d")!;g.drawImage(c,0,0);return g.getImageData(0,0,t.width,t.height);
@@ -447,7 +460,8 @@ test("under-eye chroma pilot preserves deliberate foundation tint and protected 
     let down=[-dy/n,dx/n];if(down[0]*(P[152][0]-P[10][0])+down[1]*(P[152][1]-P[10][1])<0)down=down.map(x=>-x);
     const deepest=(ids:number[])=>ids.map(i=>P[i]).reduce((a,b)=>a[0]*down[0]+a[1]*down[1]>b[0]*down[0]+b[1]*down[1]?a:b);
     const centres=[deepest([145,153,144]),deepest([374,380,373])];
-    let changed=0,exterior=0,maxOutside=0,tintChanges=0,maxLuma=0;
+    let changed=0,exterior=0,maxOutside=0,tintChanges=0,maxLuma=0,newClipped=0;
+    let fixedCount=0,fixedBefore=0,fixedAfter=0,fixedLossBefore=0,fixedLossAfter=0;
     let referenceErrorBefore=0,referenceErrorAfter=0,chromaLossBefore=0,chromaLossAfter=0,improved=0,regressed=0;
     const lin=(v:number)=>(v/255)**2.2;
     const lum=(d:Uint8ClampedArray,i:number)=>.2126*lin(d[i])+.7152*lin(d[i+1])+.0722*lin(d[i+2]);
@@ -456,27 +470,38 @@ test("under-eye chroma pilot preserves deliberate foundation tint and protected 
       const i=4*(y*a.width+x);
       if([0,1,2].some(j=>c.data[i+j]!==d.data[i+j]))tintChanges++;
       const delta=Math.max(...[0,1,2].map(j=>Math.abs(a.data[i+j]-b.data[i+j])));
-      if(!delta)continue;
-      changed++;maxLuma=Math.max(maxLuma,Math.abs(lum(a.data,i)-lum(b.data,i)));
-      const orig=chroma(source.data,i),old=chroma(a.data,i),next=chroma(b.data,i);
-      const e0=Math.hypot(...orig.map((v,j)=>v-old[j])),e1=Math.hypot(...orig.map((v,j)=>v-next[j]));
-      referenceErrorBefore+=e0;referenceErrorAfter+=e1;
-      chromaLossBefore+=Math.max(0,Math.hypot(...orig)-Math.hypot(...old));
-      chromaLossAfter+=Math.max(0,Math.hypot(...orig)-Math.hypot(...next));
-      if(e1<e0)improved++;else if(e1>e0)regressed++;
       const inside=centres.some(p=>{
         const xx=(x+.5-p[0])/ew,yy=(y+.5-p[1])/ew;
         const v=xx*down[0]+yy*down[1],u=Math.abs(xx*down[1]-yy*down[0]);
         return v>=.12&&v<=.64&&u<=.62;
       });
+      if(!inside&&!delta)continue;
+      const orig=chroma(source.data,i),old=chroma(a.data,i),next=chroma(b.data,i);
+      const e0=Math.hypot(...orig.map((v,j)=>v-old[j])),e1=Math.hypot(...orig.map((v,j)=>v-next[j]));
+      if(inside){
+        fixedCount++;fixedBefore+=e0;fixedAfter+=e1;
+        fixedLossBefore+=Math.max(0,Math.hypot(...orig)-Math.hypot(...old));
+        fixedLossAfter+=Math.max(0,Math.hypot(...orig)-Math.hypot(...next));
+      }
+      if(!delta)continue;
+      changed++;maxLuma=Math.max(maxLuma,Math.abs(lum(a.data,i)-lum(b.data,i)));
+      if([0,1,2].some(j=>a.data[i+j]<254&&b.data[i+j]>=254))newClipped++;
+      referenceErrorBefore+=e0;referenceErrorAfter+=e1;
+      chromaLossBefore+=Math.max(0,Math.hypot(...orig)-Math.hypot(...old));
+      chromaLossAfter+=Math.max(0,Math.hypot(...orig)-Math.hypot(...next));
+      if(e1<e0)improved++;else if(e1>e0)regressed++;
+
       if(!inside){exterior++;maxOutside=Math.max(maxOutside,delta);}
     }
     const changedCount=Math.max(changed,1);
-    return {changed,exterior,maxOutside,tintChanges,maxLuma,improved,regressed,
+    if(fixedCount<100)throw Error("Missing fixed anatomical support");
+    return {changed,exterior,maxOutside,tintChanges,maxLuma,improved,regressed,newClipped,fixedCount,
+      fixedBefore:fixedBefore/fixedCount,fixedAfter:fixedAfter/fixedCount,
+      fixedLossBefore:fixedLossBefore/fixedCount,fixedLossAfter:fixedLossAfter/fixedCount,
       meanReferenceErrorBefore:referenceErrorBefore/changedCount,meanReferenceErrorAfter:referenceErrorAfter/changedCount,
       meanChromaLossBefore:chromaLossBefore/changedCount,meanChromaLossAfter:chromaLossAfter/changedCount};
-  },photo);
-  console.log("UNDER_CHROMA_PUBLIC_GPU_AB",JSON.stringify(out));
+  },{b64:photo,factors:lighting.factors});
+  console.log("UNDER_CHROMA_PUBLIC_GPU_AB",JSON.stringify({lighting:lighting.id,...out}));
   expect(out.maxOutside).toBe(0);
   expect(out.tintChanges).toBe(0);
   // 8-bit conversion may perturb linear luminance even at constant shader Y.
@@ -484,8 +509,15 @@ test("under-eye chroma pilot preserves deliberate foundation tint and protected 
   // Local source chroma is a mechanistic target for neutral foundation, not
   // a substitute for a real made-up reference. Require activation on this
   // known public fixture, then quantify recovery among changed pixels.
-  expect(out.changed).toBeGreaterThan(100);
-  expect(out.meanReferenceErrorAfter).toBeLessThan(out.meanReferenceErrorBefore);
-  expect(out.meanChromaLossAfter).toBeLessThan(out.meanChromaLossBefore);
+  expect(out.newClipped).toBe(0);
+  expect(out.fixedAfter).toBeLessThanOrEqual(out.fixedBefore+1e-8);
+  expect(out.fixedLossAfter).toBeLessThanOrEqual(out.fixedLossBefore+1e-8);
+  if(lighting.id==="normal"){
+    expect(out.changed).toBeGreaterThan(100);
+    expect(out.fixedAfter).toBeLessThan(out.fixedBefore);
+    expect(out.fixedLossAfter).toBeLessThan(out.fixedLossBefore);
+  }
+  // No activation on relit synthetic inputs is only safety evidence.
   // Actual medium/deep skin efficacy still requires the private benchmark.
 });
+}
